@@ -1617,7 +1617,12 @@ function showLoadingOverlay(show){
   el.style.display = show ? 'flex' : 'none';
 }
 
-function toDateStr(d){ return d.toISOString().slice(0,10); }
+function toDateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
 function todayStr(){ return toDateStr(new Date()); }
 
 function populateSelects(){
@@ -2726,7 +2731,7 @@ function schChangeDay(delta){
   const cur = el.value || todayStr();
   const d = new Date(cur + 'T12:00:00');
   d.setDate(d.getDate() + delta);
-  el.value = d.toISOString().slice(0,10);
+  el.value = toDateStr(d);
   renderScheduleDay();
 }
 function getSchSlots(date){
@@ -2846,13 +2851,13 @@ function renderScheduleDay(){
   if(date1 && !/^\d{4}-\d{2}-\d{2}$/.test(date1)){
     // พยายาม parse แล้วแปลงกลับ
     const parsed = new Date(date1);
-    if(!isNaN(parsed)) date1 = parsed.toISOString().slice(0,10);
+    if(!isNaN(parsed)) date1 = toDateStr(parsed);
     else date1 = todayStr();
   }
 
   // วันที่ 2 = วันถัดไป — ใช้ T12:00:00 ป้องกัน DST/timezone shift
   const d2 = new Date(date1 + 'T12:00:00'); d2.setDate(d2.getDate()+1);
-  const date2 = d2.toISOString().slice(0,10);
+  const date2 = toDateStr(d2);
 
   const DAY_NAMES_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   const DAY_BG_PASTEL = ['#FFACAC','#FFE08A','#FFB3DE','#A8E6BC','#FFD0A0','#A8D8F0','#C9B8F0'];
