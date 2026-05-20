@@ -1829,9 +1829,12 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null){
   }
   document.getElementById('apt-proc-dropdown').style.display='none';
   if(!isManager){
-    document.getElementById('apt-doc').value=currentUser.name;
+    document.getElementById('apt-doc').value = currentUser.name;
   } else if(apt?.docName){
-    document.getElementById('apt-doc').value=apt.docName;
+    document.getElementById('apt-doc').value = apt.docName;
+  } else {
+    const lastDoc = localStorage.getItem('bl_last_doc');
+    if(lastDoc) document.getElementById('apt-doc').value = lastDoc;
   }
   document.getElementById('modalApt').classList.add('open');
   // แสดงปุ่มลบเฉพาะตอนแก้ไข
@@ -1862,7 +1865,6 @@ function saveApt(){
     date: document.getElementById('apt-date').value||todayStr(),
     time: aptTimeEl?.value || '10:00',
     docName: document.getElementById('apt-doc').value,
-    hn: document.getElementById('apt-hn').value,
     phone: document.getElementById('apt-phone')?.value||'',
     patName: document.getElementById('apt-name').value,
     proc: document.getElementById('apt-proc').value,
@@ -1870,6 +1872,8 @@ function saveApt(){
     note: document.getElementById('apt-note').value,
   };
   if(!apt.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); _aptSaving=false; return; }
+  // บันทึกหมอล่าสุด
+  if(isManager && apt.docName) localStorage.setItem('bl_last_doc', apt.docName);
   const idx = appointments.findIndex(a=>String(a.id)===String(apt.id));
   if(idx>-1) appointments[idx]=apt; else appointments.push(apt);
   saveLocal();
@@ -2004,7 +2008,7 @@ function openAddTreat(t=null){
   const treatHint = document.getElementById('treat-hn-hint');
   if(treatHint) treatHint.innerHTML = '';
   if(t?.hn) autoFillPatient(t.hn, 'treat');
-  document.getElementById('treat-doc').value = t?.docName||(isManager?doctors[0]?.name:currentUser.name);
+  document.getElementById('treat-doc').value = t?.docName || (isManager ? (localStorage.getItem('bl_last_doc') || doctors[0]?.name) : currentUser.name);
   document.getElementById('treat-proc').value = t?.proc||PROCEDURES[0];
   document.getElementById('treat-cash').value = t?.cash||'';
   document.getElementById('treat-transfer').value = t?.transfer||'';
@@ -2040,6 +2044,7 @@ function saveTreat(){
     status:'เสร็จ',
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
+  if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
   saveLocal();
@@ -2657,6 +2662,18 @@ async function syncAll(){
       dayNotes = {};
       d.day_notes.forEach(r=>{ if(r.date && r.note) dayNotes[String(r.date).trim()] = r.note; });
     }
+    // Load sch_slots
+    if(Array.isArray(d.sch_slots)){
+      try {
+        const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
+        d.sch_slots.forEach(r=>{
+          if(r.date && r.slots){
+            try { all[r.date] = JSON.parse(r.slots); } catch(e){}
+          }
+        });
+        localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
+      } catch(e){}
+    }
     // ---- Apply settings from Sheet (pin, share, specialty, gender) ----
     if(Array.isArray(d.settings) && d.settings.length){
       d.settings.forEach(s=>{
@@ -2745,6 +2762,8 @@ function saveSchSlots(date, slots){
     const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
     all[date] = slots;
     localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
+    // sync ขึ้น Sheet
+    syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(slots) });
   } catch(e){}
 }
 function isSlotBlocked(date, slot){
@@ -2946,7 +2965,9 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     return `<div style="background:${sc}12;border-left:3px solid ${sc};border-radius:6px;
       padding:5px 8px;margin-top:4px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
-        <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.patName||'—'}</span>
+        <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          ${a.hn?`<span style="font-weight:700;color:${sc};font-size:12px;">${a.hn}</span> · `:''} ${a.patName||'—'}
+        </span>
         <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" style="font-size:9px;">${a.status||''}</span>
           <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)"
@@ -2956,7 +2977,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
         </div>
       </div>
       <div style="font-size:10px;color:var(--text-light);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        ${a.hn||''} · ${a.phone||''}
+        ${a.phone||''}
       </div>
       ${a.proc?`<div style="margin-top:2px;">${procBadge(a.proc)}</div>`:''}
       ${a.note?`<div style="font-size:10px;color:var(--text-mid);margin-top:1px;">📝 ${a.note}</div>`:''}
