@@ -1808,6 +1808,7 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null){
   document.getElementById('apt-phone').value= apt?.phone || '';
   document.getElementById('apt-note').value = apt?.note || '';
   document.getElementById('apt-status').value = apt?.status || 'ไม่คอนเฟิร์ม';
+  if(apt?.hn) autoFillPatient(apt.hn, 'apt');
   // Time — prefillTime จาก slot > apt.time > ปัดเวลาปัจจุบัน
   const aptTimeEl = document.getElementById('apt-time');
   if(apt?.time && aptTimeEl) aptTimeEl.value = apt.time;
@@ -1865,6 +1866,7 @@ function saveApt(){
     date: document.getElementById('apt-date').value||todayStr(),
     time: aptTimeEl?.value || '10:00',
     docName: document.getElementById('apt-doc').value,
+    hn: document.getElementById('apt-hn').value,
     phone: document.getElementById('apt-phone')?.value||'',
     patName: document.getElementById('apt-name').value,
     proc: document.getElementById('apt-proc').value,
