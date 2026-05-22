@@ -341,7 +341,7 @@ tbody td { padding: 10px 14px; font-size: 13px; color: var(--text-mid); }
 .badge-today { background: rgba(107,45,94,0.15); color: var(--wine); border: 1px solid rgba(107,45,94,0.3); }
 .badge-waiting { background: rgba(243,156,18,0.15); color: #c07800; border: 1px solid rgba(243,156,18,0.3); }
 .badge-confirmed { background: rgba(52,152,219,0.15); color: #1a6ea8; border: 1px solid rgba(52,152,219,0.3); }
-.badge-finished { background: rgba(46,204,144,0.15); color: #1a9e6a; border: 1px solid rgba(46,204,144,0.3); }
+.badge-finished { background: rgba(26,122,60,0.15); color: #1a7a3c; border: 1px solid rgba(26,122,60,0.4); }
 
 /* BUTTONS */
 .btn {
@@ -2950,7 +2950,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const STATUS_COLOR = {
     'ไม่คอนเฟิร์ม':'var(--wine)','รอทำ':'var(--orange)',
     'คอนเฟิร์ม':'var(--blue)','confirm':'var(--blue)',
-    'เสร็จสิ้น':'var(--green)','เสร็จ':'var(--green)',
+    'เสร็จสิ้น':'#1a7a3c','เสร็จ':'#1a7a3c',
     'ยกเลิก':'var(--red)','walk-in':'#3498DB'
   };
 
@@ -2965,24 +2965,23 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     const sc = STATUS_COLOR[a.status]||'#999';
     const safeId = String(a.id).replace(/"/g,'');
     return `<div style="background:${sc}12;border-left:3px solid ${sc};border-radius:6px;
-      padding:5px 8px;margin-top:4px;">
+      padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${a.hn?`<span style="font-weight:700;color:${sc};font-size:12px;">${a.hn}</span> · `:''} ${a.patName||'—'}
+          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
-        <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" style="font-size:9px;">${a.status||''}</span>
           <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)"
-            style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:11px;">✏️</button>
+            style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:1px 5px;cursor:pointer;font-size:11px;">✏️</button>
           <button data-apt-id="${safeId}" onclick="event.stopPropagation();deleteApt(this.dataset.aptId)"
-            style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:11px;">🗑️</button>
+            style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:1px 5px;cursor:pointer;font-size:11px;">🗑️</button>
         </div>
       </div>
-      <div style="font-size:10px;color:var(--text-light);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        ${a.phone||''}
-      </div>
-      ${a.proc?`<div style="margin-top:2px;">${procBadge(a.proc)}</div>`:''}
-      ${a.note?`<div style="font-size:10px;color:var(--text-mid);margin-top:1px;">📝 ${a.note}</div>`:''}
+      ${(a.proc||a.note)?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
+        ${a.proc?procBadge(a.proc):''}
+        ${a.note?`<span style="font-size:10px;color:var(--text-mid);">📝 ${a.note}</span>`:''}
+      </div>`:''}
     </div>`;
   }
 
@@ -3108,7 +3107,7 @@ function renderSchMiniCal(){
   const DAY_NAMES_S = ['อา','จ','อ','พ','พฤ','ศ','ส'];
   const DAY_BG_P = ['#FFACAC','#FFE08A','#FFB3DE','#A8E6BC','#FFD0A0','#A8D8F0','#C9B8F0'];
   const DAY_FG_P = ['#7B2020','#6B4A00','#7B2060','#1A6B40','#7B4000','#1A4A7B','#3D1A7B'];
-  const STATUS_COLOR = {'ไม่คอนเฟิร์ม':'var(--wine)','รอทำ':'var(--orange)','คอนเฟิร์ม':'var(--blue)','confirm':'var(--blue)','เสร็จสิ้น':'var(--green)','เสร็จ':'var(--green)','ยกเลิก':'var(--red)','walk-in':'#3498DB'};
+  const STATUS_COLOR = {'ไม่คอนเฟิร์ม':'var(--wine)','รอทำ':'var(--orange)','คอนเฟิร์ม':'var(--blue)','confirm':'var(--blue)','เสร็จสิ้น':'#1a7a3c','เสร็จ':'#1a7a3c','ยกเลิก':'var(--red)','walk-in':'#3498DB'};
 
   if(labelEl) labelEl.textContent = `${MONTH_TH[m-1]} ${y+543}`;
 
@@ -3166,9 +3165,9 @@ function renderSchMiniCal(){
         class="cal-note-input" data-date="${ds}"
         onclick="event.stopPropagation()"
         onchange="saveDayNote(this.dataset.date,this.value);renderSchMiniCal();"
-        style="width:100%;border:none;border-bottom:1px dashed rgba(0,0,0,0.15);
-        background:transparent;font-size:8px;color:var(--text-mid);padding:1px 2px;
-        outline:none;margin-top:2px;font-family:'Sarabun',sans-serif;">
+        style="width:100%;border:none;border-bottom:1.5px dashed rgba(0,0,0,0.2);
+        background:transparent;font-size:11px;font-weight:600;color:var(--text-mid);padding:2px 2px;
+        outline:none;margin-top:3px;font-family:'Sarabun',sans-serif;">
     </div>`;
   }
   html += `</div>`;
@@ -3246,7 +3245,7 @@ function renderSchedulePage(){
     const STATUS_COLOR = {
       'ไม่คอนเฟิร์ม':'var(--wine)','รอทำ':'var(--orange)',
       'คอนเฟิร์ม':'var(--blue)','confirm':'var(--wine)',
-      'เสร็จสิ้น':'var(--green)','เสร็จ':'var(--green)',
+      'เสร็จสิ้น':'#1a7a3c','เสร็จ':'#1a7a3c',
       'ยกเลิก':'var(--red)','walk-in':'#3498DB','ไม่คอนเฟิร์ม':'#aaa'
     };
     const today = todayStr();
