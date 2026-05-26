@@ -2884,15 +2884,20 @@ async function syncAll(){
     if(Array.isArray(d.appointments)) appointments = d.appointments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.treatments))  treatments  = d.treatments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.labs))        labs        = d.labs.filter(r=>sid(r)).map(normRow);
-    // Load patients from Sheet
+    // Load patients from Sheet — กรอง HN ที่ถูกลบออกก่อน
     if(Array.isArray(d.patients)){
+      let deletedHNs = [];
+      try{ deletedHNs = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]'); }catch(e){}
       d.patients.forEach(p=>{
         if(!p.hn) return;
+        if(deletedHNs.includes(String(p.hn))) return; // ข้าม HN ที่ลบแล้ว
         p.sso = (String(p.sso||'').toUpperCase()==='TRUE'||p.sso===true);
         const idx = patients.findIndex(x=>x.hn===p.hn);
         if(idx>-1) patients[idx]={...patients[idx],...p};
         else patients.push(p);
       });
+      // กรอง deletedHNs ออกจาก patients array ด้วย
+      patients = patients.filter(p=>!deletedHNs.includes(String(p.hn)));
       try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
     }
     // Load day_notes + day_colors
@@ -4254,14 +4259,16 @@ function showToast(msg,type='success'){
 }
 function clearCacheAndReload(){
   if(!confirm('ล้าง Cache และโหลดข้อมูลใหม่จาก Sheet? ข้อมูลในเครื่องจะถูกล้างและดึงใหม่จาก Google Sheet')) return;
-  // Keep session and doctor pins
+  // Keep session, doctor pins, and deleted patients blacklist
   const session = localStorage.getItem('bl_session');
   const pins = localStorage.getItem('bl_doctors_pins');
   const lastPage = localStorage.getItem('bl_lastPage');
+  const deletedPats = localStorage.getItem('bl_deleted_patients');
   localStorage.clear();
   if(session) localStorage.setItem('bl_session', session);
   if(pins) localStorage.setItem('bl_doctors_pins', pins);
   if(lastPage) localStorage.setItem('bl_lastPage', lastPage);
+  if(deletedPats) localStorage.setItem('bl_deleted_patients', deletedPats);
   showToast('ล้าง Cache สำเร็จ กำลังโหลดใหม่...');
   setTimeout(()=>location.reload(), 1000);
 }
@@ -4269,7 +4276,14 @@ function clearCacheAndReload(){
 // ============================================================
 //  PATIENT LIST (Manager only)
 // ============================================================
-let patients = JSON.parse(localStorage.getItem('bl_patients')||'[]');
+(function(){
+  let _pats = JSON.parse(localStorage.getItem('bl_patients')||'[]');
+  let _deleted = [];
+  try{ _deleted = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]'); }catch(e){}
+  // กรอง deletedHNs ออกตั้งแต่แรก
+  window.patients = _pats.filter(p=>!_deleted.includes(String(p.hn)));
+})();
+if(typeof patients === 'undefined') var patients = [];
 
 function savePatients(hnToSync){
   try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
@@ -4283,22 +4297,26 @@ function savePatients(hnToSync){
 }
 
 function getPatientList(){
-  // Build deduplicated patient list from stored patients + treatment records
+  // โหลด HN ที่ถูกลบไปแล้ว
+  let deletedHNs = [];
+  try{ deletedHNs = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]'); }catch(e){}
+
   const map = {};
-  // First: from stored patients (authoritative)
+  // จาก patients array — กรอง deletedHNs ออกด้วย
   patients.forEach(p=>{
-    if(p.hn) map[p.hn] = {...p};
+    if(p.hn && !deletedHNs.includes(String(p.hn))) map[p.hn] = {...p};
   });
-  // Fill in name/phone from treatments if missing
+  // Fallback จาก treatments
   treatments.forEach(t=>{
     if(!t.hn || !t.patName) return;
-    if(!map[t.hn]){
+    if(!map[t.hn] && !deletedHNs.includes(String(t.hn))){
       map[t.hn] = { hn: t.hn, name: t.patName, phone: t.phone||'', lineId:'', sso: false, addedAt: t.date||'' };
     }
   });
+  // Fallback จาก appointments
   appointments.forEach(a=>{
     if(!a.hn || !a.patName) return;
-    if(!map[a.hn]){
+    if(!map[a.hn] && !deletedHNs.includes(String(a.hn))){
       map[a.hn] = { hn: a.hn, name: a.patName, phone: a.phone||'', lineId:'', sso: false, addedAt: a.date||'' };
     }
   });
@@ -4550,10 +4568,17 @@ function saveEditPatient(){
 // ---- Delete Patient ----
 function deletePatient(hn, name){
   if(!confirm(`ลบ "${name}" (HN: ${hn}) ออกจากรายชื่อ?\n\nหมายเหตุ: ประวัติการรักษาจะยังคงอยู่`)) return;
-  patients = patients.filter(p=>p.hn!==hn);
-  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+  const hnStr = String(hn);
+  patients = patients.filter(p=>String(p.hn)!==hnStr);
+  // เก็บ HN ที่ลบไว้ใน localStorage เพื่อไม่ให้โผล่กลับจาก treatments/appointments/syncAll
+  try{
+    const deleted = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]');
+    if(!deleted.includes(hnStr)) deleted.push(hnStr);
+    localStorage.setItem('bl_deleted_patients', JSON.stringify(deleted));
+    localStorage.setItem('bl_patients', JSON.stringify(patients));
+  }catch(e){}
   // ส่ง delete ไป Sheet
-  syncToSheet('delete_patient', { hn }).then(()=>{
+  syncToSheet('delete_patient', { hn: hnStr }).then(()=>{
     showToast('ลบรายชื่อและ sync Sheet แล้ว ✅');
   }).catch(()=>{
     showToast('ลบแล้ว (sync ไม่สำเร็จ)','error');
