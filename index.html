@@ -4551,8 +4551,13 @@ function saveEditPatient(){
 function deletePatient(hn, name){
   if(!confirm(`ลบ "${name}" (HN: ${hn}) ออกจากรายชื่อ?\n\nหมายเหตุ: ประวัติการรักษาจะยังคงอยู่`)) return;
   patients = patients.filter(p=>p.hn!==hn);
-  savePatients();
-  showToast('ลบรายชื่อแล้ว');
+  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+  // ส่ง delete ไป Sheet
+  syncToSheet('delete_patient', { hn }).then(()=>{
+    showToast('ลบรายชื่อและ sync Sheet แล้ว ✅');
+  }).catch(()=>{
+    showToast('ลบแล้ว (sync ไม่สำเร็จ)','error');
+  });
   renderPatients();
 }
 
