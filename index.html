@@ -703,6 +703,9 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 /* HIGHLIGHT ROW */
 tbody tr.own-row { background: rgba(212,168,71,0.04); }
+
+/* PATIENT CARDS */
+.patient-card { user-select:none; -webkit-tap-highlight-color:transparent; }
 </style>
 </head>
 <body>
@@ -807,6 +810,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       </div>
     </div>
     <div class="sidebar-nav">
+      <button class="nav-item" onclick="showPage('patients')" id="nav-patients" style="display:none;"><span class="nav-icon">👥</span>รายชื่อคนไข้</button>
       <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon">🏠</span>หน้าหลัก</button>
       <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule" style="display:none;"><span class="nav-icon">📆</span>ดูนัด</button>
       <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon">📋</span>บันทึกการรักษา</button>
@@ -846,11 +850,13 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
     </div>
     <!-- TOP TAB BAR (mobile navigation) -->
     <div class="top-tab-bar" id="topTabBar">
+      <button class="top-tab" id="ttab-patients" style="display:none;" onclick="showPage('patients');setMobileNav('patients')"><span class="mn-icon">👥</span>คนไข้</button>
       <button class="top-tab active" id="ttab-home" onclick="showPage('home');setMobileNav('home')"><span class="mn-icon">🏠</span>หน้าหลัก</button>
       <button class="top-tab" id="ttab-schedule" style="display:none;" onclick="showPage('schedule');setMobileNav('schedule')"><span class="mn-icon">📆</span>ดูนัด</button>
       <button class="top-tab" id="ttab-treatment" onclick="showPage('treatment');setMobileNav('treatment')"><span class="mn-icon">📋</span>รักษา</button>
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
+      <button class="top-tab manager-only" id="ttab-followup" onclick="showPage('followup')"><span class="mn-icon">🔔</span>ติดตาม</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -1016,6 +1022,23 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
     </div>
 
     <!-- ===== LAB PAGE ===== -->
+    <div class="page" id="page-followup">
+      <div class="section-hdr"><span>🔔 ติดตามผู้ป่วยประกันสังคม</span></div>
+      <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow);">
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;">
+          แสดงผู้ป่วยที่ใช้สิทธิ์ประกันสังคม และไม่ได้มารักษาเกิน <strong>330 วัน</strong>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label style="font-size:13px;color:var(--text-mid);">ไม่มาเกิน</label>
+          <input type="number" id="followupDays" value="330" min="30" max="3650"
+            oninput="renderFollowup()"
+            style="width:80px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;">
+          <label style="font-size:13px;color:var(--text-mid);">วัน</label>
+        </div>
+      </div>
+      <div id="followupList"></div>
+    </div>
+
     <div class="page" id="page-lab">
       <div class="card-box">
         <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
@@ -1076,6 +1099,25 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
     </div>
 
+    <!-- ===== PATIENTS PAGE (Manager only) ===== -->
+    <div class="page" id="page-patients">
+      <!-- Header + Add button -->
+      <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div class="section-title"><span>👥</span>รายชื่อคนไข้</div>
+        <button class="btn btn-primary" onclick="openAddPatient()">+ เพิ่มคนไข้รายใหม่</button>
+      </div>
+
+      <!-- Search bar -->
+      <div style="background:#fff;border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid var(--border);">
+        <div class="search-box" style="max-width:380px;">
+          <input type="text" class="form-control" id="patientSearch" placeholder="ค้นหา HN / ชื่อ / เบอร์" oninput="renderPatients()" style="height:38px;padding-left:34px;width:100%;">
+        </div>
+      </div>
+
+      <!-- Patient cards grid -->
+      <div id="patientGrid" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
     <!-- ===== SETTINGS PAGE ===== -->
     <div class="page" id="page-settings">
       <div class="settings-grid" id="settingsGrid"></div>
@@ -1094,6 +1136,9 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
   <!-- MOBILE BOTTOM NAV -->
   <div class="mobile-nav">
     <div class="mobile-nav-inner">
+      <button class="mobile-nav-btn" id="mnav-patients" onclick="showPage('patients');setMobileNav('patients')" style="display:none;">
+        <span class="mn-icon">👥</span>คนไข้
+      </button>
       <button class="mobile-nav-btn active" id="mnav-home" onclick="showPage('home');setMobileNav('home')">
         <span class="mn-icon">🏠</span>หน้าหลัก
       </button>
@@ -1330,6 +1375,87 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
   <div class="status-opt" onclick="setStatus('เสร็จสิ้น')"><span style="color:var(--green)">🎉</span> เสร็จสิ้น</div>
   <div class="status-opt" onclick="setStatus('ยกเลิก')"><span style="color:var(--red)">❌</span> ยกเลิก</div>
   <div class="status-opt" onclick="setStatus('walk-in')"><span style="color:var(--blue)">🚶</span> walk-in</div>
+</div>
+
+<!-- EDIT PATIENT MODAL -->
+<div class="modal-overlay" id="modalEditPatient">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-title">✏️ แก้ไขข้อมูลคนไข้ · <span id="editPat-hn-display" style="font-size:14px;color:var(--wine-mid);"></span></div>
+    <button class="modal-close" onclick="closeEditPatient()">×</button>
+    <input type="hidden" id="editPat-hn">
+    <div class="form-grid">
+      <div class="form-group form-control-full">
+        <label>ชื่อ-สกุล <span style="color:var(--red);">*</span></label>
+        <input class="form-control" id="editPat-name" placeholder="ชื่อ-นามสกุล">
+      </div>
+      <div class="form-group">
+        <label>เบอร์โทรศัพท์</label>
+        <input class="form-control" id="editPat-phone" type="tel" placeholder="0xx-xxx-xxxx" inputmode="numeric" maxlength="12" oninput="fmtPhone(this)">
+      </div>
+      <div class="form-group">
+        <label>Line ID</label>
+        <input class="form-control" id="editPat-line" placeholder="Line ID">
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:14px 16px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="editPat-sso" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;">
+        <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditPatient()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveEditPatient()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PATIENT MODAL -->
+<div class="modal-overlay" id="modalAddPatient">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-title">👥 เพิ่มคนไข้รายใหม่</div>
+    <button class="modal-close" onclick="closeAddPatient()">×</button>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>HN <span style="color:var(--red);">*</span></label>
+        <input class="form-control" id="newPat-hn" placeholder="yy-xxxxx" maxlength="8" oninput="fmtHN(this)">
+      </div>
+      <div class="form-group">
+        <label>ชื่อ-สกุล <span style="color:var(--red);">*</span></label>
+        <input class="form-control" id="newPat-name" placeholder="ชื่อ-นามสกุล">
+      </div>
+      <div class="form-group">
+        <label>เบอร์โทรศัพท์</label>
+        <input class="form-control" id="newPat-phone" type="tel" placeholder="0xx-xxx-xxxx" inputmode="numeric" maxlength="12" oninput="fmtPhone(this)">
+      </div>
+      <div class="form-group">
+        <label>Line ID</label>
+        <input class="form-control" id="newPat-line" placeholder="Line ID">
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:14px 16px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="newPat-sso" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;">
+        <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddPatient()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveNewPatient()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT DETAIL MODAL -->
+<div class="modal-overlay" id="modalPatientDetail">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-title">🦷 <span id="pdTitle">ประวัติคนไข้</span></div>
+    <button class="modal-close" onclick="closePatientDetail()">×</button>
+    <div id="pdContent" style="max-height:65vh;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePatientDetail()">ปิด</button>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST -->
@@ -1576,7 +1702,7 @@ function startApp(){
   if(iyr) iyr.value = now.getFullYear()+543;
 
   // Show settings + schedule tab for manager only
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
@@ -1669,13 +1795,18 @@ function showPage(p){
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
   localStorage.setItem('bl_lastPage', p);
-  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า'};
+  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
   if(p==='treatment') renderTreatPage();
   if(p==='income') renderIncome();
   if(p==='lab') renderLabPage();
   if(p==='settings') buildSettingsPage();
+  if(p==='patients'){
+    renderPatients(); // render จาก cache ก่อน
+    // แล้ว sync จาก Sheet แล้ว render ใหม่
+    syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
+  }
   if(p==='schedule'){
     const el = document.getElementById('schDate');
     if(el && !el.value) el.value = todayStr();
@@ -2392,6 +2523,100 @@ function deleteLab(id){
   saveLocal(); renderLabPage(); showToast('ลบสำเร็จ');
   syncToSheet('delete',{type:'labs',id});
 }
+function hideFollowup(hn){
+  try {
+    const hidden = JSON.parse(localStorage.getItem('bl_followup_hidden')||'[]');
+    if(!hidden.includes(hn)) hidden.push(hn);
+    localStorage.setItem('bl_followup_hidden', JSON.stringify(hidden));
+    renderFollowup();
+  } catch(e){}
+}
+
+function renderFollowup(){
+  const el = document.getElementById('followupList');
+  if(!el) return;
+  const days = parseInt(document.getElementById('followupDays')?.value)||365;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const cutoff = new Date(today); cutoff.setDate(cutoff.getDate()-days);
+
+  // กรองเฉพาะคนที่มี ปสค. > 0
+  const pskTreats = treatments.filter(t=> parseFloat(t.psk||t.ins||0) > 0);
+
+  // group by HN หาวันล่าสุด
+  const byHN = {};
+  pskTreats.forEach(t=>{
+    const hn = String(t.hn||'').trim();
+    if(!hn) return;
+    if(!byHN[hn]){
+      byHN[hn] = { hn, patName:t.patName||'', phone:t.phone||'', docName:t.docName||'', lastDate:'', lastProc:'', visits:0 };
+    }
+    byHN[hn].visits++;
+    if(!byHN[hn].lastDate || t.date > byHN[hn].lastDate){
+      byHN[hn].lastDate = t.date;
+      byHN[hn].patName = t.patName||byHN[hn].patName;
+      byHN[hn].phone = t.phone||byHN[hn].phone;
+      byHN[hn].docName = t.docName||byHN[hn].docName;
+      byHN[hn].lastProc = t.proc||'';
+    }
+  });
+
+  // กรองคนที่ซ่อนไว้
+  const hidden = JSON.parse(localStorage.getItem('bl_followup_hidden')||'[]');
+  const overdue = Object.values(byHN).filter(p=>{
+    if(!p.lastDate) return false;
+    const last = new Date(p.lastDate+'T00:00:00');
+    return last <= cutoff && !hidden.includes(p.hn);
+  }).sort((a,b)=> a.lastDate < b.lastDate ? -1 : 1);
+
+  if(!overdue.length){
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);font-size:14px;">
+      ✅ ไม่มีผู้ป่วยที่ค้างนานเกิน ${days} วัน</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="font-size:13px;color:var(--wine-dark);font-weight:700;">พบ ${overdue.length} ราย ที่ไม่มาเกิน ${days} วัน</span>
+      ${hidden.length?`<button onclick="localStorage.removeItem('bl_followup_hidden');renderFollowup();"
+        style="font-size:11px;background:#f5f0f5;border:1px solid var(--border);border-radius:6px;
+        padding:3px 10px;cursor:pointer;color:var(--wine-dark);">แสดงทั้งหมด (${hidden.length})</button>`:''}
+    </div>
+    ${overdue.map((p,i)=>{
+      const last = new Date(p.lastDate+'T00:00:00');
+      const diffDays = Math.floor((today-last)/86400000);
+      const urgent = diffDays > 700;
+      const warn = diffDays >= 330 && diffDays <= 700;
+      const borderColor = urgent ? '#E74C3C' : '#E67E22';
+      const dayColor = urgent ? '#E74C3C' : '#E67E22';
+      return `<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;
+        box-shadow:var(--shadow);border-left:4px solid ${borderColor};">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:14px;color:var(--wine-dark);">
+              ${p.hn} · ${p.patName||'—'}
+            </div>
+            <div style="font-size:12px;color:var(--text-light);margin-top:2px;">
+              ${p.phone?`📞 ${p.phone} · `:''}หมอ: ${p.docName||'—'} · มา ${p.visits} ครั้ง
+            </div>
+            <div style="font-size:12px;margin-top:2px;">
+              ครั้งสุดท้าย: <strong>${fmtDate(p.lastDate)}</strong>
+              <span style="color:${dayColor};font-weight:700;margin-left:6px;">
+                (${diffDays} วันที่แล้ว)
+              </span>
+            </div>
+            ${p.lastProc?`<div style="font-size:11px;color:var(--text-light);margin-top:2px;">🦷 ${p.lastProc}</div>`:''}
+          </div>
+          <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="font-size:22px;">${urgent?'🚨':'⚠️'}</div>
+            <button onclick="hideFollowup('${p.hn}')" title="ซ่อน"
+              style="font-size:10px;background:#f0f0f0;border:none;border-radius:6px;
+              padding:3px 8px;cursor:pointer;color:#888;white-space:nowrap;">ซ่อน</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
 function renderLabPage(){
   const month=document.getElementById('labFilterMonth')?.value||todayStr().slice(0,7);
   // Show/populate doc filter for manager only
@@ -2659,10 +2884,37 @@ async function syncAll(){
     if(Array.isArray(d.appointments)) appointments = d.appointments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.treatments))  treatments  = d.treatments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.labs))        labs        = d.labs.filter(r=>sid(r)).map(normRow);
-    // Load day_notes
+    // Load patients from Sheet
+    if(Array.isArray(d.patients)){
+      d.patients.forEach(p=>{
+        if(!p.hn) return;
+        p.sso = (String(p.sso||'').toUpperCase()==='TRUE'||p.sso===true);
+        const idx = patients.findIndex(x=>x.hn===p.hn);
+        if(idx>-1) patients[idx]={...patients[idx],...p};
+        else patients.push(p);
+      });
+      try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+    }
+    // Load day_notes + day_colors
     if(Array.isArray(d.day_notes)){
       dayNotes = {};
-      d.day_notes.forEach(r=>{ if(r.date && r.note) dayNotes[String(r.date).trim()] = r.note; });
+      const colorMap = {};
+      d.day_notes.forEach(r=>{
+        if(!r.date) return;
+        const key = String(r.date).trim();
+        if(key.startsWith('__color__')){
+          const date = key.replace('__color__','');
+          if(r.note) colorMap[date] = r.note;
+        } else {
+          if(r.note) dayNotes[key] = r.note;
+        }
+      });
+      // อัปเดต localStorage สีจาก Sheet
+      try {
+        const existing = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
+        Object.assign(existing, colorMap);
+        localStorage.setItem('bl_day_colors', JSON.stringify(existing));
+      } catch(e){}
     }
     // Load sch_slots
     if(Array.isArray(d.sch_slots)){
@@ -2697,8 +2949,10 @@ async function syncAll(){
     if(p==='home') renderHome();
     else if(p==='treatment') renderTreatPage();
     else if(p==='lab') renderLabPage();
+    else if(p==='followup') renderFollowup();
     else if(p==='income') renderIncome();
     else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
+    else if(p==='patients') renderPatients();
     const t=new Date().toLocaleTimeString('th-TH');
     if(txt) txt.textContent='ซิงค์แล้ว '+t;
     if(dot) dot.style.background='var(--green)';
@@ -3135,6 +3389,7 @@ function renderSchMiniCal(){
     const isToday = ds===today;
     const dow = new Date(y,m-1,d).getDay();
     const isSelected = ds === (document.getElementById('schDate').value||'');
+    const dayBg = getDayColor(ds); // สีที่ผู้ใช้เลือก
 
     // Doc summary
     const docSummary = {};
@@ -3148,19 +3403,37 @@ function renderSchMiniCal(){
       <div style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[a.status]||'#999'};display:inline-block;margin:1px;"></div>`
     ).join('');
 
+    // Doctor colors for cell background
+    const docNames = Object.keys(docSummary);
+    let cellBg = dayBg || (isSelected?'var(--wine-pale)':isToday?'#FFFDE7':'#fff');
+    let cellStyle = '';
+    if(!dayBg && docNames.length === 1){
+      const c = docColor(docNames[0]);
+      cellBg = c+'22';
+    } else if(!dayBg && docNames.length >= 2){
+      const c1 = docColor(docNames[0]);
+      const c2 = docColor(docNames[1]);
+      cellStyle = `background:linear-gradient(135deg, ${c1}33 50%, ${c2}33 50%);`;
+      cellBg = '';
+    }
+
     html += `<div style="min-height:70px;border-radius:8px;
       border:${isSelected?'2px solid var(--wine)':isToday?'2px solid #FFD700':'1px solid var(--border)'};
-      background:${isSelected?'var(--wine-pale)':isToday?'#FFFDE7':'#fff'};
-      padding:4px;overflow:hidden;">
-      <!-- เลขวันที่ กดแล้ว jump -->
-      <div onclick="schJumpToDate('${ds}')" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;cursor:pointer;">
-        <span style="font-size:12px;font-weight:${isToday||isSelected?'900':'600'};
+      ${cellStyle ? cellStyle : `background:${cellBg};`}
+      padding:4px;overflow:hidden;position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+        <span onclick="schJumpToDate('${ds}')" style="font-size:12px;font-weight:${isToday||isSelected?'900':'600'};cursor:pointer;
           color:${isSelected?'var(--wine)':isToday?'#F57F17':dow===0?'#E74C3C':dow===6?'#3498DB':'var(--text-mid)'};">${d}</span>
-        ${dayApts.length?`<span style="font-size:9px;font-weight:700;background:var(--wine);color:#fff;border-radius:8px;padding:0 4px;">${dayApts.length}</span>`:''}
+        <div style="display:flex;align-items:center;gap:2px;">
+          ${dayApts.length?`<span style="font-size:9px;font-weight:700;background:var(--wine);color:#fff;border-radius:8px;padding:0 4px;">${dayApts.length}</span>`:''}
+          <input type="color" value="${dayBg||'#ffffff'}" title="เลือกสีช่อง"
+            data-date="${ds}"
+            onchange="setDayColor(this.dataset.date,this.value);renderSchMiniCal();"
+            onclick="event.stopPropagation()"
+            style="width:14px;height:14px;border:none;border-radius:3px;padding:0;cursor:pointer;background:none;opacity:0.5;">
+        </div>
       </div>
       ${docTags}
-      <div style="display:flex;flex-wrap:wrap;gap:1px;margin-top:2px;">${statusDots}</div>
-      <!-- โน้ต — กดได้อิสระ ไม่ jump -->
       <input type="text" placeholder="+ โน้ต" maxlength="30"
         class="cal-note-input" data-date="${ds}"
         onclick="event.stopPropagation()"
@@ -3733,8 +4006,29 @@ function tpSet(id, val){
 // ============================================================
 function fmtHN(input){
   let v = input.value.replace(/[^0-9]/g,'');
-  if(v.length > 2) v = v.slice(0,2)+'-'+v.slice(2,7);
+  if(v.length > 2) v = v.slice(0,2)+'-'+v.slice(2,7); // YY-XXXXX
   input.value = v;
+}
+
+// หา HN ถัดไปจากทุก source (patients + treatments + appointments)
+function getNextHN(){
+  const allHNs = [];
+  const extract = list => list.forEach(r => {
+    const raw = String(r.hn||'').trim().replace('-','');
+    if(/^\d{7}$/.test(raw)) allHNs.push(parseInt(raw,10));
+  });
+  extract(patients);
+  extract(treatments);
+  extract(appointments);
+  if(!allHNs.length){
+    const yy = String(new Date().getFullYear()+543).slice(-2);
+    return `${yy}-00001`;
+  }
+  const max = Math.max(...allHNs);
+  const next = max + 1;
+  const prefix = String(next).padStart(7,'0').slice(0,2);
+  const seq    = String(next).padStart(7,'0').slice(2);
+  return `${prefix}-${seq}`;
 }
 function fmtPhone(input){
   let v = input.value.replace(/[^0-9]/g,'');
@@ -3751,6 +4045,24 @@ let dayNotes = {}; // { 'YYYY-MM-DD': 'note text' }
 function getDayNote(date){
   return dayNotes[date] || '';
 }
+function getDayColor(date){
+  try {
+    const all = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
+    return all[date]||'';
+  } catch(e){ return ''; }
+}
+function setDayColor(date, color){
+  try {
+    const all = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
+    if(color==='#ffffff'||!color) delete all[date];
+    else all[date] = color;
+    localStorage.setItem('bl_day_colors', JSON.stringify(all));
+    // sync ขึ้น Sheet — เก็บใน day_notes ด้วย prefix __color__
+    const noteKey = '__color__'+date;
+    syncToSheet('day_notes', { id: noteKey, date: noteKey, note: color==='#ffffff'?'':color });
+  } catch(e){}
+}
+
 function saveDayNote(date, val){
   if(!date) return;
   if(val) dayNotes[date] = val;
@@ -3767,8 +4079,13 @@ function autoFillPatient(hn, prefix){
   }
   const hnStr = String(hn).trim();
 
-  // ค้นจาก appointments และ treatments — normalize ทุก field
-  const allRecords = [
+  // ค้นจาก patients (tab คนไข้) ก่อน — มีข้อมูลครบสุด
+  const fromPatients = patients
+    .filter(p => String(p.hn||'').trim() === hnStr && p.name)
+    .map(p => ({ hn: hnStr, patName: p.name, phone: p.phone||'', id: 'pat_'+p.hn }));
+
+  // ค้นจาก appointments และ treatments เป็น fallback
+  const fromRecords = [
     ...appointments.map(r=>({
       hn: String(r.hn||'').trim(),
       patName: r.patName || r.name || '',
@@ -3781,23 +4098,22 @@ function autoFillPatient(hn, prefix){
       phone: r.phone || '',
       id: r.id
     })),
-  ];
+  ].filter(r => r.hn === hnStr && r.patName);
 
-  const matched = allRecords.filter(r => r.hn === hnStr && r.patName);
+  // patients มีความสำคัญสูงสุด ถ้าไม่มีค่อยใช้ records
+  const allMatched = [...fromPatients, ...fromRecords];
 
-  if(!matched.length){
+  if(!allMatched.length){
     if(hint) hint.innerHTML = `<span style="color:var(--text-light);font-style:italic;">ไม่พบประวัติ HN ${hnStr}</span>`;
     return;
   }
 
-  // ใช้ข้อมูลล่าสุด
-  matched.sort((a,b) => String(b.id).localeCompare(String(a.id)));
-  const found = matched[0];
+  // patients ขึ้นก่อน (id เริ่ม pat_) แล้วค่อย sort records ตาม id ล่าสุด
+  const found = allMatched[0];
 
   const nameEl  = document.getElementById(prefix+'-name');
   const phoneEl = document.getElementById(prefix+'-phone');
 
-  // fill เสมอ (ไม่เช็คว่าว่างหรือเปล่า เพราะต้องการ autofill จาก HN)
   if(nameEl  && found.patName) nameEl.value  = found.patName;
   if(phoneEl && found.phone)   phoneEl.value = found.phone;
 
@@ -3950,6 +4266,298 @@ function clearCacheAndReload(){
   setTimeout(()=>location.reload(), 1000);
 }
 
+// ============================================================
+//  PATIENT LIST (Manager only)
+// ============================================================
+let patients = JSON.parse(localStorage.getItem('bl_patients')||'[]');
+
+function savePatients(hnToSync){
+  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+  // sync เฉพาะ record ที่เพิ่ง save (ถ้าระบุ hn) หรือทุกตัว (fallback)
+  if(hnToSync){
+    const rec = patients.find(p=>p.hn===hnToSync);
+    if(rec) syncToSheet('patients', rec);
+  } else {
+    patients.forEach(p => syncToSheet('patients', p));
+  }
+}
+
+function getPatientList(){
+  // Build deduplicated patient list from stored patients + treatment records
+  const map = {};
+  // First: from stored patients (authoritative)
+  patients.forEach(p=>{
+    if(p.hn) map[p.hn] = {...p};
+  });
+  // Fill in name/phone from treatments if missing
+  treatments.forEach(t=>{
+    if(!t.hn || !t.patName) return;
+    if(!map[t.hn]){
+      map[t.hn] = { hn: t.hn, name: t.patName, phone: t.phone||'', lineId:'', sso: false, addedAt: t.date||'' };
+    }
+  });
+  appointments.forEach(a=>{
+    if(!a.hn || !a.patName) return;
+    if(!map[a.hn]){
+      map[a.hn] = { hn: a.hn, name: a.patName, phone: a.phone||'', lineId:'', sso: false, addedAt: a.date||'' };
+    }
+  });
+  return Object.values(map);
+}
+
+function getPatientVisitCount(hn){
+  return treatments.filter(t=>String(t.hn||'').trim()===String(hn||'').trim()).length;
+}
+
+function getPatientTreatments(hn){
+  return treatments.filter(t=>String(t.hn||'').trim()===String(hn||'').trim())
+    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+}
+
+function getLastVisit(hn){
+  const ts = getPatientTreatments(hn);
+  return ts.length ? ts[0].date : null;
+}
+
+function renderPatients(){
+  const q = (document.getElementById('patientSearch')?.value||'').toLowerCase().trim();
+  const grid = document.getElementById('patientGrid');
+  if(!grid) return;
+
+  let list = getPatientList();
+  // Sort by HN descending (latest HN first)
+  list.sort((a,b)=>{
+    const na = String(a.hn||'').replace('-','');
+    const nb = String(b.hn||'').replace('-','');
+    return nb.localeCompare(na, undefined, {numeric:true});
+  });
+
+  if(q){
+    list = list.filter(p=>
+      String(p.hn||'').toLowerCase().includes(q) ||
+      String(p.name||'').toLowerCase().includes(q) ||
+      String(p.phone||'').toLowerCase().includes(q)
+    );
+  }
+
+  const display = q ? list : list.slice(0,10);
+
+  if(!display.length){
+    grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);font-size:15px;">ไม่พบข้อมูลคนไข้</div>`;
+    return;
+  }
+
+  grid.innerHTML = display.map((p,i)=>{
+    const visits = getPatientVisitCount(p.hn);
+    const last = getLastVisit(p.hn);
+    const storedPat = patients.find(sp=>sp.hn===p.hn);
+    const hasSso = storedPat?.sso || false;
+    const lineId = storedPat?.lineId || p.lineId || '';
+    const phone = storedPat?.phone || p.phone || '';
+    return `
+    <div class="patient-card" style="
+      background:#fff;border-radius:12px;padding:14px 18px;
+      box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);
+      transition:all 0.15s;display:flex;align-items:center;gap:14px;position:relative;
+    " onmouseover="this.style.background='#fdf5fb';this.style.boxShadow='var(--shadow)'"
+       onmouseout="this.style.background='#fff';this.style.boxShadow='0 2px 10px rgba(107,45,94,0.08)'">
+
+      <!-- avatar -->
+      <div onclick="openPatientDetail('${p.hn}')" style="flex-shrink:0;width:40px;height:40px;border-radius:50%;cursor:pointer;
+        background:linear-gradient(135deg,var(--wine-pale),#e8d0e4);
+        display:flex;align-items:center;justify-content:center;
+        font-size:12px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">
+        ${String(p.hn||'').split('-')[1]?.slice(-3)||'—'}
+      </div>
+
+      <!-- ข้อมูลหลัก (คลิกดูประวัติ) -->
+      <div onclick="openPatientDetail('${p.hn}')" style="flex:1;min-width:0;cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+          <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${p.name||'—'}</span>
+          ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;">🏛️ ปกส</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-light);font-weight:600;font-family:'Prompt',sans-serif;">HN ${p.hn||'—'}</span>
+          ${phone?`<span style="font-size:13px;color:var(--text-mid);font-weight:600;">📞 ${phone}</span>`:`<span style="font-size:12px;color:var(--text-light);font-style:italic;">ไม่มีเบอร์</span>`}
+          ${lineId?`<span style="font-size:12px;color:#06c755;font-weight:600;">💬 ${lineId}</span>`:''}
+        </div>
+      </div>
+
+      <!-- ครั้ง + วันที่ -->
+      <div onclick="openPatientDetail('${p.hn}')" style="flex-shrink:0;text-align:right;cursor:pointer;">
+        <div style="background:var(--wine-pale);color:var(--wine);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;display:inline-block;margin-bottom:4px;">
+          🦷 ${visits} ครั้ง
+        </div>
+        <div style="font-size:11px;color:var(--text-light);">${last?fmtDate(last):'ยังไม่มีประวัติ'}</div>
+      </div>
+
+      <!-- ปุ่มแก้ไข + ลบ -->
+      <div style="flex-shrink:0;display:flex;gap:6px;">
+        <button onclick="event.stopPropagation();openEditPatient('${p.hn}')"
+          style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;
+          cursor:pointer;font-size:12px;font-weight:700;color:var(--wine);transition:all 0.15s;"
+          onmouseover="this.style.background='var(--wine-pale)';this.style.borderColor='var(--wine)'"
+          onmouseout="this.style.background='#fff';this.style.borderColor='var(--border)'">
+          ✏️ แก้ไข
+        </button>
+        <button onclick="event.stopPropagation();deletePatient('${p.hn}','${p.name||''}')"
+          style="padding:6px 10px;border-radius:8px;border:1.5px solid rgba(231,76,90,0.25);background:#fff;
+          cursor:pointer;font-size:12px;font-weight:700;color:var(--red);transition:all 0.15s;"
+          onmouseover="this.style.background='rgba(231,76,90,0.08)';this.style.borderColor='var(--red)'"
+          onmouseout="this.style.background='#fff';this.style.borderColor='rgba(231,76,90,0.25)'">
+          🗑️
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(!q && list.length > 10){
+    grid.insertAdjacentHTML('beforeend',`
+      <div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">
+        แสดง 10 คนล่าสุด จากทั้งหมด ${list.length} คน — ค้นหาเพื่อดูรายอื่น
+      </div>`);
+  }
+}
+
+// ---- Add Patient Modal ----
+function openAddPatient(){
+  document.getElementById('modalAddPatient').classList.add('open');
+  document.getElementById('newPat-hn').value = getNextHN();
+  document.getElementById('newPat-name').value='';
+  document.getElementById('newPat-phone').value='';
+  document.getElementById('newPat-line').value='';
+  document.getElementById('newPat-sso').checked=false;
+  setTimeout(()=>document.getElementById('newPat-name').focus(),100);
+}
+function closeAddPatient(){ document.getElementById('modalAddPatient').classList.remove('open'); }
+
+function saveNewPatient(){
+  const hn = document.getElementById('newPat-hn').value.trim();
+  const name = document.getElementById('newPat-name').value.trim();
+  const phone = document.getElementById('newPat-phone').value.trim();
+  const lineId = document.getElementById('newPat-line').value.trim();
+  const sso = document.getElementById('newPat-sso').checked;
+  if(!hn){ showToast('กรุณากรอก HN','error'); return; }
+  if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
+  const idx = patients.findIndex(p=>p.hn===hn);
+  const rec = { hn, name, phone, lineId, sso, addedAt: todayStr() };
+  if(idx>-1) patients[idx]=rec; else patients.push(rec);
+  // ปิด modal ก่อน เพราะ syncAll จะ skip ถ้า modal ยังเปิดอยู่
+  closeAddPatient();
+  // save local + sync เฉพาะ record นี้ขึ้น Sheet ทันที
+  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+  syncToSheet('patients', rec).then(()=>{
+    showToast('บันทึกและ sync ขึ้น Sheet แล้ว ✅');
+  }).catch(()=>{
+    showToast('บันทึกแล้ว (sync ไม่สำเร็จ จะลองใหม่อัตโนมัติ)','error');
+  });
+  renderPatients();
+}
+
+// ---- Patient Detail Modal ----
+function openPatientDetail(hn){
+  const all = getPatientList();
+  const p = all.find(x=>x.hn===hn);
+  const storedPat = patients.find(sp=>sp.hn===hn);
+  if(!p) return;
+
+  const visits = getPatientVisitCount(hn);
+  const treats = getPatientTreatments(hn);
+  const hasSso = storedPat?.sso || false;
+  const lineId = storedPat?.lineId || p.lineId || '';
+
+  const rows = treats.length ? treats.map(t=>`
+    <tr>
+      <td style="font-size:12px;">${fmtDate(t.date)}</td>
+      <td>${procBadge(t.proc)}</td>
+      <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName||'—'}</td>
+      <td style="font-weight:700;color:var(--wine-dark);">฿${fmt(totalPrice(t))}</td>
+    </tr>`).join('') :
+    `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-light);font-style:italic;">ยังไม่มีประวัติการรักษา</td></tr>`;
+
+  const modal = document.getElementById('modalPatientDetail');
+  modal.querySelector('#pdTitle').textContent = `${p.name} (${p.hn})`;
+  modal.querySelector('#pdContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--wine-pale);border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:6px;">จำนวนครั้งที่มา</div>
+        <div style="font-size:36px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${visits}</div>
+        <div style="font-size:12px;color:var(--text-light);">ครั้ง</div>
+      </div>
+      <div style="background:#f0f9f4;border-radius:10px;padding:14px;">
+        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:8px;">ข้อมูลติดต่อ</div>
+        <div style="font-size:13px;color:var(--text-mid);line-height:1.8;">
+          ${p.phone?`📞 ${p.phone}<br>`:''}
+          ${lineId?`💬 Line: ${lineId}<br>`:''}
+          ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:11px;font-weight:700;padding:2px 8px;display:inline-block;margin-top:4px;">🏛️ มีสิทธิ์ประกันสังคม</span>`:`<span style="font-size:12px;color:var(--text-light);">ไม่มีประกันสังคม</span>`}
+        </div>
+      </div>
+    </div>
+    <div style="font-size:14px;font-weight:700;color:var(--wine-dark);margin-bottom:10px;font-family:'Prompt',sans-serif;">📋 ประวัติการรักษา</div>
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border);">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:var(--wine-pale);">
+            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">วันที่</th>
+            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รายการ</th>
+            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">หมอ</th>
+            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รวม</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  modal.classList.add('open');
+}
+// ---- Edit Patient ----
+function openEditPatient(hn){
+  const all = getPatientList();
+  const p = all.find(x=>x.hn===hn);
+  const storedPat = patients.find(sp=>sp.hn===hn);
+  if(!p) return;
+  document.getElementById('editPat-hn').value = hn;
+  document.getElementById('editPat-hn-display').textContent = hn;
+  document.getElementById('editPat-name').value = storedPat?.name || p.name || '';
+  document.getElementById('editPat-phone').value = storedPat?.phone || p.phone || '';
+  document.getElementById('editPat-line').value = storedPat?.lineId || p.lineId || '';
+  document.getElementById('editPat-sso').checked = storedPat?.sso || false;
+  document.getElementById('modalEditPatient').classList.add('open');
+  setTimeout(()=>document.getElementById('editPat-name').focus(),100);
+}
+function closeEditPatient(){ document.getElementById('modalEditPatient').classList.remove('open'); }
+
+function saveEditPatient(){
+  const hn = document.getElementById('editPat-hn').value;
+  const name = document.getElementById('editPat-name').value.trim();
+  const phone = document.getElementById('editPat-phone').value.trim();
+  const lineId = document.getElementById('editPat-line').value.trim();
+  const sso = document.getElementById('editPat-sso').checked;
+  if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
+  const idx = patients.findIndex(p=>p.hn===hn);
+  const rec = { hn, name, phone, lineId, sso, addedAt: idx>-1 ? (patients[idx].addedAt||todayStr()) : todayStr() };
+  if(idx>-1) patients[idx]=rec; else patients.push(rec);
+  // ปิด modal ก่อน เพราะ syncAll จะ skip ถ้า modal ยังเปิดอยู่
+  closeEditPatient();
+  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+  syncToSheet('patients', rec).then(()=>{
+    showToast('อัปเดตและ sync ขึ้น Sheet แล้ว ✅');
+  }).catch(()=>{
+    showToast('อัปเดตแล้ว (sync ไม่สำเร็จ)','error');
+  });
+  renderPatients();
+}
+
+// ---- Delete Patient ----
+function deletePatient(hn, name){
+  if(!confirm(`ลบ "${name}" (HN: ${hn}) ออกจากรายชื่อ?\n\nหมายเหตุ: ประวัติการรักษาจะยังคงอยู่`)) return;
+  patients = patients.filter(p=>p.hn!==hn);
+  savePatients();
+  showToast('ลบรายชื่อแล้ว');
+  renderPatients();
+}
+
+function closePatientDetail(){ document.getElementById('modalPatientDetail').classList.remove('open'); }
+
 function logout(){
   if(!confirm('ออกจากระบบ?')) return;
   localStorage.removeItem('bl_session');
@@ -3957,7 +4565,8 @@ function logout(){
   currentUser=null; isManager=false;
   // ซ่อน tab manager-only ก่อนกลับหน้า login
   ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
-   'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome'].forEach(id=>{
+   'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome',
+   'nav-patients','ttab-patients','mnav-patients'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });
