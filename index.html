@@ -703,9 +703,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 /* HIGHLIGHT ROW */
 tbody tr.own-row { background: rgba(212,168,71,0.04); }
-
-/* PATIENT CARDS */
-.patient-card { user-select:none; -webkit-tap-highlight-color:transparent; }
 </style>
 </head>
 <body>
@@ -1101,20 +1098,13 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
     <!-- ===== PATIENTS PAGE (Manager only) ===== -->
     <div class="page" id="page-patients">
-      <!-- Header + Add button -->
       <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="section-title"><span>👥</span>รายชื่อคนไข้</div>
         <button class="btn btn-primary" onclick="openAddPatient()">+ เพิ่มคนไข้รายใหม่</button>
       </div>
-
-      <!-- Search bar -->
-      <div style="background:#fff;border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid var(--border);">
-        <div class="search-box" style="max-width:380px;">
-          <input type="text" class="form-control" id="patientSearch" placeholder="ค้นหา HN / ชื่อ / เบอร์" oninput="renderPatients()" style="height:38px;padding-left:34px;width:100%;">
-        </div>
+      <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);">
+        <input type="text" class="form-control" id="patientSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="renderPatients()" style="height:38px;width:100%;">
       </div>
-
-      <!-- Patient cards grid -->
       <div id="patientGrid" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
@@ -1380,12 +1370,12 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 <!-- EDIT PATIENT MODAL -->
 <div class="modal-overlay" id="modalEditPatient">
   <div class="modal-box" style="max-width:460px;">
-    <div class="modal-title">✏️ แก้ไขข้อมูลคนไข้ · <span id="editPat-hn-display" style="font-size:14px;color:var(--wine-mid);"></span></div>
+    <div class="modal-title">✏️ แก้ไขข้อมูล · <span id="editPat-hn-display" style="font-size:14px;color:var(--wine-mid);"></span></div>
     <button class="modal-close" onclick="closeEditPatient()">×</button>
     <input type="hidden" id="editPat-hn">
     <div class="form-grid">
       <div class="form-group form-control-full">
-        <label>ชื่อ-สกุล <span style="color:var(--red);">*</span></label>
+        <label>ชื่อ-สกุล *</label>
         <input class="form-control" id="editPat-name" placeholder="ชื่อ-นามสกุล">
       </div>
       <div class="form-group">
@@ -1397,12 +1387,10 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
         <input class="form-control" id="editPat-line" placeholder="Line ID">
       </div>
     </div>
-    <div style="margin-top:14px;padding:14px 16px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);">
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-        <input type="checkbox" id="editPat-sso" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;">
-        <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
-      </label>
-    </div>
+    <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:14px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);cursor:pointer;">
+      <input type="checkbox" id="editPat-sso" style="width:18px;height:18px;accent-color:var(--orange);">
+      <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
+    </label>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeEditPatient()">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveEditPatient()">💾 บันทึก</button>
@@ -1417,11 +1405,11 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
     <button class="modal-close" onclick="closeAddPatient()">×</button>
     <div class="form-grid">
       <div class="form-group">
-        <label>HN <span style="color:var(--red);">*</span></label>
+        <label>HN *</label>
         <input class="form-control" id="newPat-hn" placeholder="yy-xxxxx" maxlength="8" oninput="fmtHN(this)">
       </div>
       <div class="form-group">
-        <label>ชื่อ-สกุล <span style="color:var(--red);">*</span></label>
+        <label>ชื่อ-สกุล *</label>
         <input class="form-control" id="newPat-name" placeholder="ชื่อ-นามสกุล">
       </div>
       <div class="form-group">
@@ -1433,12 +1421,10 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
         <input class="form-control" id="newPat-line" placeholder="Line ID">
       </div>
     </div>
-    <div style="margin-top:14px;padding:14px 16px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);">
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-        <input type="checkbox" id="newPat-sso" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;">
-        <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
-      </label>
-    </div>
+    <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:14px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);cursor:pointer;">
+      <input type="checkbox" id="newPat-sso" style="width:18px;height:18px;accent-color:var(--orange);">
+      <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
+    </label>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeAddPatient()">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveNewPatient()">💾 บันทึก</button>
@@ -2884,22 +2870,8 @@ async function syncAll(){
     if(Array.isArray(d.appointments)) appointments = d.appointments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.treatments))  treatments  = d.treatments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.labs))        labs        = d.labs.filter(r=>sid(r)).map(normRow);
-    // Load patients from Sheet — กรอง HN ที่ถูกลบออกก่อน
-    if(Array.isArray(d.patients)){
-      let deletedHNs = [];
-      try{ deletedHNs = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]'); }catch(e){}
-      d.patients.forEach(p=>{
-        if(!p.hn) return;
-        if(deletedHNs.includes(String(p.hn))) return; // ข้าม HN ที่ลบแล้ว
-        p.sso = (String(p.sso||'').toUpperCase()==='TRUE'||p.sso===true);
-        const idx = patients.findIndex(x=>x.hn===p.hn);
-        if(idx>-1) patients[idx]={...patients[idx],...p};
-        else patients.push(p);
-      });
-      // กรอง deletedHNs ออกจาก patients array ด้วย
-      patients = patients.filter(p=>!deletedHNs.includes(String(p.hn)));
-      try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
-    }
+    // Load patients from Sheet via clean function
+    loadPatientsFromSheet(d.patients);
     // Load day_notes + day_colors
     if(Array.isArray(d.day_notes)){
       dayNotes = {};
@@ -4015,26 +3987,6 @@ function fmtHN(input){
   input.value = v;
 }
 
-// หา HN ถัดไปจากทุก source (patients + treatments + appointments)
-function getNextHN(){
-  const allHNs = [];
-  const extract = list => list.forEach(r => {
-    const raw = String(r.hn||'').trim().replace('-','');
-    if(/^\d{7}$/.test(raw)) allHNs.push(parseInt(raw,10));
-  });
-  extract(patients);
-  extract(treatments);
-  extract(appointments);
-  if(!allHNs.length){
-    const yy = String(new Date().getFullYear()+543).slice(-2);
-    return `${yy}-00001`;
-  }
-  const max = Math.max(...allHNs);
-  const next = max + 1;
-  const prefix = String(next).padStart(7,'0').slice(0,2);
-  const seq    = String(next).padStart(7,'0').slice(2);
-  return `${prefix}-${seq}`;
-}
 function fmtPhone(input){
   let v = input.value.replace(/[^0-9]/g,'');
   if(v.length > 6)      v = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6,10);
@@ -4259,231 +4211,257 @@ function showToast(msg,type='success'){
 }
 function clearCacheAndReload(){
   if(!confirm('ล้าง Cache และโหลดข้อมูลใหม่จาก Sheet? ข้อมูลในเครื่องจะถูกล้างและดึงใหม่จาก Google Sheet')) return;
-  // Keep session, doctor pins, and deleted patients blacklist
   const session = localStorage.getItem('bl_session');
   const pins = localStorage.getItem('bl_doctors_pins');
   const lastPage = localStorage.getItem('bl_lastPage');
-  const deletedPats = localStorage.getItem('bl_deleted_patients');
   localStorage.clear();
   if(session) localStorage.setItem('bl_session', session);
   if(pins) localStorage.setItem('bl_doctors_pins', pins);
   if(lastPage) localStorage.setItem('bl_lastPage', lastPage);
-  if(deletedPats) localStorage.setItem('bl_deleted_patients', deletedPats);
   showToast('ล้าง Cache สำเร็จ กำลังโหลดใหม่...');
   setTimeout(()=>location.reload(), 1000);
 }
 
 // ============================================================
-//  PATIENT LIST (Manager only)
+//  PATIENT LIST (Manager only) — clean rewrite
 // ============================================================
-(function(){
-  let _pats = JSON.parse(localStorage.getItem('bl_patients')||'[]');
-  let _deleted = [];
-  try{ _deleted = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]'); }catch(e){}
-  // กรอง deletedHNs ออกตั้งแต่แรก
-  window.patients = _pats.filter(p=>!_deleted.includes(String(p.hn)));
-})();
-if(typeof patients === 'undefined') var patients = [];
 
-function savePatients(hnToSync){
+// patients array — source of truth คือ Google Sheet tab "คนไข้"
+// localStorage ใช้เป็น cache เท่านั้น
+var patients = JSON.parse(localStorage.getItem('bl_patients')||'[]');
+
+// ---- sync ขึ้น Sheet โดยตรง ----
+function pushPatientToSheet(rec){
+  return syncToSheet('patients', rec);
+}
+function deletePatientFromSheet(hn){
+  return syncToSheet('delete_patient', { hn: String(hn) });
+}
+
+// ---- save local cache ----
+function cachePatients(){
   try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
-  // sync เฉพาะ record ที่เพิ่ง save (ถ้าระบุ hn) หรือทุกตัว (fallback)
-  if(hnToSync){
-    const rec = patients.find(p=>p.hn===hnToSync);
-    if(rec) syncToSheet('patients', rec);
-  } else {
-    patients.forEach(p => syncToSheet('patients', p));
+}
+
+// ---- next HN ----
+function getNextHN(){
+  const allHNs = [];
+  [...patients, ...treatments, ...appointments].forEach(r=>{
+    const raw = String(r.hn||'').replace('-','');
+    if(/^\d{7}$/.test(raw)) allHNs.push(parseInt(raw,10));
+  });
+  if(!allHNs.length){
+    const yy = String(new Date().getFullYear()+543).slice(-2);
+    return `${yy}-00001`;
   }
+  const next = Math.max(...allHNs) + 1;
+  return String(next).padStart(7,'0').slice(0,2) + '-' + String(next).padStart(7,'0').slice(2);
 }
 
+// ---- load patients from Sheet data (called from syncAll) ----
+// Sheet คือ source of truth — replace array ทั้งหมด
+function loadPatientsFromSheet(sheetData){
+  if(!Array.isArray(sheetData)) return;
+  patients = sheetData
+    .filter(p=>p.hn)
+    .map(p=>({
+      ...p,
+      hn: String(p.hn),
+      sso: (String(p.sso||'').toUpperCase()==='TRUE' || p.sso===true)
+    }));
+  cachePatients();
+}
+
+// ---- build display list (patients only — ไม่ดึงจาก treatments/appointments) ----
 function getPatientList(){
-  // โหลด HN ที่ถูกลบไปแล้ว
-  let deletedHNs = [];
-  try{ deletedHNs = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]'); }catch(e){}
-
-  const map = {};
-  // จาก patients array — กรอง deletedHNs ออกด้วย
-  patients.forEach(p=>{
-    if(p.hn && !deletedHNs.includes(String(p.hn))) map[p.hn] = {...p};
+  return [...patients].sort((a,b)=>{
+    const na = String(a.hn||'').replace('-','');
+    const nb = String(b.hn||'').replace('-','');
+    return nb.localeCompare(na, undefined, {numeric:true});
   });
-  // Fallback จาก treatments
-  treatments.forEach(t=>{
-    if(!t.hn || !t.patName) return;
-    if(!map[t.hn] && !deletedHNs.includes(String(t.hn))){
-      map[t.hn] = { hn: t.hn, name: t.patName, phone: t.phone||'', lineId:'', sso: false, addedAt: t.date||'' };
-    }
-  });
-  // Fallback จาก appointments
-  appointments.forEach(a=>{
-    if(!a.hn || !a.patName) return;
-    if(!map[a.hn] && !deletedHNs.includes(String(a.hn))){
-      map[a.hn] = { hn: a.hn, name: a.patName, phone: a.phone||'', lineId:'', sso: false, addedAt: a.date||'' };
-    }
-  });
-  return Object.values(map);
 }
 
+// ---- visit counts ----
 function getPatientVisitCount(hn){
-  return treatments.filter(t=>String(t.hn||'').trim()===String(hn||'').trim()).length;
+  return treatments.filter(t=>String(t.hn||'').trim()===String(hn).trim()).length;
 }
-
 function getPatientTreatments(hn){
-  return treatments.filter(t=>String(t.hn||'').trim()===String(hn||'').trim())
+  return treatments.filter(t=>String(t.hn||'').trim()===String(hn).trim())
     .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
 }
-
 function getLastVisit(hn){
   const ts = getPatientTreatments(hn);
   return ts.length ? ts[0].date : null;
 }
 
+// ---- render list ----
 function renderPatients(){
   const q = (document.getElementById('patientSearch')?.value||'').toLowerCase().trim();
   const grid = document.getElementById('patientGrid');
   if(!grid) return;
 
   let list = getPatientList();
-  // Sort by HN descending (latest HN first)
-  list.sort((a,b)=>{
-    const na = String(a.hn||'').replace('-','');
-    const nb = String(b.hn||'').replace('-','');
-    return nb.localeCompare(na, undefined, {numeric:true});
-  });
-
-  if(q){
-    list = list.filter(p=>
-      String(p.hn||'').toLowerCase().includes(q) ||
-      String(p.name||'').toLowerCase().includes(q) ||
-      String(p.phone||'').toLowerCase().includes(q)
-    );
-  }
-
+  if(q) list = list.filter(p=>
+    String(p.hn||'').toLowerCase().includes(q) ||
+    String(p.name||'').toLowerCase().includes(q) ||
+    String(p.phone||'').toLowerCase().includes(q)
+  );
   const display = q ? list : list.slice(0,10);
 
   if(!display.length){
-    grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);font-size:15px;">ไม่พบข้อมูลคนไข้</div>`;
+    grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);">ไม่พบข้อมูลคนไข้</div>`;
     return;
   }
 
-  grid.innerHTML = display.map((p,i)=>{
-    const visits = getPatientVisitCount(p.hn);
-    const last = getLastVisit(p.hn);
-    const storedPat = patients.find(sp=>sp.hn===p.hn);
-    const hasSso = storedPat?.sso || false;
-    const lineId = storedPat?.lineId || p.lineId || '';
-    const phone = storedPat?.phone || p.phone || '';
-    return `
-    <div class="patient-card" style="
-      background:#fff;border-radius:12px;padding:14px 18px;
+  grid.innerHTML = display.map(p=>{
+    const hn = String(p.hn||'');
+    const visits = getPatientVisitCount(hn);
+    const last = getLastVisit(hn);
+    const phone = String(p.phone||'');
+    const lineId = String(p.lineId||'');
+    const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
+    const nameSafe = (p.name||'').replace(/'/g,"\\'");
+    return `<div style="background:#fff;border-radius:12px;padding:14px 16px;
       box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);
-      transition:all 0.15s;display:flex;align-items:center;gap:14px;position:relative;
-    " onmouseover="this.style.background='#fdf5fb';this.style.boxShadow='var(--shadow)'"
-       onmouseout="this.style.background='#fff';this.style.boxShadow='0 2px 10px rgba(107,45,94,0.08)'">
+      display:flex;align-items:center;gap:12px;transition:background 0.15s;"
+      onmouseover="this.style.background='#fdf5fb'" onmouseout="this.style.background='#fff'">
 
       <!-- avatar -->
-      <div onclick="openPatientDetail('${p.hn}')" style="flex-shrink:0;width:40px;height:40px;border-radius:50%;cursor:pointer;
+      <div onclick="openPatientDetail('${hn}')" style="flex-shrink:0;width:42px;height:42px;border-radius:50%;cursor:pointer;
         background:linear-gradient(135deg,var(--wine-pale),#e8d0e4);
         display:flex;align-items:center;justify-content:center;
-        font-size:12px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">
-        ${String(p.hn||'').split('-')[1]?.slice(-3)||'—'}
+        font-size:12px;font-weight:800;color:var(--wine);">
+        ${hn.split('-')[1]?.slice(-3)||'—'}
       </div>
 
-      <!-- ข้อมูลหลัก (คลิกดูประวัติ) -->
-      <div onclick="openPatientDetail('${p.hn}')" style="flex:1;min-width:0;cursor:pointer;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+      <!-- info -->
+      <div onclick="openPatientDetail('${hn}')" style="flex:1;min-width:0;cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
           <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${p.name||'—'}</span>
           ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;">🏛️ ปกส</span>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <span style="font-size:12px;color:var(--text-light);font-weight:600;font-family:'Prompt',sans-serif;">HN ${p.hn||'—'}</span>
-          ${phone?`<span style="font-size:13px;color:var(--text-mid);font-weight:600;">📞 ${phone}</span>`:`<span style="font-size:12px;color:var(--text-light);font-style:italic;">ไม่มีเบอร์</span>`}
-          ${lineId?`<span style="font-size:12px;color:#06c755;font-weight:600;">💬 ${lineId}</span>`:''}
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-light);">
+          <span style="font-weight:700;">HN ${hn}</span>
+          ${phone?`<span style="color:var(--text-mid);">📞 ${phone}</span>`:''}
+          ${lineId?`<span style="color:#06c755;">💬 ${lineId}</span>`:''}
         </div>
       </div>
 
-      <!-- ครั้ง + วันที่ -->
-      <div onclick="openPatientDetail('${p.hn}')" style="flex-shrink:0;text-align:right;cursor:pointer;">
-        <div style="background:var(--wine-pale);color:var(--wine);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;display:inline-block;margin-bottom:4px;">
-          🦷 ${visits} ครั้ง
-        </div>
-        <div style="font-size:11px;color:var(--text-light);">${last?fmtDate(last):'ยังไม่มีประวัติ'}</div>
+      <!-- visits -->
+      <div onclick="openPatientDetail('${hn}')" style="flex-shrink:0;text-align:right;cursor:pointer;margin-right:4px;">
+        <div style="background:var(--wine-pale);color:var(--wine);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;">🦷 ${visits} ครั้ง</div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:3px;">${last?fmtDate(last):'ยังไม่มีประวัติ'}</div>
       </div>
 
-      <!-- ปุ่มแก้ไข + ลบ -->
+      <!-- action buttons -->
       <div style="flex-shrink:0;display:flex;gap:6px;">
-        <button onclick="event.stopPropagation();openEditPatient('${p.hn}')"
-          style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;
-          cursor:pointer;font-size:12px;font-weight:700;color:var(--wine);transition:all 0.15s;"
-          onmouseover="this.style.background='var(--wine-pale)';this.style.borderColor='var(--wine)'"
-          onmouseout="this.style.background='#fff';this.style.borderColor='var(--border)'">
-          ✏️ แก้ไข
-        </button>
-        <button onclick="event.stopPropagation();deletePatient('${p.hn}','${p.name||''}')"
-          style="padding:6px 10px;border-radius:8px;border:1.5px solid rgba(231,76,90,0.25);background:#fff;
-          cursor:pointer;font-size:12px;font-weight:700;color:var(--red);transition:all 0.15s;"
-          onmouseover="this.style.background='rgba(231,76,90,0.08)';this.style.borderColor='var(--red)'"
-          onmouseout="this.style.background='#fff';this.style.borderColor='rgba(231,76,90,0.25)'">
-          🗑️
-        </button>
+        <button onclick="openEditPatient('${hn}')"
+          style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--wine);"
+          onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background='#fff'">✏️ แก้ไข</button>
+        <button onclick="deletePatient('${hn}','${nameSafe}')"
+          style="padding:6px 10px;border-radius:8px;border:1.5px solid rgba(231,76,90,0.25);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--red);"
+          onmouseover="this.style.background='rgba(231,76,90,0.08)'" onmouseout="this.style.background='#fff'">🗑️</button>
       </div>
     </div>`;
   }).join('');
 
-  if(!q && list.length > 10){
-    grid.insertAdjacentHTML('beforeend',`
-      <div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">
-        แสดง 10 คนล่าสุด จากทั้งหมด ${list.length} คน — ค้นหาเพื่อดูรายอื่น
-      </div>`);
+  if(!q && list.length>10){
+    grid.insertAdjacentHTML('beforeend',
+      `<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">
+        แสดง 10 คนล่าสุด จากทั้งหมด ${list.length} คน — ค้นหาเพื่อดูรายอื่น</div>`);
   }
 }
 
-// ---- Add Patient Modal ----
+// ---- ADD ----
 function openAddPatient(){
-  document.getElementById('modalAddPatient').classList.add('open');
   document.getElementById('newPat-hn').value = getNextHN();
-  document.getElementById('newPat-name').value='';
-  document.getElementById('newPat-phone').value='';
-  document.getElementById('newPat-line').value='';
-  document.getElementById('newPat-sso').checked=false;
+  document.getElementById('newPat-name').value = '';
+  document.getElementById('newPat-phone').value = '';
+  document.getElementById('newPat-line').value = '';
+  document.getElementById('newPat-sso').checked = false;
+  document.getElementById('modalAddPatient').classList.add('open');
   setTimeout(()=>document.getElementById('newPat-name').focus(),100);
 }
 function closeAddPatient(){ document.getElementById('modalAddPatient').classList.remove('open'); }
 
 function saveNewPatient(){
-  const hn = document.getElementById('newPat-hn').value.trim();
-  const name = document.getElementById('newPat-name').value.trim();
+  const hn    = document.getElementById('newPat-hn').value.trim();
+  const name  = document.getElementById('newPat-name').value.trim();
   const phone = document.getElementById('newPat-phone').value.trim();
-  const lineId = document.getElementById('newPat-line').value.trim();
-  const sso = document.getElementById('newPat-sso').checked;
-  if(!hn){ showToast('กรุณากรอก HN','error'); return; }
+  const lineId= document.getElementById('newPat-line').value.trim();
+  const sso   = document.getElementById('newPat-sso').checked;
+  if(!hn)  { showToast('กรุณากรอก HN','error'); return; }
   if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
-  const idx = patients.findIndex(p=>p.hn===hn);
+
   const rec = { hn, name, phone, lineId, sso, addedAt: todayStr() };
+  const idx = patients.findIndex(p=>String(p.hn)===hn);
   if(idx>-1) patients[idx]=rec; else patients.push(rec);
-  // ปิด modal ก่อน เพราะ syncAll จะ skip ถ้า modal ยังเปิดอยู่
+  cachePatients();
   closeAddPatient();
-  // save local + sync เฉพาะ record นี้ขึ้น Sheet ทันที
-  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
-  syncToSheet('patients', rec).then(()=>{
-    showToast('บันทึกและ sync ขึ้น Sheet แล้ว ✅');
-  }).catch(()=>{
-    showToast('บันทึกแล้ว (sync ไม่สำเร็จ จะลองใหม่อัตโนมัติ)','error');
-  });
   renderPatients();
+
+  // sync ขึ้น Sheet
+  pushPatientToSheet(rec)
+    .then(()=>showToast('เพิ่มคนไข้และ sync Sheet แล้ว ✅'))
+    .catch(()=>showToast('บันทึก local แล้ว (sync ไม่สำเร็จ)','error'));
 }
 
-// ---- Patient Detail Modal ----
-function openPatientDetail(hn){
-  const all = getPatientList();
-  const p = all.find(x=>x.hn===hn);
-  const storedPat = patients.find(sp=>sp.hn===hn);
+// ---- EDIT ----
+function openEditPatient(hn){
+  const p = patients.find(x=>String(x.hn)===String(hn));
   if(!p) return;
+  document.getElementById('editPat-hn').value = hn;
+  document.getElementById('editPat-hn-display').textContent = hn;
+  document.getElementById('editPat-name').value  = p.name  || '';
+  document.getElementById('editPat-phone').value = p.phone || '';
+  document.getElementById('editPat-line').value  = p.lineId|| '';
+  document.getElementById('editPat-sso').checked = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
+  document.getElementById('modalEditPatient').classList.add('open');
+  setTimeout(()=>document.getElementById('editPat-name').focus(),100);
+}
+function closeEditPatient(){ document.getElementById('modalEditPatient').classList.remove('open'); }
 
+function saveEditPatient(){
+  const hn    = document.getElementById('editPat-hn').value;
+  const name  = document.getElementById('editPat-name').value.trim();
+  const phone = document.getElementById('editPat-phone').value.trim();
+  const lineId= document.getElementById('editPat-line').value.trim();
+  const sso   = document.getElementById('editPat-sso').checked;
+  if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
+
+  const idx = patients.findIndex(p=>String(p.hn)===hn);
+  const addedAt = idx>-1 ? (patients[idx].addedAt||todayStr()) : todayStr();
+  const rec = { hn, name, phone, lineId, sso, addedAt };
+  if(idx>-1) patients[idx]=rec; else patients.push(rec);
+  cachePatients();
+  closeEditPatient();
+  renderPatients();
+
+  pushPatientToSheet(rec)
+    .then(()=>showToast('อัปเดตและ sync Sheet แล้ว ✅'))
+    .catch(()=>showToast('อัปเดต local แล้ว (sync ไม่สำเร็จ)','error'));
+}
+
+// ---- DELETE ----
+function deletePatient(hn, name){
+  if(!confirm(`ลบ "${name}" (HN: ${hn}) ?\n\nประวัติการรักษาจะยังคงอยู่`)) return;
+  const hnStr = String(hn);
+  patients = patients.filter(p=>String(p.hn)!==hnStr);
+  cachePatients();
+  renderPatients();
+
+  deletePatientFromSheet(hnStr)
+    .then(()=>showToast('ลบและ sync Sheet แล้ว ✅'))
+    .catch(()=>showToast('ลบ local แล้ว (sync ไม่สำเร็จ)','error'));
+}
+
+// ---- DETAIL ----
+function openPatientDetail(hn){
+  const p = patients.find(x=>String(x.hn)===String(hn));
+  if(!p) return;
   const visits = getPatientVisitCount(hn);
   const treats = getPatientTreatments(hn);
-  const hasSso = storedPat?.sso || false;
-  const lineId = storedPat?.lineId || p.lineId || '';
-
+  const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
   const rows = treats.length ? treats.map(t=>`
     <tr>
       <td style="font-size:12px;">${fmtDate(t.date)}</td>
@@ -4493,100 +4471,37 @@ function openPatientDetail(hn){
     </tr>`).join('') :
     `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-light);font-style:italic;">ยังไม่มีประวัติการรักษา</td></tr>`;
 
-  const modal = document.getElementById('modalPatientDetail');
-  modal.querySelector('#pdTitle').textContent = `${p.name} (${p.hn})`;
-  modal.querySelector('#pdContent').innerHTML = `
+  document.getElementById('pdTitle').textContent = `${p.name} (${p.hn})`;
+  document.getElementById('pdContent').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
       <div style="background:var(--wine-pale);border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:6px;">จำนวนครั้งที่มา</div>
-        <div style="font-size:36px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${visits}</div>
+        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:4px;">มาทั้งหมด</div>
+        <div style="font-size:38px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${visits}</div>
         <div style="font-size:12px;color:var(--text-light);">ครั้ง</div>
       </div>
-      <div style="background:#f0f9f4;border-radius:10px;padding:14px;">
-        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:8px;">ข้อมูลติดต่อ</div>
-        <div style="font-size:13px;color:var(--text-mid);line-height:1.8;">
-          ${p.phone?`📞 ${p.phone}<br>`:''}
-          ${lineId?`💬 Line: ${lineId}<br>`:''}
-          ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:11px;font-weight:700;padding:2px 8px;display:inline-block;margin-top:4px;">🏛️ มีสิทธิ์ประกันสังคม</span>`:`<span style="font-size:12px;color:var(--text-light);">ไม่มีประกันสังคม</span>`}
-        </div>
+      <div style="background:#f0f9f4;border-radius:10px;padding:14px;font-size:13px;line-height:2;">
+        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:4px;">ข้อมูลติดต่อ</div>
+        ${p.phone?`📞 ${p.phone}<br>`:''}
+        ${p.lineId?`💬 Line: ${p.lineId}<br>`:''}
+        ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:11px;font-weight:700;padding:2px 8px;">🏛️ มีสิทธิ์ประกันสังคม</span>`:'ไม่มีประกันสังคม'}
       </div>
     </div>
-    <div style="font-size:14px;font-weight:700;color:var(--wine-dark);margin-bottom:10px;font-family:'Prompt',sans-serif;">📋 ประวัติการรักษา</div>
+    <div style="font-size:14px;font-weight:700;color:var(--wine-dark);margin-bottom:8px;">📋 ประวัติการรักษา</div>
     <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border);">
       <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr style="background:var(--wine-pale);">
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">วันที่</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รายการ</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">หมอ</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รวม</th>
-          </tr>
-        </thead>
+        <thead><tr style="background:var(--wine-pale);">
+          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">วันที่</th>
+          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รายการ</th>
+          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">หมอ</th>
+          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รวม</th>
+        </tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
-  modal.classList.add('open');
+  document.getElementById('modalPatientDetail').classList.add('open');
 }
-// ---- Edit Patient ----
-function openEditPatient(hn){
-  const all = getPatientList();
-  const p = all.find(x=>x.hn===hn);
-  const storedPat = patients.find(sp=>sp.hn===hn);
-  if(!p) return;
-  document.getElementById('editPat-hn').value = hn;
-  document.getElementById('editPat-hn-display').textContent = hn;
-  document.getElementById('editPat-name').value = storedPat?.name || p.name || '';
-  document.getElementById('editPat-phone').value = storedPat?.phone || p.phone || '';
-  document.getElementById('editPat-line').value = storedPat?.lineId || p.lineId || '';
-  document.getElementById('editPat-sso').checked = storedPat?.sso || false;
-  document.getElementById('modalEditPatient').classList.add('open');
-  setTimeout(()=>document.getElementById('editPat-name').focus(),100);
-}
-function closeEditPatient(){ document.getElementById('modalEditPatient').classList.remove('open'); }
-
-function saveEditPatient(){
-  const hn = document.getElementById('editPat-hn').value;
-  const name = document.getElementById('editPat-name').value.trim();
-  const phone = document.getElementById('editPat-phone').value.trim();
-  const lineId = document.getElementById('editPat-line').value.trim();
-  const sso = document.getElementById('editPat-sso').checked;
-  if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
-  const idx = patients.findIndex(p=>p.hn===hn);
-  const rec = { hn, name, phone, lineId, sso, addedAt: idx>-1 ? (patients[idx].addedAt||todayStr()) : todayStr() };
-  if(idx>-1) patients[idx]=rec; else patients.push(rec);
-  // ปิด modal ก่อน เพราะ syncAll จะ skip ถ้า modal ยังเปิดอยู่
-  closeEditPatient();
-  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
-  syncToSheet('patients', rec).then(()=>{
-    showToast('อัปเดตและ sync ขึ้น Sheet แล้ว ✅');
-  }).catch(()=>{
-    showToast('อัปเดตแล้ว (sync ไม่สำเร็จ)','error');
-  });
-  renderPatients();
-}
-
-// ---- Delete Patient ----
-function deletePatient(hn, name){
-  if(!confirm(`ลบ "${name}" (HN: ${hn}) ออกจากรายชื่อ?\n\nหมายเหตุ: ประวัติการรักษาจะยังคงอยู่`)) return;
-  const hnStr = String(hn);
-  patients = patients.filter(p=>String(p.hn)!==hnStr);
-  // เก็บ HN ที่ลบไว้ใน localStorage เพื่อไม่ให้โผล่กลับจาก treatments/appointments/syncAll
-  try{
-    const deleted = JSON.parse(localStorage.getItem('bl_deleted_patients')||'[]');
-    if(!deleted.includes(hnStr)) deleted.push(hnStr);
-    localStorage.setItem('bl_deleted_patients', JSON.stringify(deleted));
-    localStorage.setItem('bl_patients', JSON.stringify(patients));
-  }catch(e){}
-  // ส่ง delete ไป Sheet
-  syncToSheet('delete_patient', { hn: hnStr }).then(()=>{
-    showToast('ลบรายชื่อและ sync Sheet แล้ว ✅');
-  }).catch(()=>{
-    showToast('ลบแล้ว (sync ไม่สำเร็จ)','error');
-  });
-  renderPatients();
-}
-
 function closePatientDetail(){ document.getElementById('modalPatientDetail').classList.remove('open'); }
+
 
 function logout(){
   if(!confirm('ออกจากระบบ?')) return;
