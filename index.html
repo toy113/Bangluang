@@ -1575,14 +1575,14 @@ function doSelectDoctor(id){
   document.getElementById('pinForName').textContent = doc ? doc.name : id;
   document.getElementById('loginError').textContent = '';
   currentPin = ''; updatePinDots2();
-  document.getElementById('step-select').classList.add('hidden');
-  document.getElementById('step-pin').classList.remove('hidden');
+  document.getElementById('step-select').style.display='none';
+  document.getElementById('step-pin').style.display='block';
 }
 
 function goBackToSelect(){
   currentPin = ''; selectedLoginDoc = null;
-  document.getElementById('step-pin').classList.add('hidden');
-  document.getElementById('step-select').classList.remove('hidden');
+  document.getElementById('step-pin').style.display='none';
+  document.getElementById('step-select').style.display='block';
   document.getElementById('loginError').textContent = '';
 }
 
@@ -1623,24 +1623,7 @@ function doVerify(){
 
 
 function verifyLogin(){
-  const id = selectedLoginDoc;
-  let match = false, userData = null;
-  if(id==='manager'){
-    match = currentPin===MANAGER.pin;
-    userData = MANAGER; isManager=true;
-  } else {
-    // Use doctors[] (editable) first, fallback to DOCTORS_DATA
-    const doc = doctors.find(d=>d.id===id) || DOCTORS_DATA.find(d=>d.id===id);
-    if(doc && currentPin===doc.pin){ match=true; userData=doc; isManager=false; }
-  }
-  if(match){
-    currentUser = userData;
-    document.getElementById('loginError').textContent='';
-    startApp();
-  } else {
-    document.getElementById('loginError').textContent='❌ PIN ไม่ถูกต้อง ลองใหม่อีกครั้ง';
-    currentPin=''; updatePinDots();
-  }
+  doVerify();
 }
 
 // ============================================================
