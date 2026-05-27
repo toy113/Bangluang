@@ -1797,10 +1797,10 @@ function showPage(p){
     const el = document.getElementById('schDate');
     if(el && !el.value) el.value = todayStr();
     if(!schCalMonth) schCalMonth = todayStr().slice(0,7);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      renderScheduleDay();
-      renderSchMiniCal();
-    }));
+    // render จาก cache ก่อน แล้ว sync Sheet แล้ว render ใหม่
+    renderScheduleDay();
+    renderSchMiniCal();
+    syncAll().then(()=>{ renderScheduleDay(); renderSchMiniCal(); }).catch(()=>{});
   }
   setMobileNav(p);
 }
@@ -2844,14 +2844,14 @@ async function syncAll(){
         const [hh,mm] = s.split(':');
         return `${String(hh).padStart(2,'0')}:${mm.slice(0,2)}`;
       }
-      // ISO date string with time e.g. "1899-12-30T03:17:56.000Z"
-      // Google Sheets เก็บเวลาเป็น fraction of day → Apps Script ส่งมาเป็น ISO
-      // ใช้ getUTCHours เพราะ Google Sheets time เป็น UTC-based serial
+      // ISO date string with time e.g. "1899-12-30T03:00:00.000Z"
+      // Google Sheets เก็บ time เป็น UTC serial → ต้องบวก timezone offset ของ browser
       if(s.includes('T')) {
         const d2 = new Date(s);
         if(!isNaN(d2.getTime())){
-          const h = String(d2.getUTCHours()).padStart(2,'0');
-          const m = String(d2.getUTCMinutes()).padStart(2,'0');
+          // ใช้ local hours/minutes (browser จะแปลง UTC → local timezone อัตโนมัติ)
+          const h = String(d2.getHours()).padStart(2,'0');
+          const m = String(d2.getMinutes()).padStart(2,'0');
           return h+':'+m;
         }
       }
