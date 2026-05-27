@@ -3160,14 +3160,17 @@ function renderScheduleDay(){
 function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const d = new Date(date+'T00:00:00');
   const dow = d.getDay();
-  const slots = getSchSlots(date);
   const dayApts = appointments.filter(a=>a.date===date).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const isToday = date===todayStr();
-  const bg = DAY_BG_PASTEL[dow]; // ใช้สีประจำวันเสมอ
+  const bg = DAY_BG_PASTEL[dow];
   const fg = DAY_FG_PASTEL[dow];
-  const borderStyle = isToday
-    ? 'box-shadow:0 0 0 3px #FFD700, 0 2px 12px rgba(0,0,0,0.15);'
-    : '';
+  const borderStyle = isToday ? 'box-shadow:0 0 0 3px #FFD700, 0 2px 12px rgba(0,0,0,0.15);' : '';
+
+  // slots = sch_slots ของวันนั้น + slot จาก appointments ที่ยังไม่มีใน list
+  const savedSlots = getSchSlots(date);
+  const aptSlots = dayApts.map(a=>String(a.time||'').slice(0,5)).filter(Boolean);
+  const allSlotSet = new Set([...savedSlots, ...aptSlots]);
+  const slots = [...allSlotSet].sort();
 
   // หมอที่มีไม่คอนเฟิร์ม
   const docSet = {};
