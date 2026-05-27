@@ -853,7 +853,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <button class="top-tab" id="ttab-treatment" onclick="showPage('treatment');setMobileNav('treatment')"><span class="mn-icon">📋</span>รักษา</button>
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
-      <button class="top-tab manager-only" id="ttab-followup" onclick="showPage('followup')"><span class="mn-icon">🔔</span>ติดตาม</button>
+      <button class="top-tab" id="ttab-followup" style="display:none;" onclick="showPage('followup');setMobileNav('followup')"><span class="mn-icon">🔔</span>ติดตาม</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -1144,7 +1144,10 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <button class="mobile-nav-btn" id="mnav-lab" onclick="showPage('lab');setMobileNav('lab')">
         <span class="mn-icon">🧪</span>แลป
       </button>
-      <button class="mobile-nav-btn" id="mnav-settings" onclick="showPage('settings');setMobileNav('settings')">
+      <button class="mobile-nav-btn" id="mnav-followup" onclick="showPage('followup');setMobileNav('followup')" style="display:none;">
+        <span class="mn-icon">🔔</span>ติดตาม
+      </button>
+      <button class="mobile-nav-btn" id="mnav-settings" onclick="showPage('settings');setMobileNav('settings')" style="display:none;">
         <span class="mn-icon">⚙️</span>ตั้งค่า
       </button>
     </div>
@@ -1688,7 +1691,7 @@ function startApp(){
   if(iyr) iyr.value = now.getFullYear()+543;
 
   // Show settings + schedule tab for manager only
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients','ttab-followup','mnav-followup','mnav-settings'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
@@ -2893,13 +2896,34 @@ async function syncAll(){
         localStorage.setItem('bl_day_colors', JSON.stringify(existing));
       } catch(e){}
     }
-    // Load sch_slots
+    // Load sch_slots — merge Sheet กับ local ไม่ลบ slot ที่มีนัดอยู่
     if(Array.isArray(d.sch_slots)){
       try {
         const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
         d.sch_slots.forEach(r=>{
           if(r.date && r.slots){
-            try { all[r.date] = JSON.parse(r.slots); } catch(e){}
+            try {
+              const sheetSlots = JSON.parse(r.slots);
+              const localSlots = all[r.date] || [];
+              // รวม Sheet slots + local slots ที่มีนัดอยู่
+              const aptSlotsForDate = appointments
+                .filter(a=>a.date===r.date)
+                .map(a=>String(a.time||'').slice(0,5))
+                .filter(Boolean);
+              const merged = new Set([...sheetSlots, ...localSlots, ...aptSlotsForDate]);
+              all[r.date] = [...merged].sort();
+            } catch(e){}
+          }
+        });
+        // เพิ่ม slot จาก appointments ที่ไม่มีใน sch_slots เลย
+        appointments.forEach(a=>{
+          if(!a.date || !a.time) return;
+          const t = String(a.time).slice(0,5);
+          if(!t) return;
+          if(!all[a.date]) all[a.date] = [];
+          if(!all[a.date].includes(t)){
+            all[a.date].push(t);
+            all[a.date].sort();
           }
         });
         localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
@@ -4520,7 +4544,7 @@ function logout(){
   // ซ่อน tab manager-only ก่อนกลับหน้า login
   ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
    'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome',
-   'nav-patients','ttab-patients','mnav-patients'].forEach(id=>{
+   'nav-patients','ttab-patients','mnav-patients','ttab-followup','mnav-followup','mnav-settings'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });
