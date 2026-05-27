@@ -1120,7 +1120,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
         <button class="btn btn-primary" onclick="openAddPatient()">+ เพิ่มคนไข้รายใหม่</button>
       </div>
       <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);">
-        <input type="text" class="form-control" id="patientSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="debouncePatientSearch()" style="height:38px;width:100%;">
+        <input type="text" class="form-control" id="patientSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="debouncePatientSearch()" autocomplete="off" style="height:38px;width:100%;">
       </div>
       <div id="patientGrid" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
@@ -2872,34 +2872,23 @@ async function syncAll(){
         localStorage.setItem('bl_day_colors', JSON.stringify(existing));
       } catch(e){}
     }
-    // Load sch_slots — ใช้ Sheet เป็น source of truth แต่กรอง deleted slots ออก
+    // sch_slots — Sheet เป็น source of truth
+    // แต่ไม่ทับ local ถ้าเพิ่ง write ไปไม่นาน (5 วิ)
     if(Array.isArray(d.sch_slots)){
       try {
         const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
         const deleted = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
+        const writeTs = JSON.parse(localStorage.getItem('bl_slots_write_ts')||'{}');
+        const now = Date.now();
         d.sch_slots.forEach(r=>{
-          if(r.date && r.slots){
-            try {
-              const sheetSlots = JSON.parse(r.slots);
-              const deletedForDate = deleted[r.date] || [];
-              // กรอง deleted slots ออก
-              const filtered = sheetSlots.filter(s=>!deletedForDate.includes(s));
-              all[r.date] = filtered.sort();
-            } catch(e){}
-          }
-        });
-        // เพิ่ม slot จาก appointments ที่ไม่อยู่ใน deleted
-        appointments.forEach(a=>{
-          if(!a.date || !a.time) return;
-          const t = String(a.time).slice(0,5);
-          if(!t) return;
-          const deletedForDate = (JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}')||{})[a.date] || [];
-          if(deletedForDate.includes(t)) return; // slot ถูกลบแล้ว ไม่เพิ่ม
-          if(!all[a.date]) all[a.date] = [];
-          if(!all[a.date].includes(t)){
-            all[a.date].push(t);
-            all[a.date].sort();
-          }
+          if(!r.date || !r.slots) return;
+          // ถ้าเพิ่ง write วันนี้ไปไม่เกิน 15 วิ → ไม่ทับ (รอ Sheet propagate)
+          if(writeTs[r.date] && (now - writeTs[r.date]) < 15000) return;
+          try {
+            const sheetSlots = JSON.parse(r.slots);
+            const deletedForDate = deleted[r.date] || [];
+            all[r.date] = sheetSlots.filter(s=>!deletedForDate.includes(s)).sort();
+          } catch(e){}
         });
         localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
       } catch(e){}
@@ -3000,6 +2989,10 @@ function saveSchSlots(date, slots){
     const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
     all[date] = slots;
     localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
+    // บันทึก timestamp เพื่อป้องกัน syncAll ทับภายใน 15 วิ
+    const ts = JSON.parse(localStorage.getItem('bl_slots_write_ts')||'{}');
+    ts[date] = Date.now();
+    localStorage.setItem('bl_slots_write_ts', JSON.stringify(ts));
     // sync ขึ้น Sheet
     syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(slots) });
   } catch(e){}
@@ -3094,7 +3087,7 @@ function schRemoveSlot(date, slot){
     all[date] = slots;
     localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
   }catch(e){}
-  // sync ขึ้น Sheet — ส่ง slots ที่ไม่มี slot นั้นแล้ว
+  // sync ขึ้น Sheet ทันที
   syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(slots) })
     .then(()=>showToast(`ลบ slot ${slot} แล้ว ✅`))
     .catch(()=>{});
@@ -4305,7 +4298,7 @@ function renderPatients(){
     String(p.name||'').toLowerCase().includes(q) ||
     String(p.phone||'').toLowerCase().includes(q)
   );
-  const display = q ? list : list.slice(0,10);
+  const display = q ? list.slice(0,20) : list.slice(0,10);
 
   if(!display.length){
     grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);">ไม่พบข้อมูลคนไข้</div>`;
