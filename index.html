@@ -66,18 +66,18 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 }
 .login-brand {
   font-family: 'Prompt', sans-serif;
-  font-size: 26px; font-weight: 800;
+  font-size: 26px; font-weight: 800; text-align: center;
   background: linear-gradient(135deg, #6B2D5E, #9B3D8B);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.login-sub { color: #999; font-size: 13px; margin-top: 4px; }
+.login-sub { color: #999; font-size: 13px; margin-top: 4px; text-align: center; }
 
 /* Select label */
 .login-select-label {
   font-size: 13px; font-weight: 600; color: #aaa;
   letter-spacing: 1.5px; text-transform: uppercase;
-  margin-bottom: 14px; align-self: flex-start;
+  margin-bottom: 14px; text-align: center; width: 100%;
 }
 
 /* Doctor grid — list style */
@@ -165,16 +165,17 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 /* Numpad */
 .login-numpad {
   display: grid; grid-template-columns: repeat(3,1fr);
-  gap: 12px; width: 100%; max-width: 280px;
+  gap: 10px; width: 100%; max-width: 280px; margin: 0 auto;
 }
 .lnb {
   background: #fff; border: 1.5px solid #e8e0e8;
-  border-radius: 14px; padding: 18px 10px;
+  border-radius: 14px;
+  height: 60px; width: 100%;
   font-size: 22px; font-weight: 700; color: #3D0A2E;
   cursor: pointer; font-family: 'Prompt', sans-serif;
   box-shadow: 0 2px 8px rgba(107,45,94,0.06);
   transition: all 0.1s; -webkit-tap-highlight-color: transparent;
-  text-align: center;
+  text-align: center; display: flex; align-items: center; justify-content: center;
 }
 .lnb:active { background: #6B2D5E; color: #fff; transform: scale(0.95); }
 .lnb.lnb-del { font-size: 16px; color: #999; }
@@ -753,7 +754,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
   <!-- STEP 2: กรอก PIN -->
   <div id="step-pin" class="login-step" style="display:none;">
-    <button type="button" onclick="goBackToSelect()" style="width:100%;margin-bottom:20px;padding:12px 16px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;text-align:left;">← เลือกใหม่</button>
+    <button type="button" onclick="goBackToSelect()" style="width:100%;margin-bottom:20px;padding:12px 16px;background:#f5eef8;border:1.5px solid #d4b8e0;border-radius:12px;color:#6B2D5E;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;text-align:left;">← เลือกใหม่</button>
     <div class="login-pin-avatar" id="loginPinAvatar">🦷</div>
     <div class="login-pin-name" id="pinForName">หมอทอย</div>
     <div class="login-pin-label">กรอกรหัส PIN 4 หลัก</div>
@@ -3354,41 +3355,18 @@ function renderSchMiniCal(){
       <div style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[a.status]||'#999'};display:inline-block;margin:1px;"></div>`
     ).join('');
 
-    // Doctor colors for cell background
-    const docNames = Object.keys(docSummary);
-    let cellBg = dayBg || (isSelected?'var(--wine-pale)':isToday?'#FFFDE7':'#fff');
-    let cellStyle = '';
-    if(!dayBg && docNames.length === 1){
-      const c = docColor(docNames[0]);
-      cellBg = c+'44';
-    } else if(!dayBg && docNames.length === 2){
-      const c1 = docColor(docNames[0]);
-      const c2 = docColor(docNames[1]);
-      cellStyle = `background:linear-gradient(135deg, ${c1}55 50%, ${c2}55 50%);`;
-      cellBg = '';
-    } else if(!dayBg && docNames.length >= 3){
-      const c1 = docColor(docNames[0]);
-      const c2 = docColor(docNames[1]);
-      const c3 = docColor(docNames[2]);
-      cellStyle = `background:linear-gradient(135deg, ${c1}55 33%, ${c2}55 33%, ${c2}55 66%, ${c3}55 66%);`;
-      cellBg = '';
-    }
+    // พื้นหลังสีขาวเสมอ
+    const cellBg = isSelected?'var(--wine-pale)':isToday?'#FFFDE7':'#fff';
 
-    html += `<div style="min-height:70px;border-radius:8px;
+    html += `<div onclick="schJumpToDate('${ds}')" style="min-height:70px;border-radius:8px;cursor:pointer;
       border:${isSelected?'2px solid var(--wine)':isToday?'2px solid #FFD700':'1px solid var(--border)'};
-      ${cellStyle ? cellStyle : `background:${cellBg};`}
-      padding:4px;overflow:hidden;position:relative;">
+      background:${cellBg};padding:4px;overflow:hidden;position:relative;"
+      onmouseover="this.style.background='${isSelected?'var(--wine-pale)':isToday?'#FFFDE7':'#f8f0f7'}'"
+      onmouseout="this.style.background='${cellBg}'">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-        <span onclick="schJumpToDate('${ds}')" style="font-size:12px;font-weight:${isToday||isSelected?'900':'600'};cursor:pointer;
+        <span style="font-size:12px;font-weight:${isToday||isSelected?'900':'600'};
           color:${isSelected?'var(--wine)':isToday?'#F57F17':dow===0?'#E74C3C':dow===6?'#3498DB':'var(--text-mid)'};">${d}</span>
-        <div style="display:flex;align-items:center;gap:2px;">
-          ${dayApts.length?`<span style="font-size:9px;font-weight:700;background:var(--wine);color:#fff;border-radius:8px;padding:0 4px;">${dayApts.length}</span>`:''}
-          <input type="color" value="${dayBg||'#ffffff'}" title="เลือกสีช่อง"
-            data-date="${ds}"
-            onchange="setDayColor(this.dataset.date,this.value);renderSchMiniCal();"
-            onclick="event.stopPropagation()"
-            style="width:14px;height:14px;border:none;border-radius:3px;padding:0;cursor:pointer;background:none;opacity:0.5;">
-        </div>
+        ${dayApts.length?`<span style="font-size:9px;font-weight:700;background:var(--wine);color:#fff;border-radius:8px;padding:0 4px;">${dayApts.length}</span>`:''}
       </div>
       ${docTags}
       <input type="text" placeholder="+ โน้ต" maxlength="30"
@@ -4305,14 +4283,6 @@ function renderPatients(){
       box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);
       display:flex;align-items:center;gap:12px;transition:background 0.15s;"
       onmouseover="this.style.background='#fdf5fb'" onmouseout="this.style.background='#fff'">
-
-      <!-- avatar -->
-      <div onclick="openPatientDetail('${hn}')" style="flex-shrink:0;width:42px;height:42px;border-radius:50%;cursor:pointer;
-        background:linear-gradient(135deg,var(--wine-pale),#e8d0e4);
-        display:flex;align-items:center;justify-content:center;
-        font-size:12px;font-weight:800;color:var(--wine);">
-        ${hn.split('-')[1]?.slice(-3)||'—'}
-      </div>
 
       <!-- info -->
       <div onclick="openPatientDetail('${hn}')" style="flex:1;min-width:0;cursor:pointer;">
