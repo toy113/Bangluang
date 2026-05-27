@@ -1532,10 +1532,9 @@ function loadLocal(){ /* data loaded via syncAll from Sheet */ }
 //  LOGIN
 // ============================================================
 function buildDoctorGrid(){
-  // Attach click events to all doctor buttons via data-id
   document.querySelectorAll('.doctor-btn[data-id]').forEach(btn => {
     btn.addEventListener('click', function(){
-      selectDoctor(this.dataset.id);
+      doSelectDoctor(this.dataset.id);
     });
   });
 }
