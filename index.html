@@ -711,7 +711,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 <div id="loginScreen" class="visible">
 
   <!-- STEP 1: เลือกหมอ -->
-  <div id="step-select" class="login-step">
+  <div id="step-select" class="login-step" style="display:block;">
     <div class="login-logo-wrap">
       <div class="login-logo-circle">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="60" height="48">
@@ -727,14 +727,12 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
     <div class="login-select-label">เลือกทันตแพทย์</div>
 
-    <!-- Dropdown เลือกหมอ -->
     <div style="width:100%;position:relative;margin-bottom:12px;">
       <select id="doctorDropdown" onchange="if(this.value) doSelectDoctor(this.value)"
         style="width:100%;padding:16px 48px 16px 20px;font-size:16px;font-weight:700;
         color:#3D0A2E;background:#fff;border:1.5px solid #e0d0e0;border-radius:14px;
         appearance:none;-webkit-appearance:none;cursor:pointer;outline:none;
-        font-family:'Sarabun',sans-serif;box-shadow:0 2px 12px rgba(107,45,94,0.08);
-        transition:border-color 0.15s;">
+        font-family:'Sarabun',sans-serif;box-shadow:0 2px 12px rgba(107,45,94,0.08);">
         <option value="">— เลือกทันตแพทย์ —</option>
         <option value="toy">หมอทอย</option>
         <option value="mind">หมอมายด์</option>
@@ -748,14 +746,14 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
         pointer-events:none;color:#9B3D8B;font-size:18px;">▾</div>
     </div>
     <div class="login-divider"><span>หรือ</span></div>
-    <button class="login-manager-btn" type="button" data-id="manager" onclick="doSelectDoctor('manager')">
+    <button class="login-manager-btn" type="button" onclick="doSelectDoctor('manager')">
       <span>🔐</span> ผู้จัดการ
     </button>
   </div>
 
   <!-- STEP 2: กรอก PIN -->
-  <div id="step-pin" class="login-step hidden">
-    <button type="button" onclick="goBackToSelect()" style="width:100%;margin-bottom:20px;padding:12px 16px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;text-align:left;-webkit-tap-highlight-color:transparent;">← เลือกหมอใหม่</button>
+  <div id="step-pin" class="login-step" style="display:none;">
+    <button type="button" onclick="goBackToSelect()" style="width:100%;margin-bottom:20px;padding:12px 16px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;text-align:left;">← เลือกใหม่</button>
     <div class="login-pin-avatar" id="loginPinAvatar">🦷</div>
     <div class="login-pin-name" id="pinForName">หมอทอย</div>
     <div class="login-pin-label">กรอกรหัส PIN 4 หลัก</div>
@@ -766,18 +764,18 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <div class="lpd" id="pd3"></div>
     </div>
     <div class="login-numpad">
-      <button class="lnb" type="button" data-n="1">1</button>
-      <button class="lnb" type="button" data-n="2">2</button>
-      <button class="lnb" type="button" data-n="3">3</button>
-      <button class="lnb" type="button" data-n="4">4</button>
-      <button class="lnb" type="button" data-n="5">5</button>
-      <button class="lnb" type="button" data-n="6">6</button>
-      <button class="lnb" type="button" data-n="7">7</button>
-      <button class="lnb" type="button" data-n="8">8</button>
-      <button class="lnb" type="button" data-n="9">9</button>
-      <button class="lnb lnb-del" type="button" data-n="del">⌫</button>
-      <button class="lnb" type="button" data-n="0">0</button>
-      <button class="lnb lnb-ok" type="button" data-n="ok">✓</button>
+      <button class="lnb" type="button" onclick="doNum('1')">1</button>
+      <button class="lnb" type="button" onclick="doNum('2')">2</button>
+      <button class="lnb" type="button" onclick="doNum('3')">3</button>
+      <button class="lnb" type="button" onclick="doNum('4')">4</button>
+      <button class="lnb" type="button" onclick="doNum('5')">5</button>
+      <button class="lnb" type="button" onclick="doNum('6')">6</button>
+      <button class="lnb" type="button" onclick="doNum('7')">7</button>
+      <button class="lnb" type="button" onclick="doNum('8')">8</button>
+      <button class="lnb" type="button" onclick="doNum('9')">9</button>
+      <button class="lnb lnb-del" type="button" onclick="doNum('del')">⌫</button>
+      <button class="lnb" type="button" onclick="doNum('0')">0</button>
+      <button class="lnb lnb-ok" type="button" onclick="doNum('ok')">✓</button>
     </div>
     <div class="login-error" id="loginError"></div>
   </div>
@@ -1531,41 +1529,8 @@ function loadLocal(){ /* data loaded via syncAll from Sheet */ }
 // ============================================================
 //  LOGIN
 // ============================================================
-function buildDoctorGrid(){
-  document.querySelectorAll('.doctor-btn[data-id]').forEach(btn => {
-    btn.addEventListener('click', function(){
-      doSelectDoctor(this.dataset.id);
-    });
-  });
-}
-// ===== LOGIN EVENT DELEGATION =====
-(function setupLogin(){
-  setTimeout(function(){
-    var loginScreen = document.getElementById('loginScreen');
-    if(loginScreen){
-      loginScreen.addEventListener('click', function(e){
-        try {
-          var btn = e.target.closest('.login-doc-btn, .login-manager-btn');
-          if(btn && btn.dataset.id){
-            e.preventDefault(); e.stopPropagation();
-            doSelectDoctor(btn.dataset.id);
-            return;
-          }
-          var backBtn = e.target.closest('#loginBackBtn, [onclick*="goBackToSelect"]');
-          if(backBtn){ goBackToSelect(); return; }
-          var numBtn = e.target.closest('.lnb');
-          if(numBtn && numBtn.dataset.n !== undefined){
-            e.preventDefault(); doNum(numBtn.dataset.n); return;
-          }
-        } catch(err){ console.error('Login click error:', err); }
-      });
-    }
-    // Fallback: ผูก onclick โดยตรงในกรณี delegation ไม่ทำงาน
-    document.querySelectorAll('.login-doc-btn[data-id], .login-manager-btn[data-id]').forEach(function(btn){
-      btn.onclick = function(e){ e.stopPropagation(); doSelectDoctor(this.dataset.id); };
-    });
-  }, 200);
-})();
+function buildDoctorGrid(){ /* numpad ใช้ onclick โดยตรงแล้ว */ }
+// ===== LOGIN =====
 
 function doSelectDoctor(id){
   selectedLoginDoc = id;
@@ -4578,9 +4543,6 @@ function setMobileNav(page){
 
 buildDoctorGrid();
 // Ensure correct initial state
-document.getElementById('step-select').style.display='block';
-document.getElementById('step-pin').style.display='none';
-
 // Auto-restore session on page load/refresh
 (function restoreSession(){
   try {
