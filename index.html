@@ -146,14 +146,15 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
   -webkit-tap-highlight-color: transparent;
 }
 .login-back-btn:active { background: rgba(107,45,94,0.12); }
-.login-pin-avatar { font-size: 48px; margin-bottom: 10px; }
+.login-pin-avatar { font-size: 48px; margin-bottom: 10px; text-align: center; width: 100%; }
 .login-pin-name {
   font-size: 22px; font-weight: 800; color: #3D0A2E;
   margin-bottom: 4px; font-family: 'Prompt', sans-serif;
+  text-align: center; width: 100%;
 }
-.login-pin-label { color: #aaa; font-size: 13px; margin-bottom: 28px; }
+.login-pin-label { color: #aaa; font-size: 13px; margin-bottom: 28px; text-align: center; width: 100%; }
 .login-pin-dots {
-  display: flex; gap: 16px; margin-bottom: 32px;
+  display: flex; gap: 16px; margin-bottom: 32px; justify-content: center;
 }
 .lpd {
   width: 14px; height: 14px; border-radius: 50%;
@@ -704,6 +705,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 /* HIGHLIGHT ROW */
 tbody tr.own-row { background: rgba(212,168,71,0.04); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 </style>
 </head>
 <body>
@@ -754,7 +756,6 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
   <!-- STEP 2: กรอก PIN -->
   <div id="step-pin" class="login-step" style="display:none;">
-    <button type="button" onclick="goBackToSelect()" style="width:100%;margin-bottom:20px;padding:12px 16px;background:#f5eef8;border:1.5px solid #d4b8e0;border-radius:12px;color:#6B2D5E;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;text-align:left;">← เลือกใหม่</button>
     <div class="login-pin-avatar" id="loginPinAvatar">🦷</div>
     <div class="login-pin-name" id="pinForName">หมอทอย</div>
     <div class="login-pin-label">กรอกรหัส PIN 4 หลัก</div>
@@ -779,6 +780,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <button class="lnb lnb-ok" type="button" onclick="doNum('ok')">✓</button>
     </div>
     <div class="login-error" id="loginError"></div>
+    <button type="button" onclick="goBackToSelect()" style="width:100%;margin-top:16px;padding:12px 16px;background:#f5eef8;border:1.5px solid #d4b8e0;border-radius:12px;color:#6B2D5E;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;text-align:center;">← เลือกใหม่</button>
   </div>
 
 </div>
@@ -807,6 +809,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
     </div>
     <div class="sidebar-nav">
       <button class="nav-item" onclick="showPage('patients')" id="nav-patients" style="display:none;"><span class="nav-icon">👥</span>รายชื่อคนไข้</button>
+      <button class="nav-item" onclick="showPage('recall')" id="nav-recall" style="display:none;"><span class="nav-icon">🔔</span>Recall ปกส</button>
       <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon">🏠</span>หน้าหลัก</button>
       <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule" style="display:none;"><span class="nav-icon">📆</span>ดูนัด</button>
       <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon">📋</span>บันทึกการรักษา</button>
@@ -847,12 +850,12 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
     <!-- TOP TAB BAR (mobile navigation) -->
     <div class="top-tab-bar" id="topTabBar">
       <button class="top-tab" id="ttab-patients" style="display:none;" onclick="showPage('patients');setMobileNav('patients')"><span class="mn-icon">👥</span>คนไข้</button>
+      <button class="top-tab" id="ttab-recall" style="display:none;" onclick="showPage('recall');setMobileNav('recall')"><span class="mn-icon">🔔</span>Recall</button>
       <button class="top-tab active" id="ttab-home" onclick="showPage('home');setMobileNav('home')"><span class="mn-icon">🏠</span>หน้าหลัก</button>
       <button class="top-tab" id="ttab-schedule" style="display:none;" onclick="showPage('schedule');setMobileNav('schedule')"><span class="mn-icon">📆</span>ดูนัด</button>
       <button class="top-tab" id="ttab-treatment" onclick="showPage('treatment');setMobileNav('treatment')"><span class="mn-icon">📋</span>รักษา</button>
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
-      <button class="top-tab" id="ttab-followup" style="display:none;" onclick="showPage('followup');setMobileNav('followup')"><span class="mn-icon">🔔</span>ติดตาม</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -1095,7 +1098,22 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
     </div>
 
-    <!-- ===== PATIENTS PAGE (Manager only) ===== -->
+    <!-- ===== RECALL PAGE (Manager only) ===== -->
+    <div class="page" id="page-recall">
+      <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div class="section-title"><span>🔔</span>Recall ประกันสังคม</div>
+        <div style="font-size:13px;color:var(--text-light);align-self:center;">ติดตามคนไข้ ปกส. ที่ไม่ได้มารักษานาน 11 เดือนขึ้นไป</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <input type="text" class="form-control" id="recallSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="renderRecall()" style="height:38px;flex:1;min-width:200px;">
+        <select id="recallStatusFilter" onchange="renderRecall()" class="form-control" style="height:38px;width:160px;">
+          <option value="">ทุกสถานะ</option>
+          <option value="รอติดตาม">รอติดตาม</option>
+          <option value="ติดตามแล้ว">ติดตามแล้ว</option>
+        </select>
+      </div>
+      <div id="recallList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
     <div class="page" id="page-patients">
       <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="section-title"><span>👥</span>รายชื่อคนไข้</div>
@@ -1128,6 +1146,9 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <button class="mobile-nav-btn" id="mnav-patients" onclick="showPage('patients');setMobileNav('patients')" style="display:none;">
         <span class="mn-icon">👥</span>คนไข้
       </button>
+      <button class="mobile-nav-btn" id="mnav-recall" onclick="showPage('recall');setMobileNav('recall')" style="display:none;">
+        <span class="mn-icon">🔔</span>Recall
+      </button>
       <button class="mobile-nav-btn active" id="mnav-home" onclick="showPage('home');setMobileNav('home')">
         <span class="mn-icon">🏠</span>หน้าหลัก
       </button>
@@ -1142,9 +1163,6 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       </button>
       <button class="mobile-nav-btn" id="mnav-lab" onclick="showPage('lab');setMobileNav('lab')">
         <span class="mn-icon">🧪</span>แลป
-      </button>
-      <button class="mobile-nav-btn" id="mnav-followup" onclick="showPage('followup');setMobileNav('followup')" style="display:none;">
-        <span class="mn-icon">🔔</span>ติดตาม
       </button>
       <button class="mobile-nav-btn" id="mnav-settings" onclick="showPage('settings');setMobileNav('settings')" style="display:none;">
         <span class="mn-icon">⚙️</span>ตั้งค่า
@@ -1639,7 +1657,7 @@ function startApp(){
   if(iyr) iyr.value = now.getFullYear()+543;
 
   // Show settings + schedule tab for manager only
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients','ttab-followup','mnav-followup','mnav-settings'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
@@ -1740,10 +1758,10 @@ function showPage(p){
   if(p==='lab') renderLabPage();
   if(p==='settings') buildSettingsPage();
   if(p==='patients'){
-    renderPatients(); // render จาก cache ก่อน
-    // แล้ว sync จาก Sheet แล้ว render ใหม่
+    renderPatients();
     syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
   }
+  if(p==='recall') renderRecall();
   if(p==='schedule'){
     const el = document.getElementById('schDate');
     if(el && !el.value) el.value = todayStr();
@@ -2823,6 +2841,16 @@ async function syncAll(){
     if(Array.isArray(d.labs))        labs        = d.labs.filter(r=>sid(r)).map(normRow);
     // Load patients from Sheet via clean function
     loadPatientsFromSheet(d.patients);
+    // Load recall status from Sheet
+    if(Array.isArray(d.recall)){
+      try{
+        const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
+        d.recall.forEach(r=>{
+          if(r.hn && r.status) data[String(r.hn)] = String(r.status);
+        });
+        localStorage.setItem('bl_recall', JSON.stringify(data));
+      }catch(e){}
+    }
     // Load day_notes + day_colors
     if(Array.isArray(d.day_notes)){
       dayNotes = {};
@@ -2844,30 +2872,29 @@ async function syncAll(){
         localStorage.setItem('bl_day_colors', JSON.stringify(existing));
       } catch(e){}
     }
-    // Load sch_slots — merge Sheet กับ local ไม่ลบ slot ที่มีนัดอยู่
+    // Load sch_slots — ใช้ Sheet เป็น source of truth แต่กรอง deleted slots ออก
     if(Array.isArray(d.sch_slots)){
       try {
         const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
+        const deleted = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
         d.sch_slots.forEach(r=>{
           if(r.date && r.slots){
             try {
               const sheetSlots = JSON.parse(r.slots);
-              const localSlots = all[r.date] || [];
-              // รวม Sheet slots + local slots ที่มีนัดอยู่
-              const aptSlotsForDate = appointments
-                .filter(a=>a.date===r.date)
-                .map(a=>String(a.time||'').slice(0,5))
-                .filter(Boolean);
-              const merged = new Set([...sheetSlots, ...localSlots, ...aptSlotsForDate]);
-              all[r.date] = [...merged].sort();
+              const deletedForDate = deleted[r.date] || [];
+              // กรอง deleted slots ออก
+              const filtered = sheetSlots.filter(s=>!deletedForDate.includes(s));
+              all[r.date] = filtered.sort();
             } catch(e){}
           }
         });
-        // เพิ่ม slot จาก appointments ที่ไม่มีใน sch_slots เลย
+        // เพิ่ม slot จาก appointments ที่ไม่อยู่ใน deleted
         appointments.forEach(a=>{
           if(!a.date || !a.time) return;
           const t = String(a.time).slice(0,5);
           if(!t) return;
+          const deletedForDate = (JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}')||{})[a.date] || [];
+          if(deletedForDate.includes(t)) return; // slot ถูกลบแล้ว ไม่เพิ่ม
           if(!all[a.date]) all[a.date] = [];
           if(!all[a.date].includes(t)){
             all[a.date].push(t);
@@ -2902,6 +2929,7 @@ async function syncAll(){
     else if(p==='income') renderIncome();
     else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
     else if(p==='patients') renderPatients();
+    else if(p==='recall') renderRecall();
     const t=new Date().toLocaleTimeString('th-TH');
     if(txt) txt.textContent='ซิงค์แล้ว '+t;
     if(dot) dot.style.background='var(--green)';
@@ -3037,17 +3065,22 @@ function confirmAddSlot(date){
   showToast(`เพิ่ม slot ${t} แล้ว`);
 }
 function schRemoveSlot(date, slot){
-  // นัดในช่องนี้
   const slotApts = appointments.filter(a=> a.date===date && String(a.time||'').slice(0,5)===slot);
   if(slotApts.length > 0){
     if(!confirm(`ลบ slot ${slot} และนัด ${slotApts.length} รายการในช่องนี้?`)) return;
-    // ลบนัดทุกรายการใน slot นี้
     slotApts.forEach(a=>{
       appointments = appointments.filter(x=>String(x.id)!==String(a.id));
       saveLocal();
       syncToSheet('delete',{type:'appointments',id:a.id});
     });
   }
+  // บันทึก blacklist slot ที่ลบแล้ว
+  try{
+    const deleted = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
+    if(!deleted[date]) deleted[date] = [];
+    if(!deleted[date].includes(slot)) deleted[date].push(slot);
+    localStorage.setItem('bl_deleted_slots', JSON.stringify(deleted));
+  }catch(e){}
   // ลบ slot
   const slots = getSchSlots(date).filter(s=>s!==slot);
   saveSchSlots(date, slots);
@@ -4450,7 +4483,143 @@ function openPatientDetail(hn){
     </div>`;
   document.getElementById('modalPatientDetail').classList.add('open');
 }
-function closePatientDetail(){ document.getElementById('modalPatientDetail').classList.remove('open'); }
+// ============================================================
+//  RECALL — ติดตามคนไข้ ปกส. ที่ไม่ได้มา 11 เดือน
+// ============================================================
+function getRecallStatus(hn){
+  const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
+  return data[String(hn)] || 'รอติดตาม';
+}
+function setRecallStatus(hn, status){
+  const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
+  data[String(hn)] = status;
+  localStorage.setItem('bl_recall', JSON.stringify(data));
+  // sync ขึ้น Sheet
+  syncToSheet('recall', { hn: String(hn), status, updatedAt: todayStr() })
+    .then(()=>showToast(status==='ติดตามแล้ว' ? 'บันทึก ติดตามแล้ว ✅' : 'รีเซ็ตสถานะแล้ว'))
+    .catch(()=>showToast('บันทึก local แล้ว (sync ไม่สำเร็จ)','error'));
+  renderRecall();
+}
+
+function renderRecall(){
+  const el = document.getElementById('recallList');
+  if(!el) return;
+
+  const q = (document.getElementById('recallSearch')?.value||'').toLowerCase().trim();
+  const statusFilter = document.getElementById('recallStatusFilter')?.value||'';
+  const THRESHOLD_DAYS = 335; // ~11 เดือน
+  const URGENT_DAYS = 610;    // ~20 เดือน
+  const now = new Date();
+
+  const ssoPatients = patients.filter(p=>p.sso===true || String(p.sso).toUpperCase()==='TRUE');
+
+  const list = ssoPatients.map(p=>{
+    const treats = getPatientTreatments(p.hn);
+    const lastDate = treats.length ? treats[0].date : null;
+    const lastMs = lastDate ? new Date(lastDate).getTime() : 0;
+    const diffDays = lastMs ? Math.floor((now - lastMs) / (24*60*60*1000)) : 9999;
+    const status = getRecallStatus(p.hn);
+    return { ...p, lastDate, diffDays, status };
+  })
+  .filter(p => p.diffDays >= THRESHOLD_DAYS && p.diffDays < 9999)
+  .sort((a,b) => b.diffDays - a.diffDays);
+
+  let filtered = list;
+  if(q) filtered = filtered.filter(p=>
+    String(p.hn||'').toLowerCase().includes(q) ||
+    String(p.name||'').toLowerCase().includes(q) ||
+    String(p.phone||'').toLowerCase().includes(q)
+  );
+  if(statusFilter) filtered = filtered.filter(p=>p.status===statusFilter);
+
+  // summary counts
+  const waitCount = list.filter(p=>p.status==='รอติดตาม').length;
+  const doneCount = list.filter(p=>p.status==='ติดตามแล้ว').length;
+  const urgentCount = list.filter(p=>p.diffDays>=URGENT_DAYS && p.status==='รอติดตาม').length;
+
+  if(!filtered.length){
+    el.innerHTML = `
+      ${renderRecallSummary(waitCount, doneCount, urgentCount, list.length)}
+      <div style="text-align:center;padding:40px;color:var(--text-light);">
+        ${list.length===0 ? '✅ ไม่มีคนไข้ ปกส. ที่ต้องติดตาม' : 'ไม่พบข้อมูลที่ค้นหา'}
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = renderRecallSummary(waitCount, doneCount, urgentCount, list.length) +
+  filtered.map(p=>{
+    const isUrgent = p.diffDays >= URGENT_DAYS && p.status === 'รอติดตาม';
+    const statusColor = p.status==='ติดตามแล้ว' ? '#16A085' : isUrgent ? '#C0392B' : '#E74C3C';
+    const statusBg   = p.status==='ติดตามแล้ว' ? 'rgba(22,160,133,0.1)' : isUrgent ? 'rgba(192,57,43,0.12)' : 'rgba(231,76,60,0.1)';
+    const borderColor = p.status==='ติดตามแล้ว' ? '#16A085' : isUrgent ? '#C0392B' : '#E74C3C';
+
+    const months = p.diffDays >= 9999 ? null : Math.floor(p.diffDays/30);
+    const yearPart = months ? Math.floor(months/12) : 0;
+    const monthPart = months ? months%12 : 0;
+    const timeStr = p.diffDays >= 9999 ? 'ไม่เคยมารักษา' :
+      yearPart > 0 ? `${yearPart} ปี ${monthPart} เดือน` : `${monthPart} เดือน`;
+
+    return `<div style="background:#fff;border-radius:12px;padding:14px 16px;
+      box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);
+      border-left:4px solid ${borderColor};
+      display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+      ${p.status==='ติดตามแล้ว'?'opacity:0.75;':''}">
+
+      <div style="flex:1;min-width:180px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+          <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${p.name||'—'}</span>
+          <span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;">🏛️ ปกส</span>
+          ${isUrgent ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 20 เดือน</span>` : ''}
+        </div>
+        <div style="font-size:12px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;">
+          <span>HN ${p.hn||'—'}</span>
+          ${p.phone?`<span>📞 ${p.phone}</span>`:''}
+          <span style="color:${isUrgent?'#C0392B':'#E74C3C'};font-weight:700;">⏰ ไม่มา ${timeStr}</span>
+          ${p.lastDate?`<span>รักษาล่าสุด ${fmtDate(p.lastDate)}</span>`:''}
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span style="background:${statusBg};color:${statusColor};border:1.5px solid ${statusColor}33;
+          border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">${p.status}</span>
+        ${p.status==='รอติดตาม' ?
+          `<button onclick="setRecallStatus('${p.hn}','ติดตามแล้ว')"
+            style="padding:6px 12px;border-radius:8px;border:1.5px solid #16A085;background:#fff;
+            cursor:pointer;font-size:12px;font-weight:700;color:#16A085;"
+            onmouseover="this.style.background='rgba(22,160,133,0.1)'" onmouseout="this.style.background='#fff'">
+            ✅ ติดตามแล้ว
+          </button>` :
+          `<button onclick="setRecallStatus('${p.hn}','รอติดตาม')"
+            style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;
+            cursor:pointer;font-size:12px;font-weight:700;color:var(--text-light);"
+            onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'">
+            ↩️ รีเซ็ต
+          </button>`
+        }
+      </div>
+    </div>`;
+  }).join('') +
+  `<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">
+    พบ ${filtered.length} ราย จากคนไข้ ปกส. ที่ไม่ได้มารักษานาน 11 เดือนขึ้นไป ทั้งหมด ${list.length} ราย
+  </div>`;
+}
+
+function renderRecallSummary(wait, done, urgent, total){
+  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+    <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);">
+      <div style="font-size:28px;font-weight:800;color:#E74C3C;font-family:'Prompt',sans-serif;">${wait}</div>
+      <div style="font-size:12px;color:var(--text-light);">รอติดตาม</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);">
+      <div style="font-size:28px;font-weight:800;color:#C0392B;font-family:'Prompt',sans-serif;">${urgent}</div>
+      <div style="font-size:12px;color:var(--text-light);">🚨 เกิน 20 เดือน</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);">
+      <div style="font-size:28px;font-weight:800;color:#16A085;font-family:'Prompt',sans-serif;">${done}</div>
+      <div style="font-size:12px;color:var(--text-light);">ติดตามแล้ว</div>
+    </div>
+  </div>`;
+}
 
 
 function logout(){
@@ -4461,7 +4630,7 @@ function logout(){
   // ซ่อน tab manager-only ก่อนกลับหน้า login
   ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
    'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome',
-   'nav-patients','ttab-patients','mnav-patients','ttab-followup','mnav-followup','mnav-settings'].forEach(id=>{
+   'nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });
