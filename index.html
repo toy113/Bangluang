@@ -807,7 +807,6 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       </div>
     </div>
     <div class="sidebar-nav">
-      <button class="nav-item" onclick="showPage('patients')" id="nav-patients" style="display:none;"><span class="nav-icon">👥</span>รายชื่อคนไข้</button>
       <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon">🏠</span>หน้าหลัก</button>
       <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule" style="display:none;"><span class="nav-icon">📆</span>ดูนัด</button>
       <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon">📋</span>บันทึกการรักษา</button>
@@ -847,13 +846,12 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
     </div>
     <!-- TOP TAB BAR (mobile navigation) -->
     <div class="top-tab-bar" id="topTabBar">
-      <button class="top-tab" id="ttab-patients" style="display:none;" onclick="showPage('patients');setMobileNav('patients')"><span class="mn-icon">👥</span>คนไข้</button>
       <button class="top-tab active" id="ttab-home" onclick="showPage('home');setMobileNav('home')"><span class="mn-icon">🏠</span>หน้าหลัก</button>
       <button class="top-tab" id="ttab-schedule" style="display:none;" onclick="showPage('schedule');setMobileNav('schedule')"><span class="mn-icon">📆</span>ดูนัด</button>
       <button class="top-tab" id="ttab-treatment" onclick="showPage('treatment');setMobileNav('treatment')"><span class="mn-icon">📋</span>รักษา</button>
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
-      <button class="top-tab manager-only" id="ttab-followup" onclick="showPage('followup')"><span class="mn-icon">🔔</span>ติดตาม</button>
+      <button class="top-tab manager-only" id="ttab-followup" onclick="showPage('followup')" style="display:none;"><span class="mn-icon">🔔</span>ติดตาม</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -1023,11 +1021,11 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <div class="section-hdr"><span>🔔 ติดตามผู้ป่วยประกันสังคม</span></div>
       <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow);">
         <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;">
-          แสดงผู้ป่วยที่ใช้สิทธิ์ประกันสังคม และไม่ได้มารักษาเกิน <strong>330 วัน</strong>
+          แสดงผู้ป่วยที่ใช้สิทธิ์ประกันสังคม และไม่ได้มารักษาเกิน <strong>365 วัน</strong>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <label style="font-size:13px;color:var(--text-mid);">ไม่มาเกิน</label>
-          <input type="number" id="followupDays" value="330" min="30" max="3650"
+          <input type="number" id="followupDays" value="365" min="30" max="3650"
             oninput="renderFollowup()"
             style="width:80px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;">
           <label style="font-size:13px;color:var(--text-mid);">วัน</label>
@@ -1096,18 +1094,6 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
     </div>
 
-    <!-- ===== PATIENTS PAGE (Manager only) ===== -->
-    <div class="page" id="page-patients">
-      <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-        <div class="section-title"><span>👥</span>รายชื่อคนไข้</div>
-        <button class="btn btn-primary" onclick="openAddPatient()">+ เพิ่มคนไข้รายใหม่</button>
-      </div>
-      <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);">
-        <input type="text" class="form-control" id="patientSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="renderPatients()" style="height:38px;width:100%;">
-      </div>
-      <div id="patientGrid" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
     <!-- ===== SETTINGS PAGE ===== -->
     <div class="page" id="page-settings">
       <div class="settings-grid" id="settingsGrid"></div>
@@ -1126,9 +1112,6 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
   <!-- MOBILE BOTTOM NAV -->
   <div class="mobile-nav">
     <div class="mobile-nav-inner">
-      <button class="mobile-nav-btn" id="mnav-patients" onclick="showPage('patients');setMobileNav('patients')" style="display:none;">
-        <span class="mn-icon">👥</span>คนไข้
-      </button>
       <button class="mobile-nav-btn active" id="mnav-home" onclick="showPage('home');setMobileNav('home')">
         <span class="mn-icon">🏠</span>หน้าหลัก
       </button>
@@ -1365,83 +1348,6 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
   <div class="status-opt" onclick="setStatus('เสร็จสิ้น')"><span style="color:var(--green)">🎉</span> เสร็จสิ้น</div>
   <div class="status-opt" onclick="setStatus('ยกเลิก')"><span style="color:var(--red)">❌</span> ยกเลิก</div>
   <div class="status-opt" onclick="setStatus('walk-in')"><span style="color:var(--blue)">🚶</span> walk-in</div>
-</div>
-
-<!-- EDIT PATIENT MODAL -->
-<div class="modal-overlay" id="modalEditPatient">
-  <div class="modal-box" style="max-width:460px;">
-    <div class="modal-title">✏️ แก้ไขข้อมูล · <span id="editPat-hn-display" style="font-size:14px;color:var(--wine-mid);"></span></div>
-    <button class="modal-close" onclick="closeEditPatient()">×</button>
-    <input type="hidden" id="editPat-hn">
-    <div class="form-grid">
-      <div class="form-group form-control-full">
-        <label>ชื่อ-สกุล *</label>
-        <input class="form-control" id="editPat-name" placeholder="ชื่อ-นามสกุล">
-      </div>
-      <div class="form-group">
-        <label>เบอร์โทรศัพท์</label>
-        <input class="form-control" id="editPat-phone" type="tel" placeholder="0xx-xxx-xxxx" inputmode="numeric" maxlength="12" oninput="fmtPhone(this)">
-      </div>
-      <div class="form-group">
-        <label>Line ID</label>
-        <input class="form-control" id="editPat-line" placeholder="Line ID">
-      </div>
-    </div>
-    <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:14px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);cursor:pointer;">
-      <input type="checkbox" id="editPat-sso" style="width:18px;height:18px;accent-color:var(--orange);">
-      <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
-    </label>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeEditPatient()">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="saveEditPatient()">💾 บันทึก</button>
-    </div>
-  </div>
-</div>
-
-<!-- ADD PATIENT MODAL -->
-<div class="modal-overlay" id="modalAddPatient">
-  <div class="modal-box" style="max-width:460px;">
-    <div class="modal-title">👥 เพิ่มคนไข้รายใหม่</div>
-    <button class="modal-close" onclick="closeAddPatient()">×</button>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>HN *</label>
-        <input class="form-control" id="newPat-hn" placeholder="yy-xxxxx" maxlength="8" oninput="fmtHN(this)">
-      </div>
-      <div class="form-group">
-        <label>ชื่อ-สกุล *</label>
-        <input class="form-control" id="newPat-name" placeholder="ชื่อ-นามสกุล">
-      </div>
-      <div class="form-group">
-        <label>เบอร์โทรศัพท์</label>
-        <input class="form-control" id="newPat-phone" type="tel" placeholder="0xx-xxx-xxxx" inputmode="numeric" maxlength="12" oninput="fmtPhone(this)">
-      </div>
-      <div class="form-group">
-        <label>Line ID</label>
-        <input class="form-control" id="newPat-line" placeholder="Line ID">
-      </div>
-    </div>
-    <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:14px;background:rgba(243,156,18,0.08);border-radius:10px;border:1px solid rgba(243,156,18,0.25);cursor:pointer;">
-      <input type="checkbox" id="newPat-sso" style="width:18px;height:18px;accent-color:var(--orange);">
-      <span style="font-size:14px;font-weight:700;color:#7B5000;">🏛️ มีสิทธิ์ประกันสังคม (ปกส)</span>
-    </label>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeAddPatient()">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="saveNewPatient()">💾 บันทึก</button>
-    </div>
-  </div>
-</div>
-
-<!-- PATIENT DETAIL MODAL -->
-<div class="modal-overlay" id="modalPatientDetail">
-  <div class="modal-box" style="max-width:600px;">
-    <div class="modal-title">🦷 <span id="pdTitle">ประวัติคนไข้</span></div>
-    <button class="modal-close" onclick="closePatientDetail()">×</button>
-    <div id="pdContent" style="max-height:65vh;overflow-y:auto;"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closePatientDetail()">ปิด</button>
-    </div>
-  </div>
 </div>
 
 <!-- TOAST -->
@@ -1688,7 +1594,7 @@ function startApp(){
   if(iyr) iyr.value = now.getFullYear()+543;
 
   // Show settings + schedule tab for manager only
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','ttab-followup'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
@@ -1781,26 +1687,21 @@ function showPage(p){
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
   localStorage.setItem('bl_lastPage', p);
-  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้'};
+  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
   if(p==='treatment') renderTreatPage();
   if(p==='income') renderIncome();
   if(p==='lab') renderLabPage();
   if(p==='settings') buildSettingsPage();
-  if(p==='patients'){
-    renderPatients(); // render จาก cache ก่อน
-    // แล้ว sync จาก Sheet แล้ว render ใหม่
-    syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
-  }
   if(p==='schedule'){
     const el = document.getElementById('schDate');
     if(el && !el.value) el.value = todayStr();
     if(!schCalMonth) schCalMonth = todayStr().slice(0,7);
-    // render จาก cache ก่อน แล้ว sync Sheet แล้ว render ใหม่
-    renderScheduleDay();
-    renderSchMiniCal();
-    syncAll().then(()=>{ renderScheduleDay(); renderSchMiniCal(); }).catch(()=>{});
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      renderScheduleDay();
+      renderSchMiniCal();
+    }));
   }
   setMobileNav(p);
 }
@@ -2509,15 +2410,6 @@ function deleteLab(id){
   saveLocal(); renderLabPage(); showToast('ลบสำเร็จ');
   syncToSheet('delete',{type:'labs',id});
 }
-function hideFollowup(hn){
-  try {
-    const hidden = JSON.parse(localStorage.getItem('bl_followup_hidden')||'[]');
-    if(!hidden.includes(hn)) hidden.push(hn);
-    localStorage.setItem('bl_followup_hidden', JSON.stringify(hidden));
-    renderFollowup();
-  } catch(e){}
-}
-
 function renderFollowup(){
   const el = document.getElementById('followupList');
   if(!el) return;
@@ -2546,13 +2438,12 @@ function renderFollowup(){
     }
   });
 
-  // กรองคนที่ซ่อนไว้
-  const hidden = JSON.parse(localStorage.getItem('bl_followup_hidden')||'[]');
+  // กรองคนที่ไม่มาเกิน X วัน
   const overdue = Object.values(byHN).filter(p=>{
     if(!p.lastDate) return false;
     const last = new Date(p.lastDate+'T00:00:00');
-    return last <= cutoff && !hidden.includes(p.hn);
-  }).sort((a,b)=> a.lastDate < b.lastDate ? -1 : 1);
+    return last <= cutoff;
+  }).sort((a,b)=> a.lastDate < b.lastDate ? -1 : 1); // เรียงจากนานสุด
 
   if(!overdue.length){
     el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);font-size:14px;">
@@ -2561,21 +2452,15 @@ function renderFollowup(){
   }
 
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <span style="font-size:13px;color:var(--wine-dark);font-weight:700;">พบ ${overdue.length} ราย ที่ไม่มาเกิน ${days} วัน</span>
-      ${hidden.length?`<button onclick="localStorage.removeItem('bl_followup_hidden');renderFollowup();"
-        style="font-size:11px;background:#f5f0f5;border:1px solid var(--border);border-radius:6px;
-        padding:3px 10px;cursor:pointer;color:var(--wine-dark);">แสดงทั้งหมด (${hidden.length})</button>`:''}
+    <div style="margin-bottom:10px;font-size:13px;color:var(--wine-dark);font-weight:700;">
+      พบ ${overdue.length} ราย ที่ไม่มาเกิน ${days} วัน
     </div>
     ${overdue.map((p,i)=>{
       const last = new Date(p.lastDate+'T00:00:00');
       const diffDays = Math.floor((today-last)/86400000);
       const urgent = diffDays > 700;
-      const warn = diffDays >= 330 && diffDays <= 700;
-      const borderColor = urgent ? '#E74C3C' : '#E67E22';
-      const dayColor = urgent ? '#E74C3C' : '#E67E22';
       return `<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;
-        box-shadow:var(--shadow);border-left:4px solid ${borderColor};">
+        box-shadow:var(--shadow);border-left:4px solid ${urgent?'#E74C3C':'#E67E22'};">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:14px;color:var(--wine-dark);">
@@ -2586,18 +2471,13 @@ function renderFollowup(){
             </div>
             <div style="font-size:12px;margin-top:2px;">
               ครั้งสุดท้าย: <strong>${fmtDate(p.lastDate)}</strong>
-              <span style="color:${dayColor};font-weight:700;margin-left:6px;">
+              <span style="color:${urgent?'#E74C3C':'#E67E22'};font-weight:700;margin-left:6px;">
                 (${diffDays} วันที่แล้ว)
               </span>
             </div>
             ${p.lastProc?`<div style="font-size:11px;color:var(--text-light);margin-top:2px;">🦷 ${p.lastProc}</div>`:''}
           </div>
-          <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;">
-            <div style="font-size:22px;">${urgent?'🚨':'⚠️'}</div>
-            <button onclick="hideFollowup('${p.hn}')" title="ซ่อน"
-              style="font-size:10px;background:#f0f0f0;border:none;border-radius:6px;
-              padding:3px 8px;cursor:pointer;color:#888;white-space:nowrap;">ซ่อน</button>
-          </div>
+          <div style="flex-shrink:0;font-size:22px;">${urgent?'🚨':'⚠️'}</div>
         </div>
       </div>`;
     }).join('')}`;
@@ -2844,14 +2724,14 @@ async function syncAll(){
         const [hh,mm] = s.split(':');
         return `${String(hh).padStart(2,'0')}:${mm.slice(0,2)}`;
       }
-      // ISO date string with time e.g. "1899-12-30T03:00:00.000Z"
-      // Google Sheets เก็บ time เป็น UTC serial → ต้องบวก timezone offset ของ browser
+      // ISO date string with time e.g. "1899-12-30T03:17:56.000Z"
+      // Google Sheets เก็บเวลาเป็น fraction of day → Apps Script ส่งมาเป็น ISO
+      // ใช้ getUTCHours เพราะ Google Sheets time เป็น UTC-based serial
       if(s.includes('T')) {
         const d2 = new Date(s);
         if(!isNaN(d2.getTime())){
-          // ใช้ local hours/minutes (browser จะแปลง UTC → local timezone อัตโนมัติ)
-          const h = String(d2.getHours()).padStart(2,'0');
-          const m = String(d2.getMinutes()).padStart(2,'0');
+          const h = String(d2.getUTCHours()).padStart(2,'0');
+          const m = String(d2.getUTCMinutes()).padStart(2,'0');
           return h+':'+m;
         }
       }
@@ -2870,8 +2750,6 @@ async function syncAll(){
     if(Array.isArray(d.appointments)) appointments = d.appointments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.treatments))  treatments  = d.treatments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.labs))        labs        = d.labs.filter(r=>sid(r)).map(normRow);
-    // Load patients from Sheet via clean function
-    loadPatientsFromSheet(d.patients);
     // Load day_notes + day_colors
     if(Array.isArray(d.day_notes)){
       dayNotes = {};
@@ -2926,10 +2804,9 @@ async function syncAll(){
     if(p==='home') renderHome();
     else if(p==='treatment') renderTreatPage();
     else if(p==='lab') renderLabPage();
-    else if(p==='followup') renderFollowup();
+  else if(p==='followup') renderFollowup();
     else if(p==='income') renderIncome();
     else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
-    else if(p==='patients') renderPatients();
     const t=new Date().toLocaleTimeString('th-TH');
     if(txt) txt.textContent='ซิงค์แล้ว '+t;
     if(dot) dot.style.background='var(--green)';
@@ -3160,17 +3037,14 @@ function renderScheduleDay(){
 function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const d = new Date(date+'T00:00:00');
   const dow = d.getDay();
+  const slots = getSchSlots(date);
   const dayApts = appointments.filter(a=>a.date===date).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const isToday = date===todayStr();
-  const bg = DAY_BG_PASTEL[dow];
+  const bg = DAY_BG_PASTEL[dow]; // ใช้สีประจำวันเสมอ
   const fg = DAY_FG_PASTEL[dow];
-  const borderStyle = isToday ? 'box-shadow:0 0 0 3px #FFD700, 0 2px 12px rgba(0,0,0,0.15);' : '';
-
-  // slots = sch_slots ของวันนั้น + slot จาก appointments ที่ยังไม่มีใน list
-  const savedSlots = getSchSlots(date);
-  const aptSlots = dayApts.map(a=>String(a.time||'').slice(0,5)).filter(Boolean);
-  const allSlotSet = new Set([...savedSlots, ...aptSlots]);
-  const slots = [...allSlotSet].sort();
+  const borderStyle = isToday
+    ? 'box-shadow:0 0 0 3px #FFD700, 0 2px 12px rgba(0,0,0,0.15);'
+    : '';
 
   // หมอที่มีไม่คอนเฟิร์ม
   const docSet = {};
@@ -3986,10 +3860,9 @@ function tpSet(id, val){
 // ============================================================
 function fmtHN(input){
   let v = input.value.replace(/[^0-9]/g,'');
-  if(v.length > 2) v = v.slice(0,2)+'-'+v.slice(2,7); // YY-XXXXX
+  if(v.length > 2) v = v.slice(0,2)+'-'+v.slice(2,7);
   input.value = v;
 }
-
 function fmtPhone(input){
   let v = input.value.replace(/[^0-9]/g,'');
   if(v.length > 6)      v = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6,10);
@@ -4039,13 +3912,8 @@ function autoFillPatient(hn, prefix){
   }
   const hnStr = String(hn).trim();
 
-  // ค้นจาก patients (tab คนไข้) ก่อน — มีข้อมูลครบสุด
-  const fromPatients = patients
-    .filter(p => String(p.hn||'').trim() === hnStr && p.name)
-    .map(p => ({ hn: hnStr, patName: p.name, phone: p.phone||'', id: 'pat_'+p.hn }));
-
-  // ค้นจาก appointments และ treatments เป็น fallback
-  const fromRecords = [
+  // ค้นจาก appointments และ treatments — normalize ทุก field
+  const allRecords = [
     ...appointments.map(r=>({
       hn: String(r.hn||'').trim(),
       patName: r.patName || r.name || '',
@@ -4058,22 +3926,23 @@ function autoFillPatient(hn, prefix){
       phone: r.phone || '',
       id: r.id
     })),
-  ].filter(r => r.hn === hnStr && r.patName);
+  ];
 
-  // patients มีความสำคัญสูงสุด ถ้าไม่มีค่อยใช้ records
-  const allMatched = [...fromPatients, ...fromRecords];
+  const matched = allRecords.filter(r => r.hn === hnStr && r.patName);
 
-  if(!allMatched.length){
+  if(!matched.length){
     if(hint) hint.innerHTML = `<span style="color:var(--text-light);font-style:italic;">ไม่พบประวัติ HN ${hnStr}</span>`;
     return;
   }
 
-  // patients ขึ้นก่อน (id เริ่ม pat_) แล้วค่อย sort records ตาม id ล่าสุด
-  const found = allMatched[0];
+  // ใช้ข้อมูลล่าสุด
+  matched.sort((a,b) => String(b.id).localeCompare(String(a.id)));
+  const found = matched[0];
 
   const nameEl  = document.getElementById(prefix+'-name');
   const phoneEl = document.getElementById(prefix+'-phone');
 
+  // fill เสมอ (ไม่เช็คว่าว่างหรือเปล่า เพราะต้องการ autofill จาก HN)
   if(nameEl  && found.patName) nameEl.value  = found.patName;
   if(phoneEl && found.phone)   phoneEl.value = found.phone;
 
@@ -4214,6 +4083,7 @@ function showToast(msg,type='success'){
 }
 function clearCacheAndReload(){
   if(!confirm('ล้าง Cache และโหลดข้อมูลใหม่จาก Sheet? ข้อมูลในเครื่องจะถูกล้างและดึงใหม่จาก Google Sheet')) return;
+  // Keep session and doctor pins
   const session = localStorage.getItem('bl_session');
   const pins = localStorage.getItem('bl_doctors_pins');
   const lastPage = localStorage.getItem('bl_lastPage');
@@ -4225,296 +4095,14 @@ function clearCacheAndReload(){
   setTimeout(()=>location.reload(), 1000);
 }
 
-// ============================================================
-//  PATIENT LIST (Manager only) — clean rewrite
-// ============================================================
-
-// patients array — source of truth คือ Google Sheet tab "คนไข้"
-// localStorage ใช้เป็น cache เท่านั้น
-var patients = JSON.parse(localStorage.getItem('bl_patients')||'[]');
-
-// ---- sync ขึ้น Sheet โดยตรง ----
-function pushPatientToSheet(rec){
-  return syncToSheet('patients', rec);
-}
-function deletePatientFromSheet(hn){
-  return syncToSheet('delete_patient', { hn: String(hn) });
-}
-
-// ---- save local cache ----
-function cachePatients(){
-  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
-}
-
-// ---- next HN ----
-function getNextHN(){
-  const allHNs = [];
-  [...patients, ...treatments, ...appointments].forEach(r=>{
-    const raw = String(r.hn||'').replace('-','');
-    if(/^\d{7}$/.test(raw)) allHNs.push(parseInt(raw,10));
-  });
-  if(!allHNs.length){
-    const yy = String(new Date().getFullYear()+543).slice(-2);
-    return `${yy}-00001`;
-  }
-  const next = Math.max(...allHNs) + 1;
-  return String(next).padStart(7,'0').slice(0,2) + '-' + String(next).padStart(7,'0').slice(2);
-}
-
-// ---- load patients from Sheet data (called from syncAll) ----
-// Sheet คือ source of truth — replace array ทั้งหมด
-function loadPatientsFromSheet(sheetData){
-  if(!Array.isArray(sheetData)) return;
-  patients = sheetData
-    .filter(p=>p.hn)
-    .map(p=>({
-      ...p,
-      hn: String(p.hn),
-      sso: (String(p.sso||'').toUpperCase()==='TRUE' || p.sso===true)
-    }));
-  cachePatients();
-}
-
-// ---- build display list (patients only — ไม่ดึงจาก treatments/appointments) ----
-function getPatientList(){
-  return [...patients].sort((a,b)=>{
-    const na = String(a.hn||'').replace('-','');
-    const nb = String(b.hn||'').replace('-','');
-    return nb.localeCompare(na, undefined, {numeric:true});
-  });
-}
-
-// ---- visit counts ----
-function getPatientVisitCount(hn){
-  return treatments.filter(t=>String(t.hn||'').trim()===String(hn).trim()).length;
-}
-function getPatientTreatments(hn){
-  return treatments.filter(t=>String(t.hn||'').trim()===String(hn).trim())
-    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
-}
-function getLastVisit(hn){
-  const ts = getPatientTreatments(hn);
-  return ts.length ? ts[0].date : null;
-}
-
-// ---- render list ----
-function renderPatients(){
-  const q = (document.getElementById('patientSearch')?.value||'').toLowerCase().trim();
-  const grid = document.getElementById('patientGrid');
-  if(!grid) return;
-
-  let list = getPatientList();
-  if(q) list = list.filter(p=>
-    String(p.hn||'').toLowerCase().includes(q) ||
-    String(p.name||'').toLowerCase().includes(q) ||
-    String(p.phone||'').toLowerCase().includes(q)
-  );
-  const display = q ? list : list.slice(0,10);
-
-  if(!display.length){
-    grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);">ไม่พบข้อมูลคนไข้</div>`;
-    return;
-  }
-
-  grid.innerHTML = display.map(p=>{
-    const hn = String(p.hn||'');
-    const visits = getPatientVisitCount(hn);
-    const last = getLastVisit(hn);
-    const phone = String(p.phone||'');
-    const lineId = String(p.lineId||'');
-    const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
-    const nameSafe = (p.name||'').replace(/'/g,"\\'");
-    return `<div style="background:#fff;border-radius:12px;padding:14px 16px;
-      box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);
-      display:flex;align-items:center;gap:12px;transition:background 0.15s;"
-      onmouseover="this.style.background='#fdf5fb'" onmouseout="this.style.background='#fff'">
-
-      <!-- avatar -->
-      <div onclick="openPatientDetail('${hn}')" style="flex-shrink:0;width:42px;height:42px;border-radius:50%;cursor:pointer;
-        background:linear-gradient(135deg,var(--wine-pale),#e8d0e4);
-        display:flex;align-items:center;justify-content:center;
-        font-size:12px;font-weight:800;color:var(--wine);">
-        ${hn.split('-')[1]?.slice(-3)||'—'}
-      </div>
-
-      <!-- info -->
-      <div onclick="openPatientDetail('${hn}')" style="flex:1;min-width:0;cursor:pointer;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
-          <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${p.name||'—'}</span>
-          ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;">🏛️ ปกส</span>`:''}
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-light);">
-          <span style="font-weight:700;">HN ${hn}</span>
-          ${phone?`<span style="color:var(--text-mid);">📞 ${phone}</span>`:''}
-          ${lineId?`<span style="color:#06c755;">💬 ${lineId}</span>`:''}
-        </div>
-      </div>
-
-      <!-- visits -->
-      <div onclick="openPatientDetail('${hn}')" style="flex-shrink:0;text-align:right;cursor:pointer;margin-right:4px;">
-        <div style="background:var(--wine-pale);color:var(--wine);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;">🦷 ${visits} ครั้ง</div>
-        <div style="font-size:11px;color:var(--text-light);margin-top:3px;">${last?fmtDate(last):'ยังไม่มีประวัติ'}</div>
-      </div>
-
-      <!-- action buttons -->
-      <div style="flex-shrink:0;display:flex;gap:6px;">
-        <button onclick="openEditPatient('${hn}')"
-          style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--wine);"
-          onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background='#fff'">✏️ แก้ไข</button>
-        <button onclick="deletePatient('${hn}','${nameSafe}')"
-          style="padding:6px 10px;border-radius:8px;border:1.5px solid rgba(231,76,90,0.25);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--red);"
-          onmouseover="this.style.background='rgba(231,76,90,0.08)'" onmouseout="this.style.background='#fff'">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  if(!q && list.length>10){
-    grid.insertAdjacentHTML('beforeend',
-      `<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">
-        แสดง 10 คนล่าสุด จากทั้งหมด ${list.length} คน — ค้นหาเพื่อดูรายอื่น</div>`);
-  }
-}
-
-// ---- ADD ----
-function openAddPatient(){
-  document.getElementById('newPat-hn').value = getNextHN();
-  document.getElementById('newPat-name').value = '';
-  document.getElementById('newPat-phone').value = '';
-  document.getElementById('newPat-line').value = '';
-  document.getElementById('newPat-sso').checked = false;
-  document.getElementById('modalAddPatient').classList.add('open');
-  setTimeout(()=>document.getElementById('newPat-name').focus(),100);
-}
-function closeAddPatient(){ document.getElementById('modalAddPatient').classList.remove('open'); }
-
-function saveNewPatient(){
-  const hn    = document.getElementById('newPat-hn').value.trim();
-  const name  = document.getElementById('newPat-name').value.trim();
-  const phone = document.getElementById('newPat-phone').value.trim();
-  const lineId= document.getElementById('newPat-line').value.trim();
-  const sso   = document.getElementById('newPat-sso').checked;
-  if(!hn)  { showToast('กรุณากรอก HN','error'); return; }
-  if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
-
-  const rec = { hn, name, phone, lineId, sso, addedAt: todayStr() };
-  const idx = patients.findIndex(p=>String(p.hn)===hn);
-  if(idx>-1) patients[idx]=rec; else patients.push(rec);
-  cachePatients();
-  closeAddPatient();
-  renderPatients();
-
-  // sync ขึ้น Sheet
-  pushPatientToSheet(rec)
-    .then(()=>showToast('เพิ่มคนไข้และ sync Sheet แล้ว ✅'))
-    .catch(()=>showToast('บันทึก local แล้ว (sync ไม่สำเร็จ)','error'));
-}
-
-// ---- EDIT ----
-function openEditPatient(hn){
-  const p = patients.find(x=>String(x.hn)===String(hn));
-  if(!p) return;
-  document.getElementById('editPat-hn').value = hn;
-  document.getElementById('editPat-hn-display').textContent = hn;
-  document.getElementById('editPat-name').value  = p.name  || '';
-  document.getElementById('editPat-phone').value = p.phone || '';
-  document.getElementById('editPat-line').value  = p.lineId|| '';
-  document.getElementById('editPat-sso').checked = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
-  document.getElementById('modalEditPatient').classList.add('open');
-  setTimeout(()=>document.getElementById('editPat-name').focus(),100);
-}
-function closeEditPatient(){ document.getElementById('modalEditPatient').classList.remove('open'); }
-
-function saveEditPatient(){
-  const hn    = document.getElementById('editPat-hn').value;
-  const name  = document.getElementById('editPat-name').value.trim();
-  const phone = document.getElementById('editPat-phone').value.trim();
-  const lineId= document.getElementById('editPat-line').value.trim();
-  const sso   = document.getElementById('editPat-sso').checked;
-  if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
-
-  const idx = patients.findIndex(p=>String(p.hn)===hn);
-  const addedAt = idx>-1 ? (patients[idx].addedAt||todayStr()) : todayStr();
-  const rec = { hn, name, phone, lineId, sso, addedAt };
-  if(idx>-1) patients[idx]=rec; else patients.push(rec);
-  cachePatients();
-  closeEditPatient();
-  renderPatients();
-
-  pushPatientToSheet(rec)
-    .then(()=>showToast('อัปเดตและ sync Sheet แล้ว ✅'))
-    .catch(()=>showToast('อัปเดต local แล้ว (sync ไม่สำเร็จ)','error'));
-}
-
-// ---- DELETE ----
-function deletePatient(hn, name){
-  if(!confirm(`ลบ "${name}" (HN: ${hn}) ?\n\nประวัติการรักษาจะยังคงอยู่`)) return;
-  const hnStr = String(hn);
-  patients = patients.filter(p=>String(p.hn)!==hnStr);
-  cachePatients();
-  renderPatients();
-
-  deletePatientFromSheet(hnStr)
-    .then(()=>showToast('ลบและ sync Sheet แล้ว ✅'))
-    .catch(()=>showToast('ลบ local แล้ว (sync ไม่สำเร็จ)','error'));
-}
-
-// ---- DETAIL ----
-function openPatientDetail(hn){
-  const p = patients.find(x=>String(x.hn)===String(hn));
-  if(!p) return;
-  const visits = getPatientVisitCount(hn);
-  const treats = getPatientTreatments(hn);
-  const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
-  const rows = treats.length ? treats.map(t=>`
-    <tr>
-      <td style="font-size:12px;">${fmtDate(t.date)}</td>
-      <td>${procBadge(t.proc)}</td>
-      <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName||'—'}</td>
-      <td style="font-weight:700;color:var(--wine-dark);">฿${fmt(totalPrice(t))}</td>
-    </tr>`).join('') :
-    `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-light);font-style:italic;">ยังไม่มีประวัติการรักษา</td></tr>`;
-
-  document.getElementById('pdTitle').textContent = `${p.name} (${p.hn})`;
-  document.getElementById('pdContent').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-      <div style="background:var(--wine-pale);border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:4px;">มาทั้งหมด</div>
-        <div style="font-size:38px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${visits}</div>
-        <div style="font-size:12px;color:var(--text-light);">ครั้ง</div>
-      </div>
-      <div style="background:#f0f9f4;border-radius:10px;padding:14px;font-size:13px;line-height:2;">
-        <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:4px;">ข้อมูลติดต่อ</div>
-        ${p.phone?`📞 ${p.phone}<br>`:''}
-        ${p.lineId?`💬 Line: ${p.lineId}<br>`:''}
-        ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:11px;font-weight:700;padding:2px 8px;">🏛️ มีสิทธิ์ประกันสังคม</span>`:'ไม่มีประกันสังคม'}
-      </div>
-    </div>
-    <div style="font-size:14px;font-weight:700;color:var(--wine-dark);margin-bottom:8px;">📋 ประวัติการรักษา</div>
-    <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border);">
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:var(--wine-pale);">
-          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">วันที่</th>
-          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รายการ</th>
-          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">หมอ</th>
-          <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--wine-dark);text-align:left;">รวม</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-  document.getElementById('modalPatientDetail').classList.add('open');
-}
-function closePatientDetail(){ document.getElementById('modalPatientDetail').classList.remove('open'); }
-
-
 function logout(){
   if(!confirm('ออกจากระบบ?')) return;
   localStorage.removeItem('bl_session');
   localStorage.removeItem('bl_lastPage'); // ล้างหน้าสุดท้ายเพื่อป้องกัน restore ไปหน้า manager-only
   currentUser=null; isManager=false;
   // ซ่อน tab manager-only ก่อนกลับหน้า login
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
-   'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome',
-   'nav-patients','ttab-patients','mnav-patients'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','ttab-followup',
+   'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });
@@ -4566,8 +4154,8 @@ function setMobileNav(page){
 
 buildDoctorGrid();
 // Ensure correct initial state
-document.getElementById('step-select').style.display='block';
-document.getElementById('step-pin').style.display='none';
+document.getElementById('selectPhase').style.display='block';
+document.getElementById('pinPhase').style.display='none';
 
 // Auto-restore session on page load/refresh
 (function restoreSession(){
