@@ -2928,7 +2928,12 @@ async function syncAll(){
     else if(p==='followup') renderFollowup();
     else if(p==='income') renderIncome();
     else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
-    else if(p==='patients') renderPatients();
+    else if(p==='patients'){
+      // ไม่ re-render ถ้ากำลังพิมพ์ค้นหาอยู่
+      const searchEl = document.getElementById('patientSearch');
+      const isTyping = searchEl && document.activeElement === searchEl;
+      if(!isTyping) renderPatients();
+    }
     else if(p==='recall') renderRecall();
     const t=new Date().toLocaleTimeString('th-TH');
     if(txt) txt.textContent='ซิงค์แล้ว '+t;
@@ -3081,9 +3086,18 @@ function schRemoveSlot(date, slot){
     if(!deleted[date].includes(slot)) deleted[date].push(slot);
     localStorage.setItem('bl_deleted_slots', JSON.stringify(deleted));
   }catch(e){}
-  // ลบ slot
+  // ลบ slot และ sync ขึ้น Sheet ทันที
   const slots = getSchSlots(date).filter(s=>s!==slot);
-  saveSchSlots(date, slots);
+  // อัปเดต local ก่อน
+  try{
+    const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
+    all[date] = slots;
+    localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
+  }catch(e){}
+  // sync ขึ้น Sheet — ส่ง slots ที่ไม่มี slot นั้นแล้ว
+  syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(slots) })
+    .then(()=>showToast(`ลบ slot ${slot} แล้ว ✅`))
+    .catch(()=>{});
   renderScheduleDay();
   renderSchMiniCal();
 }
@@ -3316,7 +3330,6 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 }
 
 // compat stub — old renderSchedulePage calls this page
-function renderSchedulePage(){ renderScheduleDay(); }
 
 // ============================================================
 //  MINI CALENDAR (monthly overview)
@@ -3871,17 +3884,6 @@ function fmtTimeBlur(input){
   input.value = v;
 }
 
-// Helper: get/set time from modal inputs
-function tpGet(id){
-  const inp = document.getElementById(`${id}-time`);
-  return inp?.value || '10:00';
-}
-function tpSet(id, val){
-  const inp = document.getElementById(`${id}-time`);
-  if(inp){
-    inp.value = val||'10:00';
-  }
-}
 
 // ============================================================
 //  CUSTOM 24H TIME PICKER (legacy — kept for compatibility)
@@ -4289,7 +4291,7 @@ function getLastVisit(hn){
 let _patientSearchTimer = null;
 function debouncePatientSearch(){
   clearTimeout(_patientSearchTimer);
-  _patientSearchTimer = setTimeout(renderPatients, 200);
+  _patientSearchTimer = setTimeout(renderPatients, 300);
 }
 
 function renderPatients(){
