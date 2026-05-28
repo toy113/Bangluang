@@ -3231,7 +3231,9 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
-          <span class="${statusClass(a.status)}" style="font-size:9px;">${a.status||''}</span>
+          <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
+            onclick="event.stopPropagation();openStatusDropdown(event,this.dataset.aptId)"
+            style="font-size:9px;cursor:pointer;">${a.status||''}</span>
           <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)"
             style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:1px 5px;cursor:pointer;font-size:11px;">✏️</button>
           <button data-apt-id="${safeId}" onclick="event.stopPropagation();deleteApt(this.dataset.aptId)"
@@ -4515,6 +4517,8 @@ function openPatientDetail(hn){
     </div>`;
   }, 50); // setTimeout end
 }
+function closePatientDetail(){ document.getElementById('modalPatientDetail').classList.remove('open'); }
+
 // ============================================================
 //  RECALL — ติดตามคนไข้ ปกส. ที่ไม่ได้มา 11 เดือน
 // ============================================================
