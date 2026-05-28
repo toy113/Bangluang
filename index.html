@@ -2866,8 +2866,11 @@ async function syncAll(){
           const date = key.replace('__color__','');
           if(r.note) colorMap[date] = r.note;
         } else {
-          // ถ้าเพิ่ง write ไปไม่เกิน 15 วิ → ไม่ทับ
-          if(noteWriteTs[key] && (now - noteWriteTs[key]) < 15000) return;
+          // ถ้าเพิ่ง write ไปไม่เกิน 30 วิ → ไม่ทับ
+          if(noteWriteTs[key] && (now - noteWriteTs[key]) < 30000) return;
+          // ถ้า input โน้ตวันนั้น focus อยู่ → ไม่ทับ
+          const activeEl = document.activeElement;
+          if(activeEl && activeEl.classList.contains('cal-note-input') && activeEl.dataset.date === key) return;
           if(r.note) dayNotes[key] = r.note;
           else delete dayNotes[key];
         }
@@ -2922,7 +2925,13 @@ async function syncAll(){
     else if(p==='lab') renderLabPage();
     else if(p==='followup') renderFollowup();
     else if(p==='income') renderIncome();
-    else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
+    else if(p==='schedule'){
+      renderScheduleDay();
+      // ไม่ re-render mini cal ถ้ากำลังพิมพ์โน้ตอยู่
+      const activeEl = document.activeElement;
+      const isTypingNote = activeEl && activeEl.classList.contains('cal-note-input');
+      if(!isTypingNote) renderSchMiniCal();
+    }
     else if(p==='patients'){
       // ไม่ re-render ถ้ากำลังพิมพ์ค้นหาอยู่
       const searchEl = document.getElementById('patientSearch');
@@ -3179,7 +3188,7 @@ function renderScheduleDay(){
   // Restore note values
   view.querySelectorAll('.cal-note-input').forEach(inp=>{
     const note = getDayNote(inp.dataset.date);
-    if(note) inp.value = note;
+    if(note && document.activeElement !== inp) inp.value = note;
   });
 }
 
@@ -3321,7 +3330,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       <!-- Note input -->
       <input type="text" placeholder="📝 โน้ตประจำวัน..." maxlength="60"
         class="cal-note-input" data-date="${date}"
-        onchange="saveDayNote(this.dataset.date,this.value)"
+        oninput="debounceSaveNote(this)"
         style="width:100%;border:none;border-bottom:1px dashed rgba(255,255,255,0.5);
         background:rgba(255,255,255,0.15);border-radius:4px;margin-top:6px;
         font-size:11px;color:${fg};padding:3px 6px;outline:none;
@@ -3427,7 +3436,7 @@ function renderSchMiniCal(){
       <input type="text" placeholder="+ โน้ต" maxlength="30"
         class="cal-note-input" data-date="${ds}"
         onclick="event.stopPropagation()"
-        onchange="saveDayNote(this.dataset.date,this.value);renderSchMiniCal();"
+        oninput="debounceSaveNote(this)"
         style="width:100%;border:none;border-bottom:1.5px dashed rgba(0,0,0,0.2);
         background:transparent;font-size:11px;font-weight:600;color:var(--text-mid);padding:2px 2px;
         outline:none;margin-top:3px;font-family:'Sarabun',sans-serif;">
@@ -3439,7 +3448,7 @@ function renderSchMiniCal(){
   // Restore note values
   calEl.querySelectorAll('.cal-note-input').forEach(inp=>{
     const note = getDayNote(inp.dataset.date);
-    if(note) inp.value = note;
+    if(note && document.activeElement !== inp) inp.value = note;
   });
 }
 
@@ -3602,7 +3611,7 @@ function renderSchedulePage(){
           <input type="text" placeholder="โน้ต..." maxlength="40"
             class="cal-note-input" data-date="${day.ds}"
             onclick="event.stopPropagation()"
-            onchange="saveDayNote(this.dataset.date,this.value)"
+            oninput="debounceSaveNote(this)"
             style="width:90%;border:none;border-bottom:1px dashed rgba(255,255,255,0.5);
             background:rgba(255,255,255,0.15);border-radius:4px;margin-top:3px;
             font-size:9px;color:${fg};padding:2px 4px;outline:none;
@@ -3685,7 +3694,7 @@ function renderSchedulePage(){
       // Restore note values from dayNotes object
       calEl.querySelectorAll('.cal-note-input').forEach(inp=>{
         const note = getDayNote(inp.dataset.date);
-        if(note) inp.value = note;
+        if(note && document.activeElement !== inp) inp.value = note;
       });
     }
 
@@ -4022,11 +4031,21 @@ function setDayColor(date, color){
   } catch(e){}
 }
 
+let _noteTimers = {};
+function debounceSaveNote(inp){
+  const date = inp.dataset.date;
+  if(!date) return;
+  clearTimeout(_noteTimers[date]);
+  _noteTimers[date] = setTimeout(()=>{
+    saveDayNote(date, inp.value);
+  }, 600); // รอ 600ms หลังพิมพ์เสร็จ
+}
+
 function saveDayNote(date, val){
   if(!date) return;
   if(val) dayNotes[date] = val;
   else delete dayNotes[date];
-  // บันทึก timestamp เพื่อป้องกัน syncAll ทับภายใน 15 วิ
+  // บันทึก timestamp เพื่อป้องกัน syncAll ทับภายใน 30 วิ
   try{
     const ts = JSON.parse(localStorage.getItem('bl_note_write_ts')||'{}');
     ts[date] = Date.now();
