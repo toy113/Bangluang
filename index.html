@@ -336,14 +336,15 @@ tbody td { padding: 10px 14px; font-size: 13px; color: var(--text-mid); }
 }
 .badge-done { background: rgba(46,204,144,0.15); color: #1a9e6a; border: 1px solid rgba(46,204,144,0.3); }
 .badge-wait { background: rgba(243,156,18,0.15); color: #c07800; border: 1px solid rgba(243,156,18,0.3); }
-.badge-cancel { background: rgba(231,76,90,0.12); color: #c0203a; border: 1px solid rgba(231,76,90,0.2); }
+.badge-cancel { background: #8B0000; color: #fff; border: 1px solid #6B0000; }
 .badge-walkin { background: rgba(52,152,219,0.15); color: #1a6ea8; border: 1px solid rgba(52,152,219,0.3); }
 .badge-confirm { background: rgba(107,45,94,0.15); color: var(--wine); border: 1px solid rgba(107,45,94,0.25); }
 .badge-unconfirm { background: rgba(150,150,150,0.12); color: #666; border: 1px solid rgba(150,150,150,0.25); }
 .badge-today { background: rgba(107,45,94,0.15); color: var(--wine); border: 1px solid rgba(107,45,94,0.3); }
 .badge-waiting { background: rgba(243,156,18,0.15); color: #c07800; border: 1px solid rgba(243,156,18,0.3); }
-.badge-confirmed { background: rgba(52,152,219,0.15); color: #1a6ea8; border: 1px solid rgba(52,152,219,0.3); }
+.badge-confirmed { background: #F1C40F; color: #7D6608; border: 1px solid #D4AC0D; }
 .badge-finished { background: rgba(26,122,60,0.15); color: #1a7a3c; border: 1px solid rgba(26,122,60,0.4); }
+.badge-inprogress { background: rgba(142,68,173,0.15); color: #6C3483; border: 1px solid rgba(142,68,173,0.4); }
 
 /* BUTTONS */
 .btn {
@@ -1222,6 +1223,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
           <option value="ไม่คอนเฟิร์ม">ไม่คอนเฟิร์ม</option>
           <option value="รอทำ">รอทำ</option>
           <option value="คอนเฟิร์ม">คอนเฟิร์ม</option>
+          <option value="กำลังทำ">กำลังทำ</option>
           <option value="เสร็จสิ้น">เสร็จสิ้น</option>
           <option value="ยกเลิก">ยกเลิก</option>
           <option value="walk-in">walk-in</option>
@@ -1381,7 +1383,8 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
   <div style="font-size:11px;color:var(--text-light);padding:4px 8px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;font-weight:700;">เปลี่ยนสถานะ</div>
   <div class="status-opt" onclick="setStatus('ไม่คอนเฟิร์ม')"><span style="color:var(--wine)">📅</span> ไม่คอนเฟิร์ม</div>
   <div class="status-opt" onclick="setStatus('รอทำ')"><span style="color:var(--orange)">⏳</span> รอทำ</div>
-  <div class="status-opt" onclick="setStatus('คอนเฟิร์ม')"><span style="color:var(--blue)">✅</span> คอนเฟิร์ม</div>
+  <div class="status-opt" onclick="setStatus('คอนเฟิร์ม')"><span style="color:#c9a800">✅</span> คอนเฟิร์ม</div>
+  <div class="status-opt" onclick="setStatus('กำลังทำ')"><span style="color:#6C3483">🦷</span> กำลังทำ</div>
   <div class="status-opt" onclick="setStatus('เสร็จสิ้น')"><span style="color:var(--green)">🎉</span> เสร็จสิ้น</div>
   <div class="status-opt" onclick="setStatus('ยกเลิก')"><span style="color:var(--red)">❌</span> ยกเลิก</div>
   <div class="status-opt" onclick="setStatus('walk-in')"><span style="color:var(--blue)">🚶</span> walk-in</div>
@@ -1810,15 +1813,15 @@ function renderHome(){
 
 function statusBgColor(s){
   const map = {
-    'ไม่คอนเฟิร์ม'   :'rgba(107,45,94,0.08)',
-    'confirm'     :'rgba(107,45,94,0.08)',
-    'รอทำ'        :'rgba(230,126,34,0.10)',
-    'คอนเฟิร์ม'  :'rgba(52,152,219,0.10)',
-    'เสร็จสิ้น'  :'rgba(39,174,96,0.14)',
-    'เสร็จ'       :'rgba(39,174,96,0.14)',
-    'ยกเลิก'      :'rgba(231,76,60,0.25)',
-    'walk-in'     :'rgba(52,152,219,0.07)',
-    'ไม่คอนเฟิร์ม':'rgba(0,0,0,0.03)',
+    'ไม่คอนเฟิร์ม' :'rgba(107,45,94,0.06)',
+    'confirm'      :'rgba(107,45,94,0.06)',
+    'รอทำ'         :'rgba(230,126,34,0.10)',
+    'คอนเฟิร์ม'   :'rgba(241,196,15,0.15)',
+    'กำลังทำ'      :'rgba(142,68,173,0.12)',
+    'เสร็จสิ้น'   :'rgba(39,174,96,0.14)',
+    'เสร็จ'        :'rgba(39,174,96,0.14)',
+    'ยกเลิก'       :'rgba(139,0,0,0.12)',
+    'walk-in'      :'rgba(52,152,219,0.07)',
   };
   return map[s]||'transparent';
 }
@@ -1836,7 +1839,7 @@ function renderAptList(today){
     hdr.className = rowClass + ' apt-hdr';
     hdr.innerHTML = isManager
       ? '<div>เวลา</div><div>HN</div><div>ชื่อ-สกุล</div><div>เบอร์โทร</div><div>รายการ</div><div>หมายเหตุ</div><div>หมอ</div><div>สถานะ</div>'
-      : '<div>เวลา</div><div>HN</div><div>ชื่อ-สกุล</div><div>รายการ</div><div>หมายเหตุ</div><div>หมอ</div><div>สถานะ</div>';
+      : '<div>เวลา</div><div>HN</div><div>ชื่อ-สกุล</div><div>รายการ</div><div>หมายเหตุ</div><div>สถานะ</div>';
   }
 
   if(!apts.length){ el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text-light);font-size:14px;">ไม่มี</div>`; return; }
@@ -1848,7 +1851,7 @@ function renderAptList(today){
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
-      <div style="font-size:12px;font-weight:700;color:${docColor(a.docName)}">${a.docName}</div>
+      ${isManager ? `<div style="font-size:12px;font-weight:700;color:${docColor(a.docName)}">${a.docName}</div>` : ''}
       <div>
         <span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'}">${a.status}</span>
       </div>
@@ -2853,8 +2856,9 @@ async function syncAll(){
     }
     // Load day_notes + day_colors
     if(Array.isArray(d.day_notes)){
-      dayNotes = {};
       const colorMap = {};
+      const noteWriteTs = JSON.parse(localStorage.getItem('bl_note_write_ts')||'{}');
+      const now = Date.now();
       d.day_notes.forEach(r=>{
         if(!r.date) return;
         const key = String(r.date).trim();
@@ -2862,10 +2866,12 @@ async function syncAll(){
           const date = key.replace('__color__','');
           if(r.note) colorMap[date] = r.note;
         } else {
+          // ถ้าเพิ่ง write ไปไม่เกิน 15 วิ → ไม่ทับ
+          if(noteWriteTs[key] && (now - noteWriteTs[key]) < 15000) return;
           if(r.note) dayNotes[key] = r.note;
+          else delete dayNotes[key];
         }
       });
-      // อัปเดต localStorage สีจาก Sheet
       try {
         const existing = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
         Object.assign(existing, colorMap);
@@ -2981,7 +2987,15 @@ function schChangeDay(delta){
 function getSchSlots(date){
   try {
     const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
-    return all[date] || [...DEFAULT_SLOTS];
+    const deleted = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
+    const deletedForDate = deleted[date] || [];
+    if(all[date]){
+      // มี slots บันทึกไว้ — รวมกับ DEFAULT_SLOTS แต่กรอง deleted ออก
+      const merged = new Set([...DEFAULT_SLOTS, ...all[date]]);
+      return [...merged].filter(s=>!deletedForDate.includes(s)).sort();
+    }
+    // ไม่มีบันทึก — ใช้ DEFAULT_SLOTS กรอง deleted ออก
+    return DEFAULT_SLOTS.filter(s=>!deletedForDate.includes(s));
   } catch(e){ return [...DEFAULT_SLOTS]; }
 }
 function saveSchSlots(date, slots){
@@ -4010,6 +4024,12 @@ function saveDayNote(date, val){
   if(!date) return;
   if(val) dayNotes[date] = val;
   else delete dayNotes[date];
+  // บันทึก timestamp เพื่อป้องกัน syncAll ทับภายใน 15 วิ
+  try{
+    const ts = JSON.parse(localStorage.getItem('bl_note_write_ts')||'{}');
+    ts[date] = Date.now();
+    localStorage.setItem('bl_note_write_ts', JSON.stringify(ts));
+  }catch(e){}
   // sync ไป Sheet
   syncToSheet('day_notes', { id: date, date: date, note: val||'' });
 }
@@ -4172,14 +4192,15 @@ function fmtDate(s){
 function statusClass(s){
   return {
     'ไม่คอนเฟิร์ม' :'badge badge-today',
-    'รอทำ'     :'badge badge-waiting',
-    'คอนเฟิร์ม':'badge badge-confirmed',
-    'เสร็จสิ้น':'badge badge-finished',
-    'ยกเลิก'   :'badge badge-cancel',
-    'walk-in'  :'badge badge-walkin',
-    // legacy support
-    'เสร็จ':'badge badge-finished','รอ':'badge badge-waiting',
-    'confirm':'badge badge-confirmed','ไม่คอนเฟิร์ม':'badge badge-unconfirm'
+    'รอทำ'        :'badge badge-waiting',
+    'คอนเฟิร์ม'   :'badge badge-confirmed',
+    'กำลังทำ'     :'badge badge-inprogress',
+    'เสร็จสิ้น'   :'badge badge-finished',
+    'ยกเลิก'      :'badge badge-cancel',
+    'walk-in'     :'badge badge-walkin',
+    'เสร็จ'       :'badge badge-finished',
+    'รอ'          :'badge badge-waiting',
+    'confirm'     :'badge badge-confirmed',
   }[s]||'badge badge-waiting';
 }
 function closeModal(id){
@@ -4268,11 +4289,16 @@ function getPatientList(){
 }
 
 // ---- visit counts ----
+// normalize HN สำหรับเปรียบเทียบ (ลบ dash และ space)
+function normHN(hn){ return String(hn||'').replace(/[-\s]/g,'').trim().toLowerCase(); }
+
 function getPatientVisitCount(hn){
-  return treatments.filter(t=>String(t.hn||'').trim()===String(hn).trim()).length;
+  const n = normHN(hn);
+  return treatments.filter(t=>normHN(t.hn)===n).length;
 }
 function getPatientTreatments(hn){
-  return treatments.filter(t=>String(t.hn||'').trim()===String(hn).trim())
+  const n = normHN(hn);
+  return treatments.filter(t=>normHN(t.hn)===n)
     .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
 }
 function getLastVisit(hn){
@@ -4443,6 +4469,11 @@ function deletePatient(hn, name){
 function openPatientDetail(hn){
   const p = patients.find(x=>String(x.hn)===String(hn));
   if(!p) return;
+  // เปิด modal ก่อน แล้วค่อย render ข้อมูล (ป้องกัน UI freeze)
+  document.getElementById('pdTitle').textContent = `${p.name} (${p.hn})`;
+  document.getElementById('pdContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-light);">กำลังโหลด...</div>';
+  document.getElementById('modalPatientDetail').classList.add('open');
+  setTimeout(()=>{
   const visits = getPatientVisitCount(hn);
   const treats = getPatientTreatments(hn);
   const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
@@ -4482,7 +4513,7 @@ function openPatientDetail(hn){
         <tbody>${rows}</tbody>
       </table>
     </div>`;
-  document.getElementById('modalPatientDetail').classList.add('open');
+  }, 50); // setTimeout end
 }
 // ============================================================
 //  RECALL — ติดตามคนไข้ ปกส. ที่ไม่ได้มา 11 เดือน
