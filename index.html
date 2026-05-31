@@ -983,7 +983,6 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
             <button class="period-tab" id="iperiod-year" onclick="setPeriod('year',this)">รายปี</button>
             <button class="period-tab" id="iperiod-range" onclick="setPeriod('range',this)">ช่วงวันที่</button>
           </div>
-          <!-- date picker shown per mode -->
           <input type="date" id="income-filter-day" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
           <input type="month" id="income-filter-month" class="form-control" style="height:36px;width:150px;display:none;" onchange="renderIncome()">
           <input type="number" id="income-filter-year" class="form-control" style="height:36px;width:100px;display:none;" placeholder="ปี พ.ศ." min="2560" max="2600" onchange="renderIncome()">
@@ -992,6 +991,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
             <span style="color:var(--text-light);font-size:13px;">ถึง</span>
             <input type="date" id="income-range-end" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
           </div>
+          <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
         </div>
       </div>
       <div class="card-box" style="margin-bottom:20px;">
@@ -1073,6 +1073,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
         <button onclick="schGoToday()" class="btn btn-ghost" style="height:36px;font-size:13px;">วันนี้</button>
         <button onclick="schResetSlots()" class="btn btn-ghost" style="display:none;height:36px;font-size:12px;color:var(--text-light);" title="รีเซ็ต slot เป็นค่าเริ่มต้น 10:00-18:00">↺ Reset Slots</button>
         <div style="flex:1;"></div>
+        <button onclick="copyDaySummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">📋 ส่งสรุปนัด</button>
         <button class="btn btn-primary" id="btnAddAptSchedule" onclick="openAddAptSchedule()" style="height:36px;">+ เพิ่มนัด</button>
       </div>
 
@@ -4536,7 +4537,177 @@ function openPatientDetail(hn){
     </div>`;
   }, 50); // setTimeout end
 }
-function closePatientDetail(){ document.getElementById('modalPatientDetail').classList.remove('open'); }
+function copyDaySummary(){
+  const date = document.getElementById('schDate')?.value || todayStr();
+  const d = new Date(date+'T00:00:00');
+  const DAY_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const MONTH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const dd = d.getDate();
+  const mon = MONTH_SHORT[d.getMonth()];
+  const yy = d.getFullYear()+543;
+  const dayName = DAY_TH[d.getDay()];
+
+  const allDayApts = appointments
+    .filter(a=>a.date===date && a.status!=='ยกเลิก')
+    .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+
+  if(!allDayApts.length){ showToast('ไม่มีนัดในวันนี้','error'); return; }
+
+  // หาหมอที่มีนัดวันนั้น
+  const docSet = [...new Set(allDayApts.map(a=>a.docName).filter(Boolean))];
+
+  // สร้าง modal เลือกหมอ
+  const existing = document.getElementById('summaryDocModal');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'summaryDocModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  const docOpts = docSet.map(function(doc){
+    const cnt = allDayApts.filter(function(a){ return a.docName===doc; }).length;
+    return '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;">'
+      + '<input type="radio" name="summaryDoc" value="'+doc+'">'
+      + '<span style="font-weight:700;color:'+docColor(doc)+'">'+doc+'</span>'
+      + '<span style="color:var(--text-light);font-size:12px;">'+cnt+' นัด</span>'
+      + '</label>';
+  }).join('');
+
+  modal.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;width:320px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,0.25);">'
+    + '<div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:16px;">📋 เลือกหมอสำหรับสรุปนัด</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">'
+    + '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-weight:700;font-size:14px;">'
+    + '<input type="radio" name="summaryDoc" value="__all__" checked> ทุกหมอ ('+allDayApts.length+' นัด)'
+    + '</label>' + docOpts + '</div>'
+    + '<div style="display:flex;gap:10px;">'
+    + '<button onclick="document.getElementById(\'summaryDocModal\').remove()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:700;cursor:pointer;">ยกเลิก</button>'
+    + '<button onclick="doSendSummary(\''+date+'\',\''+dayName+'\',\''+dd+'\',\''+mon+'\',\''+yy+'\')" style="flex:2;padding:10px;border-radius:10px;border:none;background:var(--wine);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">📋 Copy</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+}
+
+function copyIncomeSummary(){
+  // fixed เป็นวันนี้เสมอ
+  const date = todayStr();
+  const d = new Date(date+'T00:00:00');
+  const DAY_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const MONTH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const periodLabel = DAY_TH[d.getDay()]+'ที่ '+d.getDate()+' '+MONTH_SHORT[d.getMonth()]+' '+(d.getFullYear()+543);
+
+  const filteredTreats = treatments.filter(t=>t.date===date);
+
+  if(!filteredTreats.length){ showToast('ไม่มีข้อมูลรายได้วันนี้','error'); return; }
+
+  const docSet = [...new Set(filteredTreats.map(t=>t.docName).filter(Boolean))];
+
+  // modal เลือกหมอ
+  const existing = document.getElementById('incomeDocModal');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'incomeDocModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  const docOptions = docSet.map(function(doc){
+    const cnt = filteredTreats.filter(function(t){ return t.docName===doc; }).length;
+    const total = filteredTreats.filter(function(t){ return t.docName===doc; }).reduce(function(s,t){ return s+totalPrice(t); },0);
+    const checked = docSet.length===1 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;">'
+      + '<input type="radio" name="incomeDoc" value="'+doc+'" '+checked+'>'
+      + '<span style="font-weight:700;color:'+docColor(doc)+'">'+doc+'</span>'
+      + '<span style="color:var(--text-light);font-size:12px;">'+cnt+' ราย / ฿'+fmt(total)+'</span>'
+      + '</label>';
+  }).join('');
+
+  modal.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;width:320px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,0.25);">'
+    + '<div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:16px;">💰 เลือกหมอสำหรับสรุปรายได้</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">' + docOptions + '</div>'
+    + '<div style="display:flex;gap:10px;">'
+    + '<button onclick="document.getElementById(\'incomeDocModal\').remove()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:700;cursor:pointer;">ยกเลิก</button>'
+    + '<button onclick="doSendIncome(\''+periodLabel+'\')" style="flex:2;padding:10px;border-radius:10px;border:none;background:var(--wine);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💰 Copy</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+}
+
+function doSendIncome(periodLabel){
+  const selected = document.querySelector('input[name="incomeDoc"]:checked')?.value;
+  document.getElementById('incomeDocModal')?.remove();
+  if(!selected){ showToast('กรุณาเลือกหมอ','error'); return; }
+
+  // fixed เป็นวันนี้เสมอ
+  const treats = treatments.filter(t=>t.date===todayStr() && t.docName===selected);
+
+  treats.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||'')));
+
+  const total = treats.reduce((s,t)=>s+totalPrice(t),0);
+  const doc = doctors.find(d=>d.name===selected)||DOCTORS_DATA.find(d=>d.name===selected);
+  const share = doc?.share ? parseInt(doc.share) : 50;
+  const df = Math.round(total * share / 100);
+  const LINE = '─'.repeat(28);
+
+  let text = `💰 สรุปรายได้ ${periodLabel}\n`;
+  text += `${selected} | ${treats.length} ราย\n`;
+  text += LINE + '\n';
+
+  treats.forEach(t=>{
+    const procs = Array.isArray(t.proc) ? t.proc.join(', ') : (t.proc||'');
+    const price = totalPrice(t);
+    const timeStr = t.time ? `${t.time}  ` : '';
+    text += `${timeStr}${t.patName||'—'} — ${procs}  ฿${fmt(price)}\n`;
+  });
+
+  text += LINE + '\n';
+  text += `รวม  ฿${fmt(total)}\n`;
+  text += `df ${share}% = ฿${fmt(df)}\n`;
+  text += 'Bangluang Dental 🦷';
+
+  navigator.clipboard.writeText(text)
+    .then(()=>showToast('คัดลอกแล้ว ✅ นำไป paste LINE ได้เลย'))
+    .catch(()=>{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('คัดลอกแล้ว ✅ นำไป paste LINE ได้เลย');
+    });
+}
+
+function doSendSummary(date, dayName, dd, mon, yy){
+  const selected = document.querySelector('input[name="summaryDoc"]:checked')?.value || '__all__';
+  document.getElementById('summaryDocModal')?.remove();
+
+  let dayApts = appointments
+    .filter(a=>a.date===date && a.status!=='ยกเลิก')
+    .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+
+  if(selected !== '__all__') dayApts = dayApts.filter(a=>a.docName===selected);
+
+  const docLabel = selected==='__all__' ? 'ทุกหมอ' : selected;
+  const LINE = '─'.repeat(28);
+
+  let text = `📅 สรุปนัด ${dayName}ที่ ${dd} ${mon} ${yy}\n`;
+  text += `${docLabel} | ${dayApts.length} นัด\n`;
+  text += LINE + '\n';
+
+  dayApts.forEach(a=>{
+    const procs = Array.isArray(a.proc) ? a.proc.join(', ') : (a.proc||'');
+    const note = a.note ? ` (${a.note})` : '';
+    text += `${a.time||'—'}  ${a.patName||'—'} — ${procs}${note}\n`;
+  });
+
+  text += LINE + '\n';
+  text += 'Bangluang Dental 🦷';
+
+  navigator.clipboard.writeText(text)
+    .then(()=>showToast('คัดลอกแล้ว ✅ นำไป paste LINE ได้เลย'))
+    .catch(()=>{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('คัดลอกแล้ว ✅ นำไป paste LINE ได้เลย');
+    });
+}
 
 // ============================================================
 //  RECALL — ติดตามคนไข้ ปกส. ที่ไม่ได้มา 11 เดือน
