@@ -1081,7 +1081,9 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <div id="schDayStats" style="display:none;"></div>
 
       <!-- 2-column: วันที่เลือก | วันถัดไป -->
-      <div id="schSlotView" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:24px;"></div>
+      <div style="overflow-x:auto;margin-bottom:24px;">
+        <div id="schSlotView" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;min-width:0;"></div>
+      </div>
 
       <!-- Monthly calendar overview -->
       <div class="card-box">
@@ -1969,6 +1971,20 @@ function saveApt(){
   const idx = appointments.findIndex(a=>String(a.id)===String(apt.id));
   if(idx>-1) appointments[idx]=apt; else appointments.push(apt);
   saveLocal();
+
+  // ถ้ากรอกเบอร์ใหม่ → อัปเดตใน patients และ sync Sheet ทันที
+  if(apt.hn && apt.phone){
+    const normHn = String(apt.hn).trim();
+    const pat = patients.find(p=>normHN(p.hn)===normHN(normHn));
+    if(pat && pat.phone !== apt.phone){
+      pat.phone = apt.phone;
+      syncToSheet('patients', {
+        hn: pat.hn, name: pat.name, phone: apt.phone,
+        lineId: pat.lineId||'', sso: pat.sso?'TRUE':'FALSE', addedAt: pat.addedAt||''
+      });
+      showToast('อัปเดตเบอร์โทรใน รายชื่อคนไข้ แล้ว ✅');
+    }
+  }
 
   // จัดการ slot
   if(apt.time && apt.date){
@@ -3176,6 +3192,7 @@ function renderScheduleDay(){
 
   const view = document.getElementById('schSlotView');
   if(!view) return;
+  view.style.gridTemplateColumns = 'repeat(2, minmax(380px, 1fr))';
   view.innerHTML = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
                  + buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
 
@@ -4086,23 +4103,30 @@ function autoFillPatient(hn, prefix){
   ].filter(r => r.hn === hnStr && r.patName);
 
   // patients มีความสำคัญสูงสุด ถ้าไม่มีค่อยใช้ records
-  const allMatched = [...fromPatients, ...fromRecords];
+  // แต่ถ้า patients มีเบอร์ว่าง ไม่ fallback เบอร์เก่าจาก records
+  const found = fromPatients.length ? fromPatients[0] : fromRecords[0];
 
-  if(!allMatched.length){
+  if(!found){
     if(hint) hint.innerHTML = `<span style="color:var(--text-light);font-style:italic;">ไม่พบประวัติ HN ${hnStr}</span>`;
     return;
   }
 
-  // patients ขึ้นก่อน (id เริ่ม pat_) แล้วค่อย sort records ตาม id ล่าสุด
-  const found = allMatched[0];
-
   const nameEl  = document.getElementById(prefix+'-name');
   const phoneEl = document.getElementById(prefix+'-phone');
 
-  if(nameEl  && found.patName) nameEl.value  = found.patName;
-  if(phoneEl && found.phone)   phoneEl.value = found.phone;
+  if(nameEl  && found.patName) nameEl.value = found.patName;
 
-  if(hint) hint.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${found.patName}${found.phone?' | '+found.phone:''}</span>`;
+  // ถ้าเจอใน patients → ใช้เบอร์จาก patients เสมอ (แม้ว่าง ก็ clear เบอร์เก่า)
+  if(phoneEl){
+    if(fromPatients.length){
+      phoneEl.value = fromPatients[0].phone || '';
+    } else if(found.phone){
+      phoneEl.value = found.phone;
+    }
+  }
+
+  const displayPhone = fromPatients.length ? fromPatients[0].phone : found.phone;
+  if(hint) hint.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${found.patName}${displayPhone?' | '+displayPhone:''}</span>`;
 }
 
 // ============================================================
