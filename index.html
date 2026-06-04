@@ -877,11 +877,21 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <!-- 2) TREATMENT LIST -->
       <div class="card-box" style="margin-bottom:20px;">
         <div class="card-box-hdr">
-          <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <div class="card-box-title">🦷 รายการรักษาวันนี้ <span id="treatCountBadge" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">0 ราย</span></div>
             <button id="btnAddTreatHome" class="btn btn-primary btn-sm" onclick="openAddTreat()" style="display:none;">+ เพิ่มรายการ</button>
           </div>
-          <div style="font-size:14px;font-weight:700;color:var(--gold);">รวม: <span id="treatTotalBadge">฿0</span></div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div id="dailyCashNoteWrap" style="display:none;align-items:center;gap:6px;">
+              <span style="font-size:13px;font-weight:700;color:var(--text-mid);">💵 เงินทอน</span>
+              <input type="number" id="dailyCashNote" placeholder="0"
+                style="width:100px;height:32px;padding:0 10px;border:1.5px solid var(--border);border-radius:8px;
+                font-size:14px;font-weight:700;color:var(--wine-dark);text-align:right;"
+                oninput="saveDailyCashNote(this.value)">
+              <span style="font-size:13px;color:var(--text-light);">บาท</span>
+            </div>
+            <div style="font-size:14px;font-weight:700;color:var(--gold);">รวม: <span id="treatTotalBadge">฿0</span></div>
+          </div>
         </div>
         <table>
           <thead><tr><th>เวลา</th><th>HN</th><th>ชื่อ</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th></tr></thead>
@@ -1081,8 +1091,8 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <div id="schDayStats" style="display:none;"></div>
 
       <!-- 2-column: วันที่เลือก | วันถัดไป -->
-      <div style="overflow-x:auto;margin-bottom:24px;">
-        <div id="schSlotView" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;min-width:0;"></div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:24px;">
+        <div id="schSlotView" style="display:grid;grid-template-columns:repeat(2,minmax(360px,1fr));gap:16px;width:max-content;min-width:100%;"></div>
       </div>
 
       <!-- Monthly calendar overview -->
@@ -1278,8 +1288,21 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
         <select class="form-control" id="treat-doc"></select>
       </div>
       <div class="form-group">
-        <label>รายการรักษา</label>
-        <select class="form-control" id="treat-proc"></select>
+        <label>รายการรักษา <span style="font-size:11px;color:var(--text-light);">(เลือกได้หลายรายการ)</span></label>
+        <div id="treat-proc-wrap" style="position:relative;">
+          <div id="treat-proc-display" onclick="toggleTreatProcDropdown()"
+            style="min-height:40px;padding:8px 36px 8px 12px;border:1.5px solid var(--border);border-radius:10px;
+            cursor:pointer;font-size:14px;color:var(--text-dark);background:#fff;
+            display:flex;flex-wrap:wrap;gap:4px;align-items:center;position:relative;">
+            <span id="treat-proc-placeholder" style="color:#aaa;">เลือกรายการรักษา...</span>
+          </div>
+          <div style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--wine);">▾</div>
+          <div id="treat-proc-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;
+            background:#fff;border:1.5px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;
+            box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-top:4px;padding:8px 0;">
+          </div>
+        </div>
+        <input type="hidden" id="treat-proc">
       </div>
     </div>
     <div style="margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--wine-dark);text-transform:uppercase;letter-spacing:0.4px;">💳 ราคาแยกตามประเภทชำระ</div>
@@ -1673,6 +1696,10 @@ function startApp(){
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
+  const cashWrap = document.getElementById('dailyCashNoteWrap');
+  if(cashWrap) cashWrap.style.display = isManager ? 'flex' : 'none';
+  // โหลดค่าเงินทอนวันนี้
+  if(isManager) loadDailyCashNote();
   buildSettingsPage();
   // Load all data from Sheet on startup
   // Show page immediately, sync in background
@@ -1729,6 +1756,7 @@ function populateSelects(){
   // apt-time is now type=time input, no need to populate
   document.getElementById('treat-doc').innerHTML = docOpts;
   document.getElementById('treat-proc').innerHTML = procOpts;
+  buildProcDropdown();
   document.getElementById('lab-doc').innerHTML = docOpts;
 
   // pre-select current user
@@ -2118,6 +2146,7 @@ function openAddTreat(t=null){
   if(t?.hn) autoFillPatient(t.hn, 'treat');
   document.getElementById('treat-doc').value = t?.docName || (isManager ? (localStorage.getItem('bl_last_doc') || doctors[0]?.name) : currentUser.name);
   document.getElementById('treat-proc').value = t?.proc||PROCEDURES[0];
+  setProcSelected(t?.proc||PROCEDURES[0]);
   document.getElementById('treat-cash').value = t?.cash||'';
   document.getElementById('treat-transfer').value = t?.transfer||'';
   document.getElementById('treat-sso').value = t?.sso||'';
@@ -2143,7 +2172,7 @@ function saveTreat(){
     hn:document.getElementById('treat-hn').value,
     patName:document.getElementById('treat-name').value,
     docName:document.getElementById('treat-doc').value,
-    proc:document.getElementById('treat-proc').value,
+    proc:getProcSelected()||document.getElementById('treat-proc').value,
     cash:document.getElementById('treat-cash').value||'0',
     transfer:document.getElementById('treat-transfer').value||'0',
     sso:document.getElementById('treat-sso').value||'0',
@@ -2982,6 +3011,18 @@ async function manualSync(){
 // ============================================================
 //  SCHEDULE PAGE — DAY VIEW (2-column slot)
 // ============================================================
+function saveDailyCashNote(val){
+  const key = 'bl_cash_note_' + todayStr();
+  localStorage.setItem(key, val||'');
+  syncToSheet('day_notes', { id: '__cash__'+todayStr(), date: '__cash__'+todayStr(), note: val||'' });
+}
+function loadDailyCashNote(){
+  const key = 'bl_cash_note_' + todayStr();
+  const val = localStorage.getItem(key) || '';
+  const el = document.getElementById('dailyCashNote');
+  if(el) el.value = val;
+}
+
 const SCH_SLOTS_KEY = 'bl_sch_slots'; // { 'YYYY-MM-DD': ['10:00','10:30',...] }
 const SCH_BLOCKED_KEY = 'bl_sch_blocked'; // { 'YYYY-MM-DD_HH:MM': true }
 const DEFAULT_SLOTS = ['10:00','10:30','11:00','11:30','12:00','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
@@ -3192,7 +3233,10 @@ function renderScheduleDay(){
 
   const view = document.getElementById('schSlotView');
   if(!view) return;
-  view.style.gridTemplateColumns = 'repeat(2, minmax(380px, 1fr))';
+  // นับหมอที่มีนัดวันนั้น เพื่อกำหนดจำนวน column
+  const docs1 = [...new Set(appointments.filter(a=>a.date===date1).map(a=>a.docName).filter(Boolean))];
+  const colCount = Math.max(2, docs1.length + 1);
+  view.style.gridTemplateColumns = `repeat(${colCount}, minmax(340px, 1fr))`;
   view.innerHTML = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
                  + buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
 
@@ -4129,8 +4173,77 @@ function autoFillPatient(hn, prefix){
   if(hint) hint.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${found.patName}${displayPhone?' | '+displayPhone:''}</span>`;
 }
 
-// ============================================================
-//  DAY SLOT CONFIG (เก็บใน localStorage)
+// ===== PROC MULTI-SELECT =====
+function buildProcDropdown(){
+  const dd = document.getElementById('treat-proc-dropdown');
+  if(!dd) return;
+  dd.innerHTML = PROCEDURES.map(p=>`
+    <label onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:14px;transition:background 0.1s;"
+      onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background=''"
+    >
+      <input type="checkbox" value="${p}" onchange="updateProcDisplay()" style="width:16px;height:16px;accent-color:var(--wine);cursor:pointer;">
+      <span>${p}</span>
+    </label>`).join('');
+}
+
+function toggleTreatProcDropdown(){
+  const dd = document.getElementById('treat-proc-dropdown');
+  if(!dd) return;
+  const isOpen = dd.style.display !== 'none';
+  dd.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen) dd.querySelectorAll('input[type=checkbox]')[0]?.focus();
+}
+
+function closeTreatProcDropdown(){
+  const dd = document.getElementById('treat-proc-dropdown');
+  if(dd) dd.style.display = 'none';
+}
+
+function updateProcDisplay(){
+  const dd = document.getElementById('treat-proc-dropdown');
+  const display = document.getElementById('treat-proc-display');
+  const hidden = document.getElementById('treat-proc');
+  const ph = document.getElementById('treat-proc-placeholder');
+  if(!dd||!display||!hidden) return;
+
+  const selected = [...dd.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value);
+  hidden.value = selected.join(',');
+
+  // update display
+  const tags = display.querySelectorAll('.proc-tag');
+  tags.forEach(t=>t.remove());
+  if(ph) ph.style.display = selected.length ? 'none' : '';
+
+  selected.forEach(p=>{
+    const tag = document.createElement('span');
+    tag.className = 'proc-tag';
+    tag.style.cssText = `background:${PROC_COLORS[p]||'var(--wine)'}22;color:${PROC_COLORS[p]||'var(--wine)'};
+      border:1px solid ${PROC_COLORS[p]||'var(--wine)'}44;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:700;`;
+    tag.textContent = p;
+    display.insertBefore(tag, ph||null);
+  });
+}
+
+function setProcSelected(procs){
+  const dd = document.getElementById('treat-proc-dropdown');
+  if(!dd) return;
+  const list = Array.isArray(procs) ? procs : String(procs||'').split(',').map(s=>s.trim()).filter(Boolean);
+  dd.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.checked = list.includes(cb.value);
+  });
+  updateProcDisplay();
+}
+
+function getProcSelected(){
+  const hidden = document.getElementById('treat-proc');
+  return hidden?.value || '';
+}
+
+// close dropdown when clicking outside
+document.addEventListener('click', function(e){
+  const wrap = document.getElementById('treat-proc-wrap');
+  if(wrap && !wrap.contains(e.target)) closeTreatProcDropdown();
+});
 // ============================================================
 const DAY_NAMES_FULL = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const DEFAULT_DAY_SLOTS = [
@@ -4206,7 +4319,7 @@ function buildDaySlotSettingsUI(){
 function startAutoSync(){
   if(_autoSyncStarted) return;
   _autoSyncStarted = true;
-  setInterval(syncAll, 5000); // sync ทุก 5 วินาที
+  setInterval(syncAll, 4000); // sync ทุก 4 วินาที
 }
 
 // ============================================================
