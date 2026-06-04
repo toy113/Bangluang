@@ -709,6 +709,9 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 #schSlotScrollWrap::-webkit-scrollbar-track { background: var(--wine-pale); border-radius: 3px; }
 #schSlotScrollWrap::-webkit-scrollbar-thumb { background: var(--wine-light); border-radius: 3px; }
 #schSlotScrollWrap { scrollbar-width: thin; scrollbar-color: var(--wine-light) var(--wine-pale); }
+@media (max-width: 768px) {
+  #schSlotView { grid-template-columns: repeat(2, minmax(340px, 1fr)) !important; }
+}
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 </style>
 </head>
@@ -1094,8 +1097,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div id="schDayStats" style="display:none;"></div>
 
       <!-- 2-column: วันที่เลือก | วันถัดไป -->
-      <div id="schSlotScrollWrap" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:8px;">
-        <div id="schSlotView" style="display:flex;gap:16px;width:max-content;min-width:100%;"></div>
+      <div id="schSlotScrollWrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:8px;">
+        <div id="schSlotView" style="display:grid;grid-template-columns:repeat(2, minmax(420px, 1fr));gap:16px;"></div>
       </div>
 
       <!-- Monthly calendar overview -->
@@ -1893,24 +1896,56 @@ function renderAptList(today){
 }
 
 function renderTreatList(treats){
-  treats = [...treats].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const tbody = document.getElementById('treatListBody');
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   document.getElementById('treatCountBadge').textContent=`${treats.length} ราย`;
   document.getElementById('treatTotalBadge').textContent=`฿${fmt(total)}`;
-  if(!treats.length){ tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ</td></tr>`; return; }
-  tbody.innerHTML = treats.map(t=>`
-    <tr>
-      <td>${t.time||'—'}</td>
-      <td style="font-size:12px;color:var(--text-light)">${t.hn||'—'}</td>
-      <td style="font-weight:600">${t.patName}</td>
-      <td>${procBadge(t.proc)}</td>
-      <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
-      <td style="color:var(--green);font-weight:600">${t.cash?'฿'+fmt(+t.cash):''}</td>
-      <td style="color:var(--blue);font-weight:600">${t.transfer?'฿'+fmt(+t.transfer):''}</td>
-      <td style="color:var(--orange);font-weight:600">${t.sso?'฿'+fmt(+t.sso):''}</td>
-      <td style="font-weight:800;color:var(--wine-dark)">฿${fmt(totalPrice(t))}</td>
-    </tr>`).join('');
+  if(!treats.length){ tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ</td></tr>`; return; }
+
+  // จัดกลุ่มตามหมอ
+  const byDoc = {};
+  treats.forEach(t=>{
+    const doc = t.docName || 'ไม่ระบุหมอ';
+    if(!byDoc[doc]) byDoc[doc] = [];
+    byDoc[doc].push(t);
+  });
+
+  const docNames = Object.keys(byDoc).sort();
+  let html = '';
+
+  // ถ้ามีหมอเดียว แสดงแบบปกติ ไม่ต้องมี header กลุ่ม
+  if(docNames.length <= 1){
+    const sorted = [...treats].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    html = sorted.map(t=>treatRow(t)).join('');
+  } else {
+    // หลายหมอ — แยกกลุ่ม
+    docNames.forEach(doc=>{
+      const list = byDoc[doc].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+      const docTotal = list.reduce((s,t)=>s+totalPrice(t),0);
+      const c = docColor(doc);
+      html += `<tr style="background:${c}12;">
+        <td colspan="9" style="padding:8px 12px;font-weight:800;color:${c};font-size:13px;border-left:4px solid ${c};">
+          ${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${list.length} ราย · ฿${fmt(docTotal)}</span>
+        </td>
+      </tr>`;
+      html += list.map(t=>treatRow(t)).join('');
+    });
+  }
+  tbody.innerHTML = html;
+}
+
+function treatRow(t){
+  return `<tr>
+    <td>${t.time||'—'}</td>
+    <td style="font-size:12px;color:var(--text-light)">${t.hn||'—'}</td>
+    <td style="font-weight:600">${t.patName}</td>
+    <td>${procBadge(t.proc)}</td>
+    <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
+    <td style="color:var(--green);font-weight:600">${t.cash?'฿'+fmt(+t.cash):''}</td>
+    <td style="color:var(--blue);font-weight:600">${t.transfer?'฿'+fmt(+t.transfer):''}</td>
+    <td style="color:var(--orange);font-weight:600">${t.sso?'฿'+fmt(+t.sso):''}</td>
+    <td style="font-weight:800;color:var(--wine-dark)">฿${fmt(totalPrice(t))}</td>
+  </tr>`;
 }
 
 // ============================================================
@@ -3236,15 +3271,9 @@ function renderScheduleDay(){
 
   const view = document.getElementById('schSlotView');
   if(!view) return;
-  view.style.cssText = 'display:flex;gap:16px;width:max-content;';
-  const html1 = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
-  const html2 = buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
-  view.innerHTML = html1 + html2;
-  // กำหนดความกว้างแต่ละ column
-  view.querySelectorAll(':scope > div').forEach(col=>{
-    col.style.width = '360px';
-    col.style.flexShrink = '0';
-  });
+  view.style.cssText = 'display:grid;grid-template-columns:repeat(2, minmax(420px, 1fr));gap:16px;';
+  view.innerHTML = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
+                 + buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
 
   // Init all slot time pickers
   view.querySelectorAll('.tp-wrap [id^="tp-slot_"][id$="-display"]').forEach(el=>{
