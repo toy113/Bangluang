@@ -1095,7 +1095,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <!-- Stat strip (hidden) -->
       <div id="schDayStats" style="display:none;"></div>
 
-      <!-- 3-column: วันที่เลือก + 2 วันถัดไป -->
+      <!-- 4-column: วันที่เลือก + 3 วันถัดไป -->
       <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">← เลื่อนซ้าย-ขวาเพื่อดูเพิ่ม →</div>
       <div id="schSlotScrollWrap" style="overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:10px;max-width:100%;width:100%;">
         <div id="schSlotView" style="display:flex;gap:16px;"></div>
@@ -3243,13 +3243,15 @@ function renderScheduleDay(){
   const date2 = toDateStr(d2);
   const d3 = new Date(date1 + 'T12:00:00'); d3.setDate(d3.getDate()+2);
   const date3 = toDateStr(d3);
+  const d4 = new Date(date1 + 'T12:00:00'); d4.setDate(d4.getDate()+3);
+  const date4 = toDateStr(d4);
 
   const DAY_NAMES_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   const DAY_BG_PASTEL = ['#FFACAC','#FFE08A','#FFB3DE','#A8E6BC','#FFD0A0','#A8D8F0','#C9B8F0'];
   const DAY_FG_PASTEL = ['#7B2020','#6B4A00','#7B2060','#1A6B40','#7B4000','#1A4A7B','#3D1A7B'];
 
   // Stat strip — รวม 2 วัน
-  const allApts2Days = appointments.filter(a=>a.date===date1||a.date===date2||a.date===date3);
+  const allApts2Days = appointments.filter(a=>a.date===date1||a.date===date2||a.date===date3||a.date===date4);
   const statsEl = document.getElementById('schDayStats');
   if(statsEl){
     const total = allApts2Days.length;
@@ -3257,7 +3259,7 @@ function renderScheduleDay(){
     const conf  = allApts2Days.filter(a=>['คอนเฟิร์ม','confirm'].includes(a.status)).length;
     const cancel= allApts2Days.filter(a=>a.status==='ยกเลิก').length;
     statsEl.innerHTML = [
-      ['📅','นัด 3 วัน',total,'var(--wine-dark)'],
+      ['📅','นัด 4 วัน',total,'var(--wine-dark)'],
       ['✅','คอนเฟิร์ม',conf,'var(--blue)'],
       ['🎉','เสร็จสิ้น',done,'var(--green)'],
       ['❌','ยกเลิก',cancel,'var(--red)'],
@@ -3276,7 +3278,8 @@ function renderScheduleDay(){
   view.style.cssText = 'display:flex;gap:16px;';
   view.innerHTML = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
                  + buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
-                 + buildDayColumn(date3, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
+                 + buildDayColumn(date3, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
+                 + buildDayColumn(date4, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
 
   // Init all slot time pickers
   view.querySelectorAll('.tp-wrap [id^="tp-slot_"][id$="-display"]').forEach(el=>{
