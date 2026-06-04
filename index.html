@@ -709,7 +709,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 #schSlotScrollWrap::-webkit-scrollbar-track { background: #e8d8e4; border-radius: 7px; }
 #schSlotScrollWrap::-webkit-scrollbar-thumb { background: var(--wine); border-radius: 7px; border: 2px solid #e8d8e4; min-width: 40px; }
 #schSlotScrollWrap::-webkit-scrollbar-thumb:hover { background: var(--wine-dark); }
-#schSlotScrollWrap { scrollbar-width: auto; scrollbar-color: var(--wine) #e8d8e4; }
+#schSlotScrollWrap { scrollbar-width: auto; scrollbar-color: var(--wine) #e8d8e4; transform: rotateX(180deg); }
+#schSlotScrollWrap > #schSlotView { transform: rotateX(180deg); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 </style>
 </head>
@@ -3391,11 +3392,11 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   if(has2Docs){
     const doc1 = docList[0], doc2 = docList[1];
     slotsSection = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:4px;">
         <div style="font-size:11px;font-weight:800;color:${docColor(doc1)};padding:3px 6px;background:${docColor(doc1)}15;border-radius:6px;text-align:center;">${doc1}</div>
         <div style="font-size:11px;font-weight:800;color:${docColor(doc2)};padding:3px 6px;background:${docColor(doc2)}15;border-radius:6px;text-align:center;">${doc2}</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">
         <div>${slots.map(s=>slotCard(s,doc1)).join('')}</div>
         <div>${slots.map(s=>slotCard(s,doc2)).join('')}</div>
       </div>`;
@@ -3408,7 +3409,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}</span>`
   ).join('');
 
-  const colWidth = has2Docs ? 560 : 340;
+  const colWidth = has2Docs ? 680 : 340;
   return `<div style="width:${colWidth}px;flex-shrink:0;">
     <!-- Day header -->
     <div style="background:${bg};border-radius:12px;padding:10px 14px;margin-bottom:10px;${borderStyle}">
