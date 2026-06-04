@@ -250,7 +250,7 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .logout-btn:hover { background: rgba(231,76,90,0.2); }
 
 /* MAIN */
-.main-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
+.main-content { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; min-width: 0; }
 .topbar {
   background: #fff; border-bottom: 1px solid var(--border);
   padding: 0 28px; height: 56px; display: flex; align-items: center;
@@ -277,7 +277,7 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
   color: #1a9e6a; font-size: 12px; font-weight: 600;
 }
 
-.page { display: none; flex: 1; padding: 24px 28px; }
+.page { display: none; flex: 1; padding: 24px 28px; min-width: 0; max-width: 100%; }
 .page.active { display: block; }
 
 /* ======= CARDS ======= */
@@ -4709,6 +4709,11 @@ function openPatientDetail(hn){
     </div>`;
   }, 50); // setTimeout end
 }
+function closePatientDetail(){
+  const m = document.getElementById('modalPatientDetail');
+  if(m) m.classList.remove('open');
+}
+
 function copyDaySummary(){
   const date = document.getElementById('schDate')?.value || todayStr();
   const d = new Date(date+'T00:00:00');
