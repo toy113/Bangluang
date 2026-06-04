@@ -1092,7 +1092,7 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
 
       <!-- 2-column: วันที่เลือก | วันถัดไป -->
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:24px;">
-        <div id="schSlotView" style="display:grid;grid-template-columns:repeat(2,minmax(360px,1fr));gap:16px;width:max-content;min-width:100%;"></div>
+        <div id="schSlotView" style="display:flex;gap:16px;width:max-content;"></div>
       </div>
 
       <!-- Monthly calendar overview -->
@@ -3233,12 +3233,15 @@ function renderScheduleDay(){
 
   const view = document.getElementById('schSlotView');
   if(!view) return;
-  // นับหมอที่มีนัดวันนั้น เพื่อกำหนดจำนวน column
-  const docs1 = [...new Set(appointments.filter(a=>a.date===date1).map(a=>a.docName).filter(Boolean))];
-  const colCount = Math.max(2, docs1.length + 1);
-  view.style.gridTemplateColumns = `repeat(${colCount}, minmax(340px, 1fr))`;
-  view.innerHTML = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
-                 + buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
+  view.style.cssText = 'display:flex;gap:16px;width:max-content;';
+  const html1 = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
+  const html2 = buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
+  view.innerHTML = html1 + html2;
+  // กำหนดความกว้างแต่ละ column
+  view.querySelectorAll(':scope > div').forEach(col=>{
+    col.style.width = '360px';
+    col.style.flexShrink = '0';
+  });
 
   // Init all slot time pickers
   view.querySelectorAll('.tp-wrap [id^="tp-slot_"][id$="-display"]').forEach(el=>{
