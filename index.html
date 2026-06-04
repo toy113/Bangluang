@@ -705,10 +705,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .lab-other { background: rgba(127,140,141,0.12); color: #566573; border: 1px solid rgba(127,140,141,0.25); }
 
 /* Always visible horizontal scrollbar for schedule */
-#schSlotScrollWrap::-webkit-scrollbar { height: 6px; }
-#schSlotScrollWrap::-webkit-scrollbar-track { background: var(--wine-pale); border-radius: 3px; }
-#schSlotScrollWrap::-webkit-scrollbar-thumb { background: var(--wine-light); border-radius: 3px; }
-#schSlotScrollWrap { scrollbar-width: thin; scrollbar-color: var(--wine-light) var(--wine-pale); }
+#schSlotScrollWrap::-webkit-scrollbar { height: 12px; }
+#schSlotScrollWrap::-webkit-scrollbar-track { background: #e8d8e4; border-radius: 6px; }
+#schSlotScrollWrap::-webkit-scrollbar-thumb { background: var(--wine); border-radius: 6px; border: 2px solid #e8d8e4; }
+#schSlotScrollWrap::-webkit-scrollbar-thumb:hover { background: var(--wine-dark); }
+#schSlotScrollWrap { scrollbar-width: auto; scrollbar-color: var(--wine) #e8d8e4; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 </style>
 </head>
@@ -1094,7 +1095,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div id="schDayStats" style="display:none;"></div>
 
       <!-- 2-column: วันที่เลือก | วันถัดไป -->
-      <div id="schSlotScrollWrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:10px;">
+      <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">← เลื่อนซ้าย-ขวาเพื่อดูเพิ่ม →</div>
+      <div id="schSlotScrollWrap" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:10px;">
         <div id="schSlotView" style="display:flex;gap:16px;"></div>
       </div>
 
