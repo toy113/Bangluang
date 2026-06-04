@@ -704,8 +704,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .lab-hexa { background: rgba(155,89,182,0.12); color: #7d3c98; border: 1px solid rgba(155,89,182,0.25); }
 .lab-other { background: rgba(127,140,141,0.12); color: #566573; border: 1px solid rgba(127,140,141,0.25); }
 
-/* HIGHLIGHT ROW */
-tbody tr.own-row { background: rgba(212,168,71,0.04); }
+/* Always visible horizontal scrollbar for schedule */
+#schSlotScrollWrap::-webkit-scrollbar { height: 6px; }
+#schSlotScrollWrap::-webkit-scrollbar-track { background: var(--wine-pale); border-radius: 3px; }
+#schSlotScrollWrap::-webkit-scrollbar-thumb { background: var(--wine-light); border-radius: 3px; }
+#schSlotScrollWrap { scrollbar-width: thin; scrollbar-color: var(--wine-light) var(--wine-pale); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 </style>
 </head>
@@ -1091,8 +1094,8 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <div id="schDayStats" style="display:none;"></div>
 
       <!-- 2-column: วันที่เลือก | วันถัดไป -->
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:24px;">
-        <div id="schSlotView" style="display:flex;gap:16px;width:max-content;"></div>
+      <div id="schSlotScrollWrap" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:8px;">
+        <div id="schSlotView" style="display:flex;gap:16px;width:max-content;min-width:100%;"></div>
       </div>
 
       <!-- Monthly calendar overview -->
