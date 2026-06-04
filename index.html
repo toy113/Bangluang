@@ -1954,7 +1954,7 @@ function treatRow(t){
 let _editAptId = null;
 let _prefillSlot = null; // slot ที่กด +นัด มาจาก schedule page
 let _editAptOrigTime = null; // เวลาเดิมก่อนแก้ไข (สำหรับลบ slot เก่า)
-function openAddApt(apt=null, prefillDate=null, prefillTime=null){
+function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=null){
   _editAptId = apt ? apt.id : null;
   _prefillSlot = (!apt && prefillTime) ? prefillTime : null;
   _editAptOrigTime = apt ? (apt.time||null) : null; // เก็บเวลาเดิมไว้ลบ slot
@@ -1991,6 +1991,8 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null){
     document.getElementById('apt-doc').value = currentUser.name;
   } else if(apt?.docName){
     document.getElementById('apt-doc').value = apt.docName;
+  } else if(prefillDoc){
+    document.getElementById('apt-doc').value = prefillDoc;
   } else {
     const lastDoc = localStorage.getItem('bl_last_doc');
     if(lastDoc) document.getElementById('apt-doc').value = lastDoc;
@@ -2054,14 +2056,17 @@ function saveApt(){
 
   // จัดการ slot
   if(apt.time && apt.date){
-    const slots = getSchSlots(apt.date);
+    // key หมอ: ถ้าวันนั้นมี ≥2 หมอ → เก็บ slot ใต้หมอคนนั้น ; ไม่งั้นแชร์ ('')
+    const docsThatDay = new Set(appointments.filter(a=>a.date===apt.date).map(a=>a.docName).filter(Boolean));
+    const slotDoc = (docsThatDay.size >= 2) ? (apt.docName||'') : '';
+    const slots = getSchSlots(apt.date, slotDoc);
 
     if(_editAptId && _editAptOrigTime && apt.time !== _editAptOrigTime){
       // EDIT: เวลาเปลี่ยน → ลบ slot เดิม + สร้าง slot ใหม่
       let newSlots = slots.filter(s => s !== _editAptOrigTime);
       if(!newSlots.includes(apt.time)) newSlots.push(apt.time);
       newSlots.sort();
-      saveSchSlots(apt.date, newSlots);
+      saveSchSlots(apt.date, newSlots, slotDoc);
       showToast(`ย้าย slot ${_editAptOrigTime} → ${apt.time}`);
 
     } else if(!_editAptId){
@@ -2071,13 +2076,13 @@ function saveApt(){
         let newSlots = slots.filter(s => s !== _prefillSlot);
         if(!newSlots.includes(apt.time)) newSlots.push(apt.time);
         newSlots.sort();
-        saveSchSlots(apt.date, newSlots);
+        saveSchSlots(apt.date, newSlots, slotDoc);
         showToast(`ย้าย slot ${_prefillSlot} → ${apt.time}`);
       } else if(!_prefillSlot && !slots.includes(apt.time)){
         // ไม่ได้กดจาก slot → สร้างใหม่ถ้าไม่มี
         slots.push(apt.time);
         slots.sort();
-        saveSchSlots(apt.date, slots);
+        saveSchSlots(apt.date, slots, slotDoc);
         showToast(`เพิ่ม slot ${apt.time} อัตโนมัติ`);
       }
     }
@@ -2970,7 +2975,6 @@ async function syncAll(){
     if(Array.isArray(d.sch_slots)){
       try {
         const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
-        const deleted = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
         const writeTs = JSON.parse(localStorage.getItem('bl_slots_write_ts')||'{}');
         const now = Date.now();
         d.sch_slots.forEach(r=>{
@@ -2978,9 +2982,9 @@ async function syncAll(){
           // ถ้าเพิ่ง write วันนี้ไปไม่เกิน 15 วิ → ไม่ทับ (รอ Sheet propagate)
           if(writeTs[r.date] && (now - writeTs[r.date]) < 15000) return;
           try {
-            const sheetSlots = JSON.parse(r.slots);
-            const deletedForDate = deleted[r.date] || [];
-            all[r.date] = sheetSlots.filter(s=>!deletedForDate.includes(s)).sort();
+            // slots column อาจเป็น array (legacy/แชร์) หรือ object { docKey:[...] } (ต่อหมอ)
+            // เก็บดิบ ๆ — getSchSlots จะ normalize + กรอง deleted ตอนอ่านเอง
+            all[r.date] = JSON.parse(r.slots);
           } catch(e){}
         });
         localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
@@ -3089,49 +3093,78 @@ function schChangeDay(delta){
   el.value = toDateStr(d);
   renderScheduleDay();
 }
-function getSchSlots(date){
-  try {
+// ---- per-doctor slot storage ----
+// SCH_SLOTS_KEY: { date: <map> } โดย map = array (legacy/แชร์) หรือ { docKey: [slots] }
+//   docKey '' = หมอเดี่ยว/ไม่มีหมอ (shared) ; 'หมอก้อย' = ของหมอคนนั้นโดยเฉพาะ
+function _slotMap(date){
+  try{
     const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
-    const deleted = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
-    const deletedForDate = deleted[date] || [];
-    if(all[date]){
-      // มี slots บันทึกไว้ — รวมกับ DEFAULT_SLOTS แต่กรอง deleted ออก
-      const merged = new Set([...DEFAULT_SLOTS, ...all[date]]);
-      return [...merged].filter(s=>!deletedForDate.includes(s)).sort();
-    }
-    // ไม่มีบันทึก — ใช้ DEFAULT_SLOTS กรอง deleted ออก
-    return DEFAULT_SLOTS.filter(s=>!deletedForDate.includes(s));
-  } catch(e){ return [...DEFAULT_SLOTS]; }
+    const v = all[date];
+    if(v==null) return {};
+    if(Array.isArray(v)) return { '': v };   // legacy array → shared
+    return v;
+  }catch(e){ return {}; }
 }
-function saveSchSlots(date, slots){
-  try {
+function _deletedMap(date){
+  try{
+    const all = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
+    const v = all[date];
+    if(v==null) return {};
+    if(Array.isArray(v)) return { '': v };
+    return v;
+  }catch(e){ return {}; }
+}
+function _writeSlotMap(date, map){
+  try{
     const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
-    all[date] = slots;
+    all[date] = map;
     localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
-    // บันทึก timestamp เพื่อป้องกัน syncAll ทับภายใน 15 วิ
     const ts = JSON.parse(localStorage.getItem('bl_slots_write_ts')||'{}');
     ts[date] = Date.now();
     localStorage.setItem('bl_slots_write_ts', JSON.stringify(ts));
-    // sync ขึ้น Sheet
-    syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(slots) });
-  } catch(e){}
+    syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(map) });
+  }catch(e){}
 }
-function isSlotBlocked(date, slot){
+function _writeDeletedMap(date, map){
+  try{
+    const all = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
+    all[date] = map;
+    localStorage.setItem('bl_deleted_slots', JSON.stringify(all));
+  }catch(e){}
+}
+function getSchSlots(date, doc){
+  try {
+    const dk = doc || '';
+    const map = _slotMap(date);
+    const del = (_deletedMap(date)[dk]) || [];
+    const saved = map[dk];
+    const base = (saved!=null) ? new Set([...DEFAULT_SLOTS, ...saved]) : new Set(DEFAULT_SLOTS);
+    return [...base].filter(s=>!del.includes(s)).sort();
+  } catch(e){ return [...DEFAULT_SLOTS]; }
+}
+function saveSchSlots(date, slots, doc){
+  const dk = doc || '';
+  const map = _slotMap(date);
+  map[dk] = slots;
+  _writeSlotMap(date, map);
+}
+function isSlotBlocked(date, slot, doc){
   try {
     const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}');
-    return !!all[`${date}_${slot}`];
+    return !!all[`${date}_${doc||''}_${slot}`];
   } catch(e){ return false; }
 }
-function toggleSlotBlocked(date, slot){
+function toggleSlotBlocked(date, slot, doc){
   try {
     const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}');
-    const key = `${date}_${slot}`;
+    const key = `${date}_${doc||''}_${slot}`;
     if(all[key]) delete all[key]; else all[key] = true;
     localStorage.setItem(SCH_BLOCKED_KEY, JSON.stringify(all));
     renderScheduleDay();
   } catch(e){}
 }
-function schAddSlot(date){
+function schAddSlot(date, doc){
+  doc = doc || '';
   // สร้าง mini modal inline
   const existing = document.getElementById('addSlotModal');
   if(existing) existing.remove();
@@ -3141,7 +3174,7 @@ function schAddSlot(date){
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;';
   modal.innerHTML = `
     <div style="background:#fff;border-radius:16px;padding:24px;width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-      <div style="font-size:16px;font-weight:700;color:var(--wine-dark);margin-bottom:16px;">➕ เพิ่ม Slot ใหม่</div>
+      <div style="font-size:16px;font-weight:700;color:var(--wine-dark);margin-bottom:16px;">➕ เพิ่ม Slot ใหม่${doc?` <span style="font-size:13px;color:${docColor(doc)};">· ${doc}</span>`:''}</div>
       <input id="addSlotTimeInput" type="text" placeholder="__:__" maxlength="5"
         oninput="fmtTimeInput(this)" onblur="fmtTimeBlur(this)"
         style="width:100%;font-size:28px;font-weight:800;text-align:center;
@@ -3152,7 +3185,7 @@ function schAddSlot(date){
         <button onclick="document.getElementById('addSlotModal').remove()"
           style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;
           background:#f5f5f5;cursor:pointer;font-size:14px;">ยกเลิก</button>
-        <button onclick="confirmAddSlot('${date}')"
+        <button onclick="confirmAddSlot('${date}','${doc}')"
           style="flex:1;padding:10px;border:none;border-radius:8px;
           background:var(--wine);color:#fff;cursor:pointer;font-size:14px;font-weight:700;">✅ เพิ่ม</button>
       </div>
@@ -3164,25 +3197,31 @@ function schAddSlot(date){
   setTimeout(()=>{ inp.focus(); }, 50);
 
   // กด Enter = confirm
-  inp.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmAddSlot(date); });
+  inp.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmAddSlot(date, doc); });
 }
 
-function confirmAddSlot(date){
+function confirmAddSlot(date, doc){
   const inp = document.getElementById('addSlotTimeInput');
   if(!inp) return;
   fmtTimeBlur(inp);
   const t = inp.value;
   document.getElementById('addSlotModal')?.remove();
   if(!t || !/^\d{2}:\d{2}$/.test(t)){ showToast('รูปแบบเวลาไม่ถูกต้อง','error'); return; }
-  const slots = getSchSlots(date);
-  if(!slots.includes(t)) slots.push(t);
-  slots.sort();
-  saveSchSlots(date, slots);
+  const dk = doc || '';
+  const map = _slotMap(date);
+  const list = new Set(map[dk]||[]);
+  list.add(t);
+  map[dk] = [...list].sort();
+  // เอาออกจาก blacklist ถ้าเคยถูกลบ
+  const dmap = _deletedMap(date);
+  if(dmap[dk]){ dmap[dk] = dmap[dk].filter(s=>s!==t); _writeDeletedMap(date, dmap); }
+  _writeSlotMap(date, map);
   renderScheduleDay();
   showToast(`เพิ่ม slot ${t} แล้ว`);
 }
-function schRemoveSlot(date, slot){
-  const slotApts = appointments.filter(a=> a.date===date && String(a.time||'').slice(0,5)===slot);
+function schRemoveSlot(date, slot, doc){
+  const dk = doc || '';
+  const slotApts = appointments.filter(a=> a.date===date && (!doc || a.docName===doc) && String(a.time||'').slice(0,5)===slot);
   if(slotApts.length > 0){
     if(!confirm(`ลบ slot ${slot} และนัด ${slotApts.length} รายการในช่องนี้?`)) return;
     slotApts.forEach(a=>{
@@ -3191,35 +3230,26 @@ function schRemoveSlot(date, slot){
       syncToSheet('delete',{type:'appointments',id:a.id});
     });
   }
-  // บันทึก blacklist slot ที่ลบแล้ว
-  try{
-    const deleted = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
-    if(!deleted[date]) deleted[date] = [];
-    if(!deleted[date].includes(slot)) deleted[date].push(slot);
-    localStorage.setItem('bl_deleted_slots', JSON.stringify(deleted));
-  }catch(e){}
-  // ลบ slot และ sync ขึ้น Sheet ทันที
-  const slots = getSchSlots(date).filter(s=>s!==slot);
-  // อัปเดต local ก่อน
-  try{
-    const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
-    all[date] = slots;
-    localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
-  }catch(e){}
-  // sync ขึ้น Sheet ทันที
-  syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(slots) })
-    .then(()=>showToast(`ลบ slot ${slot} แล้ว ✅`))
-    .catch(()=>{});
+  // blacklist slot ที่ลบแล้ว (ต่อหมอ)
+  const dmap = _deletedMap(date);
+  if(!dmap[dk]) dmap[dk] = [];
+  if(!dmap[dk].includes(slot)) dmap[dk].push(slot);
+  _writeDeletedMap(date, dmap);
+  // เอา slot ออกจาก map แล้ว sync
+  const map = _slotMap(date);
+  if(map[dk]) map[dk] = map[dk].filter(s=>s!==slot);
+  _writeSlotMap(date, map);
+  showToast(`ลบ slot ${slot} แล้ว ✅`);
   renderScheduleDay();
   renderSchMiniCal();
 }
-function schUpdateSlotTime(date, oldSlot, newVal){
-  const slots = getSchSlots(date);
+function schUpdateSlotTime(date, oldSlot, newVal, doc){
+  const slots = getSchSlots(date, doc);
   const idx = slots.indexOf(oldSlot);
   if(idx>=0 && newVal && /^\d{2}:\d{2}$/.test(newVal)){
     slots[idx] = newVal;
     slots.sort();
-    saveSchSlots(date, slots);
+    saveSchSlots(date, slots, doc);
     renderScheduleDay();
   }
 }
@@ -3304,11 +3334,13 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const fg = DAY_FG_PASTEL[dow];
   const borderStyle = isToday ? 'box-shadow:0 0 0 3px #FFD700, 0 2px 12px rgba(0,0,0,0.15);' : '';
 
-  // slots = sch_slots ของวันนั้น + slot จาก appointments ที่ยังไม่มีใน list
-  const savedSlots = getSchSlots(date);
-  const aptSlots = dayApts.map(a=>String(a.time||'').slice(0,5)).filter(Boolean);
-  const allSlotSet = new Set([...savedSlots, ...aptSlots]);
-  const slots = [...allSlotSet].sort();
+  // slots ต่อหมอ = sch_slots ของหมอคนนั้น + เวลานัดของหมอคนนั้น (doc='' = หมอเดี่ยว/แชร์)
+  function slotsForDoc(filterDoc){
+    const saved = getSchSlots(date, filterDoc);
+    const aptS = dayApts.filter(a=> !filterDoc || a.docName===filterDoc)
+                        .map(a=>String(a.time||'').slice(0,5)).filter(Boolean);
+    return [...new Set([...saved, ...aptS])].sort();
+  }
 
   // หมอที่มีไม่คอนเฟิร์ม
   const docSet = {};
@@ -3361,7 +3393,8 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 
   // build slot card (รองรับ filterDoc สำหรับ 2-doctor split)
   function slotCard(slot, filterDoc){
-    const blocked = isSlotBlocked(date, slot);
+    const dparam = filterDoc ? String(filterDoc).replace(/'/g,'') : '';
+    const blocked = isSlotBlocked(date, slot, filterDoc||'');
     const slotApts = getSlotApts(slot, filterDoc||null);
     const aptCards = blocked ? '' : slotApts.map(aptCard).join('');
 
@@ -3382,32 +3415,38 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           padding:3px 4px;min-width:58px;display:inline-block;">${slot}</span>
         <div style="flex:1;"></div>
         ${blocked
-          ? `<button onclick="toggleSlotBlocked('${date}','${slot}')" style="font-size:10px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 7px;cursor:pointer;color:#555;">เปิด</button>`
-          : `<button onclick="openAddApt(null,'${date}','${slot}')" style="font-size:10px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
-             <button onclick="toggleSlotBlocked('${date}','${slot}')" title="เว้นว่าง" style="font-size:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
+          ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" style="font-size:10px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 7px;cursor:pointer;color:#555;">เปิด</button>`
+          : `<button onclick="openAddApt(null,'${date}','${slot}','${dparam}')" style="font-size:10px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
+             <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" style="font-size:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
         }
-        <button onclick="schRemoveSlot('${date}','${slot}')" style="font-size:10px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 2px;display:inline;">✕</button>
+        <button onclick="schRemoveSlot('${date}','${slot}','${dparam}')" style="font-size:10px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 2px;display:inline;">✕</button>
       </div>
       ${blocked?`<div style="font-size:10px;color:#bbb;text-align:center;padding:3px 0;">— เว้นว่าง —</div>`:''}
       ${aptCards}
     </div>`;
   }
 
-  // Slots section — ถ้า 2 หมอ แบ่ง 2 sub-column
+  // Slots section — ถ้า 2 หมอ แบ่ง 2 sub-column (slot แยกต่อหมอ)
+  const addSlotBtn = (d)=>`<button onclick="schAddSlot('${date}','${String(d||'').replace(/'/g,'')}')"
+      style="width:100%;border:1.5px dashed var(--border);background:transparent;border-radius:10px;
+      padding:7px;color:var(--text-light);cursor:pointer;font-size:12px;font-weight:600;margin-top:2px;">
+      ＋ เพิ่ม slot</button>`;
   let slotsSection = '';
   if(has2Docs){
     const doc1 = docList[0], doc2 = docList[1];
+    const slots1 = slotsForDoc(doc1), slots2 = slotsForDoc(doc2);
     slotsSection = `
       <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:4px;">
         <div style="font-size:11px;font-weight:800;color:${docColor(doc1)};padding:3px 6px;background:${docColor(doc1)}15;border-radius:6px;text-align:center;">${doc1}</div>
         <div style="font-size:11px;font-weight:800;color:${docColor(doc2)};padding:3px 6px;background:${docColor(doc2)}15;border-radius:6px;text-align:center;">${doc2}</div>
       </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">
-        <div>${slots.map(s=>slotCard(s,doc1)).join('')}</div>
-        <div>${slots.map(s=>slotCard(s,doc2)).join('')}</div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start;">
+        <div>${slots1.map(s=>slotCard(s,doc1)).join('')}${addSlotBtn(doc1)}</div>
+        <div>${slots2.map(s=>slotCard(s,doc2)).join('')}${addSlotBtn(doc2)}</div>
       </div>`;
   } else {
-    slotsSection = `<div>${slots.map(s=>slotCard(s,null)).join('')}</div>`;
+    const slots0 = slotsForDoc('');
+    slotsSection = `<div>${slots0.map(s=>slotCard(s,null)).join('')}</div>`;
   }
 
   // ชื่อหมอใน header
@@ -3442,12 +3481,12 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     </div>
     <!-- Slots -->
     ${slotsSection}
-    <!-- เพิ่ม slot -->
-    <button onclick="schAddSlot('${date}')"
+    <!-- เพิ่ม slot (เฉพาะวันหมอเดี่ยว; 2 หมอมีปุ่มแยกในแต่ละคอลัมน์แล้ว) -->
+    ${has2Docs ? '' : `<button onclick="schAddSlot('${date}','')"
       style="width:100%;border:1.5px dashed var(--border);background:transparent;border-radius:10px;
       padding:8px;color:var(--text-light);cursor:pointer;font-size:12px;font-weight:600;margin-top:4px;">
       ＋ เพิ่ม slot
-    </button>
+    </button>`}
   </div>`;
 }
 
