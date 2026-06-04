@@ -705,9 +705,9 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .lab-other { background: rgba(127,140,141,0.12); color: #566573; border: 1px solid rgba(127,140,141,0.25); }
 
 /* Always visible horizontal scrollbar for schedule */
-#schSlotScrollWrap::-webkit-scrollbar { height: 12px; }
-#schSlotScrollWrap::-webkit-scrollbar-track { background: #e8d8e4; border-radius: 6px; }
-#schSlotScrollWrap::-webkit-scrollbar-thumb { background: var(--wine); border-radius: 6px; border: 2px solid #e8d8e4; }
+#schSlotScrollWrap::-webkit-scrollbar { height: 14px; -webkit-appearance: none; }
+#schSlotScrollWrap::-webkit-scrollbar-track { background: #e8d8e4; border-radius: 7px; }
+#schSlotScrollWrap::-webkit-scrollbar-thumb { background: var(--wine); border-radius: 7px; border: 2px solid #e8d8e4; min-width: 40px; }
 #schSlotScrollWrap::-webkit-scrollbar-thumb:hover { background: var(--wine-dark); }
 #schSlotScrollWrap { scrollbar-width: auto; scrollbar-color: var(--wine) #e8d8e4; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
@@ -1096,7 +1096,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
       <!-- 2-column: วันที่เลือก | วันถัดไป -->
       <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">← เลื่อนซ้าย-ขวาเพื่อดูเพิ่ม →</div>
-      <div id="schSlotScrollWrap" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:10px;">
+      <div id="schSlotScrollWrap" style="overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin-bottom:24px;padding-bottom:10px;max-width:100%;width:100%;">
         <div id="schSlotView" style="display:flex;gap:16px;"></div>
       </div>
 
@@ -3408,7 +3408,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}</span>`
   ).join('');
 
-  const colWidth = has2Docs ? 680 : 380;
+  const colWidth = has2Docs ? 560 : 340;
   return `<div style="width:${colWidth}px;flex-shrink:0;">
     <!-- Day header -->
     <div style="background:${bg};border-radius:12px;padding:10px 14px;margin-bottom:10px;${borderStyle}">
