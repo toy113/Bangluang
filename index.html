@@ -1880,7 +1880,8 @@ function renderAptList(today){
   }
 
   if(!apts.length){ el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text-light);font-size:14px;">ไม่มี</div>`; return; }
-  el.innerHTML = apts.map(a=>`
+
+  const rowHtml = a=>`
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div style="font-size:12px;color:var(--text-light)">${a.hn||'—'}</div>
@@ -1892,7 +1893,23 @@ function renderAptList(today){
       <div>
         <span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'}">${a.status}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+
+  // ผู้จัดการ + มี ≥2 หมอ → แยกกลุ่มเรียงตามหมอ (แต่ละกลุ่มเรียงตามเวลา)
+  const docNames = isManager ? [...new Set(apts.map(a=>a.docName).filter(Boolean))].sort() : [];
+  if(isManager && docNames.length >= 2){
+    const groupHdr = (doc,n,c)=>`<div style="padding:8px 12px;margin:8px 0 2px;font-weight:800;color:${c};font-size:13px;border-left:4px solid ${c};background:${c}12;border-radius:8px;">${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${n} นัด</span></div>`;
+    let html = '';
+    docNames.forEach(doc=>{
+      const list = apts.filter(a=>a.docName===doc);
+      html += groupHdr(doc, list.length, docColor(doc)) + list.map(rowHtml).join('');
+    });
+    const noDoc = apts.filter(a=>!a.docName);
+    if(noDoc.length) html += groupHdr('ไม่ระบุหมอ', noDoc.length, 'var(--text-light)') + noDoc.map(rowHtml).join('');
+    el.innerHTML = html;
+  } else {
+    el.innerHTML = apts.map(rowHtml).join('');
+  }
 }
 
 function renderTreatList(treats){
