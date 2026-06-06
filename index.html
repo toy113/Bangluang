@@ -1577,8 +1577,15 @@ let currentPeriod = 'day';
 //  SAVE HELPERS
 // ============================================================
 // ---- Sheet-only mode: saveLocal is no-op, data lives in Sheet ----
-function saveLocal(){ /* no localStorage, Sheet is source of truth */ }
-function loadLocal(){ /* data loaded via syncAll from Sheet */ }
+function saveLocal(){
+  // cache-first: เก็บลง localStorage เพื่อให้เปิดครั้งหน้าแสดงข้อมูลทันที แล้วค่อย sync ทับ
+  try {
+    localStorage.setItem('bl_apt', JSON.stringify(appointments));
+    localStorage.setItem('bl_treat', JSON.stringify(treatments));
+    localStorage.setItem('bl_lab', JSON.stringify(labs));
+  } catch(e){}
+}
+function loadLocal(){ /* arrays โหลดจาก localStorage ตอนประกาศตัวแปรแล้ว (bl_apt/bl_treat/bl_lab) */ }
 
 // ============================================================
 //  LOGIN
@@ -2128,9 +2135,27 @@ function deleteAptFromModal(){
   deleteApt(id);
 }
 
+// blacklist id นัดที่เพิ่งลบ — กัน syncAll ดึงกลับมาก่อน Sheet propagate (guard 25 วิ)
+function _blacklistDeletedApt(id){
+  try{
+    const bl = JSON.parse(localStorage.getItem('bl_deleted_apts')||'{}');
+    bl[String(id).trim()] = Date.now();
+    localStorage.setItem('bl_deleted_apts', JSON.stringify(bl));
+  }catch(e){}
+}
+function _deletedAptIds(){
+  try{
+    const bl = JSON.parse(localStorage.getItem('bl_deleted_apts')||'{}');
+    const now = Date.now(); let changed=false; const live={};
+    Object.keys(bl).forEach(id=>{ if(now - bl[id] < 25000) live[id]=bl[id]; else changed=true; });
+    if(changed) localStorage.setItem('bl_deleted_apts', JSON.stringify(live));
+    return new Set(Object.keys(live));
+  }catch(e){ return new Set(); }
+}
 function deleteApt(id){
   if(!confirm('ยืนยันลบนัดนี้?')) return;
   appointments = appointments.filter(a=>String(a.id)!==String(id));
+  _blacklistDeletedApt(id);
   saveLocal();
   const p=document.querySelector('.page.active')?.id?.replace('page-','');
   if(p==='home') renderHome();
@@ -2945,7 +2970,8 @@ async function syncAll(){
       }
       return r; 
     };
-    if(Array.isArray(d.appointments)) appointments = d.appointments.filter(r=>sid(r)).map(normRow);
+    const _delAptIds = _deletedAptIds();
+    if(Array.isArray(d.appointments)) appointments = d.appointments.filter(r=>sid(r) && !_delAptIds.has(sid(r))).map(normRow);
     if(Array.isArray(d.treatments))  treatments  = d.treatments.filter(r=>sid(r)).map(normRow);
     if(Array.isArray(d.labs))        labs        = d.labs.filter(r=>sid(r)).map(normRow);
     // Load patients from Sheet via clean function
@@ -3023,6 +3049,8 @@ async function syncAll(){
         });
       });
     }
+    // cache-first: เก็บข้อมูลล่าสุดลง localStorage เพื่อให้เปิดครั้งหน้าขึ้นทันที
+    saveLocal();
     // re-render current page
     const p=document.querySelector('.page.active')?.id?.replace('page-','');
     if(p==='home') renderHome();
@@ -3243,6 +3271,7 @@ function schRemoveSlot(date, slot, doc){
     if(!confirm(`ลบ slot ${slot} และนัด ${slotApts.length} รายการในช่องนี้?`)) return;
     slotApts.forEach(a=>{
       appointments = appointments.filter(x=>String(x.id)!==String(a.id));
+      _blacklistDeletedApt(a.id);
       saveLocal();
       syncToSheet('delete',{type:'appointments',id:a.id});
     });
