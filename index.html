@@ -895,7 +895,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
                 oninput="saveDailyCashNote(this.value)">
               <span style="font-size:13px;color:var(--text-light);">บาท</span>
             </div>
-            <div style="font-size:14px;font-weight:700;color:var(--gold);">รวม: <span id="treatTotalBadge">฿0</span></div>
+            <div style="font-size:14px;font-weight:700;color:var(--gold);">รวม: <span id="treatTotalBadge">0฿</span></div>
           </div>
         </div>
         <table>
@@ -934,15 +934,15 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div style="padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
           <div class="income-item" style="border-left:3px solid var(--green)">
             <div class="income-item-label">💵 เงินสด</div>
-            <div class="income-item-value" id="sumCash">฿0</div>
+            <div class="income-item-value" id="sumCash">0฿</div>
           </div>
           <div class="income-item" style="border-left:3px solid var(--blue)">
             <div class="income-item-label">📲 โอน</div>
-            <div class="income-item-value" id="sumTransfer">฿0</div>
+            <div class="income-item-value" id="sumTransfer">0฿</div>
           </div>
           <div class="income-item" style="border-left:3px solid var(--orange)">
             <div class="income-item-label">🏛️ ประกันสังคม</div>
-            <div class="income-item-value" id="sumSSO">฿0</div>
+            <div class="income-item-value" id="sumSSO">0฿</div>
           </div>
 
         </div>
@@ -1329,7 +1329,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     </div>
     <div style="margin-top:12px;padding:12px 16px;background:var(--wine-pale);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:14px;font-weight:700;color:var(--wine-dark);">รวมทั้งหมด</span>
-      <span style="font-size:22px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;" id="totalDisplay">฿0</span>
+      <span style="font-size:22px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;" id="totalDisplay">0฿</span>
     </div>
     <div class="form-group" style="margin-top:12px;">
       <label>หมายเหตุ</label>
@@ -1847,9 +1847,9 @@ function renderHome(){
   document.getElementById('statCount').textContent = treats.length;
   document.getElementById('statTotal').textContent = fmt(total);
   document.getElementById('statShare').textContent = fmt(shareDoc);
-  document.getElementById('sumCash').textContent = '฿'+fmt(cash);
-  document.getElementById('sumTransfer').textContent = '฿'+fmt(transfer);
-  document.getElementById('sumSSO').textContent = '฿'+fmt(sso);
+  document.getElementById('sumCash').textContent = fmt(cash)+'฿';
+  document.getElementById('sumTransfer').textContent = fmt(transfer)+'฿';
+  document.getElementById('sumSSO').textContent = fmt(sso)+'฿';
 
   renderAptList(today);
   renderTreatList(treats);
@@ -1923,7 +1923,7 @@ function renderTreatList(treats){
   const tbody = document.getElementById('treatListBody');
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   document.getElementById('treatCountBadge').textContent=`${treats.length} ราย`;
-  document.getElementById('treatTotalBadge').textContent=`฿${fmt(total)}`;
+  document.getElementById('treatTotalBadge').textContent=`${fmt(total)}฿`;
   if(!treats.length){ tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ</td></tr>`; return; }
 
   // จัดกลุ่มตามหมอ
@@ -1949,7 +1949,7 @@ function renderTreatList(treats){
       const c = docColor(doc);
       html += `<tr style="background:${c}12;">
         <td colspan="9" style="padding:8px 12px;font-weight:800;color:${c};font-size:13px;border-left:4px solid ${c};">
-          ${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${list.length} ราย · ฿${fmt(docTotal)}</span>
+          ${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${list.length} ราย · ${fmt(docTotal)}฿</span>
         </td>
       </tr>`;
       html += list.map(t=>treatRow(t)).join('');
@@ -1965,10 +1965,10 @@ function treatRow(t){
     <td style="font-weight:600">${t.patName}</td>
     <td>${procBadge(t.proc)}</td>
     <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
-    <td style="color:var(--green);font-weight:600">${t.cash?'฿'+fmt(+t.cash):''}</td>
-    <td style="color:var(--blue);font-weight:600">${t.transfer?'฿'+fmt(+t.transfer):''}</td>
-    <td style="color:var(--orange);font-weight:600">${t.sso?'฿'+fmt(+t.sso):''}</td>
-    <td style="font-weight:800;color:var(--wine-dark)">฿${fmt(totalPrice(t))}</td>
+    <td style="color:var(--green);font-weight:600">${t.cash?fmt(+t.cash)+'฿':''}</td>
+    <td style="color:var(--blue);font-weight:600">${t.transfer?fmt(+t.transfer)+'฿':''}</td>
+    <td style="color:var(--orange);font-weight:600">${t.sso?fmt(+t.sso)+'฿':''}</td>
+    <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}฿</td>
   </tr>`;
 }
 
@@ -2230,8 +2230,8 @@ function openAddTreat(t=null){
   if(treatHint) treatHint.innerHTML = '';
   if(t?.hn) autoFillPatient(t.hn, 'treat');
   document.getElementById('treat-doc').value = t?.docName || (isManager ? (localStorage.getItem('bl_last_doc') || doctors[0]?.name) : currentUser.name);
-  document.getElementById('treat-proc').value = t?.proc||PROCEDURES[0];
-  setProcSelected(t?.proc||PROCEDURES[0]);
+  document.getElementById('treat-proc').value = t?.proc||'';
+  setProcSelected(t?.proc||'');
   document.getElementById('treat-cash').value = t?.cash||'';
   document.getElementById('treat-transfer').value = t?.transfer||'';
   document.getElementById('treat-sso').value = t?.sso||'';
@@ -2241,7 +2241,7 @@ function openAddTreat(t=null){
 }
 function calcTotal(){
   const v = ['treat-cash','treat-transfer','treat-sso'].reduce((s,id)=>s+(+document.getElementById(id).value||0),0);
-  document.getElementById('totalDisplay').textContent='฿'+fmt(v);
+  document.getElementById('totalDisplay').textContent=fmt(v)+'฿';
 }
 let _treatSaving = false;
 function saveTreat(){
@@ -2319,10 +2319,10 @@ function renderTreatPage(){
     const sumEl=document.getElementById('treatMonthlySummary');
     if(sumEl){ sumEl.style.display='';
       document.getElementById('ms-count').textContent=rows.length;
-      document.getElementById('ms-cash').textContent='฿'+fmt(rows.reduce((s,r)=>s+(+r.cash||0),0));
-      document.getElementById('ms-transfer').textContent='฿'+fmt(rows.reduce((s,r)=>s+(+r.transfer||0),0));
-      document.getElementById('ms-sso').textContent='฿'+fmt(rows.reduce((s,r)=>s+(+r.sso||0),0));
-      document.getElementById('ms-total').textContent='฿'+fmt(rows.reduce((s,r)=>s+totalPrice(r),0));
+      document.getElementById('ms-cash').textContent=fmt(rows.reduce((s,r)=>s+(+r.cash||0),0))+'฿';
+      document.getElementById('ms-transfer').textContent=fmt(rows.reduce((s,r)=>s+(+r.transfer||0),0))+'฿';
+      document.getElementById('ms-sso').textContent=fmt(rows.reduce((s,r)=>s+(+r.sso||0),0))+'฿';
+      document.getElementById('ms-total').textContent=fmt(rows.reduce((s,r)=>s+totalPrice(r),0))+'฿';
     }
   }
   // Update count badge
@@ -2337,10 +2337,10 @@ function renderTreatPage(){
       <td style="font-weight:600">${t.patName}</td>
       <td>${procBadge(t.proc)}</td>
       <td style="font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
-      <td style="color:var(--green)">${t.cash&&+t.cash?'฿'+fmt(+t.cash):''}</td>
-      <td style="color:var(--blue)">${t.transfer&&+t.transfer?'฿'+fmt(+t.transfer):''}</td>
-      <td style="color:var(--orange)">${t.sso&&+t.sso?'฿'+fmt(+t.sso):''}</td>
-      <td style="font-weight:800;color:var(--wine-dark)">฿${fmt(totalPrice(t))}</td>
+      <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash)+'฿':''}</td>
+      <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer)+'฿':''}</td>
+      <td style="color:var(--orange)">${t.sso&&+t.sso?fmt(+t.sso)+'฿':''}</td>
+      <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}฿</td>
       ${isManager?`<td>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-ghost btn-sm" onclick='openAddTreat(${JSON.stringify(t)})'>✏️</button>
@@ -2497,7 +2497,7 @@ function buildCharts(rows, period, today, month, year){
         title:{ display:true, text:'📊 เปรียบเทียบรายได้รวม — '+periodLabel, font:{size:13,weight:'bold'}, color:'#4A1E42', padding:{bottom:10} },
         tooltip:{
           callbacks:{
-            label: ctx => '฿'+ctx.parsed.y.toLocaleString('th-TH')
+            label: ctx => ctx.parsed.y.toLocaleString('th-TH')+'฿'
           }
         }
       },
@@ -2505,7 +2505,7 @@ function buildCharts(rows, period, today, month, year){
         x:{ grid:{display:false}, ticks:{font:{size:10}, color:'#9B7A94'} },
         y:{
           grid:{ color:'rgba(107,45,94,0.08)' },
-          ticks:{ callback:v=>v>=1000?'฿'+(v/1000).toFixed(0)+'k':'฿'+v, font:{size:10}, color:'#9B7A94' }
+          ticks:{ callback:v=>v>=1000?(v/1000).toFixed(0)+'k฿':v+'฿', font:{size:10}, color:'#9B7A94' }
         }
       }
     }
@@ -2526,7 +2526,7 @@ function buildShareGrid(rows){
   const grandTotal = docList.reduce((s,doc)=>s+rows.filter(r=>r.docName===doc.name).reduce((ss,r)=>ss+totalPrice(r),0),0);
   // Update badge
   const badge = document.getElementById('shareTotalBadge');
-  if(badge) badge.textContent = 'รายได้รวมทั้งหมด ฿'+fmt(grandTotal);
+  if(badge) badge.textContent = 'รายได้รวมทั้งหมด '+fmt(grandTotal)+'฿';
   el.innerHTML=docList.map(doc=>{
     const dr=rows.filter(r=>r.docName===doc.name);
     const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
@@ -2541,10 +2541,10 @@ function buildShareGrid(rows){
         </div>
         <div style="background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;">${doc.share}%</div>
       </div>
-      <div class="share-card-amount">฿${fmt(share)}</div>
+      <div class="share-card-amount">${fmt(share)}฿</div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;">
         <span style="font-size:11px;color:var(--text-light);">รายได้รวม</span>
-        <span style="font-size:12px;font-weight:700;color:var(--wine-dark);">฿${fmt(tot)}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--wine-dark);">${fmt(tot)}฿</span>
       </div>
       <!-- progress bar -->
       <div style="margin-top:8px;height:6px;background:rgba(107,45,94,0.1);border-radius:4px;overflow:hidden;">
@@ -2553,11 +2553,11 @@ function buildShareGrid(rows){
       <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
         <div>
           <div style="font-size:10px;color:var(--text-light);font-weight:700;">ส่วนแบ่งหมอ</div>
-          <div style="font-size:14px;font-weight:800;color:var(--gold);">฿${fmt(share)}</div>
+          <div style="font-size:14px;font-weight:800;color:var(--gold);">${fmt(share)}฿</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:var(--text-light);font-weight:700;">ส่วนแบ่งคลินิก</div>
-          <div style="font-size:14px;font-weight:800;color:var(--wine);">฿${fmt(clinicShare)}</div>
+          <div style="font-size:14px;font-weight:800;color:var(--wine);">${fmt(clinicShare)}฿</div>
         </div>
       </div>
     </div>`;
@@ -2736,7 +2736,7 @@ function renderLabPage(){
         <td style="font-weight:600">${l.patName}</td>
         <td>${l.work}</td>
         <td><span class="lab-badge ${labBadgeClass(l.lab)}">${l.lab}</span></td>
-        <td style="font-weight:700;color:var(--wine-dark)">฿${fmt(+l.price||0)}</td>
+        <td style="font-weight:700;color:var(--wine-dark)">${fmt(+l.price||0)}฿</td>
         <td style="font-weight:700;color:${docColor(l.docName)}">${l.docName}</td>
         <td style="font-size:12px;color:var(--text-light);font-style:${l.note?'normal':'italic'}">${l.note||'—'}</td>
         ${isManager
@@ -2774,7 +2774,7 @@ function buildLabSummary(rows,month,docFilter){
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           ${docTotals.map(d=>`<div style="background:var(--wine-pale);border-radius:10px;padding:10px 16px;min-width:140px;">
             <div style="font-size:12px;color:var(--wine-dark);font-weight:700;">${d.emoji} ${d.name}</div>
-            <div style="font-size:18px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">฿${fmt(d.total)}</div>
+            <div style="font-size:18px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${fmt(d.total)}฿</div>
             <div style="font-size:11px;color:var(--text-light);">${d.count} รายการ</div>
           </div>`).join('')}
         </div>
@@ -2784,11 +2784,11 @@ function buildLabSummary(rows,month,docFilter){
   el.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
     ${labs_list.map(lb=>`<div style="flex:1;min-width:160px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
       <div style="font-size:12px;color:var(--text-light);font-weight:700;">${lb}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;">฿${fmt(totLab[lb])}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;">${fmt(totLab[lb])}฿</div>
     </div>`).join('')}
     <div style="flex:1;min-width:160px;background:var(--wine-pale);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
       <div style="font-size:12px;color:var(--wine);font-weight:700;">รวมทั้งหมด</div>
-      <div style="font-size:20px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">฿${fmt(grand)}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${fmt(grand)}฿</div>
     </div>
   </div>${docBreakdown}`;
 }
@@ -4768,7 +4768,7 @@ function openPatientDetail(hn){
       <td style="font-size:12px;">${fmtDate(t.date)}</td>
       <td>${procBadge(t.proc)}</td>
       <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName||'—'}</td>
-      <td style="font-weight:700;color:var(--wine-dark);">฿${fmt(totalPrice(t))}</td>
+      <td style="font-weight:700;color:var(--wine-dark);">${fmt(totalPrice(t))}฿</td>
     </tr>`).join('') :
     `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-light);font-style:italic;">ยังไม่มีประวัติการรักษา</td></tr>`;
 
@@ -4882,7 +4882,7 @@ function copyIncomeSummary(){
     return '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;">'
       + '<input type="radio" name="incomeDoc" value="'+doc+'" '+checked+'>'
       + '<span style="font-weight:700;color:'+docColor(doc)+'">'+doc+'</span>'
-      + '<span style="color:var(--text-light);font-size:12px;">'+cnt+' ราย / ฿'+fmt(total)+'</span>'
+      + '<span style="color:var(--text-light);font-size:12px;">'+cnt+' ราย / '+fmt(total)+'฿</span>'
       + '</label>';
   }).join('');
 
@@ -4920,12 +4920,12 @@ function doSendIncome(periodLabel){
     const procs = Array.isArray(t.proc) ? t.proc.join(', ') : (t.proc||'');
     const price = totalPrice(t);
     const timeStr = t.time ? `${t.time}  ` : '';
-    text += `${timeStr}${t.patName||'—'} — ${procs}  ฿${fmt(price)}\n`;
+    text += `${timeStr}${t.patName||'—'} — ${procs}  ${fmt(price)}฿\n`;
   });
 
   text += LINE + '\n';
-  text += `รวม  ฿${fmt(total)}\n`;
-  text += `df ${share}% = ฿${fmt(df)}\n`;
+  text += `รวม  ${fmt(total)}฿\n`;
+  text += `df ${share}% = ${fmt(df)}฿\n`;
   text += 'Bangluang Dental 🦷';
 
   navigator.clipboard.writeText(text)
