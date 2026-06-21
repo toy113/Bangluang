@@ -10,8 +10,7 @@
  *   4) รัน setupRichMenu() หนึ่งครั้ง  -> สร้าง + อัปรูป + ตั้งเป็นเมนูเริ่มต้น
  *
  *   ถ้าจะแก้เมนูใหม่: รัน deleteAllRichMenus() ก่อน แล้วค่อย setupRichMenu() อีกครั้ง
- *   ⚠️ เมนูนี้มี 3 ช่อง (เดิม 6 ช่อง) — ต้องเตรียม richmenu.png ใหม่ให้ตรงกับ
- *      เลย์เอาต์ 3 คอลัมน์ x 1 แถวด้วย ไม่งั้นรูปเก่ากับพื้นที่กดจะไม่ตรงกัน
+ *   เมนูนี้มี 3 ช่อง (เดิม 6 ช่อง) ขนาดภาพ 2500x843 — richmenu.png อัปเดตตรงกันแล้ว
  **********************************************************************/
 
 var LINE_TOKEN          = 'cwTKCta3n3WjIO/ZZ1a6iEwGDMtWQcKuCc6Fd7snhB1Zq734zwa9JL+29IpHM1vBQt/RUv7SYcXDSRvubK4v1GN1i43OyMdZ8pXfA36deWzB4R50NyGAsW+ingrPXMe911z9AIckrrznm98mM95iYQdB04t89/1O/w1cDnyilFU=';
@@ -23,8 +22,8 @@ function liffUrl_(hash) {
 }
 
 function richMenuObject_() {
-  // ภาพ 2500 x 1686, ตาราง 3 คอลัมน์ x 1 แถว (เต็มความสูง)
-  var cw = 833, ch = 1686;
+  // ภาพ 2500 x 843 (ครึ่งความสูงมาตรฐาน), ตาราง 3 คอลัมน์ x 1 แถว
+  var cw = 833, ch = 843;
   function area(col, row, action) {
     return {
       bounds: { x: col * cw, y: row * ch, width: cw, height: ch },
@@ -32,7 +31,7 @@ function richMenuObject_() {
     };
   }
   return {
-    size: { width: 2500, height: 1686 },
+    size: { width: 2500, height: 843 },
     selected: true,
     name: 'ortho-menu',
     chatBarText: 'เมนูจัดฟัน',
