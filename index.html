@@ -1062,6 +1062,15 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div class="card-box-title">😬 คนไข้จัดฟัน</div>
           <div class="filter-row">
             <input class="form-control" id="orthoSearch" placeholder="ค้นหา HN / ชื่อ" oninput="renderOrthoPage()" style="height:36px;width:160px;">
+            <select class="form-control" id="orthoStatusFilter" onchange="renderOrthoPage()" style="height:36px;width:140px;">
+              <option value="กำลังจัด">กำลังจัด</option>
+              <option value="">ทั้งหมด</option>
+              <option value="เสร็จแล้ว">เสร็จแล้ว</option>
+              <option value="หยุด/เลิกรักษา">หยุด/เลิกรักษา</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--red);cursor:pointer;">
+              <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน 45 วัน
+            </label>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
             <button class="btn btn-primary btn-sm" onclick="openOrthoForm()">+ เพิ่มคนไข้จัดฟัน</button>
           </div>
@@ -1451,6 +1460,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <select class="form-control" id="ortho-doc"></select>
       </div>
       <div class="form-group">
+        <label>สถานะ</label>
+        <select class="form-control" id="ortho-status">
+          <option>กำลังจัด</option><option>เสร็จแล้ว</option><option>หยุด/เลิกรักษา</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>วันติดเครื่องมือ</label>
         <input type="date" class="form-control" id="ortho-start">
       </div>
@@ -1462,32 +1477,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </select>
       </div>
       <div class="form-group">
-        <label>Phase ปัจจุบัน</label>
-        <input class="form-control" id="ortho-phase" placeholder="เช่น Leveling, Space closure">
-      </div>
-      <div class="form-group">
         <label>ค่ารักษารวม (บาท)</label>
         <input type="number" class="form-control" id="ortho-total" placeholder="0" min="0" inputmode="decimal">
-      </div>
-      <div class="form-group">
-        <label>จ่ายแล้ว (บาท)</label>
-        <input type="number" class="form-control" id="ortho-paid" placeholder="0" min="0" inputmode="decimal">
-      </div>
-      <div class="form-group">
-        <label>งวดถัดไป — วันที่</label>
-        <input type="date" class="form-control" id="ortho-nextpaydate">
-      </div>
-      <div class="form-group">
-        <label>งวดถัดไป — จำนวน (บาท)</label>
-        <input type="number" class="form-control" id="ortho-nextpayamt" placeholder="0" min="0" inputmode="decimal">
-      </div>
-      <div class="form-group">
-        <label>นัดครั้งถัดไป</label>
-        <input type="date" class="form-control" id="ortho-nextappt">
-      </div>
-      <div class="form-group">
-        <label>LINE userId (ผูกมือ)</label>
-        <input class="form-control" id="ortho-lineid" placeholder="เว้นว่างไว้ได้">
       </div>
       <div class="form-group" style="grid-column:1/-1;">
         <label>หมายเหตุ</label>
@@ -1503,7 +1494,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 <div class="modal-overlay" id="modalOrthoLog">
   <div class="modal-box">
-    <div class="modal-title">➕ <span id="ologModalTitle">บันทึก adjust</span></div>
+    <div class="modal-title">➕ <span id="ologModalTitle">บันทึกการรักษา</span></div>
     <button class="modal-close" onclick="closeModal('modalOrthoLog')">×</button>
     <input type="hidden" id="olog-hn">
     <div class="form-grid">
@@ -5317,13 +5308,25 @@ async function renderOrthoPage(){
     await loadOrthoData();
   }
   const q = (document.getElementById('orthoSearch')?.value||'').trim().toLowerCase();
+  const statusFilter = document.getElementById('orthoStatusFilter')?.value || '';
+  const overdueOnly = document.getElementById('orthoOverdueFilter')?.checked;
   let rows = orthoData.slice();
+  if(statusFilter) rows = rows.filter(r=> (r['สถานะ']||'กำลังจัด') === statusFilter);
+  if(overdueOnly) rows = rows.filter(orthoOverdue_);
   if(q) rows = rows.filter(r=> String(r.hn||'').toLowerCase().includes(q) || String(r['ชื่อ']||'').toLowerCase().includes(q));
   if(!rows.length){
     box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-light);">ยังไม่มีคนไข้จัดฟัน — กด "+ เพิ่มคนไข้จัดฟัน"</div>';
     return;
   }
   box.innerHTML = rows.map(orthoCardHtml).join('');
+}
+
+function orthoOverdue_(r){
+  const last = r['ปรับล่าสุด'] || r['วันเริ่ม'];
+  if(!last) return false;
+  const d = new Date(last);
+  if(isNaN(d)) return false;
+  return Math.round((Date.now()-d.getTime())/86400000) > 45;
 }
 
 function orthoCardHtml(r){
@@ -5333,12 +5336,14 @@ function orthoCardHtml(r){
   const bound = r.lineUserId
     ? '<span style="color:var(--green);">🟢 ผูก LINE แล้ว</span>'
     : '<span style="color:var(--text-light);">⚪ ยังไม่ผูก LINE</span>';
-  return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;">
+  const isActive = !r['สถานะ'] || r['สถานะ']==='กำลังจัด';
+  const overdue = isActive && orthoOverdue_(r);
+  return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
       <div>
         <div style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'} <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span></div>
         <div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${r['แบบจัด']||'—'} · ${r['หมอ']||'—'}${r['phase']?' · phase: '+r['phase']:''}</div>
-        <div style="font-size:11px;margin-top:3px;">${bound}</div>
+        <div style="font-size:11px;margin-top:3px;">${bound}${(r['สถานะ']&&r['สถานะ']!=='กำลังจัด')?' · <span style="color:var(--text-light);">'+r['สถานะ']+'</span>':''}${overdue?' · <span style="color:var(--red);font-weight:700;">⚠️ เกิน 45 วัน</span>':''}</div>
       </div>
       <div style="text-align:right;font-size:12px;">
         <div>คงเหลือ <strong style="color:var(--wine);">${left.toLocaleString('th-TH')}</strong></div>
@@ -5348,7 +5353,7 @@ function orthoCardHtml(r){
     </div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
-      <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}')">➕ บันทึก adjust</button>
+      <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}')">➕ บันทึกการรักษา</button>
       <button class="btn btn-ghost btn-sm" onclick="openLooseModal('${hnEsc}')">🔧 เครื่องมือหลุด</button>
     </div>
   </div>`;
@@ -5363,15 +5368,10 @@ function openOrthoForm(hn){
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
+  document.getElementById('ortho-status').value = r?.['สถานะ'] || 'กำลังจัด';
   document.getElementById('ortho-start').value = r?.['วันเริ่ม'] || '';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '';
-  document.getElementById('ortho-phase').value = r?.['phase'] || '';
   document.getElementById('ortho-total').value = r?.['ค่ารักษารวม'] || '';
-  document.getElementById('ortho-paid').value = r?.['จ่ายแล้ว'] || '';
-  document.getElementById('ortho-nextpaydate').value = r?.['งวดถัดไปวันที่'] || '';
-  document.getElementById('ortho-nextpayamt').value = r?.['งวดถัดไปจำนวน'] || '';
-  document.getElementById('ortho-nextappt').value = r?.['นัดถัดไป'] || '';
-  document.getElementById('ortho-lineid').value = r?.['lineUserId'] || '';
   document.getElementById('ortho-note').value = r?.['note'] || '';
   document.getElementById('modalOrtho').classList.add('open');
 }
@@ -5381,29 +5381,26 @@ async function saveOrthoProfile(){
   const hn = document.getElementById('ortho-hn').value.trim();
   if(!hn){ showToast('กรุณาใส่ HN','error'); return; }
   _orthoSaving = true;
+  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
+  const existing = idx>=0 ? orthoData[idx] : {};
   const total = Number(document.getElementById('ortho-total').value||0);
-  const paid  = Number(document.getElementById('ortho-paid').value||0);
-  const row = {
+  const paid  = Number(existing['จ่ายแล้ว']||0);
+  // ฟิลด์ phase/จ่ายแล้ว/งวดถัดไป/นัดถัดไป/lineUserId ไม่มีในฟอร์มนี้แล้ว
+  // เลย clone ค่าเดิมไว้ก่อน กันบันทึกทับเป็นค่าว่าง
+  const row = Object.assign({}, existing, {
     hn,
     'ชื่อ': document.getElementById('ortho-name').value.trim(),
     'แบบจัด': document.getElementById('ortho-type').value,
     'หมอ': document.getElementById('ortho-doc').value,
+    'สถานะ': document.getElementById('ortho-status').value,
     'วันเริ่ม': document.getElementById('ortho-start').value,
     'แผนเดือน': document.getElementById('ortho-plan').value,
-    'phase': document.getElementById('ortho-phase').value.trim(),
     'ค่ารักษารวม': total,
-    'จ่ายแล้ว': paid,
     'คงเหลือ': total - paid,
-    'งวดถัดไปวันที่': document.getElementById('ortho-nextpaydate').value,
-    'งวดถัดไปจำนวน': document.getElementById('ortho-nextpayamt').value,
-    'นัดถัดไป': document.getElementById('ortho-nextappt').value,
     'note': document.getElementById('ortho-note').value.trim()
-  };
-  const lid = document.getElementById('ortho-lineid').value.trim();
-  if(lid) row.lineUserId = lid;
+  });
   await orthoPost({action:'orthoSave', row});
-  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
-  const merged = Object.assign({}, idx>=0?orthoData[idx]:{}, row);
+  const merged = Object.assign({}, existing, row);
   if(idx>=0) orthoData[idx]=merged; else orthoData.unshift(merged);
   closeModal('modalOrtho');
   showToast('บันทึกข้อมูลจัดฟันสำเร็จ');
@@ -5414,7 +5411,7 @@ async function saveOrthoProfile(){
 
 function openOrthoLog(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
-  document.getElementById('ologModalTitle').textContent = 'บันทึก adjust — '+(r?.['ชื่อ']||hn);
+  document.getElementById('ologModalTitle').textContent = 'บันทึกการรักษา — '+(r?.['ชื่อ']||hn);
   document.getElementById('olog-hn').value = hn;
   document.getElementById('olog-doc').innerHTML = getDoctorOptions();
   document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
@@ -5442,14 +5439,17 @@ async function saveOrthoLog(){
     'note': document.getElementById('olog-note').value.trim()
   };
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
-  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {'นัดถัดไป': document.getElementById('olog-nextappt').value});
+  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
+    'นัดถัดไป': document.getElementById('olog-nextappt').value,
+    'ปรับล่าสุด': log['วันที่']
+  });
   await Promise.all([
     orthoPost({action:'orthoLogAdd', log}),
     orthoPost({action:'orthoSave', row})
   ]);
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalOrthoLog');
-  showToast('บันทึก adjust สำเร็จ');
+  showToast('บันทึกการรักษาสำเร็จ');
   renderOrthoPage();
   _ologSaving = false;
 }
@@ -5477,7 +5477,10 @@ async function saveLoose(){
     'วันที่': document.getElementById('loose-date').value || todayStr(),
     'ทำอะไร': 'เครื่องมือหลุด'
   };
-  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {'หลุดกี่ครั้ง': newCount});
+  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
+    'หลุดกี่ครั้ง': newCount,
+    'ปรับล่าสุด': log['วันที่']
+  });
   await Promise.all([
     orthoPost({action:'orthoLogAdd', log}),
     orthoPost({action:'orthoSave', row})

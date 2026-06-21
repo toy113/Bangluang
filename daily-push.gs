@@ -46,6 +46,7 @@ function sendAptReminders_(today, dry) {
 
   rows.forEach(function (r) {
     if (!r.lineUserId || !r['นัดถัดไป']) return;
+    if (r['สถานะ'] && r['สถานะ'] !== 'กำลังจัด') return; // เคสเสร็จ/เลิกแล้ว ไม่ต้องเตือน
     var aptDate = normDateStr_(r['นัดถัดไป']);
     if (!aptDate) return;
 
@@ -86,6 +87,7 @@ function sendAdjustReminders_(today, dry) {
 
   orthos.forEach(function (r) {
     if (!r.lineUserId) return;
+    if (r['สถานะ'] && r['สถานะ'] !== 'กำลังจัด') return; // เคสเสร็จ/เลิกแล้ว ไม่ต้องเตือน
     var hn = orthoNormHN_(r.hn);
 
     // ถ้าไม่มี log เลย ใช้วันเริ่มจัดฟันเป็น baseline

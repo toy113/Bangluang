@@ -72,8 +72,8 @@
     <div class="card">
       <p class="muted" style="margin-bottom:16px;line-height:1.5;">กรอก HN และเบอร์โทรที่ให้ไว้กับคลินิก เพื่อดูข้อมูลการจัดฟันของคุณ</p>
       <div class="err" id="bindErr"></div>
-      <div class="field"><label>HN คนไข้</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 12-34567" autocomplete="off"></div>
-      <div class="field"><label>เบอร์โทรศัพท์</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" autocomplete="off"></div>
+      <div class="field"><label>HN คนไข้</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 12-34567" maxlength="8" autocomplete="off" oninput="fmtHN(this)"></div>
+      <div class="field"><label>เบอร์โทรศัพท์</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
       <button class="btn btn-primary" id="bindBtn" onclick="doBind()">ผูกบัญชี</button>
       <p class="center muted" style="margin-top:14px;">ผูกผิด/มีปัญหา? ติดต่อคลินิกได้เลย</p>
     </div>
@@ -133,6 +133,17 @@
 function $(id){ return document.getElementById(id); }
 function fmt(n){ return (Number(n)||0).toLocaleString('th-TH'); }
 function show(id){ ['loading','bindView','dataView'].forEach(x=>$(x).classList.add('hide')); $(id).classList.remove('hide'); }
+function fmtHN(input){
+  let v = input.value.replace(/[^0-9]/g,'');
+  if(v.length > 2) v = v.slice(0,2)+'-'+v.slice(2,7);
+  input.value = v;
+}
+function fmtPhone(input){
+  let v = input.value.replace(/[^0-9]/g,'');
+  if(v.length > 6)      v = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6,10);
+  else if(v.length > 3) v = v.slice(0,3)+'-'+v.slice(3,6);
+  input.value = v;
+}
 
 let USER_ID = null;
 
@@ -224,6 +235,8 @@ async function doBind(){
   const phone = $('b-phone').value.trim();
   $('bindErr').style.display='none';
   if(!hn || !phone){ $('bindErr').textContent='กรุณากรอก HN และเบอร์โทร'; $('bindErr').style.display='block'; return; }
+  if(!/^\d{2}-\d{5}$/.test(hn)){ $('bindErr').textContent='รูปแบบ HN ไม่ถูกต้อง (ตัวอย่าง 12-34567)'; $('bindErr').style.display='block'; return; }
+  if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)){ $('bindErr').textContent='รูปแบบเบอร์โทรไม่ถูกต้อง (ตัวอย่าง 08x-xxx-xxxx)'; $('bindErr').style.display='block'; return; }
   $('bindBtn').disabled=true; $('bindBtn').textContent='กำลังผูกบัญชี...';
   try{
     const url = API + '?action=orthoBind&lineUserId=' + encodeURIComponent(USER_ID)
