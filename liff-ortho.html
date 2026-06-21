@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>จัดฟัน — คลินิกทันตกรรมบางหลวง</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --wine:#6B2D5E; --wine-pale:#F3E9F0; --gold:#C9A24B; --gold-light:#E0C273;
+    --green:#27AE60; --red:#C0392B; --text:#2c2533; --text-mid:#6b6470; --text-light:#9a93a3;
+    --border:#e8e2ec; --bg:#faf7fb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);padding:0 0 40px;}
+  .header{background:linear-gradient(135deg,var(--wine),#54234a);color:#fff;padding:22px 18px 26px;border-radius:0 0 22px 22px;box-shadow:0 4px 16px rgba(107,45,94,0.25);}
+  .header .clinic{font-size:13px;opacity:0.85;}
+  .header .pname{font-size:22px;font-weight:800;margin-top:4px;}
+  .header .pmeta{font-size:13px;opacity:0.9;margin-top:4px;}
+  .wrap{padding:16px;max-width:560px;margin:0 auto;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,0.03);}
+  .card h3{font-size:15px;color:var(--wine);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:14px;border-bottom:1px dashed var(--border);}
+  .row:last-child{border-bottom:none;}
+  .row .k{color:var(--text-mid);}
+  .row .v{font-weight:700;text-align:right;}
+  .big{font-size:26px;font-weight:800;color:var(--wine);}
+  .progress-track{height:12px;background:var(--wine-pale);border-radius:8px;overflow:hidden;margin:10px 0 6px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:8px;transition:width .6s;}
+  .timeline{position:relative;padding-left:20px;}
+  .tl-item{position:relative;padding:0 0 16px 14px;border-left:2px solid var(--wine-pale);}
+  .tl-item:last-child{border-left-color:transparent;}
+  .tl-item::before{content:'';position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--gold);border:2px solid #fff;box-shadow:0 0 0 2px var(--wine-pale);}
+  .tl-date{font-size:12px;color:var(--gold);font-weight:700;}
+  .tl-do{font-size:14px;font-weight:700;margin-top:2px;}
+  .tl-sub{font-size:12px;color:var(--text-mid);margin-top:2px;}
+  .pill{display:inline-block;background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin:2px 4px 0 0;}
+  .care li{font-size:13.5px;color:var(--text-mid);margin:0 0 8px 18px;line-height:1.5;}
+  .btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;}
+  .btn-primary{background:var(--wine);color:#fff;box-shadow:0 4px 12px rgba(107,45,94,0.25);}
+  .btn-primary:active{transform:scale(0.98);}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--text-mid);margin-bottom:6px;font-weight:600;}
+  .field input{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:16px;}
+  .field input:focus{outline:none;border-color:var(--wine);}
+  .center{text-align:center;}
+  .muted{color:var(--text-light);font-size:13px;}
+  .err{background:#fdecea;color:var(--red);padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none;}
+  .spin{width:38px;height:38px;border:4px solid var(--wine-pale);border-top-color:var(--wine);border-radius:50%;animation:sp 0.8s linear infinite;margin:40px auto;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .hide{display:none!important;}
+  .contact-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#fff;text-decoration:none;padding:13px;border-radius:12px;font-weight:700;font-size:15px;}
+</style>
+</head>
+<body>
+
+<!-- ====== CONFIG: ใส่ค่า 2 ตัวนี้ ====== -->
+<script>
+  const LIFF_ID = '2010461984-kt5dSgin';   // จาก LINE Developers > LIFF
+  const API = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
+  const CLINIC_TEL = '0959476759';        // เบอร์คลินิก (ปุ่มติดต่อ)
+</script>
+
+<!-- LOADING -->
+<div id="loading"><div class="spin"></div><p class="center muted">กำลังโหลด...</p></div>
+
+<!-- BIND FORM (ยังไม่ผูกบัญชี) -->
+<div id="bindView" class="hide">
+  <div class="header"><div class="clinic">คลินิกทันตกรรมบางหลวง</div><div class="pname">ผูกบัญชีคนไข้จัดฟัน</div></div>
+  <div class="wrap">
+    <div class="card">
+      <p class="muted" style="margin-bottom:16px;line-height:1.5;">กรอก HN และเบอร์โทรที่ให้ไว้กับคลินิก เพื่อดูข้อมูลการจัดฟันของคุณ</p>
+      <div class="err" id="bindErr"></div>
+      <div class="field"><label>HN คนไข้</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 12-34567" autocomplete="off"></div>
+      <div class="field"><label>เบอร์โทรศัพท์</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" autocomplete="off"></div>
+      <button class="btn btn-primary" id="bindBtn" onclick="doBind()">ผูกบัญชี</button>
+      <p class="center muted" style="margin-top:14px;">ผูกผิด/มีปัญหา? ติดต่อคลินิกได้เลย</p>
+    </div>
+  </div>
+</div>
+
+<!-- DATA VIEW (ผูกแล้ว) -->
+<div id="dataView" class="hide">
+  <div class="header">
+    <div class="clinic">คลินิกทันตกรรมบางหลวง</div>
+    <div class="pname" id="d-name">—</div>
+    <div class="pmeta" id="d-meta">—</div>
+  </div>
+  <div class="wrap">
+
+    <div class="card" id="sec-progress">
+      <h3>📈 ความคืบหน้า</h3>
+      <div class="progress-track"><div class="progress-fill" id="d-progbar" style="width:0%"></div></div>
+      <div class="row"><span class="k">ระยะเวลา</span><span class="v" id="d-progtext">—</span></div>
+      <div class="row"><span class="k">Phase ปัจจุบัน</span><span class="v" id="d-phase">—</span></div>
+    </div>
+
+    <div class="card" id="sec-appt">
+      <h3>📅 นัดครั้งถัดไป</h3>
+      <div class="center"><div class="big" id="d-nextappt">—</div></div>
+    </div>
+
+    <div class="card" id="sec-pay">
+      <h3>💳 การเงิน</h3>
+      <div class="row"><span class="k">ค่ารักษารวม</span><span class="v" id="d-total">—</span></div>
+      <div class="row"><span class="k">ชำระแล้ว</span><span class="v" id="d-paid" style="color:var(--green)">—</span></div>
+      <div class="row"><span class="k">คงเหลือ</span><span class="v" id="d-left" style="color:var(--wine)">—</span></div>
+      <div class="row" id="row-nextpay"><span class="k">งวดถัดไป</span><span class="v" id="d-nextpay">—</span></div>
+    </div>
+
+    <div class="card" id="sec-log">
+      <h3>🦷 ประวัติการรักษา</h3>
+      <div class="timeline" id="d-timeline"><p class="muted">ยังไม่มีบันทึก</p></div>
+    </div>
+
+    <div class="card" id="sec-care">
+      <h3>✨ วิธีดูแลเครื่องมือ</h3>
+      <ul class="care">
+        <li>แปรงฟันหลังอาหารทุกมื้อ ใช้แปรงซอกฟัน/แปรงจัดฟันร่วมด้วย</li>
+        <li>หลีกเลี่ยงของแข็ง เหนียว และกัดของแข็งตรงๆ เช่น น้ำแข็ง กระดูก</li>
+        <li>ถ้าลวดหลุด/ทิ่มแก้ม ใช้ขี้ผึ้ง (wax) กดไว้ แล้วรีบติดต่อคลินิก</li>
+        <li>ใส่ยาง (elastic) ตามที่หมอสั่งอย่างสม่ำเสมอ จะช่วยให้ตรงตามแผน</li>
+        <li>มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น</li>
+      </ul>
+    </div>
+
+    <a class="contact-btn" id="contactBtn" href="#">📞 โทรหาคลินิก</a>
+  </div>
+</div>
+
+<script>
+function $(id){ return document.getElementById(id); }
+function fmt(n){ return (Number(n)||0).toLocaleString('th-TH'); }
+function show(id){ ['loading','bindView','dataView'].forEach(x=>$(x).classList.add('hide')); $(id).classList.remove('hide'); }
+
+let USER_ID = null;
+
+async function boot(){
+  try{
+    await liff.init({ liffId: LIFF_ID });
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+    const prof = await liff.getProfile();
+    USER_ID = prof.userId;
+    await loadData();
+  }catch(e){
+    console.error(e);
+    // เผื่อทดสอบนอก LINE — แสดงฟอร์มผูกบัญชี
+    show('bindView');
+    $('bindErr').style.display='block';
+    $('bindErr').textContent='เปิดผ่านแอป LINE เพื่อใช้งาน (init ไม่สำเร็จ)';
+  }
+}
+
+async function loadData(){
+  show('loading');
+  try{
+    const res = await fetch(API + '?action=orthoGet&lineUserId=' + encodeURIComponent(USER_ID), {cache:'no-store'});
+    const d = await res.json();
+    if(d && d.ok && d.bound){ renderData(d); show('dataView'); }
+    else { show('bindView'); }
+  }catch(e){ console.error(e); show('bindView'); }
+}
+
+function renderData(d){
+  const p = d.profile || {};
+  $('d-name').textContent = p['ชื่อ'] || 'คนไข้จัดฟัน';
+  $('d-meta').textContent = [p['แบบจัด'], p['หมอ']].filter(Boolean).join(' · ') || '';
+
+  // progress
+  const plan = Number(p['แผนเดือน']||0);
+  let elapsed = 0;
+  if(p['วันเริ่ม']){
+    const start = new Date(p['วันเริ่ม']);
+    if(!isNaN(start)){ elapsed = Math.max(0, Math.round((Date.now()-start.getTime())/(1000*60*60*24*30.44))); }
+  }
+  if(plan>0){
+    const pct = Math.min(100, Math.round(elapsed/plan*100));
+    $('d-progbar').style.width = pct + '%';
+    $('d-progtext').textContent = 'เดือนที่ ' + elapsed + ' / ' + plan;
+  } else {
+    $('d-progbar').style.width = '0%';
+    $('d-progtext').textContent = p['วันเริ่ม'] ? ('เริ่ม ' + p['วันเริ่ม']) : '—';
+  }
+  $('d-phase').textContent = p['phase'] || '—';
+
+  // appt
+  $('d-nextappt').textContent = p['นัดถัดไป'] || 'ยังไม่มีนัด';
+
+  // pay
+  const total = Number(p['ค่ารักษารวม']||0), paid = Number(p['จ่ายแล้ว']||0);
+  const left = (p['คงเหลือ']!=='' && p['คงเหลือ']!=null) ? Number(p['คงเหลือ']) : (total-paid);
+  $('d-total').textContent = fmt(total) + ' บาท';
+  $('d-paid').textContent  = fmt(paid) + ' บาท';
+  $('d-left').textContent  = fmt(left) + ' บาท';
+  if(p['งวดถัดไปวันที่'] || p['งวดถัดไปจำนวน']){
+    $('d-nextpay').textContent = [p['งวดถัดไปวันที่'], p['งวดถัดไปจำนวน']?fmt(p['งวดถัดไปจำนวน'])+' บาท':''].filter(Boolean).join(' · ');
+  } else { $('row-nextpay').style.display='none'; }
+
+  // timeline
+  const logs = d.logs || [];
+  if(logs.length){
+    $('d-timeline').innerHTML = logs.map(l=>`
+      <div class="tl-item">
+        <div class="tl-date">${l['วันที่']||''}</div>
+        <div class="tl-do">${l['ทำอะไร']||'—'}</div>
+        <div class="tl-sub">
+          ${l['ลวด']?`<span class="pill">ลวด ${l['ลวด']}</span>`:''}
+          ${l['ยาง']?`<span class="pill">ยาง ${l['ยาง']}</span>`:''}
+          ${l['หมอ']?`<span class="pill">${l['หมอ']}</span>`:''}
+        </div>
+        ${l['note']?`<div class="tl-sub">${l['note']}</div>`:''}
+      </div>`).join('');
+  }
+
+  // contact
+  $('contactBtn').href = 'tel:' + CLINIC_TEL;
+
+  // hash scroll (จาก rich menu)
+  const map = {appt:'sec-appt', pay:'sec-pay', progress:'sec-progress', care:'sec-care', log:'sec-log'};
+  const target = map[(location.hash||'').replace('#','')];
+  if(target) setTimeout(()=>$(target).scrollIntoView({behavior:'smooth'}), 300);
+}
+
+async function doBind(){
+  const hn = $('b-hn').value.trim();
+  const phone = $('b-phone').value.trim();
+  $('bindErr').style.display='none';
+  if(!hn || !phone){ $('bindErr').textContent='กรุณากรอก HN และเบอร์โทร'; $('bindErr').style.display='block'; return; }
+  $('bindBtn').disabled=true; $('bindBtn').textContent='กำลังผูกบัญชี...';
+  try{
+    const url = API + '?action=orthoBind&lineUserId=' + encodeURIComponent(USER_ID)
+              + '&hn=' + encodeURIComponent(hn) + '&phone=' + encodeURIComponent(phone);
+    const res = await fetch(url, {cache:'no-store'});
+    const d = await res.json();
+    if(d && d.ok){ await loadData(); }
+    else {
+      $('bindErr').textContent = (d && d.error==='not_found')
+        ? 'ไม่พบข้อมูล — HN กับเบอร์โทรไม่ตรงกัน กรุณาตรวจสอบ หรือติดต่อคลินิก'
+        : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่';
+      $('bindErr').style.display='block';
+    }
+  }catch(e){
+    console.error(e);
+    $('bindErr').textContent='เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง';
+    $('bindErr').style.display='block';
+  }
+  $('bindBtn').disabled=false; $('bindBtn').textContent='ผูกบัญชี';
+}
+
+boot();
+</script>
+</body>
+</html>
