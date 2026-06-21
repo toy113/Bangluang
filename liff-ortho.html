@@ -36,6 +36,7 @@
   .tl-do{font-size:14px;font-weight:700;margin-top:2px;}
   .tl-sub{font-size:12px;color:var(--text-mid);margin-top:2px;}
   .pill{display:inline-block;background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin:2px 4px 0 0;}
+  .care li{font-size:13.5px;color:var(--text-mid);margin:0 0 8px 18px;line-height:1.5;}
   .btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;}
   .btn-primary{background:var(--wine);color:#fff;box-shadow:0 4px 12px rgba(107,45,94,0.25);}
   .btn-primary:active{transform:scale(0.98);}
@@ -88,9 +89,10 @@
   </div>
   <div class="wrap">
 
-    <div class="card" id="sec-startdate">
-      <h3>🦷 วันติดเครื่องมือ</h3>
-      <div class="center"><div class="big" id="d-startdate">—</div></div>
+    <div class="card" id="sec-appt">
+      <h3>📅 นัดครั้งถัดไป</h3>
+      <div class="center"><div class="big" id="d-nextappt">—</div></div>
+      <div class="center muted" id="d-nextappt-treat" style="margin-top:4px;"></div>
     </div>
 
     <div class="card" id="sec-progress">
@@ -99,10 +101,21 @@
       <div class="row" id="d-progrow"><span class="k">ความคืบหน้า</span><span class="v" id="d-progtext">—</span></div>
     </div>
 
-    <div class="card" id="sec-appt">
-      <h3>📅 นัดครั้งถัดไป</h3>
-      <div class="center"><div class="big" id="d-nextappt">—</div></div>
-      <div class="center muted" id="d-nextappt-treat" style="margin-top:4px;"></div>
+    <div class="card" id="sec-loose">
+      <h3>🔧 จำนวนเครื่องมือที่หลุด</h3>
+      <div class="center"><div class="big" id="d-loose">—</div></div>
+      <p class="center muted" style="margin-top:6px;">ติดฟรี 3 ครั้งแรก ครั้งต่อไป 500 บาท</p>
+    </div>
+
+    <div class="card" id="sec-screw">
+      <h3>📌 ปักหมุด</h3>
+      <div class="center"><div class="big" id="d-screw">—</div></div>
+      <p class="center muted" style="margin-top:6px;">ราคาตัวละ 3,000 บาท</p>
+    </div>
+
+    <div class="card" id="sec-startdate">
+      <h3>🦷 วันติดเครื่องมือ</h3>
+      <div class="center"><div class="big" id="d-startdate">—</div></div>
     </div>
 
     <div class="card" id="sec-log">
@@ -112,7 +125,15 @@
 
     <div class="card" id="sec-care">
       <h3>📝 หมายเหตุ</h3>
-      <p class="muted" id="d-note" style="line-height:1.6;">ไม่มีหมายเหตุ</p>
+      <ul class="care">
+        <li>แปรงฟันหลังอาหารทุกมื้อ ใช้แปรงซอกฟัน/แปรงจัดฟันร่วมด้วย</li>
+        <li>หลีกเลี่ยงของแข็ง เหนียว และกัดของแข็งตรงๆ เช่น น้ำแข็ง กระดูก</li>
+        <li>ถ้าลวดหลุด/ทิ่มแก้ม ใช้ขี้ผึ้ง (wax) กดไว้ แล้วรีบติดต่อคลินิก</li>
+        <li>ใส่ยาง (elastic) ตามที่หมอสั่งอย่างสม่ำเสมอ จะช่วยให้ตรงตามแผน</li>
+        <li>มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น</li>
+        <li>กรณีมาปรับเครื่องมือห่างเกิน 45 วัน ขอสงวนสิทธิ์ยกเลิกโปร 28 ครั้ง</li>
+        <li>รีเทนเนอร์ ราคา 4,000 บาท</li>
+      </ul>
     </div>
 
     <a class="contact-btn" id="contactBtn" href="#">📞 โทรหาคลินิก</a>
@@ -177,13 +198,15 @@ function renderData(d){
   $('d-name').textContent = p['ชื่อ'] || 'คนไข้จัดฟัน';
   $('d-meta').textContent = [braceLabel(p['แบบจัด']), p['หมอ']].filter(Boolean).join(' · ') || '';
   $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
+  $('d-screw').textContent = p['ปักหมุด'] || 'ไม่ปัก';
+  $('d-loose').textContent = Number(p['หลุดกี่ครั้ง']||0) + ' ครั้ง';
 
   // progress — เฉพาะแผน "28 ครั้ง" ถึงมี progress bar (นับจาก log adjust จริง ไม่รวมเครื่องมือหลุด)
   if(p['แผนเดือน'] === '28 ครั้ง'){
     const count = (d.logs||[]).filter(l=> l['ทำอะไร'] !== 'เครื่องมือหลุด').length;
     const pct = Math.min(100, Math.round(count/28*100));
     $('d-progbar').style.width = pct + '%';
-    $('d-progtext').textContent = 'ครั้งที่ ' + count + ' / 28';
+    $('d-progtext').textContent = count + ' / 28 ครั้ง';
     $('d-progwrap').style.display = '';
     $('d-progrow').style.display = '';
   } else {
@@ -195,9 +218,6 @@ function renderData(d){
     ? thaiDateFull(p['นัดถัดไป']) + (p['นัดถัดไปเวลา'] ? ' เวลา ' + p['นัดถัดไปเวลา'] + ' น.' : '')
     : 'ยังไม่มีนัด';
   $('d-nextappt-treat').textContent = p['นัดถัดไป'] && p['รายการนัดถัดไป'] ? 'รายการ: ' + p['รายการนัดถัดไป'] : '';
-
-  // note
-  $('d-note').textContent = p['note'] || 'ไม่มีหมายเหตุ';
 
   // timeline
   const logs = d.logs || [];
