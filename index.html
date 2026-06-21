@@ -1511,13 +1511,16 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <select class="form-control" id="olog-doc"></select>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
-        <label>การรักษา</label>
-        <select class="form-control" id="olog-do">
-          <option>ปรับเครื่องมือ</option>
-          <option>พิมพ์ปาก</option>
-          <option>ติดเครื่องมือ</option>
-          <option>ใส่รีเทนเนอร์</option>
-        </select>
+        <label>การรักษา (เลือกได้หลายอัน)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ปักหมุด"> ปักหมุด</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="X-ray"> X-ray</label>
+        </div>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
         <label>หมายเหตุ</label>
@@ -1526,6 +1529,20 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group">
         <label>นัดครั้งถัดไป</label>
         <input type="date" class="form-control" id="olog-nextappt">
+      </div>
+      <div class="form-group">
+        <label>เวลานัด</label>
+        <input type="time" class="form-control" id="olog-nextappttime">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>รายการนัดครั้งถัดไป</label>
+        <select class="form-control" id="olog-nextapptdo">
+          <option value="">— ไม่ระบุ —</option>
+          <option>ปรับเครื่องมือ</option>
+          <option>พิมพ์ปาก</option>
+          <option>ติดเครื่องมือ</option>
+          <option>ใส่รีเทนเนอร์</option>
+        </select>
       </div>
     </div>
     <div class="modal-footer">
@@ -5344,8 +5361,6 @@ function orthoStatusColor_(status){
 }
 
 function orthoCardHtml(r){
-  const total = Number(r['ค่ารักษารวม']||0), paid = Number(r['จ่ายแล้ว']||0);
-  const left = (r['คงเหลือ']!=='' && r['คงเหลือ']!=null) ? Number(r['คงเหลือ']) : (total-paid);
   const hnEsc = String(r.hn||'').replace(/'/g,"\\'");
   const bound = r.lineUserId
     ? '<span style="color:var(--green);">🟢 ผูก LINE แล้ว</span>'
@@ -5360,6 +5375,7 @@ function orthoCardHtml(r){
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
       <div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${r['รหัสประจำตัว']?`<span style="color:var(--wine);font-weight:700;font-size:13px;">${r['รหัสประจำตัว']}</span>`:''}
           <span style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'}</span>
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
           ${statusPill}${overduePill}
@@ -5368,7 +5384,7 @@ function orthoCardHtml(r){
         <div style="font-size:11px;margin-top:3px;">${bound}</div>
       </div>
       <div style="text-align:right;font-size:12px;">
-        <div>คงเหลือ <strong style="color:var(--wine);">${left.toLocaleString('th-TH')}</strong></div>
+        <div>มาแล้ว <strong style="color:var(--wine);">${Number(r['ครั้งที่มาแล้ว']||0)}</strong> ครั้ง</div>
         ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${r['นัดถัดไป']}</div>`:''}
         ${Number(r['หลุดกี่ครั้ง']||0)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${Number(r['หลุดกี่ครั้ง'])} ครั้ง</div>`:''}
       </div>
@@ -5441,7 +5457,9 @@ function openOrthoLog(hn){
   document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('olog-date').value = todayStr();
   document.getElementById('olog-nextappt').value = r?.['นัดถัดไป'] || '';
-  document.getElementById('olog-do').value = 'ปรับเครื่องมือ';
+  document.getElementById('olog-nextappttime').value = r?.['นัดถัดไปเวลา'] || '';
+  document.getElementById('olog-nextapptdo').value = r?.['รายการนัดถัดไป'] || '';
+  document.querySelectorAll('.olog-do-chk').forEach(c=> c.checked = (c.value==='ปรับเครื่องมือ'));
   document.getElementById('olog-note').value = '';
   document.getElementById('modalOrthoLog').classList.add('open');
 }
@@ -5450,18 +5468,24 @@ async function saveOrthoLog(){
   if(_ologSaving) return;
   const hn = document.getElementById('olog-hn').value;
   if(!hn) return;
+  const treatments = Array.from(document.querySelectorAll('.olog-do-chk:checked')).map(c=>c.value).join(', ');
+  if(!treatments){ showToast('กรุณาเลือกการรักษาอย่างน้อย 1 อย่าง','error'); return; }
   _ologSaving = true;
   const log = {
     hn,
     'วันที่': document.getElementById('olog-date').value || todayStr(),
-    'ทำอะไร': document.getElementById('olog-do').value.trim(),
+    'ทำอะไร': treatments,
     'หมอ': document.getElementById('olog-doc').value,
     'note': document.getElementById('olog-note').value.trim()
   };
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
+  const visits = Number((idx>=0?orthoData[idx]['ครั้งที่มาแล้ว']:0)||0) + 1;
   const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
     'นัดถัดไป': document.getElementById('olog-nextappt').value,
-    'ปรับล่าสุด': log['วันที่']
+    'นัดถัดไปเวลา': document.getElementById('olog-nextappttime').value,
+    'รายการนัดถัดไป': document.getElementById('olog-nextapptdo').value,
+    'ปรับล่าสุด': log['วันที่'],
+    'ครั้งที่มาแล้ว': visits
   });
   await Promise.all([
     orthoPost({action:'orthoLogAdd', log}),

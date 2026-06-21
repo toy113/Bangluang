@@ -99,6 +99,7 @@
     <div class="card" id="sec-appt">
       <h3>📅 นัดครั้งถัดไป</h3>
       <div class="center"><div class="big" id="d-nextappt">—</div></div>
+      <div class="center muted" id="d-nextappt-treat" style="margin-top:4px;"></div>
     </div>
 
     <div class="card" id="sec-pay">
@@ -193,7 +194,10 @@ function renderData(d){
   $('d-phase').textContent = p['phase'] || '—';
 
   // appt
-  $('d-nextappt').textContent = p['นัดถัดไป'] || 'ยังไม่มีนัด';
+  $('d-nextappt').textContent = p['นัดถัดไป']
+    ? p['นัดถัดไป'] + (p['นัดถัดไปเวลา'] ? ' เวลา ' + p['นัดถัดไปเวลา'] + ' น.' : '')
+    : 'ยังไม่มีนัด';
+  $('d-nextappt-treat').textContent = p['นัดถัดไป'] && p['รายการนัดถัดไป'] ? 'รายการ: ' + p['รายการนัดถัดไป'] : '';
 
   // pay
   const total = Number(p['ค่ารักษารวม']||0), paid = Number(p['จ่ายแล้ว']||0);
