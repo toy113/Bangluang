@@ -1059,7 +1059,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="page" id="page-ortho">
       <div class="card-box">
         <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
-          <div class="card-box-title">😬 คนไข้จัดฟัน</div>
+          <div class="card-box-title">😬 คนไข้จัดฟัน <span id="orthoCount" style="color:var(--text-light);font-weight:600;font-size:13px;"></span></div>
           <div class="filter-row">
             <input class="form-control" id="orthoSearch" placeholder="ค้นหา HN / ชื่อ" oninput="renderOrthoPage()" style="height:36px;width:160px;">
             <select class="form-control" id="orthoStatusFilter" onchange="renderOrthoPage()" style="height:36px;width:140px;">
@@ -1540,7 +1540,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>เวลานัด</label>
-        <input type="time" class="form-control" id="olog-nextappttime" lang="en-GB">
+        <input class="form-control" id="olog-nextappttime" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="fmtTime24(this)">
       </div>
       <div class="form-group" style="grid-column:1/-1;">
         <label>รายการนัดครั้งถัดไป (เลือกได้หลายอัน)</label>
@@ -1582,6 +1582,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="btn btn-ghost" onclick="closeModal('modalLoose')">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveLoose()">💾 บันทึก</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOrthoHistory">
+  <div class="modal-box">
+    <div class="modal-title">🦷 <span id="historyModalTitle">ประวัติการรักษา</span></div>
+    <button class="modal-close" onclick="closeModal('modalOrthoHistory')">×</button>
+    <div id="ortho-history-list" style="max-height:60vh;overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -4370,6 +4378,19 @@ function fmtPhone(input){
   input.value = v;
 }
 
+function fmtTime24(input){
+  let v = input.value.replace(/[^0-9]/g,'');
+  if(v.length > 2){
+    let hh = v.slice(0,2), mm = v.slice(2,4);
+    if(Number(hh) > 23) hh = '23';
+    if(Number(mm) > 59) mm = '59';
+    v = hh+':'+mm;
+  } else if(v.length === 2 && Number(v) > 23){
+    v = '23';
+  }
+  input.value = v;
+}
+
 //  DAY NOTES (localStorage only)
 // ============================================================
 // day_notes array (loaded from Sheet via syncAll)
@@ -5353,6 +5374,8 @@ async function renderOrthoPage(){
     if(!cb) return -1;
     return ca.localeCompare(cb, undefined, {numeric:true});
   });
+  const countEl = document.getElementById('orthoCount');
+  if(countEl) countEl.textContent = '('+rows.length+' คน)';
   if(!rows.length){
     box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-light);">ยังไม่มีคนไข้จัดฟัน — กด "+ เพิ่มคนไข้จัดฟัน"</div>';
     return;
@@ -5385,7 +5408,7 @@ function orthoCardHtml(r){
   const sc = orthoStatusColor_(status);
   const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
   const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 45 วัน</span>` : '';
-  return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;">
+  return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
       <div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -5403,7 +5426,7 @@ function orthoCardHtml(r){
         ${Number(r['หลุดกี่ครั้ง']||0)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${Number(r['หลุดกี่ครั้ง'])} ครั้ง</div>`:''}
       </div>
     </div>
-    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
       <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}')">➕ บันทึกการรักษา</button>
       <button class="btn btn-ghost btn-sm" onclick="openLooseModal('${hnEsc}')">🔧 เครื่องมือหลุด</button>
@@ -5515,6 +5538,34 @@ async function saveOrthoLog(){
   showToast('บันทึกการรักษาสำเร็จ');
   renderOrthoPage();
   _ologSaving = false;
+}
+
+async function openOrthoHistory(hn){
+  const r = orthoData.find(x=> String(x.hn)===String(hn));
+  document.getElementById('historyModalTitle').textContent = 'ประวัติการรักษา — '+(r?.['ชื่อ']||hn);
+  const box = document.getElementById('ortho-history-list');
+  box.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:20px;">กำลังโหลด...</p>';
+  document.getElementById('modalOrthoHistory').classList.add('open');
+  try{
+    const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
+    const res = await fetch(url+'?action=orthoLogsByHn&hn='+encodeURIComponent(hn), {cache:'no-store'});
+    const d = await res.json();
+    const logs = (d && d.ok && Array.isArray(d.logs)) ? d.logs : [];
+    if(!logs.length){
+      box.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:20px;">ยังไม่มีบันทึก</p>';
+      return;
+    }
+    box.innerHTML = logs.map(l=>`
+      <div style="border-bottom:1px dashed var(--border);padding:10px 0;">
+        <div style="font-size:12px;color:var(--gold);font-weight:700;">${l['วันที่']||''}</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${l['ทำอะไร']||'—'}</div>
+        ${l['หมอ']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${l['หมอ']}</div>`:''}
+        ${l['note']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${l['note']}</div>`:''}
+      </div>`).join('');
+  }catch(e){
+    console.warn('loadOrthoHistory error', e);
+    box.innerHTML = '<p style="text-align:center;color:var(--red);padding:20px;">โหลดไม่สำเร็จ ลองใหม่อีกครั้ง</p>';
+  }
 }
 
 function openLooseModal(hn){

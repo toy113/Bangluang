@@ -195,7 +195,7 @@ async function loadData(){
 
 function renderData(d){
   const p = d.profile || {};
-  $('d-name').textContent = p['ชื่อ'] || 'คนไข้จัดฟัน';
+  $('d-name').textContent = p['ชื่อ'] ? ('คุณ' + p['ชื่อ']) : 'คนไข้จัดฟัน';
   $('d-meta').textContent = [braceLabel(p['แบบจัด']), p['หมอ']].filter(Boolean).join(' · ') || '';
   $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
   $('d-screw').textContent = p['ปักหมุด'] || 'ไม่ปัก';
@@ -239,7 +239,7 @@ function renderData(d){
   $('contactBtn').href = 'tel:' + CLINIC_TEL;
 
   // hash scroll (จาก rich menu)
-  const map = {appt:'sec-appt', progress:'sec-progress', care:'sec-care', log:'sec-log'};
+  const map = {appt:'sec-appt', progress:'sec-progress', log:'sec-log'};
   const target = map[(location.hash||'').replace('#','')];
   if(target) setTimeout(()=>$(target).scrollIntoView({behavior:'smooth'}), 300);
 }

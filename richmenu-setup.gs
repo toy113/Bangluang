@@ -7,15 +7,15 @@
  *   2) สร้าง LIFF app ใน LINE Developers (endpoint = หน้า liff-ortho.html)
  *      -> เอา LIFF ID มาใส่ LIFF_ID
  *   3) ใส่ LINE_TOKEN (Channel access token เดียวกับ backend)
- *   4) ใส่เบอร์คลินิก CLINIC_TEL
- *   5) รัน setupRichMenu() หนึ่งครั้ง  -> สร้าง + อัปรูป + ตั้งเป็นเมนูเริ่มต้น
+ *   4) รัน setupRichMenu() หนึ่งครั้ง  -> สร้าง + อัปรูป + ตั้งเป็นเมนูเริ่มต้น
  *
  *   ถ้าจะแก้เมนูใหม่: รัน deleteAllRichMenus() ก่อน แล้วค่อย setupRichMenu() อีกครั้ง
+ *   ⚠️ เมนูนี้มี 3 ช่อง (เดิม 6 ช่อง) — ต้องเตรียม richmenu.png ใหม่ให้ตรงกับ
+ *      เลย์เอาต์ 3 คอลัมน์ x 1 แถวด้วย ไม่งั้นรูปเก่ากับพื้นที่กดจะไม่ตรงกัน
  **********************************************************************/
 
 var LINE_TOKEN          = 'cwTKCta3n3WjIO/ZZ1a6iEwGDMtWQcKuCc6Fd7snhB1Zq734zwa9JL+29IpHM1vBQt/RUv7SYcXDSRvubK4v1GN1i43OyMdZ8pXfA36deWzB4R50NyGAsW+ingrPXMe911z9AIckrrznm98mM95iYQdB04t89/1O/w1cDnyilFU=';
 var LIFF_ID             = '2010461984-kt5dSgin';
-var CLINIC_TEL          = '0959476759';
 var RICHMENU_IMAGE_URL  = 'https://toy113.github.io/Bangluang/richmenu.png';
 
 function liffUrl_(hash) {
@@ -23,8 +23,8 @@ function liffUrl_(hash) {
 }
 
 function richMenuObject_() {
-  // ภาพ 2500 x 1686, ตาราง 3 คอลัมน์ x 2 แถว
-  var cw = 833, ch = 843;
+  // ภาพ 2500 x 1686, ตาราง 3 คอลัมน์ x 1 แถว (เต็มความสูง)
+  var cw = 833, ch = 1686;
   function area(col, row, action) {
     return {
       bounds: { x: col * cw, y: row * ch, width: cw, height: ch },
@@ -39,10 +39,7 @@ function richMenuObject_() {
     areas: [
       area(0, 0, { type: 'uri', label: 'ข้อมูลของฉัน',  uri: liffUrl_('') }),
       area(1, 0, { type: 'uri', label: 'นัดครั้งถัดไป',  uri: liffUrl_('appt') }),
-      area(2, 0, { type: 'uri', label: 'ยอดค้างชำระ',   uri: liffUrl_('pay') }),
-      area(0, 1, { type: 'uri', label: 'ความคืบหน้า',   uri: liffUrl_('progress') }),
-      area(1, 1, { type: 'uri', label: 'วิธีดูแล',       uri: liffUrl_('care') }),
-      area(2, 1, { type: 'uri', label: 'ติดต่อคลินิก',   uri: 'tel:' + CLINIC_TEL })
+      area(2, 0, { type: 'uri', label: 'ความคืบหน้า',   uri: liffUrl_('progress') })
     ]
   };
 }

@@ -48,6 +48,7 @@ function orthoRouteGet_(e) {
   if (p.action === 'orthoGet')  return orthoJsonOut_(orthoGetByLineId(p.lineUserId));
   if (p.action === 'orthoBind') return orthoJsonOut_(orthoBind(p.lineUserId, p.hn, p.phone));
   if (p.action === 'orthoList') return orthoJsonOut_(orthoList());      // ใช้ใน admin tab
+  if (p.action === 'orthoLogsByHn') return orthoJsonOut_(orthoLogsByHn(p.hn)); // admin: ดูประวัติการรักษา
   return null; // ไม่ใช่งานของ ortho
 }
 
@@ -117,6 +118,16 @@ function orthoGetByLineId(lineUserId) {
 /* ===================== WRITE (admin tab) ===================== */
 function orthoList() {
   return { ok: true, rows: orthoSheetToObjects_(SHEET_ORTHO) };
+}
+
+function orthoLogsByHn(hn) {
+  if (!hn) return { ok: false, error: 'missing_hn' };
+  hn = orthoNormHN_(hn);
+  var logs = orthoSheetToObjects_(SHEET_ORTHO_LOG).filter(function (l) {
+    return orthoNormHN_(l.hn) === hn;
+  });
+  logs.sort(function (a, b) { return String(b['วันที่']).localeCompare(String(a['วันที่'])); });
+  return { ok: true, logs: logs };
 }
 
 /* upsert profile ทั้งแถว by hn */
