@@ -1540,6 +1540,25 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalLoose">
+  <div class="modal-box">
+    <div class="modal-title">🔧 <span id="looseModalTitle">เครื่องมือหลุด</span></div>
+    <button class="modal-close" onclick="closeModal('modalLoose')">×</button>
+    <input type="hidden" id="loose-hn">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันที่ติดเครื่องมือใหม่</label>
+        <input type="date" class="form-control" id="loose-date">
+      </div>
+    </div>
+    <p id="loose-hint" style="font-size:13px;color:var(--text-mid);margin-top:8px;"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalLoose')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveLoose()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <!-- STATUS CHANGE DROPDOWN -->
 <div id="statusDropdown" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:5000;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;min-width:150px;">
   <div style="font-size:11px;color:var(--text-light);padding:4px 8px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;font-weight:700;">เปลี่ยนสถานะ</div>
@@ -5274,6 +5293,7 @@ let orthoData = [];
 let _orthoLoaded = false;
 let _orthoSaving = false;
 let _ologSaving = false;
+let _looseSaving = false;
 
 async function loadOrthoData(force){
   if(_orthoLoaded && !force) return;
@@ -5320,11 +5340,13 @@ function orthoCardHtml(r){
       <div style="text-align:right;font-size:12px;">
         <div>คงเหลือ <strong style="color:var(--wine);">${left.toLocaleString('th-TH')}</strong></div>
         ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${r['นัดถัดไป']}</div>`:''}
+        ${Number(r['หลุดกี่ครั้ง']||0)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${Number(r['หลุดกี่ครั้ง'])} ครั้ง</div>`:''}
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
       <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}')">➕ บันทึก adjust</button>
+      <button class="btn btn-ghost btn-sm" onclick="openLooseModal('${hnEsc}')">🔧 เครื่องมือหลุด</button>
     </div>
   </div>`;
 }
@@ -5337,7 +5359,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-hn-hint').innerHTML = '';
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'เหล็ก';
-  document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors[0]?.name:currentUser.name);
+  document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('ortho-start').value = r?.['วันเริ่ม'] || '';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '';
   document.getElementById('ortho-phase').value = r?.['phase'] || '';
@@ -5392,7 +5414,7 @@ function openOrthoLog(hn){
   document.getElementById('ologModalTitle').textContent = 'บันทึก adjust — '+(r?.['ชื่อ']||hn);
   document.getElementById('olog-hn').value = hn;
   document.getElementById('olog-doc').innerHTML = getDoctorOptions();
-  document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors[0]?.name:currentUser.name);
+  document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('olog-date').value = todayStr();
   document.getElementById('olog-nextappt').value = r?.['นัดถัดไป'] || '';
   document.getElementById('olog-do').value = '';
@@ -5427,6 +5449,41 @@ async function saveOrthoLog(){
   showToast('บันทึก adjust สำเร็จ');
   renderOrthoPage();
   _ologSaving = false;
+}
+
+function openLooseModal(hn){
+  const r = orthoData.find(x=> String(x.hn)===String(hn));
+  document.getElementById('looseModalTitle').textContent = 'เครื่องมือหลุด — '+(r?.['ชื่อ']||hn);
+  document.getElementById('loose-hn').value = hn;
+  document.getElementById('loose-date').value = todayStr();
+  const count = Number(r?.['หลุดกี่ครั้ง']||0);
+  document.getElementById('loose-hint').textContent = 'ผ่านมาหลุดแล้ว '+count+' ครั้ง — ครั้งนี้จะเป็นครั้งที่ '+(count+1)+' ('+((count+1)<=3?'ฟรี':'เก็บ 500 บาท')+')';
+  document.getElementById('modalLoose').classList.add('open');
+}
+
+async function saveLoose(){
+  if(_looseSaving) return;
+  const hn = document.getElementById('loose-hn').value;
+  if(!hn) return;
+  _looseSaving = true;
+  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
+  const count = Number((idx>=0?orthoData[idx]['หลุดกี่ครั้ง']:0)||0);
+  const newCount = count + 1;
+  const log = {
+    hn,
+    'วันที่': document.getElementById('loose-date').value || todayStr(),
+    'ทำอะไร': 'เครื่องมือหลุด'
+  };
+  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {'หลุดกี่ครั้ง': newCount});
+  await Promise.all([
+    orthoPost({action:'orthoLogAdd', log}),
+    orthoPost({action:'orthoSave', row})
+  ]);
+  if(idx>=0) orthoData[idx] = row;
+  closeModal('modalLoose');
+  showToast('บันทึกแล้ว — หลุดครั้งที่ '+newCount+' ('+(newCount<=3?'ฟรี':'เก็บ 500 บาท')+')');
+  renderOrthoPage();
+  _looseSaving = false;
 }
 
 async function orthoPost(payload){
