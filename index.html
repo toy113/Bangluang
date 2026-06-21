@@ -5331,8 +5331,8 @@ function orthoOverdue_(r){
 
 function orthoStatusColor_(status){
   if(status==='เสร็จแล้ว') return {bg:'rgba(22,160,133,0.12)', color:'#16A085'};
-  if(status==='หยุด/เลิกรักษา') return {bg:'rgba(0,0,0,0.06)', color:'var(--text-light)'};
-  return {bg:'var(--wine-pale)', color:'var(--wine)'}; // กำลังจัด (default)
+  if(status==='หยุด/เลิกรักษา') return {bg:'rgba(120,120,120,0.12)', color:'#777777'};
+  return {bg:'rgba(107,45,94,0.12)', color:'#6B2D5E'}; // กำลังจัด (default)
 }
 
 function orthoCardHtml(r){
@@ -5346,7 +5346,7 @@ function orthoCardHtml(r){
   const isActive = status === 'กำลังจัด';
   const overdue = isActive && orthoOverdue_(r);
   const sc = orthoStatusColor_(status);
-  const statusPill = `<span style="background:${sc.bg};color:${sc.color};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
+  const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
   const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 45 วัน</span>` : '';
   return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
