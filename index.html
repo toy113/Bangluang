@@ -5273,11 +5273,12 @@ let _ologSaving = false;
 
 async function loadOrthoData(force){
   if(_orthoLoaded && !force) return;
+  _orthoLoaded = true; // กัน retry loop ถ้า fetch ล้มเหลว
   try{
-    const res = await fetch(APPS_SCRIPT_URL+'?action=orthoList',{cache:'no-store'});
+    const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
+    const res = await fetch(url+'?action=orthoList',{cache:'no-store'});
     const d = await res.json();
     if(d && d.ok && Array.isArray(d.rows)) orthoData = d.rows;
-    _orthoLoaded = true;
   }catch(e){ console.warn('loadOrtho error',e); }
 }
 
@@ -5417,8 +5418,9 @@ async function saveOrthoLog(){
 }
 
 async function orthoPost(payload){
+  const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
   try{
-    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   }catch(e){ console.warn('orthoPost error',e); showToast('บันทึกไม่สำเร็จ','error'); }
 }
 
