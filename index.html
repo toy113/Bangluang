@@ -1509,6 +1509,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input type="date" class="form-control" id="olog-date">
       </div>
       <div class="form-group">
+        <label>นัดครั้งถัดไป</label>
+        <input type="date" class="form-control" id="olog-nextappt">
+      </div>
+      <div class="form-group">
         <label>หมอ</label>
         <select class="form-control" id="olog-doc"></select>
       </div>
@@ -5390,6 +5394,7 @@ function openOrthoLog(hn){
   document.getElementById('olog-doc').innerHTML = getDoctorOptions();
   document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors[0]?.name:currentUser.name);
   document.getElementById('olog-date').value = todayStr();
+  document.getElementById('olog-nextappt').value = r?.['นัดถัดไป'] || '';
   document.getElementById('olog-do').value = '';
   document.getElementById('olog-wire').value = '';
   document.getElementById('olog-elastic').value = '';
@@ -5411,9 +5416,16 @@ async function saveOrthoLog(){
     'หมอ': document.getElementById('olog-doc').value,
     'note': document.getElementById('olog-note').value.trim()
   };
-  await orthoPost({action:'orthoLogAdd', log});
+  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
+  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {'นัดถัดไป': document.getElementById('olog-nextappt').value});
+  await Promise.all([
+    orthoPost({action:'orthoLogAdd', log}),
+    orthoPost({action:'orthoSave', row})
+  ]);
+  if(idx>=0) orthoData[idx] = row;
   closeModal('modalOrthoLog');
   showToast('บันทึก adjust สำเร็จ');
+  renderOrthoPage();
   _ologSaving = false;
 }
 
