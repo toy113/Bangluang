@@ -1484,6 +1484,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>ค่ารักษารวม (บาท)</label>
         <input type="number" class="form-control" id="ortho-total" placeholder="0" min="0" inputmode="decimal">
       </div>
+      <div class="form-group">
+        <label>ปักหมุด (ตัว)</label>
+        <select class="form-control" id="ortho-screw">
+          <option value="ไม่ปัก">ไม่ปัก</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+      </div>
       <div class="form-group" style="grid-column:1/-1;">
         <label>หมายเหตุ</label>
         <input class="form-control" id="ortho-note" placeholder="หมายเหตุ">
@@ -5417,6 +5425,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-start').value = r?.['วันเริ่ม'] || '';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '';
   document.getElementById('ortho-total').value = r?.['ค่ารักษารวม'] || '';
+  document.getElementById('ortho-screw').value = r?.['ปักหมุด'] || 'ไม่ปัก';
   document.getElementById('ortho-note').value = r?.['note'] || '';
   document.getElementById('modalOrtho').classList.add('open');
 }
@@ -5443,6 +5452,7 @@ async function saveOrthoProfile(){
     'แผนเดือน': document.getElementById('ortho-plan').value,
     'ค่ารักษารวม': total,
     'คงเหลือ': total - paid,
+    'ปักหมุด': document.getElementById('ortho-screw').value,
     'note': document.getElementById('ortho-note').value.trim()
   });
   await orthoPost({action:'orthoSave', row});
