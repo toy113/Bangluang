@@ -812,6 +812,8 @@ tbody tr.own-row { background: rgba(212,168,71,0.04); }
       <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon">📋</span>บันทึกการรักษา</button>
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon">📊</span>สรุปรายได้</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon">🧪</span>ค่าแลป</button>
+      <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon">😬</span>จัดฟัน</button>
+      <button class="nav-item" onclick="showPage('followup')" id="nav-followup" style="display:none;"><span class="nav-icon">🔔</span>ติดตาม</button>
       <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -1719,7 +1721,7 @@ function startApp(){
   if(iyr) iyr.value = now.getFullYear()+543;
 
   // Show settings + schedule tab for manager only
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','ttab-ortho'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','ttab-ortho','nav-ortho','nav-followup'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
@@ -4229,7 +4231,7 @@ function logout(){
   localStorage.removeItem('bl_lastPage'); // ล้างหน้าสุดท้ายเพื่อป้องกัน restore ไปหน้า manager-only
   currentUser=null; isManager=false;
   // ซ่อน tab manager-only ก่อนกลับหน้า login
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','ttab-ortho',
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','ttab-ortho','nav-ortho','nav-followup',
    'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
