@@ -1450,6 +1450,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input class="form-control" id="ortho-name" placeholder="ชื่อผู้ป่วย">
       </div>
       <div class="form-group">
+        <label>รหัสประจำตัว</label>
+        <input class="form-control" id="ortho-idcode" placeholder="เช่น A-123">
+      </div>
+      <div class="form-group">
         <label>แบบที่จัด</label>
         <select class="form-control" id="ortho-type">
           <option>โลหะ</option><option>เซรามิก</option><option>ใส (Aligner)</option><option>Damon</option><option>อื่นๆ</option>
@@ -1471,7 +1475,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>แผนรวม</label>
-        <select class="form-control" id="ortho-plan">
+        <select class="form-control" id="ortho-plan" onchange="if(this.value==='28 ครั้ง') document.getElementById('ortho-total').value=45000;">
           <option value="28 ครั้ง">28 ครั้ง</option>
           <option value="เดือนละครั้งจนกว่าจะเสร็จ">เดือนละครั้งจนกว่าจะเสร็จ</option>
         </select>
@@ -1503,28 +1507,25 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input type="date" class="form-control" id="olog-date">
       </div>
       <div class="form-group">
-        <label>นัดครั้งถัดไป</label>
-        <input type="date" class="form-control" id="olog-nextappt">
-      </div>
-      <div class="form-group">
         <label>หมอ</label>
         <select class="form-control" id="olog-doc"></select>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
-        <label>ทำอะไร</label>
-        <input class="form-control" id="olog-do" placeholder="เช่น เปลี่ยนลวด, ติด bracket...">
-      </div>
-      <div class="form-group">
-        <label>ลวด</label>
-        <input class="form-control" id="olog-wire" placeholder="เช่น 0.016 NiTi">
-      </div>
-      <div class="form-group">
-        <label>ยาง</label>
-        <input class="form-control" id="olog-elastic" placeholder="เช่น Class II">
+        <label>การรักษา</label>
+        <select class="form-control" id="olog-do">
+          <option>ปรับเครื่องมือ</option>
+          <option>พิมพ์ปาก</option>
+          <option>ติดเครื่องมือ</option>
+          <option>ใส่รีเทนเนอร์</option>
+        </select>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
         <label>หมายเหตุ</label>
         <input class="form-control" id="olog-note" placeholder="หมายเหตุ">
+      </div>
+      <div class="form-group">
+        <label>นัดครั้งถัดไป</label>
+        <input type="date" class="form-control" id="olog-nextappt">
       </div>
     </div>
     <div class="modal-footer">
@@ -5314,6 +5315,13 @@ async function renderOrthoPage(){
   if(statusFilter) rows = rows.filter(r=> (r['สถานะ']||'กำลังจัด') === statusFilter);
   if(overdueOnly) rows = rows.filter(orthoOverdue_);
   if(q) rows = rows.filter(r=> String(r.hn||'').toLowerCase().includes(q) || String(r['ชื่อ']||'').toLowerCase().includes(q));
+  rows.sort((a,b)=>{
+    const ca = a['รหัสประจำตัว']||'', cb = b['รหัสประจำตัว']||'';
+    if(!ca && !cb) return 0;
+    if(!ca) return 1;
+    if(!cb) return -1;
+    return ca.localeCompare(cb, undefined, {numeric:true});
+  });
   if(!rows.length){
     box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-light);">ยังไม่มีคนไข้จัดฟัน — กด "+ เพิ่มคนไข้จัดฟัน"</div>';
     return;
@@ -5380,6 +5388,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-hn').value = r?.hn || '';
   document.getElementById('ortho-hn-hint').innerHTML = '';
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
+  document.getElementById('ortho-idcode').value = r?.['รหัสประจำตัว'] || '';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('ortho-status').value = r?.['สถานะ'] || 'กำลังจัด';
@@ -5404,6 +5413,7 @@ async function saveOrthoProfile(){
   const row = Object.assign({}, existing, {
     hn,
     'ชื่อ': document.getElementById('ortho-name').value.trim(),
+    'รหัสประจำตัว': document.getElementById('ortho-idcode').value.trim(),
     'แบบจัด': document.getElementById('ortho-type').value,
     'หมอ': document.getElementById('ortho-doc').value,
     'สถานะ': document.getElementById('ortho-status').value,
@@ -5431,9 +5441,7 @@ function openOrthoLog(hn){
   document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('olog-date').value = todayStr();
   document.getElementById('olog-nextappt').value = r?.['นัดถัดไป'] || '';
-  document.getElementById('olog-do').value = '';
-  document.getElementById('olog-wire').value = '';
-  document.getElementById('olog-elastic').value = '';
+  document.getElementById('olog-do').value = 'ปรับเครื่องมือ';
   document.getElementById('olog-note').value = '';
   document.getElementById('modalOrthoLog').classList.add('open');
 }
@@ -5447,8 +5455,6 @@ async function saveOrthoLog(){
     hn,
     'วันที่': document.getElementById('olog-date').value || todayStr(),
     'ทำอะไร': document.getElementById('olog-do').value.trim(),
-    'ลวด': document.getElementById('olog-wire').value.trim(),
-    'ยาง': document.getElementById('olog-elastic').value.trim(),
     'หมอ': document.getElementById('olog-doc').value,
     'note': document.getElementById('olog-note').value.trim()
   };
