@@ -36,7 +36,6 @@
   .tl-do{font-size:14px;font-weight:700;margin-top:2px;}
   .tl-sub{font-size:12px;color:var(--text-mid);margin-top:2px;}
   .pill{display:inline-block;background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin:2px 4px 0 0;}
-  .care li{font-size:13.5px;color:var(--text-mid);margin:0 0 8px 18px;line-height:1.5;}
   .btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;}
   .btn-primary{background:var(--wine);color:#fff;box-shadow:0 4px 12px rgba(107,45,94,0.25);}
   .btn-primary:active{transform:scale(0.98);}
@@ -72,7 +71,7 @@
     <div class="card">
       <p class="muted" style="margin-bottom:16px;line-height:1.5;">กรอก HN และเบอร์โทรที่ให้ไว้กับคลินิก เพื่อดูข้อมูลการจัดฟันของคุณ</p>
       <div class="err" id="bindErr"></div>
-      <div class="field"><label>HN คนไข้</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 12-34567" maxlength="8" autocomplete="off" oninput="fmtHN(this)"></div>
+      <div class="field"><label>HN คนไข้</label><input id="b-hn" inputmode="numeric" placeholder="12-34567" maxlength="8" autocomplete="off" oninput="fmtHN(this)"></div>
       <div class="field"><label>เบอร์โทรศัพท์</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
       <button class="btn btn-primary" id="bindBtn" onclick="doBind()">ผูกบัญชี</button>
       <p class="center muted" style="margin-top:14px;">ผูกผิด/มีปัญหา? ติดต่อคลินิกได้เลย</p>
@@ -89,11 +88,15 @@
   </div>
   <div class="wrap">
 
+    <div class="card" id="sec-startdate">
+      <h3>🦷 วันติดเครื่องมือ</h3>
+      <div class="center"><div class="big" id="d-startdate">—</div></div>
+    </div>
+
     <div class="card" id="sec-progress">
       <h3>📈 ความคืบหน้า</h3>
       <div class="progress-track" id="d-progwrap"><div class="progress-fill" id="d-progbar" style="width:0%"></div></div>
       <div class="row" id="d-progrow"><span class="k">ความคืบหน้า</span><span class="v" id="d-progtext">—</span></div>
-      <div class="row"><span class="k">Phase ปัจจุบัน</span><span class="v" id="d-phase">—</span></div>
     </div>
 
     <div class="card" id="sec-appt">
@@ -102,28 +105,14 @@
       <div class="center muted" id="d-nextappt-treat" style="margin-top:4px;"></div>
     </div>
 
-    <div class="card" id="sec-pay">
-      <h3>💳 การเงิน</h3>
-      <div class="row"><span class="k">ค่ารักษารวม</span><span class="v" id="d-total">—</span></div>
-      <div class="row"><span class="k">ชำระแล้ว</span><span class="v" id="d-paid" style="color:var(--green)">—</span></div>
-      <div class="row"><span class="k">คงเหลือ</span><span class="v" id="d-left" style="color:var(--wine)">—</span></div>
-      <div class="row" id="row-nextpay"><span class="k">งวดถัดไป</span><span class="v" id="d-nextpay">—</span></div>
-    </div>
-
     <div class="card" id="sec-log">
       <h3>🦷 ประวัติการรักษา</h3>
       <div class="timeline" id="d-timeline"><p class="muted">ยังไม่มีบันทึก</p></div>
     </div>
 
     <div class="card" id="sec-care">
-      <h3>✨ วิธีดูแลเครื่องมือ</h3>
-      <ul class="care">
-        <li>แปรงฟันหลังอาหารทุกมื้อ ใช้แปรงซอกฟัน/แปรงจัดฟันร่วมด้วย</li>
-        <li>หลีกเลี่ยงของแข็ง เหนียว และกัดของแข็งตรงๆ เช่น น้ำแข็ง กระดูก</li>
-        <li>ถ้าลวดหลุด/ทิ่มแก้ม ใช้ขี้ผึ้ง (wax) กดไว้ แล้วรีบติดต่อคลินิก</li>
-        <li>ใส่ยาง (elastic) ตามที่หมอสั่งอย่างสม่ำเสมอ จะช่วยให้ตรงตามแผน</li>
-        <li>มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น</li>
-      </ul>
+      <h3>📝 หมายเหตุ</h3>
+      <p class="muted" id="d-note" style="line-height:1.6;">ไม่มีหมายเหตุ</p>
     </div>
 
     <a class="contact-btn" id="contactBtn" href="#">📞 โทรหาคลินิก</a>
@@ -132,7 +121,16 @@
 
 <script>
 function $(id){ return document.getElementById(id); }
-function fmt(n){ return (Number(n)||0).toLocaleString('th-TH'); }
+function braceLabel(t){ return t==='โลหะ' ? 'จัดฟันโลหะ' : (t||''); }
+function thaiDateFull(dateStr){
+  if(!dateStr) return '';
+  const m = String(dateStr).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return dateStr;
+  const d = new Date(m[1]+'-'+m[2]+'-'+m[3]+'T00:00:00+07:00');
+  const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return 'วัน'+days[d.getDay()]+'ที่ '+d.getDate()+' '+months[d.getMonth()]+' พ.ศ. '+(d.getFullYear()+543);
+}
 function show(id){ ['loading','bindView','dataView'].forEach(x=>$(x).classList.add('hide')); $(id).classList.remove('hide'); }
 function fmtHN(input){
   let v = input.value.replace(/[^0-9]/g,'');
@@ -177,7 +175,8 @@ async function loadData(){
 function renderData(d){
   const p = d.profile || {};
   $('d-name').textContent = p['ชื่อ'] || 'คนไข้จัดฟัน';
-  $('d-meta').textContent = [p['แบบจัด'], p['หมอ']].filter(Boolean).join(' · ') || '';
+  $('d-meta').textContent = [braceLabel(p['แบบจัด']), p['หมอ']].filter(Boolean).join(' · ') || '';
+  $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
 
   // progress — เฉพาะแผน "28 ครั้ง" ถึงมี progress bar (นับจาก log adjust จริง ไม่รวมเครื่องมือหลุด)
   if(p['แผนเดือน'] === '28 ครั้ง'){
@@ -191,30 +190,21 @@ function renderData(d){
     $('d-progwrap').style.display = 'none';
     $('d-progrow').style.display = 'none';
   }
-  $('d-phase').textContent = p['phase'] || '—';
-
   // appt
   $('d-nextappt').textContent = p['นัดถัดไป']
-    ? p['นัดถัดไป'] + (p['นัดถัดไปเวลา'] ? ' เวลา ' + p['นัดถัดไปเวลา'] + ' น.' : '')
+    ? thaiDateFull(p['นัดถัดไป']) + (p['นัดถัดไปเวลา'] ? ' เวลา ' + p['นัดถัดไปเวลา'] + ' น.' : '')
     : 'ยังไม่มีนัด';
   $('d-nextappt-treat').textContent = p['นัดถัดไป'] && p['รายการนัดถัดไป'] ? 'รายการ: ' + p['รายการนัดถัดไป'] : '';
 
-  // pay
-  const total = Number(p['ค่ารักษารวม']||0), paid = Number(p['จ่ายแล้ว']||0);
-  const left = (p['คงเหลือ']!=='' && p['คงเหลือ']!=null) ? Number(p['คงเหลือ']) : (total-paid);
-  $('d-total').textContent = fmt(total) + ' บาท';
-  $('d-paid').textContent  = fmt(paid) + ' บาท';
-  $('d-left').textContent  = fmt(left) + ' บาท';
-  if(p['งวดถัดไปวันที่'] || p['งวดถัดไปจำนวน']){
-    $('d-nextpay').textContent = [p['งวดถัดไปวันที่'], p['งวดถัดไปจำนวน']?fmt(p['งวดถัดไปจำนวน'])+' บาท':''].filter(Boolean).join(' · ');
-  } else { $('row-nextpay').style.display='none'; }
+  // note
+  $('d-note').textContent = p['note'] || 'ไม่มีหมายเหตุ';
 
   // timeline
   const logs = d.logs || [];
   if(logs.length){
     $('d-timeline').innerHTML = logs.map(l=>`
       <div class="tl-item">
-        <div class="tl-date">${l['วันที่']||''}</div>
+        <div class="tl-date">${thaiDateFull(l['วันที่'])||''}</div>
         <div class="tl-do">${l['ทำอะไร']||'—'}</div>
         <div class="tl-sub">
           ${l['ลวด']?`<span class="pill">ลวด ${l['ลวด']}</span>`:''}
@@ -229,7 +219,7 @@ function renderData(d){
   $('contactBtn').href = 'tel:' + CLINIC_TEL;
 
   // hash scroll (จาก rich menu)
-  const map = {appt:'sec-appt', pay:'sec-pay', progress:'sec-progress', care:'sec-care', log:'sec-log'};
+  const map = {appt:'sec-appt', progress:'sec-progress', care:'sec-care', log:'sec-log'};
   const target = map[(location.hash||'').replace('#','')];
   if(target) setTimeout(()=>$(target).scrollIntoView({behavior:'smooth'}), 300);
 }
