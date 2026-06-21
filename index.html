@@ -1443,7 +1443,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group">
         <label>แบบที่จัด</label>
         <select class="form-control" id="ortho-type">
-          <option>เหล็ก</option><option>เซรามิก</option><option>ใส (Aligner)</option><option>Damon</option><option>อื่นๆ</option>
+          <option>โลหะ</option><option>เซรามิก</option><option>ใส (Aligner)</option><option>Damon</option><option>อื่นๆ</option>
         </select>
       </div>
       <div class="form-group">
@@ -1451,12 +1451,15 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <select class="form-control" id="ortho-doc"></select>
       </div>
       <div class="form-group">
-        <label>วันเริ่มจัด</label>
+        <label>วันติดเครื่องมือ</label>
         <input type="date" class="form-control" id="ortho-start">
       </div>
       <div class="form-group">
-        <label>แผนรวม (เดือน)</label>
-        <input type="number" class="form-control" id="ortho-plan" placeholder="เช่น 24" min="0">
+        <label>แผนรวม</label>
+        <select class="form-control" id="ortho-plan">
+          <option value="28 ครั้ง">28 ครั้ง</option>
+          <option value="เดือนละครั้งจนกว่าจะเสร็จ">เดือนละครั้งจนกว่าจะเสร็จ</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Phase ปัจจุบัน</label>
@@ -5358,7 +5361,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-hn').value = r?.hn || '';
   document.getElementById('ortho-hn-hint').innerHTML = '';
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
-  document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'เหล็ก';
+  document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('ortho-start').value = r?.['วันเริ่ม'] || '';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '';
