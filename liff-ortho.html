@@ -91,8 +91,10 @@
 
     <div class="card" id="sec-appt">
       <h3>📅 นัดครั้งถัดไป</h3>
-      <div class="center"><div class="big" id="d-nextappt">—</div></div>
-      <div class="center muted" id="d-nextappt-treat" style="margin-top:4px;"></div>
+      <div class="row" id="d-nextappt-row-empty"><span class="k">สถานะ</span><span class="v">ยังไม่มีนัด</span></div>
+      <div class="row" id="d-nextappt-row-date"><span class="k">วันที่</span><span class="v" id="d-nextappt-date">—</span></div>
+      <div class="row" id="d-nextappt-row-time"><span class="k">เวลา</span><span class="v" id="d-nextappt-time">—</span></div>
+      <div class="row" id="d-nextappt-row-treat"><span class="k">รายการ</span><span class="v" id="d-nextappt-treat">—</span></div>
     </div>
 
     <div class="card" id="sec-progress">
@@ -214,10 +216,18 @@ function renderData(d){
     $('d-progrow').style.display = 'none';
   }
   // appt
-  $('d-nextappt').textContent = p['นัดถัดไป']
-    ? thaiDateFull(p['นัดถัดไป']) + (p['นัดถัดไปเวลา'] ? ' เวลา ' + p['นัดถัดไปเวลา'] + ' น.' : '')
-    : 'ยังไม่มีนัด';
-  $('d-nextappt-treat').textContent = p['นัดถัดไป'] && p['รายการนัดถัดไป'] ? 'รายการ: ' + p['รายการนัดถัดไป'] : '';
+  const hasAppt = !!p['นัดถัดไป'];
+  $('d-nextappt-row-empty').style.display = hasAppt ? 'none' : '';
+  $('d-nextappt-row-date').style.display = hasAppt ? '' : 'none';
+  if (hasAppt) $('d-nextappt-date').textContent = thaiDateFull(p['นัดถัดไป']);
+
+  const hasTime = hasAppt && !!p['นัดถัดไปเวลา'];
+  $('d-nextappt-row-time').style.display = hasTime ? '' : 'none';
+  if (hasTime) $('d-nextappt-time').textContent = p['นัดถัดไปเวลา'] + ' น.';
+
+  const hasTreat = hasAppt && !!p['รายการนัดถัดไป'];
+  $('d-nextappt-row-treat').style.display = hasTreat ? '' : 'none';
+  if (hasTreat) $('d-nextappt-treat').textContent = p['รายการนัดถัดไป'];
 
   // timeline
   const logs = d.logs || [];

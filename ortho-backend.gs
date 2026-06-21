@@ -158,6 +158,14 @@ function orthoSave(row) {
   } else {
     sh.appendRow(rowArr);
   }
+  var targetRow = foundRow > 0 ? foundRow : sh.getLastRow();
+
+  // กัน Sheets แปลง "14:30" เป็น serial time อัตโนมัติ -> บังคับเป็นข้อความล้วน
+  var timeCol = head.indexOf('นัดถัดไปเวลา');
+  if (timeCol >= 0 && rowArr[timeCol] !== '') {
+    sh.getRange(targetRow, timeCol + 1).setNumberFormat('@STRING@').setValue(String(rowArr[timeCol]));
+  }
+
   return { ok: true, hn: hn };
 }
 
@@ -274,8 +282,10 @@ function orthoSheetToObjects_(name) {
     for (var c = 0; c < head.length; c++) {
       var key = String(head[c]).trim();
       var val = data[r][c];
-      // แปลง Date -> string เพื่อส่ง JSON
-      if (val instanceof Date) val = Utilities.formatDate(val, ORTHO_TZ, 'yyyy-MM-dd');
+      // แปลง Date -> string เพื่อส่ง JSON (คอลัมน์เวลาล้วน เช่นเผลอถูก Sheets แปลงเป็น serial time ฟอร์แมตแบบ HH:mm ไม่ใช่วันที่)
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, ORTHO_TZ, key === 'นัดถัดไปเวลา' ? 'HH:mm' : 'yyyy-MM-dd');
+      }
       o[key] = val;
     }
     out.push(o);
