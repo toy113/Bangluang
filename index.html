@@ -1508,8 +1508,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="modal-title">⚡ <span id="qlogModalTitle">บันทึกย้อน</span></div>
     <button class="modal-close" onclick="closeModal('modalQuickLog')">×</button>
     <input type="hidden" id="qlog-hn">
-    <div id="qlog-dates"></div>
-    <button type="button" class="btn btn-ghost btn-sm" onclick="addQuickLogDateRow()" style="margin-top:4px;">+ เพิ่มวันที่</button>
+    <div class="form-grid" id="qlog-dates" style="max-height:55vh;overflow-y:auto;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalQuickLog')">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveQuickLog()">⚡ บันทึก</button>
@@ -5826,25 +5825,20 @@ async function saveReschedule(){
   _reschedSaving = false;
 }
 
-function quickLogDateRowHtml_(){
-  return `<div class="form-group qlog-date-row" style="margin-top:8px;">
-    <label>วันที่</label>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <input type="date" class="form-control qlog-date-input">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.qlog-date-row').remove()" style="flex-shrink:0;">✕</button>
-    </div>
-  </div>`;
-}
-
-function addQuickLogDateRow(){
-  document.getElementById('qlog-dates').insertAdjacentHTML('beforeend', quickLogDateRowHtml_());
-}
+const QLOG_SLOTS = 20;
 
 function openQuickLog(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('qlogModalTitle').textContent = 'บันทึกย้อน — '+(r?.['ชื่อ']||hn);
   document.getElementById('qlog-hn').value = hn;
-  document.getElementById('qlog-dates').innerHTML = quickLogDateRowHtml_();
+  let html = '';
+  for(let i=1; i<=QLOG_SLOTS; i++){
+    html += `<div class="form-group">
+      <label>วันที่ ครั้งที่ ${i}</label>
+      <input type="date" class="form-control qlog-date-input">
+    </div>`;
+  }
+  document.getElementById('qlog-dates').innerHTML = html;
   document.querySelector('#qlog-dates .qlog-date-input').value = todayStr();
   document.getElementById('modalQuickLog').classList.add('open');
 }
