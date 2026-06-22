@@ -48,6 +48,7 @@ function orthoRouteGet_(e) {
   if (p.action === 'orthoGet')  return orthoJsonOut_(orthoGetByLineId(p.lineUserId));
   if (p.action === 'orthoBind') return orthoJsonOut_(orthoBind(p.lineUserId, p.idcode, p.phone));
   if (p.action === 'orthoList') return orthoJsonOut_(orthoList());      // ใช้ใน admin tab
+  if (p.action === 'orthoLogsAll') return orthoJsonOut_(orthoLogsAll()); // admin: log ทั้งหมด (นับครั้งจริงจาก log)
   if (p.action === 'orthoLogsByHn') return orthoJsonOut_(orthoLogsByHn(p.hn)); // admin: ดูประวัติการรักษา
   return null; // ไม่ใช่งานของ ortho
 }
@@ -68,6 +69,7 @@ function orthoRoutePost_(e) {
   if (action === 'orthoGet')    return orthoJsonOut_(orthoGetByLineId(body.lineUserId));
   if (action === 'orthoSave')   return orthoJsonOut_(orthoSave(body.row));     // admin: เพิ่ม/แก้ profile
   if (action === 'orthoLogAdd') return orthoJsonOut_(orthoLogAdd(body.log));   // admin: เพิ่ม log adjust
+  if (action === 'orthoLogAddBatch') return orthoJsonOut_(orthoLogAddBatch(body.logs)); // admin: บันทึกย้อนหลายวันในคำสั่งเดียว
   if (action === 'orthoSetLine')return orthoJsonOut_(orthoSetLineId(body.hn, body.lineUserId)); // admin ผูกมือ (fallback)
 
   return null; // ไม่ใช่งานของ ortho
@@ -131,6 +133,10 @@ function orthoList() {
   return { ok: true, rows: orthoSheetToObjects_(SHEET_ORTHO) };
 }
 
+function orthoLogsAll() {
+  return { ok: true, logs: orthoSheetToObjects_(SHEET_ORTHO_LOG) };
+}
+
 function orthoLogsByHn(hn) {
   if (!hn) return { ok: false, error: 'missing_hn' };
   hn = orthoNormHN_(hn);
@@ -178,6 +184,20 @@ function orthoSave(row) {
   }
 
   return { ok: true, hn: hn };
+}
+
+// บันทึกหลาย log พร้อมกันในคำสั่งเดียว (กัน race condition จากยิง orthoLogAdd พร้อมกันหลาย request
+// ซึ่งแต่ละ request จะแย่งกันหาแถวว่างถัดไป ทำให้ข้อมูลทับกัน/หาย — ใช้กับ "บันทึกย้อน" หลายวัน)
+function orthoLogAddBatch(logs) {
+  if (!Array.isArray(logs) || !logs.length) return { ok: false, error: 'missing_logs' };
+  var sh = orthoGetSheet_(SHEET_ORTHO_LOG, ORTHO_LOG_HEADERS);
+  var head = sh.getDataRange().getValues()[0];
+  var rows = logs.map(function (log) {
+    if (!log['วันที่']) log['วันที่'] = Utilities.formatDate(new Date(), ORTHO_TZ, 'yyyy-MM-dd');
+    return head.map(function (h) { return (log[h] !== undefined && log[h] !== null) ? log[h] : ''; });
+  });
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, head.length).setValues(rows);
+  return { ok: true, count: rows.length };
 }
 
 function orthoLogAdd(log) {
