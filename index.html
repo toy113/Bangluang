@@ -1470,6 +1470,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </select>
       </div>
       <div class="form-group">
+        <label>แผนการรักษา</label>
+        <select class="form-control" id="ortho-plan">
+          <option>28 ครั้ง</option><option>เดือนละครั้งจนกว่าจะเสร็จ</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>หมอที่ดูแล</label>
         <select class="form-control" id="ortho-doc"></select>
       </div>
@@ -5645,6 +5651,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
   document.getElementById('ortho-idcode').value = r?.['รหัสประจำตัว'] || 'A-';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
+  document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '28 ครั้ง';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('ortho-status').value = r?.['สถานะ'] || 'กำลังจัด';
   document.getElementById('ortho-start').value = r?.['วันเริ่ม'] || '';
@@ -5675,7 +5682,7 @@ async function saveOrthoProfile(){
     'หมอ': document.getElementById('ortho-doc').value,
     'สถานะ': document.getElementById('ortho-status').value,
     'วันเริ่ม': document.getElementById('ortho-start').value,
-    'แผนเดือน': existing['แผนเดือน'] || '28 ครั้ง',
+    'แผนเดือน': document.getElementById('ortho-plan').value,
     'ปักหมุด': document.getElementById('ortho-screw').value,
     'note': document.getElementById('ortho-note').value.trim()
   });
