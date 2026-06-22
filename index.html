@@ -1072,8 +1072,18 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน 45 วัน
             </label>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleOrthoCalendar()">📅 ปฏิทินนัด</button>
             <button class="btn btn-primary btn-sm" onclick="openOrthoForm()">+ เพิ่มคนไข้จัดฟัน</button>
           </div>
+        </div>
+        <div id="orthoCalendarBox" style="display:none;padding:14px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <button class="btn btn-ghost btn-sm" onclick="orthoCalShift(-1)">←</button>
+            <strong id="orthoCalLabel">—</strong>
+            <button class="btn btn-ghost btn-sm" onclick="orthoCalShift(1)">→</button>
+          </div>
+          <div id="orthoCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;"></div>
+          <div id="orthoCalDayDetail" style="margin-top:14px;"></div>
         </div>
         <div id="orthoList" style="padding:8px;"></div>
       </div>
@@ -5390,6 +5400,105 @@ async function loadOrthoData(force){
     const d = await res.json();
     if(d && d.ok && Array.isArray(d.rows)) orthoData = d.rows;
   }catch(e){ console.warn('loadOrtho error',e); }
+}
+
+/* ===================== ปฏิทินนัด ===================== */
+let orthoCalDate = new Date();
+let orthoCalSelectedDay = null;
+
+function toggleOrthoCalendar(){
+  const box = document.getElementById('orthoCalendarBox');
+  const show = box.style.display === 'none';
+  box.style.display = show ? '' : 'none';
+  if(show) renderOrthoCalendar();
+}
+
+function orthoCalShift(delta){
+  orthoCalDate.setMonth(orthoCalDate.getMonth()+delta);
+  orthoCalSelectedDay = null;
+  renderOrthoCalendar();
+}
+
+function orthoApptsByDate_(){
+  const map = {};
+  orthoData.forEach(r=>{
+    if(!r['นัดถัดไป']) return;
+    if((r['สถานะ']||'กำลังจัด') !== 'กำลังจัด') return;
+    (map[r['นัดถัดไป']] = map[r['นัดถัดไป']] || []).push(r);
+  });
+  return map;
+}
+
+function orthoThaiDateShort_(dateStr){
+  const d = new Date(dateStr);
+  if(isNaN(d)) return dateStr;
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+(d.getFullYear()+543);
+}
+
+function orthoBuildDayLines_(dateStr){
+  const list = (orthoApptsByDate_()[dateStr] || []).slice()
+    .sort((a,b)=> String(a['นัดถัดไปเวลา']||'').localeCompare(String(b['นัดถัดไปเวลา']||'')));
+  return list.map((r,i)=>{
+    const visitNo = Number(r['ครั้งที่มาแล้ว']||0) + 1;
+    const looseCount = Number(r['หลุดกี่ครั้ง']||0);
+    return (i+1)+'. '+(r['ชื่อ']||'')+' ('+(r.hn||'')+') - '+(r['หมอ']||'-')+
+      (r['นัดถัดไปเวลา'] ? ' - เวลา '+r['นัดถัดไปเวลา'] : '')+
+      ' - จะเป็นครั้งที่ '+visitNo+' - หลุดไปแล้ว '+looseCount+' ครั้ง';
+  });
+}
+
+function renderOrthoCalendar(){
+  const y = orthoCalDate.getFullYear(), m = orthoCalDate.getMonth();
+  const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  document.getElementById('orthoCalLabel').textContent = monthNames[m]+' '+(y+543);
+
+  const apptMap = orthoApptsByDate_();
+  const firstDay = new Date(y, m, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const todayS = todayStr();
+
+  const dowLabels = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  let html = dowLabels.map(d=>`<div style="font-weight:700;color:var(--text-light);padding:4px 0;">${d}</div>`).join('');
+  for(let i=0;i<startWeekday;i++) html += '<div></div>';
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const count = (apptMap[dateStr]||[]).length;
+    const isToday = dateStr === todayS;
+    const isSel = dateStr === orthoCalSelectedDay;
+    html += `<div onclick="orthoCalSelectDay('${dateStr}')" style="cursor:pointer;padding:6px 2px;border-radius:8px;${isSel?'background:var(--wine);color:#fff;':isToday?'background:var(--wine-pale);':''}">
+      ${day}
+      ${count>0?`<div style="font-size:9px;font-weight:700;${isSel?'color:#fff;':'color:var(--wine);'}">●${count}</div>`:''}
+    </div>`;
+  }
+  document.getElementById('orthoCalGrid').innerHTML = html;
+
+  const detailBox = document.getElementById('orthoCalDayDetail');
+  if(!orthoCalSelectedDay){ detailBox.innerHTML=''; return; }
+  const lines = orthoBuildDayLines_(orthoCalSelectedDay);
+  detailBox.innerHTML = !lines.length
+    ? `<div style="color:var(--text-light);font-size:13px;">ไม่มีนัดวันที่ ${orthoThaiDateShort_(orthoCalSelectedDay)}</div>`
+    : `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+        <strong style="font-size:13px;">รายชื่อนัดวันที่ ${orthoThaiDateShort_(orthoCalSelectedDay)} (${lines.length} คน)</strong>
+        <button class="btn btn-ghost btn-sm" onclick="orthoCopyDayList('${orthoCalSelectedDay}')">📋 Copy</button>
+      </div>
+      <div style="font-size:12.5px;white-space:pre-wrap;background:#faf7fb;border:1px solid var(--border);border-radius:8px;padding:10px;">${lines.join('\n')}</div>`;
+}
+
+function orthoCalSelectDay(dateStr){
+  orthoCalSelectedDay = dateStr;
+  renderOrthoCalendar();
+}
+
+async function orthoCopyDayList(dateStr){
+  const lines = orthoBuildDayLines_(dateStr);
+  const text = 'นัดวันที่ '+orthoThaiDateShort_(dateStr)+'\n'+lines.join('\n');
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('คัดลอกแล้ว — ไปวางเพื่อปริ้นได้เลย');
+  }catch(e){
+    showToast('คัดลอกไม่สำเร็จ','error');
+  }
 }
 
 async function renderOrthoPage(){
