@@ -1585,6 +1585,44 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalReschedule">
+  <div class="modal-box">
+    <div class="modal-title">📅 <span id="reschedModalTitle">เลื่อนนัด</span></div>
+    <button class="modal-close" onclick="closeModal('modalReschedule')">×</button>
+    <input type="hidden" id="resched-hn">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>นัดวันที่</label>
+        <input type="date" class="form-control" id="resched-date">
+      </div>
+      <div class="form-group">
+        <label>เวลานัด</label>
+        <input class="form-control" id="resched-time" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="fmtTime24(this)">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>รายการนัด (เลือกได้หลายอัน)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ปักหมุด"> ปักหมุด</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="X-ray"> X-ray</label>
+        </div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>หมายเหตุนัด</label>
+        <input class="form-control" id="resched-note" placeholder="หมายเหตุสำหรับนัดนี้">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalReschedule')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveReschedule()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOrthoHistory">
   <div class="modal-box">
     <div class="modal-title">🦷 <span id="historyModalTitle">ประวัติการรักษา</span></div>
@@ -5341,6 +5379,7 @@ let _orthoLoaded = false;
 let _orthoSaving = false;
 let _ologSaving = false;
 let _looseSaving = false;
+let _reschedSaving = false;
 
 async function loadOrthoData(force){
   if(_orthoLoaded && !force) return;
@@ -5429,6 +5468,7 @@ function orthoCardHtml(r){
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
       <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}')">➕ บันทึกการรักษา</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReschedule('${hnEsc}')">📅 เลื่อนนัด</button>
       <button class="btn btn-ghost btn-sm" onclick="openLooseModal('${hnEsc}')">🔧 เครื่องมือหลุด</button>
     </div>
   </div>`;
@@ -5604,6 +5644,38 @@ async function saveLoose(){
   showToast('บันทึกแล้ว — หลุดครั้งที่ '+newCount+' ('+(newCount<=3?'ฟรี':'เก็บ 500 บาท')+')');
   renderOrthoPage();
   _looseSaving = false;
+}
+
+function openReschedule(hn){
+  const r = orthoData.find(x=> String(x.hn)===String(hn));
+  document.getElementById('reschedModalTitle').textContent = 'เลื่อนนัด — '+(r?.['ชื่อ']||hn);
+  document.getElementById('resched-hn').value = hn;
+  document.getElementById('resched-date').value = r?.['นัดถัดไป'] || '';
+  document.getElementById('resched-time').value = r?.['นัดถัดไปเวลา'] || '';
+  document.getElementById('resched-note').value = r?.['หมายเหตุนัดถัดไป'] || '';
+  const sel = String(r?.['รายการนัดถัดไป']||'').split(',').map(s=>s.trim());
+  document.querySelectorAll('.resched-do-chk').forEach(c=> c.checked = sel.includes(c.value));
+  document.getElementById('modalReschedule').classList.add('open');
+}
+
+async function saveReschedule(){
+  if(_reschedSaving) return;
+  const hn = document.getElementById('resched-hn').value;
+  if(!hn) return;
+  _reschedSaving = true;
+  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
+  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
+    'นัดถัดไป': document.getElementById('resched-date').value,
+    'นัดถัดไปเวลา': document.getElementById('resched-time').value,
+    'รายการนัดถัดไป': Array.from(document.querySelectorAll('.resched-do-chk:checked')).map(c=>c.value).join(', '),
+    'หมายเหตุนัดถัดไป': document.getElementById('resched-note').value.trim()
+  });
+  await orthoPost({action:'orthoSave', row});
+  if(idx>=0) orthoData[idx] = row;
+  closeModal('modalReschedule');
+  showToast('เลื่อนนัดสำเร็จ');
+  renderOrthoPage();
+  _reschedSaving = false;
 }
 
 async function orthoPost(payload){
