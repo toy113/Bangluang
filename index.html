@@ -1509,6 +1509,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <button class="modal-close" onclick="closeModal('modalQuickLog')">×</button>
     <input type="hidden" id="qlog-hn">
     <div class="form-grid" id="qlog-dates" style="max-height:55vh;overflow-y:auto;"></div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="addQuickLogSlot()" style="margin-top:8px;">+ เพิ่มช่อง</button>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalQuickLog')">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveQuickLog()">⚡ บันทึก</button>
@@ -5825,19 +5826,26 @@ async function saveReschedule(){
   _reschedSaving = false;
 }
 
-const QLOG_SLOTS = 20;
+const QLOG_SLOTS = 28;
+
+function qlogSlotHtml_(i){
+  return `<div class="form-group">
+    <label>วันที่ ครั้งที่ ${i}</label>
+    <input type="date" class="form-control qlog-date-input">
+  </div>`;
+}
+
+function addQuickLogSlot(){
+  const n = document.querySelectorAll('#qlog-dates .qlog-date-input').length + 1;
+  document.getElementById('qlog-dates').insertAdjacentHTML('beforeend', qlogSlotHtml_(n));
+}
 
 function openQuickLog(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('qlogModalTitle').textContent = 'บันทึกย้อน — '+(r?.['ชื่อ']||hn);
   document.getElementById('qlog-hn').value = hn;
   let html = '';
-  for(let i=1; i<=QLOG_SLOTS; i++){
-    html += `<div class="form-group">
-      <label>วันที่ ครั้งที่ ${i}</label>
-      <input type="date" class="form-control qlog-date-input">
-    </div>`;
-  }
+  for(let i=1; i<=QLOG_SLOTS; i++){ html += qlogSlotHtml_(i); }
   document.getElementById('qlog-dates').innerHTML = html;
   document.querySelector('#qlog-dates .qlog-date-input').value = todayStr();
   document.getElementById('modalQuickLog').classList.add('open');
