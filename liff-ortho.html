@@ -73,9 +73,9 @@
   <div class="header"><div class="clinic">คลินิกทันตกรรมบางหลวง</div><div class="pname">ผูกบัญชีคนไข้จัดฟัน</div></div>
   <div class="wrap">
     <div class="card">
-      <p class="muted" style="margin-bottom:16px;line-height:1.5;">กรอก HN และเบอร์โทรที่ให้ไว้กับคลินิก เพื่อดูข้อมูลการจัดฟันของคุณ</p>
+      <p class="muted" style="margin-bottom:16px;line-height:1.5;">กรอกรหัสจัดฟันและเบอร์โทรที่ให้ไว้กับคลินิก เพื่อดูข้อมูลการจัดฟันของคุณ</p>
       <div class="err" id="bindErr"></div>
-      <div class="field"><label>HN คนไข้</label><input id="b-hn" inputmode="numeric" placeholder="12-34567" maxlength="8" autocomplete="off" oninput="fmtHN(this)"></div>
+      <div class="field"><label>รหัสจัดฟัน</label><input id="b-idcode" value="A-" placeholder="A-123" maxlength="10" autocomplete="off" oninput="fmtIdCode(this)"></div>
       <div class="field"><label>เบอร์โทรศัพท์</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
       <button class="btn btn-primary" id="bindBtn" onclick="doBind()">ผูกบัญชี</button>
       <p class="center muted" style="margin-top:14px;">ผูกผิด/มีปัญหา? ติดต่อคลินิกได้เลย</p>
@@ -158,10 +158,8 @@ function thaiDateFull(dateStr){
   return 'วัน'+days[d.getDay()]+'ที่ '+d.getDate()+' '+months[d.getMonth()]+' พ.ศ. '+(d.getFullYear()+543);
 }
 function show(id){ ['loading','bindView','dataView'].forEach(x=>$(x).classList.add('hide')); $(id).classList.remove('hide'); }
-function fmtHN(input){
-  let v = input.value.replace(/[^0-9]/g,'');
-  if(v.length > 2) v = v.slice(0,2)+'-'+v.slice(2,7);
-  input.value = v;
+function fmtIdCode(input){
+  input.value = input.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
 }
 function fmtPhone(input){
   let v = input.value.replace(/[^0-9]/g,'');
@@ -267,22 +265,22 @@ function renderData(d){
 }
 
 async function doBind(){
-  const hn = $('b-hn').value.trim();
+  const idcode = $('b-idcode').value.trim();
   const phone = $('b-phone').value.trim();
   $('bindErr').style.display='none';
-  if(!hn || !phone){ $('bindErr').textContent='กรุณากรอก HN และเบอร์โทร'; $('bindErr').style.display='block'; return; }
-  if(!/^\d{2}-\d{5}$/.test(hn)){ $('bindErr').textContent='รูปแบบ HN ไม่ถูกต้อง (ตัวอย่าง 12-34567)'; $('bindErr').style.display='block'; return; }
+  if(!idcode || !phone){ $('bindErr').textContent='กรุณากรอกรหัสจัดฟันและเบอร์โทร'; $('bindErr').style.display='block'; return; }
+  if(!/^A-\d{3,}$/.test(idcode)){ $('bindErr').textContent='รูปแบบรหัสจัดฟันไม่ถูกต้อง (ตัวอย่าง A-123)'; $('bindErr').style.display='block'; return; }
   if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)){ $('bindErr').textContent='รูปแบบเบอร์โทรไม่ถูกต้อง (ตัวอย่าง 08x-xxx-xxxx)'; $('bindErr').style.display='block'; return; }
   $('bindBtn').disabled=true; $('bindBtn').textContent='กำลังผูกบัญชี...';
   try{
     const url = API + '?action=orthoBind&lineUserId=' + encodeURIComponent(USER_ID)
-              + '&hn=' + encodeURIComponent(hn) + '&phone=' + encodeURIComponent(phone);
+              + '&idcode=' + encodeURIComponent(idcode) + '&phone=' + encodeURIComponent(phone);
     const res = await fetch(url, {cache:'no-store'});
     const d = await res.json();
     if(d && d.ok){ await loadData(); }
     else {
       $('bindErr').textContent = (d && d.error==='not_found')
-        ? 'ไม่พบข้อมูล — HN กับเบอร์โทรไม่ตรงกัน กรุณาตรวจสอบ หรือติดต่อคลินิก'
+        ? 'ไม่พบข้อมูล — รหัสจัดฟันกับเบอร์โทรไม่ตรงกัน กรุณาตรวจสอบ หรือติดต่อคลินิก'
         : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่';
       $('bindErr').style.display='block';
     }

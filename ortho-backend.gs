@@ -46,7 +46,7 @@ var ORTHO_TZ = 'Asia/Bangkok';
 function orthoRouteGet_(e) {
   var p = (e && e.parameter) || {};
   if (p.action === 'orthoGet')  return orthoJsonOut_(orthoGetByLineId(p.lineUserId));
-  if (p.action === 'orthoBind') return orthoJsonOut_(orthoBind(p.lineUserId, p.hn, p.phone));
+  if (p.action === 'orthoBind') return orthoJsonOut_(orthoBind(p.lineUserId, p.idcode, p.phone));
   if (p.action === 'orthoList') return orthoJsonOut_(orthoList());      // ใช้ใน admin tab
   if (p.action === 'orthoLogsByHn') return orthoJsonOut_(orthoLogsByHn(p.hn)); // admin: ดูประวัติการรักษา
   return null; // ไม่ใช่งานของ ortho
@@ -64,7 +64,7 @@ function orthoRoutePost_(e) {
 
   // 2) action จาก LIFF / admin tab
   var action = body.action || (e.parameter && e.parameter.action);
-  if (action === 'orthoBind')   return orthoJsonOut_(orthoBind(body.lineUserId, body.hn, body.phone));
+  if (action === 'orthoBind')   return orthoJsonOut_(orthoBind(body.lineUserId, body.idcode, body.phone));
   if (action === 'orthoGet')    return orthoJsonOut_(orthoGetByLineId(body.lineUserId));
   if (action === 'orthoSave')   return orthoJsonOut_(orthoSave(body.row));     // admin: เพิ่ม/แก้ profile
   if (action === 'orthoLogAdd') return orthoJsonOut_(orthoLogAdd(body.log));   // admin: เพิ่ม log adjust
@@ -75,24 +75,35 @@ function orthoRoutePost_(e) {
 
 /* ======================= BINDING (verify) ======================= */
 /* คนไข้กรอก HN + เบอร์ใน LIFF -> ตรวจกับชีต คนไข้ -> ผูก lineUserId */
-function orthoBind(lineUserId, hn, phone) {
-  if (!lineUserId || !hn || !phone) return { ok: false, error: 'missing_field' };
+function orthoBind(lineUserId, idcode, phone) {
+  if (!lineUserId || !idcode || !phone) return { ok: false, error: 'missing_field' };
 
-  hn = orthoNormHN_(hn);
+  var codeIn = String(idcode).trim().toUpperCase();
   var pIn = orthoNormPhone_(phone);
 
+  // 1) หา hn จากรหัสประจำตัวในชีต ortho
+  var orthos = orthoSheetToObjects_(SHEET_ORTHO);
+  var orow = null;
+  for (var i = 0; i < orthos.length; i++) {
+    var code = String(orthos[i]['รหัสประจำตัว'] || '').trim().toUpperCase();
+    if (code && code === codeIn) { orow = orthos[i]; break; }
+  }
+  if (!orow) return { ok: false, error: 'not_found' };
+  var hn = orthoNormHN_(orow['hn']);
+
+  // 2) ยืนยันด้วยเบอร์โทรจากชีตคนไข้ (กันคนอื่นเดารหัสมาผูกบัญชีสวมรอย)
   var pats = orthoSheetToObjects_(ORTHO_SHEET_PATIENTS);
   var match = null;
-  for (var i = 0; i < pats.length; i++) {
-    var r = pats[i];
+  for (var j = 0; j < pats.length; j++) {
+    var r = pats[j];
     if (orthoNormHN_(r['hn'] || r['HN'] || r['Hn']) !== hn) continue;
     // หาคอลัมน์เบอร์โทร (เผื่อชื่อหัวต่างกัน)
     var phoneCell = r['เบอร์โทร'] || r['เบอร์'] || r['โทร'] || r['phone'] || r['tel'] || '';
     if (orthoNormPhone_(phoneCell) === pIn) { match = r; break; }
   }
-  if (!match) return { ok: false, error: 'not_found' }; // HN+เบอร์ ไม่ตรงกัน
+  if (!match) return { ok: false, error: 'not_found' }; // รหัส+เบอร์ ไม่ตรงกัน
 
-  var name = match['ชื่อ'] || match['name'] || match['ชื่อ-นามสกุล'] || '';
+  var name = match['ชื่อ'] || match['name'] || match['ชื่อ-นามสกุล'] || orow['ชื่อ'] || '';
   orthoSetLineId(hn, lineUserId, name); // upsert: มี row อยู่แล้ว->อัปเดต, ยังไม่มี->สร้าง
   return { ok: true, hn: hn, name: name };
 }
