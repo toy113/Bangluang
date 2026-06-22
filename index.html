@@ -1514,6 +1514,36 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalQuickLog">
+  <div class="modal-box">
+    <div class="modal-title">⚡ <span id="qlogModalTitle">บันทึกก่อน</span></div>
+    <button class="modal-close" onclick="closeModal('modalQuickLog')">×</button>
+    <input type="hidden" id="qlog-hn">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันที่</label>
+        <input type="date" class="form-control" id="qlog-date">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>การรักษา (เลือกได้หลายอัน)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="qlog-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="qlog-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="qlog-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="qlog-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="qlog-do-chk" value="ปักหมุด"> ปักหมุด</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="qlog-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="qlog-do-chk" value="X-ray"> X-ray</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalQuickLog')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveQuickLog()">⚡ บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOrthoLog">
   <div class="modal-box">
     <div class="modal-title">➕ <span id="ologModalTitle">บันทึกการรักษา</span></div>
@@ -5390,6 +5420,7 @@ let _orthoSaving = false;
 let _ologSaving = false;
 let _looseSaving = false;
 let _reschedSaving = false;
+let _qlogSaving = false;
 
 async function loadOrthoData(force){
   if(_orthoLoaded && !force) return;
@@ -5483,14 +5514,26 @@ function renderOrthoCalendar(){
 
   const detailBox = document.getElementById('orthoCalDayDetail');
   if(!orthoCalSelectedDay){ detailBox.innerHTML=''; return; }
-  const lines = orthoBuildDayLines_(orthoCalSelectedDay);
-  detailBox.innerHTML = !lines.length
-    ? `<div style="color:var(--text-light);font-size:13px;">ไม่มีนัดวันที่ ${orthoThaiDateShort_(orthoCalSelectedDay)}</div>`
-    : `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
-        <strong style="font-size:13px;">รายชื่อนัดวันที่ ${orthoThaiDateShort_(orthoCalSelectedDay)} (${lines.length} คน)</strong>
-        <button class="btn btn-ghost btn-sm" onclick="orthoCopyDayList('${orthoCalSelectedDay}')">📋 Copy</button>
+  const dsel = orthoCalSelectedDay;
+  const sortedList = (apptMap[dsel] || []).slice()
+    .sort((a,b)=> String(a['นัดถัดไปเวลา']||'').localeCompare(String(b['นัดถัดไปเวลา']||'')));
+  const lines = orthoBuildDayLines_(dsel);
+  if(!lines.length){
+    detailBox.innerHTML = `<div style="color:var(--text-light);font-size:13px;">ไม่มีนัดวันที่ ${orthoThaiDateShort_(dsel)}</div>`;
+    return;
+  }
+  const rows = lines.map((line,i)=>{
+    const hnEsc = String(sortedList[i].hn||'').replace(/'/g,"\\'");
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);">
+      <span style="font-size:12.5px;flex:1;">${line}</span>
+      <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}','${dsel}')" style="flex-shrink:0;">➕ บันทึก</button>
+    </div>`;
+  }).join('');
+  detailBox.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+        <strong style="font-size:13px;">รายชื่อนัดวันที่ ${orthoThaiDateShort_(dsel)} (${lines.length} คน)</strong>
+        <button class="btn btn-ghost btn-sm" onclick="orthoCopyDayList('${dsel}')">📋 Copy</button>
       </div>
-      <div style="font-size:12.5px;white-space:pre-wrap;background:#faf7fb;border:1px solid var(--border);border-radius:8px;padding:10px;">${lines.join('\n')}</div>`;
+      <div style="background:#faf7fb;border:1px solid var(--border);border-radius:8px;padding:4px 10px;">${rows}</div>`;
 }
 
 function orthoCalSelectDay(dateStr){
@@ -5595,6 +5638,7 @@ function orthoCardHtml(r){
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
       <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}')">➕ บันทึกการรักษา</button>
+      <button class="btn btn-ghost btn-sm" onclick="openQuickLog('${hnEsc}')">⚡ บันทึกก่อน</button>
       <button class="btn btn-ghost btn-sm" onclick="openReschedule('${hnEsc}')">📅 เลื่อนนัด</button>
       <button class="btn btn-ghost btn-sm" onclick="openLooseModal('${hnEsc}')">🔧 เครื่องมือหลุด</button>
     </div>
@@ -5655,13 +5699,13 @@ async function saveOrthoProfile(){
   _orthoSaving = false;
 }
 
-function openOrthoLog(hn){
+function openOrthoLog(hn, presetDate){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('ologModalTitle').textContent = 'บันทึกการรักษา — '+(r?.['ชื่อ']||hn);
   document.getElementById('olog-hn').value = hn;
   document.getElementById('olog-doc').innerHTML = getDoctorOptions();
   document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
-  document.getElementById('olog-date').value = todayStr();
+  document.getElementById('olog-date').value = presetDate || todayStr();
   document.getElementById('olog-nextappt').value = r?.['นัดถัดไป'] || '';
   document.getElementById('olog-nextappttime').value = r?.['นัดถัดไปเวลา'] || '';
   const nextDoSel = String(r?.['รายการนัดถัดไป']||'').split(',').map(s=>s.trim());
@@ -5704,6 +5748,7 @@ async function saveOrthoLog(){
   closeModal('modalOrthoLog');
   showToast('บันทึกการรักษาสำเร็จ');
   renderOrthoPage();
+  if(document.getElementById('orthoCalendarBox').style.display !== 'none') renderOrthoCalendar();
   _ologSaving = false;
 }
 
@@ -5803,6 +5848,48 @@ async function saveReschedule(){
   showToast('เลื่อนนัดสำเร็จ');
   renderOrthoPage();
   _reschedSaving = false;
+}
+
+function openQuickLog(hn){
+  const r = orthoData.find(x=> String(x.hn)===String(hn));
+  document.getElementById('qlogModalTitle').textContent = 'บันทึกก่อน — '+(r?.['ชื่อ']||hn);
+  document.getElementById('qlog-hn').value = hn;
+  document.getElementById('qlog-date').value = todayStr();
+  document.querySelectorAll('.qlog-do-chk').forEach(c=> c.checked = (c.value==='ปรับเครื่องมือ'));
+  document.getElementById('modalQuickLog').classList.add('open');
+}
+
+async function saveQuickLog(){
+  if(_qlogSaving) return;
+  const hn = document.getElementById('qlog-hn').value;
+  if(!hn) return;
+  const treatments = Array.from(document.querySelectorAll('.qlog-do-chk:checked')).map(c=>c.value).join(', ');
+  if(!treatments){ showToast('กรุณาเลือกการรักษาอย่างน้อย 1 อย่าง','error'); return; }
+  _qlogSaving = true;
+  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
+  const r = idx>=0 ? orthoData[idx] : {hn};
+  const log = {
+    hn,
+    'วันที่': document.getElementById('qlog-date').value || todayStr(),
+    'ทำอะไร': treatments,
+    'หมอ': r['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name),
+    'note': ''
+  };
+  const visits = Number((r['ครั้งที่มาแล้ว'])||0) + 1;
+  const row = Object.assign({}, r, {
+    'ปรับล่าสุด': log['วันที่'],
+    'ครั้งที่มาแล้ว': visits
+  });
+  await Promise.all([
+    orthoPost({action:'orthoLogAdd', log}),
+    orthoPost({action:'orthoSave', row})
+  ]);
+  if(idx>=0) orthoData[idx] = row;
+  closeModal('modalQuickLog');
+  showToast('บันทึกก่อนสำเร็จ');
+  renderOrthoPage();
+  if(document.getElementById('orthoCalendarBox').style.display !== 'none') renderOrthoCalendar();
+  _qlogSaving = false;
 }
 
 async function orthoPost(payload){
