@@ -1071,6 +1071,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--red);cursor:pointer;">
               <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน 45 วัน
             </label>
+            <button class="btn btn-ghost btn-sm" id="orthoSortBtn" onclick="toggleOrthoSort()">รหัส ↑</button>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
             <button class="btn btn-ghost btn-sm" onclick="toggleOrthoCalendar()">📅 ปฏิทินนัด</button>
             <button class="btn btn-primary btn-sm" onclick="openOrthoForm()">+ เพิ่มคนไข้จัดฟัน</button>
@@ -5399,6 +5400,13 @@ function logout(){
 // ============================================================
 let orthoData = [];
 let orthoAllLogs = [];
+let orthoSortDir = 'asc';
+
+function toggleOrthoSort(){
+  orthoSortDir = orthoSortDir === 'asc' ? 'desc' : 'asc';
+  document.getElementById('orthoSortBtn').textContent = 'รหัส ' + (orthoSortDir==='asc' ? '↑' : '↓');
+  renderOrthoPage();
+}
 let _orthoLoaded = false;
 let _orthoSaving = false;
 let _ologSaving = false;
@@ -5568,7 +5576,8 @@ async function renderOrthoPage(){
     if(!ca && !cb) return 0;
     if(!ca) return 1;
     if(!cb) return -1;
-    return ca.localeCompare(cb, undefined, {numeric:true});
+    const cmp = ca.localeCompare(cb, undefined, {numeric:true});
+    return orthoSortDir === 'desc' ? -cmp : cmp;
   });
   const countEl = document.getElementById('orthoCount');
   if(countEl) countEl.textContent = '('+rows.length+' คน)';
