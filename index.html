@@ -5441,9 +5441,17 @@ function orthoBuildDayLines_(dateStr){
   return list.map((r,i)=>{
     const visitNo = Number(r['ครั้งที่มาแล้ว']||0) + 1;
     const looseCount = Number(r['หลุดกี่ครั้ง']||0);
-    return (i+1)+'. '+(r['ชื่อ']||'')+' ('+(r.hn||'')+') - '+(r['หมอ']||'-')+
-      (r['นัดถัดไปเวลา'] ? ' - เวลา '+r['นัดถัดไปเวลา'] : '')+
-      ' - จะเป็นครั้งที่ '+visitNo+' - หลุดไปแล้ว '+looseCount+' ครั้ง';
+    const code = r['รหัสประจำตัว'] || r.hn || '';
+    const lastVisit = r['ปรับล่าสุด'] || r['วันเริ่ม'];
+    const lastD = lastVisit ? new Date(lastVisit) : null;
+    const apptD = new Date(dateStr);
+    const daysSinceLast = (lastD && !isNaN(lastD)) ? Math.round((apptD-lastD)/86400000) : null;
+    return (i+1)+'. '+
+      (r['ชื่อ']||'')+' ('+code+') - '+
+      'ครั้งที่ '+visitNo+
+      (daysSinceLast!==null ? ' - ห่างครั้งก่อน '+daysSinceLast+' วัน' : '')+
+      ' - เครื่องมือหลุดไปแล้ว '+looseCount+' ครั้ง'+
+      (r['นัดถัดไปเวลา'] ? ' - '+r['นัดถัดไปเวลา'] : '');
   });
 }
 
@@ -5580,7 +5588,7 @@ function orthoCardHtml(r){
       </div>
       <div style="text-align:right;font-size:12px;">
         <div>มาแล้ว <strong style="color:var(--wine);">${Number(r['ครั้งที่มาแล้ว']||0)}</strong> ครั้ง</div>
-        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${r['นัดถัดไป']}</div>`:''}
+        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${r['นัดถัดไป']}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']:''}</div>`:''}
         ${Number(r['หลุดกี่ครั้ง']||0)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${Number(r['หลุดกี่ครั้ง'])} ครั้ง</div>`:''}
       </div>
     </div>
