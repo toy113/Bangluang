@@ -35,6 +35,7 @@
   .tl-item:last-child{border-left-color:transparent;}
   .tl-item::before{content:'';position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--gold);border:2px solid #fff;box-shadow:0 0 0 2px var(--wine-pale);}
   .tl-date{font-size:12px;color:var(--gold);font-weight:700;}
+  .tl-visitno{font-size:13px;color:var(--wine);font-weight:800;}
   .tl-do{font-size:14px;font-weight:700;margin-top:2px;}
   .tl-sub{font-size:12px;color:var(--text-mid);margin-top:2px;}
   .pill{display:inline-block;background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin:2px 4px 0 0;}
@@ -237,8 +238,13 @@ function renderData(d){
   // timeline
   const logs = d.logs || [];
   if(logs.length){
-    $('d-timeline').innerHTML = logs.map(l=>`
+    let visitNo = logs.filter(l=> l['ทำอะไร'] !== 'เครื่องมือหลุด').length;
+    $('d-timeline').innerHTML = logs.map(l=>{
+      const isLoose = l['ทำอะไร'] === 'เครื่องมือหลุด';
+      const visitLabel = isLoose ? '' : `<div class="tl-visitno">ครั้งที่ ${visitNo--}</div>`;
+      return `
       <div class="tl-item">
+        ${visitLabel}
         <div class="tl-date">${thaiDateFull(l['วันที่'])||''}</div>
         <div class="tl-do">${l['ทำอะไร']||'—'}</div>
         <div class="tl-sub">
@@ -247,7 +253,8 @@ function renderData(d){
           ${l['หมอ']?`<span class="pill">${l['หมอ']}</span>`:''}
         </div>
         ${l['note']?`<div class="tl-sub">${l['note']}</div>`:''}
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   // contact
