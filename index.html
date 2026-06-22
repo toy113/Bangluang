@@ -5430,6 +5430,15 @@ function orthoOverdue_(r){
   return Math.round((Date.now()-d.getTime())/86400000) > 45;
 }
 
+function orthoMissedAppt_(r){
+  if(!r['นัดถัดไป']) return false;
+  const d = new Date(r['นัดถัดไป']);
+  if(isNaN(d)) return false;
+  const daysSince = Math.round((Date.now()-d.getTime())/86400000);
+  if(daysSince < 1 || daysSince > 5) return false; // โชว์ badge แค่ 5 วันหลังวันนัด
+  return r['ปรับล่าสุด'] !== r['นัดถัดไป']; // ไม่มีบันทึกการรักษา/เครื่องมือหลุดในวันนัดนั้น
+}
+
 function orthoStatusColor_(status){
   if(status==='เสร็จแล้ว') return {bg:'rgba(22,160,133,0.12)', color:'#16A085'};
   if(status==='หยุด/เลิกรักษา') return {bg:'rgba(120,120,120,0.12)', color:'#777777'};
@@ -5447,6 +5456,7 @@ function orthoCardHtml(r){
   const sc = orthoStatusColor_(status);
   const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
   const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 45 วัน</span>` : '';
+  const missedPill = (isActive && orthoMissedAppt_(r)) ? `<span style="background:#E67E22;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">⏰ ขาดนัด</span>` : '';
   return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
       <div>
@@ -5454,7 +5464,7 @@ function orthoCardHtml(r){
           ${r['รหัสประจำตัว']?`<span style="color:var(--wine);font-weight:700;font-size:13px;">${r['รหัสประจำตัว']}</span>`:''}
           <span style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'}</span>
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
-          ${statusPill}${overduePill}
+          ${statusPill}${overduePill}${missedPill}
         </div>
         <div style="font-size:12px;color:var(--text-mid);margin-top:4px;">${r['แบบจัด']||'—'} · ${r['หมอ']||'—'}${r['phase']?' · phase: '+r['phase']:''}</div>
         <div style="font-size:11px;margin-top:3px;">${bound}</div>

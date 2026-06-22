@@ -100,7 +100,7 @@
     <div class="card" id="sec-progress">
       <h3>📈 ความคืบหน้า</h3>
       <div class="progress-track" id="d-progwrap"><div class="progress-fill" id="d-progbar" style="width:0%"></div></div>
-      <div class="row" id="d-progrow"><span class="k">ความคืบหน้า</span><span class="v" id="d-progtext">—</span></div>
+      <div class="row" id="d-progrow"><span class="k" id="d-progrow-label">ความคืบหน้า</span><span class="v" id="d-progtext">—</span></div>
     </div>
 
     <div class="card" id="sec-loose">
@@ -208,12 +208,15 @@ function renderData(d){
     const count = (d.logs||[]).filter(l=> l['ทำอะไร'] !== 'เครื่องมือหลุด').length;
     const pct = Math.min(100, Math.round(count/28*100));
     $('d-progbar').style.width = pct + '%';
+    $('d-progrow-label').textContent = 'ความคืบหน้า';
     $('d-progtext').textContent = count + ' / 28 ครั้ง';
     $('d-progwrap').style.display = '';
     $('d-progrow').style.display = '';
   } else {
     $('d-progwrap').style.display = 'none';
-    $('d-progrow').style.display = 'none';
+    $('d-progrow-label').textContent = 'แผนการชำระ';
+    $('d-progtext').textContent = 'ชำระครั้งละ 1,500 บาทจนเสร็จ';
+    $('d-progrow').style.display = '';
   }
   // appt
   const hasAppt = !!p['นัดถัดไป'];
