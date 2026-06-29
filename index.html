@@ -5884,11 +5884,10 @@ async function openQuickLog(hn){
   let html = '';
   for(let i=1; i<=QLOG_SLOTS; i++){ html += qlogSlotHtml_(i); }
   document.getElementById('qlog-dates').innerHTML = html;
-  document.querySelector('#qlog-dates .qlog-date-input').value = todayStr();
   document.getElementById('modalQuickLog').classList.add('open');
 
-  // ดึงวันที่ปรับเครื่องมือที่มีอยู่แล้วจริงมาเติม (disabled) ให้เห็นว่าเชื่อมกับประวัติการรักษาจริง
-  // ไม่ใช่ช่องว่างลอยๆ — ช่องที่มีอยู่แล้วจะ disable กันกดบันทึกซ้ำ
+  // ดึงวันที่ปรับเครื่องมือที่มีอยู่แล้วจริงมาเติม ให้เห็นว่าเชื่อมกับประวัติการรักษาจริง
+  // ไม่ใช่ช่องว่างลอยๆ — ช่องที่มีอยู่แล้วจะเป็นสีส้มและแก้ไขวันที่ได้
   try{
     const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
     const res = await fetch(url+'?action=orthoLogsByHn&hn='+encodeURIComponent(hn), {cache:'no-store'});
@@ -5905,7 +5904,6 @@ async function openQuickLog(hn){
       inputs[i].classList.add('qlog-existing');
       inputs[i].dataset.origDate = dt;
     });
-    if(inputs.length > existingDates.length) inputs[existingDates.length].value = todayStr();
   }catch(e){ console.warn('loadQuickLogHistory error', e); }
 }
 
