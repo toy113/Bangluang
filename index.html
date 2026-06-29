@@ -1584,7 +1584,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 <div class="modal-overlay" id="modalReschedule">
   <div class="modal-box">
-    <div class="modal-title">📅 <span id="reschedModalTitle">เลื่อนนัด</span></div>
+    <div class="modal-title">📅 <span id="reschedModalTitle">ลงนัด</span></div>
     <button class="modal-close" onclick="closeModal('modalReschedule')">×</button>
     <input type="hidden" id="resched-hn">
     <div class="form-grid">
@@ -5727,6 +5727,7 @@ async function saveOrthoLog(){
     'ปรับล่าสุด': log['วันที่'],
     'ครั้งที่มาแล้ว': visits
   });
+  row._visitCount = visits; // กัน badge/การ์ดแสดงเลขเก่าค้างจนกว่าจะโหลดใหม่
   await Promise.all([
     orthoPost({action:'orthoLogAdd', log}),
     orthoPost({action:'orthoSave', row})
@@ -5793,6 +5794,7 @@ async function saveLoose(){
     'หลุดกี่ครั้ง': newCount,
     'ปรับล่าสุด': log['วันที่']
   });
+  row._looseCount = newCount; // กัน badge/การ์ดแสดงเลขเก่าค้างจนกว่าจะโหลดใหม่
   await Promise.all([
     orthoPost({action:'orthoLogAdd', log}),
     orthoPost({action:'orthoSave', row})
@@ -5806,7 +5808,7 @@ async function saveLoose(){
 
 function openReschedule(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
-  document.getElementById('reschedModalTitle').textContent = 'เลื่อนนัด — '+(r?.['ชื่อ']||hn);
+  document.getElementById('reschedModalTitle').textContent = 'ลงนัด — '+(r?.['ชื่อ']||hn);
   document.getElementById('resched-hn').value = hn;
   document.getElementById('resched-date').value = r?.['นัดถัดไป'] || '';
   document.getElementById('resched-time').value = r?.['นัดถัดไปเวลา'] || '';
@@ -5911,11 +5913,14 @@ async function saveQuickLog(){
   if(_qlogSaving) return;
   const hn = document.getElementById('qlog-hn').value;
   if(!hn) return;
-  const allInputs = Array.from(document.querySelectorAll('.qlog-date-input')).filter(i=>i.value);
-  const newInputs = allInputs.filter(i=> !i.dataset.origDate);
-  const changedInputs = allInputs.filter(i=> i.dataset.origDate && i.dataset.origDate !== i.value);
+  const all = Array.from(document.querySelectorAll('.qlog-date-input'));
+  const newInputs = all.filter(i=> !i.dataset.origDate && i.value);
+  const changedInputs = all.filter(i=> i.dataset.origDate && i.value && i.dataset.origDate !== i.value);
+  const removedInputs = all.filter(i=> i.dataset.origDate && !i.value);
   const newDates = newInputs.map(i=>i.value).sort();
-  if(!newDates.length && !changedInputs.length){ showToast('กรุณาเพิ่มหรือแก้ไขวันที่อย่างน้อย 1 วัน','error'); return; }
+  if(!newDates.length && !changedInputs.length && !removedInputs.length){
+    showToast('กรุณาเพิ่ม แก้ไข หรือลบวันที่อย่างน้อย 1 รายการ','error'); return;
+  }
   _qlogSaving = true;
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
   const r = idx>=0 ? orthoData[idx] : {hn};
@@ -5929,19 +5934,27 @@ async function saveQuickLog(){
     const updates = changedInputs.map(i=> ({ oldDate: i.dataset.origDate, newDate: i.value }));
     tasks.push(orthoPost({action:'orthoLogUpdateDatesBatch', hn, updates}));
   }
-  const lastDate = allInputs.map(i=>i.value).sort().slice(-1)[0];
-  const visits = orthoVisitCount_(r) + newDates.length;
+  if(removedInputs.length){
+    const dates = removedInputs.map(i=> i.dataset.origDate);
+    tasks.push(orthoPost({action:'orthoLogDeleteDatesBatch', hn, dates}));
+  }
+  const keptDates = all.filter(i=>i.value).map(i=>i.value).sort();
+  const lastDate = keptDates.length ? keptDates[keptDates.length-1] : r['ปรับล่าสุด'];
+  const visits = orthoVisitCount_(r) + newDates.length - removedInputs.length;
   const row = Object.assign({}, r, {
     'ปรับล่าสุด': lastDate,
-    'ครั้งที่มาแล้ว': visits
+    'ครั้งที่มาแล้ว': Math.max(0, visits)
   });
+  row._visitCount = row['ครั้งที่มาแล้ว']; // กัน badge/การ์ดแสดงเลขเก่าค้างจนกว่าจะโหลดใหม่
   tasks.push(orthoPost({action:'orthoSave', row}));
   await Promise.all(tasks);
   if(idx>=0) orthoData[idx] = row;
   // ไม่ปิด modal — ปล่อยให้เห็นวันที่ที่กรอกไว้ ช่องที่บันทึก/แก้แล้วจะกลายเป็นสีส้ม (ของเดิม) แก้ต่อได้อีก
+  // ช่องที่ลบแล้วกลับเป็นช่องว่างธรรมดา ไม่ใช่ของเดิมอีกต่อไป
   newInputs.forEach(i=>{ i.classList.add('qlog-existing'); i.dataset.origDate = i.value; });
   changedInputs.forEach(i=> i.dataset.origDate = i.value);
-  showToast('บันทึกสำเร็จ ('+(newDates.length+changedInputs.length)+' รายการ)');
+  removedInputs.forEach(i=>{ i.classList.remove('qlog-existing'); delete i.dataset.origDate; });
+  showToast('บันทึกสำเร็จ ('+(newDates.length+changedInputs.length+removedInputs.length)+' รายการ)');
   renderOrthoPage();
   if(document.getElementById('orthoCalendarBox').style.display !== 'none') renderOrthoCalendar();
   _qlogSaving = false;

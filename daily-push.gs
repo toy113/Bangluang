@@ -19,7 +19,6 @@
 var PUSH_HOUR = 8;   // ส่งเวลา 08:xx น.
 
 // จำนวนวันที่ต้องการเตือน — แก้ได้
-var APT_REMIND_DAYS  = [7, 1];    // เตือนก่อนนัด 7 วัน และ 1 วัน
 var ADJ_WARN_DAYS    = [35, 45];  // เตือนเมื่อไม่มา adjust นาน 35 / 45 วัน
 
 /* ============== MAIN ============== */
@@ -27,7 +26,6 @@ function dailyPush() {
   var today = todayDateStr_();
   Logger.log('=== dailyPush ' + today + ' ===');
   var sent = 0;
-  sent += sendAptReminders_(today, false);
   sent += sendAdjustReminders_(today, false);
   Logger.log('รวมส่ง ' + sent + ' ข้อความ');
 }
@@ -35,42 +33,10 @@ function dailyPush() {
 function dryRun() {
   var today = todayDateStr_();
   Logger.log('=== DRY RUN ' + today + ' (ไม่ส่ง LINE) ===');
-  sendAptReminders_(today, true);
   sendAdjustReminders_(today, true);
 }
 
-/* ============== 1) เตือนนัด ============== */
-function sendAptReminders_(today, dry) {
-  var rows = orthoSheetToObjects_(SHEET_ORTHO);
-  var sent = 0;
-
-  rows.forEach(function (r) {
-    if (!r.lineUserId || !r['นัดถัดไป']) return;
-    if (r['สถานะ'] && r['สถานะ'] !== 'กำลังจัด') return; // เคสเสร็จ/เลิกแล้ว ไม่ต้องเตือน
-    var aptDate = normDateStr_(r['นัดถัดไป']);
-    if (!aptDate) return;
-
-    APT_REMIND_DAYS.forEach(function (days) {
-      // วันนัด - days = วันที่ควรส่ง
-      var sendOn = addDays_(aptDate, -days);
-      if (sendOn !== today) return;
-
-      var key = 'apt:' + r.hn + ':' + aptDate + ':d' + days;
-      if (alreadySent_(key)) { Logger.log('skip(ส่งแล้ว) ' + key); return; }
-
-      var msg = days === 1
-        ? buildAptMsg1_(r, aptDate)
-        : buildAptMsg3_(r, aptDate, days);
-
-      Logger.log((dry ? '[DRY] ' : '') + 'ส่งเตือนนัด ' + days + 'วัน → ' + r['ชื่อ'] + ' (' + r.hn + ') นัด ' + aptDate);
-      if (!dry) { orthoPushLine_(r.lineUserId, [msg]); markSent_(key); }
-      sent++;
-    });
-  });
-  return sent;
-}
-
-/* ============== 2) เตือนเกินกำหนด adjust ============== */
+/* ============== เตือนเกินกำหนด adjust ============== */
 function sendAdjustReminders_(today, dry) {
   var orthos   = orthoSheetToObjects_(SHEET_ORTHO);
   var allLogs  = orthoSheetToObjects_(SHEET_ORTHO_LOG);
@@ -115,27 +81,6 @@ function sendAdjustReminders_(today, dry) {
 }
 
 /* ============== MESSAGE BUILDERS ============== */
-function buildAptMsg1_(r, date) {
-  return orthoTextMsg_(
-    '🦷 แจ้งเตือนจากคลินิกทันตกรรมบางหลวง\n\n' +
-    'คุณ' + (r['ชื่อ']||'') + ' มีนัดจัดฟันพรุ่งนี้\n' +
-    '📅 วันที่ ' + thaiDate_(date) + '\n' +
-    (r['หมอ'] ? '👩‍⚕️ ' + r['หมอ'] + '\n' : '') +
-    '\nหากไม่สะดวกเวลานี้  กรุณาแจ้งคลินิกล่วงหน้าด้วยนะคะ \n' +
-    'ทั้งนี้ แอดมินอาจจะทักไปสอบถามเปลี่ยนเวลานัดเพื่อให้เหมาะสมกับวันนั้นๆอีกครั้งค่ะ 🙏'
-  );
-}
-
-function buildAptMsg3_(r, date, days) {
-  return orthoTextMsg_(
-    '🦷 แจ้งเตือนจากคลินิกทันตกรรมบางหลวง\n\n' +
-    'คุณ' + (r['ชื่อ']||'') + ' มีนัดจัดฟันในอีก ' + days + ' วัน\n' +
-    '📅 วันที่ ' + thaiDate_(date) + '\n' +
-    (r['หมอ'] ? '👩‍⚕️ ' + r['หมอ'] + '\n' : '') +
-    '\nหากไม่สะดวก กรุณาโทรแจ้งล่วงหน้าด้วยนะคะ 🙏'
-  );
-}
-
 function buildAdjWarn_(r, days) {
   return orthoTextMsg_(
     '🦷 แจ้งเตือนจากคลินิกทันตกรรมบางหลวง(auto)\n\n' +
@@ -206,14 +151,6 @@ function diffDays_(from, to) {
   var b = new Date(to   + 'T00:00:00+07:00');
   return Math.round((b - a) / 86400000);
 }
-function thaiDate_(dateStr) {
-  var d = new Date(dateStr + 'T00:00:00+07:00');
-  var months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
-                'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  var days   = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
-  return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + (d.getFullYear()+543);
-}
-
 /* ============== TRIGGER SETUP ============== */
 function setupDailyTrigger() {
   // ลบ trigger ที่ชี้ dailyPush เดิมก่อน

@@ -50,6 +50,7 @@
   .center{text-align:center;}
   .muted{color:var(--text-light);font-size:13px;}
   .err{background:#fdecea;color:var(--red);padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none;}
+  .overdue-banner{background:#fdecea;color:var(--red);padding:12px 14px;border-radius:12px;font-size:13px;font-weight:700;line-height:1.6;text-align:center;margin-bottom:14px;display:none;}
   .spin{width:38px;height:38px;border:4px solid var(--wine-pale);border-top-color:var(--wine);border-radius:50%;animation:sp 0.8s linear infinite;margin:40px auto;}
   @keyframes sp{to{transform:rotate(360deg);}}
   .hide{display:none!important;}
@@ -89,6 +90,8 @@
     <div class="pmeta" id="d-meta">—</div>
   </div>
   <div class="wrap">
+
+    <div class="overdue-banner" id="overdueBanner">⚠️ คุณค้างมาปรับเครื่องมือเกิน 45 วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาด้วยนะคะ</div>
 
     <div class="card" id="sec-appt">
       <h3>📅 นัดครั้งถัดไป</h3>
@@ -202,6 +205,10 @@ function renderData(d){
   const p = d.profile || {};
   $('d-name').textContent = p['ชื่อ'] ? ('คุณ' + p['ชื่อ']) : 'คนไข้จัดฟัน';
   $('d-meta').textContent = [braceLabel(p['แบบจัด']), p['หมอ']].filter(Boolean).join(' · ') || '';
+  const lastAdjust = p['ปรับล่าสุด'] || p['วันเริ่ม'];
+  const lastAdjustD = lastAdjust ? new Date(lastAdjust) : null;
+  const isOverdue = lastAdjustD && !isNaN(lastAdjustD) && Math.round((Date.now()-lastAdjustD.getTime())/86400000) > 45;
+  $('overdueBanner').style.display = isOverdue ? '' : 'none';
   $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
   $('d-retainer').textContent = p['วันใส่รีเทนเนอร์'] ? thaiDateFull(p['วันใส่รีเทนเนอร์']) : '—';
   $('d-screw').textContent = p['ปักหมุด'] || 'ไม่ปัก';
