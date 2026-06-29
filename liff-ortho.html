@@ -207,9 +207,11 @@ function renderData(d){
   $('d-screw').textContent = p['ปักหมุด'] || 'ไม่ปัก';
   const looseLogs = (d.logs||[]).filter(l=> l['ทำอะไร'] === 'เครื่องมือหลุด');
   $('d-loose').textContent = looseLogs.length + ' ครั้ง';
-  $('d-loose-dates').innerHTML = looseLogs.map(l=>
-    `<div class="row"><span class="k">วันที่หลุด</span><span class="v">${thaiDateFull(l['วันที่'])}</span></div>`
-  ).join('');
+  $('d-loose-dates').innerHTML = looseLogs.map((l,i)=>{
+    const seq = looseLogs.length - i; // log เรียงใหม่สุดก่อน -> นับครั้งที่ 1 จากอันเก่าสุด
+    const fee = seq <= 3 ? 'ฟรี' : '500 บาท';
+    return `<div class="row"><span class="k">ครั้งที่ ${seq} — ${thaiDateFull(l['วันที่'])}</span><span class="v">${fee}</span></div>`;
+  }).join('');
 
   // progress — เฉพาะแผน "28 ครั้ง" ถึงมี progress bar (นับจาก log adjust จริง ไม่รวมเครื่องมือหลุด)
   if(p['แผนเดือน'] === '28 ครั้ง'){

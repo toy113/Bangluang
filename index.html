@@ -5874,7 +5874,7 @@ function addQuickLogSlot(){
   document.getElementById('qlog-dates').insertAdjacentHTML('beforeend', qlogSlotHtml_(n));
 }
 
-function openQuickLog(hn){
+async function openQuickLog(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('qlogModalTitle').textContent = 'ประวัติการรักษา — '+(r?.['ชื่อ']||hn);
   document.getElementById('qlog-hn').value = hn;
@@ -5883,6 +5883,23 @@ function openQuickLog(hn){
   document.getElementById('qlog-dates').innerHTML = html;
   document.querySelector('#qlog-dates .qlog-date-input').value = todayStr();
   document.getElementById('modalQuickLog').classList.add('open');
+
+  // ดึงวันที่ปรับเครื่องมือที่มีอยู่แล้วจริงมาเติม (disabled) ให้เห็นว่าเชื่อมกับประวัติการรักษาจริง
+  // ไม่ใช่ช่องว่างลอยๆ — ช่องที่มีอยู่แล้วจะ disable กันกดบันทึกซ้ำ
+  try{
+    const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
+    const res = await fetch(url+'?action=orthoLogsByHn&hn='+encodeURIComponent(hn), {cache:'no-store'});
+    const d = await res.json();
+    const logs = (d && d.ok && Array.isArray(d.logs)) ? d.logs : [];
+    const existingDates = logs.filter(l=> l['ทำอะไร']==='ปรับเครื่องมือ').map(l=> l['วันที่']).filter(Boolean).sort();
+    if(!existingDates.length) return;
+    while(document.querySelectorAll('#qlog-dates .qlog-date-input').length < existingDates.length){
+      addQuickLogSlot();
+    }
+    const inputs = document.querySelectorAll('#qlog-dates .qlog-date-input');
+    existingDates.forEach((dt,i)=>{ inputs[i].value = dt; inputs[i].disabled = true; });
+    if(inputs.length > existingDates.length) inputs[existingDates.length].value = todayStr();
+  }catch(e){ console.warn('loadQuickLogHistory error', e); }
 }
 
 async function saveQuickLog(){
