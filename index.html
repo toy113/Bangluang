@@ -1554,30 +1554,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>หมายเหตุ</label>
         <input class="form-control" id="olog-note" placeholder="หมายเหตุ">
       </div>
-      <div class="form-group">
-        <label>นัดครั้งถัดไป</label>
-        <input type="date" class="form-control" id="olog-nextappt">
-      </div>
-      <div class="form-group">
-        <label>เวลานัด</label>
-        <input class="form-control" id="olog-nextappttime" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" oninput="fmtTime24(this)">
-      </div>
-      <div class="form-group" style="grid-column:1/-1;">
-        <label>รายการนัดครั้งถัดไป (เลือกได้หลายอัน)</label>
-        <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-nextapptdo-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-nextapptdo-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-nextapptdo-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-nextapptdo-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-nextapptdo-chk" value="ปักหมุด"> ปักหมุด</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-nextapptdo-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-nextapptdo-chk" value="X-ray"> X-ray</label>
-        </div>
-      </div>
-      <div class="form-group" style="grid-column:1/-1;">
-        <label>หมายเหตุนัดครั้งถัดไป</label>
-        <input class="form-control" id="olog-nextapptnote" placeholder="หมายเหตุสำหรับนัดครั้งถัดไป">
-      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalOrthoLog')">ยกเลิก</button>
@@ -5712,13 +5688,8 @@ function openOrthoLog(hn, presetDate){
   document.getElementById('olog-doc').innerHTML = getDoctorOptions();
   document.getElementById('olog-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('olog-date').value = presetDate || todayStr();
-  document.getElementById('olog-nextappt').value = r?.['นัดถัดไป'] || '';
-  document.getElementById('olog-nextappttime').value = r?.['นัดถัดไปเวลา'] || '';
-  const nextDoSel = String(r?.['รายการนัดถัดไป']||'').split(',').map(s=>s.trim());
-  document.querySelectorAll('.olog-nextapptdo-chk').forEach(c=> c.checked = nextDoSel.includes(c.value));
   document.querySelectorAll('.olog-do-chk').forEach(c=> c.checked = (c.value==='ปรับเครื่องมือ'));
   document.getElementById('olog-note').value = '';
-  document.getElementById('olog-nextapptnote').value = r?.['หมายเหตุนัดถัดไป'] || '';
   document.getElementById('modalOrthoLog').classList.add('open');
 }
 
@@ -5739,10 +5710,6 @@ async function saveOrthoLog(){
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
   const visits = orthoVisitCount_(hn) + 1;
   const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
-    'นัดถัดไป': document.getElementById('olog-nextappt').value,
-    'นัดถัดไปเวลา': document.getElementById('olog-nextappttime').value,
-    'รายการนัดถัดไป': Array.from(document.querySelectorAll('.olog-nextapptdo-chk:checked')).map(c=>c.value).join(', '),
-    'หมายเหตุนัดถัดไป': document.getElementById('olog-nextapptnote').value.trim(),
     'ปรับล่าสุด': log['วันที่'],
     'ครั้งที่มาแล้ว': visits
   });
