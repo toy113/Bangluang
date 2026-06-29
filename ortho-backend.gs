@@ -69,6 +69,7 @@ function orthoRoutePost_(e) {
   if (action === 'orthoSave')   return orthoJsonOut_(orthoSave(body.row));     // admin: เพิ่ม/แก้ profile
   if (action === 'orthoLogAdd') return orthoJsonOut_(orthoLogAdd(body.log));   // admin: เพิ่ม log adjust
   if (action === 'orthoLogAddBatch') return orthoJsonOut_(orthoLogAddBatch(body.logs)); // admin: บันทึกย้อนหลายวันในคำสั่งเดียว
+  if (action === 'orthoLogUpdateDatesBatch') return orthoJsonOut_(orthoLogUpdateDatesBatch(body.hn, body.updates)); // admin: แก้วันที่ log เดิม
   if (action === 'orthoSetLine')return orthoJsonOut_(orthoSetLineId(body.hn, body.lineUserId)); // admin ผูกมือ (fallback)
 
   return null; // ไม่ใช่งานของ ortho
@@ -208,6 +209,33 @@ function orthoLogAddBatch(logs) {
   });
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, head.length).setValues(rows);
   return { ok: true, count: rows.length };
+}
+
+// แก้วันที่ของแถว log "ปรับเครื่องมือ" ที่มีอยู่แล้วหลายแถวในคำสั่งเดียว (กัน race condition แบบเดียวกับ
+// orthoLogAddBatch) — จับคู่ด้วย hn+วันที่เดิม แล้วเปลี่ยนเป็นวันที่ใหม่ ใช้กับการแก้ไขในหน้า "ประวัติการรักษา"
+function orthoLogUpdateDatesBatch(hn, updates) {
+  if (!hn || !Array.isArray(updates) || !updates.length) return { ok: false, error: 'missing_field' };
+  hn = orthoNormHN_(hn);
+  var sh = orthoGetSheet_(SHEET_ORTHO_LOG, ORTHO_LOG_HEADERS);
+  var data = sh.getDataRange().getValues();
+  var head = data[0];
+  var hnCol = head.indexOf('hn'), dateCol = head.indexOf('วันที่'), doCol = head.indexOf('ทำอะไร');
+  var usedRows = {};
+  var updated = 0;
+  updates.forEach(function (u) {
+    for (var r = 1; r < data.length; r++) {
+      if (usedRows[r]) continue;
+      var rowDate = data[r][dateCol];
+      var rowDateStr = rowDate instanceof Date ? Utilities.formatDate(rowDate, ORTHO_TZ, 'yyyy-MM-dd') : String(rowDate);
+      if (orthoNormHN_(data[r][hnCol]) === hn && data[r][doCol] === 'ปรับเครื่องมือ' && rowDateStr === u.oldDate) {
+        sh.getRange(r + 1, dateCol + 1).setValue(u.newDate);
+        usedRows[r] = true;
+        updated++;
+        break;
+      }
+    }
+  });
+  return { ok: true, updated: updated };
 }
 
 function orthoLogAdd(log) {

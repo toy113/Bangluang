@@ -375,6 +375,7 @@ tbody td { padding: 10px 14px; font-size: 13px; color: var(--text-mid); }
 }
 .form-control:focus { border-color: var(--wine-mid); background: #fff; box-shadow: 0 0 0 3px rgba(107,45,94,0.1); }
 select.form-control { cursor: pointer; }
+.qlog-existing { background: #FFF3E0; border-color: #E67E22; }
 .form-control-full { grid-column: 1 / -1; }
 
 /* PAYMENT SPLIT */
@@ -5470,13 +5471,13 @@ function orthoBuildDayLines_(dateStr){
     const lastVisit = r['ปรับล่าสุด'] || r['วันเริ่ม'];
     const lastD = lastVisit ? new Date(lastVisit) : null;
     const apptD = new Date(dateStr);
-    const daysSinceLast = (lastD && !isNaN(lastD)) ? Math.round((apptD-lastD)/86400000) : null;
+    const weeksSinceLast = (lastD && !isNaN(lastD)) ? Math.round((apptD-lastD)/86400000/7) : null;
     return (i+1)+'. '+
+      (r['นัดถัดไปเวลา'] ? r['นัดถัดไปเวลา']+' - ' : '')+
       (r['ชื่อ']||'')+' ('+code+') - '+
       'ครั้งที่ '+visitNo+
-      (daysSinceLast!==null ? ' - ห่างครั้งก่อน '+daysSinceLast+' วัน' : '')+
-      ' - เครื่องมือหลุดไปแล้ว '+looseCount+' ครั้ง'+
-      (r['นัดถัดไปเวลา'] ? ' - '+r['นัดถัดไปเวลา'] : '');
+      (weeksSinceLast!==null ? ' - ห่างครั้งก่อน '+weeksSinceLast+' สัปดาห์' : '')+
+      ' - เครื่องมือหลุดไปแล้ว '+looseCount+' ครั้ง';
   });
 }
 
@@ -5897,7 +5898,11 @@ async function openQuickLog(hn){
       addQuickLogSlot();
     }
     const inputs = document.querySelectorAll('#qlog-dates .qlog-date-input');
-    existingDates.forEach((dt,i)=>{ inputs[i].value = dt; inputs[i].disabled = true; });
+    existingDates.forEach((dt,i)=>{
+      inputs[i].value = dt;
+      inputs[i].classList.add('qlog-existing');
+      inputs[i].dataset.origDate = dt;
+    });
     if(inputs.length > existingDates.length) inputs[existingDates.length].value = todayStr();
   }catch(e){ console.warn('loadQuickLogHistory error', e); }
 }
@@ -5906,25 +5911,37 @@ async function saveQuickLog(){
   if(_qlogSaving) return;
   const hn = document.getElementById('qlog-hn').value;
   if(!hn) return;
-  const inputs = Array.from(document.querySelectorAll('.qlog-date-input:not(:disabled)')).filter(i=>i.value);
-  const dates = inputs.map(i=>i.value);
-  if(!dates.length){ showToast('กรุณาเพิ่มวันที่อย่างน้อย 1 วัน','error'); return; }
-  dates.sort();
+  const allInputs = Array.from(document.querySelectorAll('.qlog-date-input')).filter(i=>i.value);
+  const newInputs = allInputs.filter(i=> !i.dataset.origDate);
+  const changedInputs = allInputs.filter(i=> i.dataset.origDate && i.dataset.origDate !== i.value);
+  const newDates = newInputs.map(i=>i.value).sort();
+  if(!newDates.length && !changedInputs.length){ showToast('กรุณาเพิ่มหรือแก้ไขวันที่อย่างน้อย 1 วัน','error'); return; }
   _qlogSaving = true;
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
   const r = idx>=0 ? orthoData[idx] : {hn};
   const doc = r['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
-  const logs = dates.map(d=> ({ hn, 'วันที่': d, 'ทำอะไร': 'ปรับเครื่องมือ', 'หมอ': doc, 'note': '' }));
-  const visits = orthoVisitCount_(r) + dates.length;
+  const tasks = [];
+  if(newDates.length){
+    const logs = newDates.map(d=> ({ hn, 'วันที่': d, 'ทำอะไร': 'ปรับเครื่องมือ', 'หมอ': doc, 'note': '' }));
+    tasks.push(orthoPost({action:'orthoLogAddBatch', logs}));
+  }
+  if(changedInputs.length){
+    const updates = changedInputs.map(i=> ({ oldDate: i.dataset.origDate, newDate: i.value }));
+    tasks.push(orthoPost({action:'orthoLogUpdateDatesBatch', hn, updates}));
+  }
+  const lastDate = allInputs.map(i=>i.value).sort().slice(-1)[0];
+  const visits = orthoVisitCount_(r) + newDates.length;
   const row = Object.assign({}, r, {
-    'ปรับล่าสุด': dates[dates.length-1],
+    'ปรับล่าสุด': lastDate,
     'ครั้งที่มาแล้ว': visits
   });
-  await Promise.all([orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row})]);
+  tasks.push(orthoPost({action:'orthoSave', row}));
+  await Promise.all(tasks);
   if(idx>=0) orthoData[idx] = row;
-  // ไม่ปิด modal — ปล่อยให้เห็นวันที่ที่กรอกไว้ แต่ disable ช่องที่บันทึกไปแล้วกันกดซ้ำ
-  inputs.forEach(i=> i.disabled = true);
-  showToast('บันทึกย้อนสำเร็จ ('+dates.length+' ครั้ง)');
+  // ไม่ปิด modal — ปล่อยให้เห็นวันที่ที่กรอกไว้ ช่องที่บันทึก/แก้แล้วจะกลายเป็นสีส้ม (ของเดิม) แก้ต่อได้อีก
+  newInputs.forEach(i=>{ i.classList.add('qlog-existing'); i.dataset.origDate = i.value; });
+  changedInputs.forEach(i=> i.dataset.origDate = i.value);
+  showToast('บันทึกสำเร็จ ('+(newDates.length+changedInputs.length)+' รายการ)');
   renderOrthoPage();
   if(document.getElementById('orthoCalendarBox').style.display !== 'none') renderOrthoCalendar();
   _qlogSaving = false;
