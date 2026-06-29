@@ -27,7 +27,7 @@
   .row .v{font-weight:700;text-align:right;}
   .big{font-size:26px;font-weight:800;color:var(--wine);}
   #d-startdate{font-size:19px;}
-  #d-nextappt-date{color:var(--gold);}
+  #d-nextappt-date,#d-nextappt-time{color:var(--gold);}
   .progress-track{height:12px;background:var(--wine-pale);border-radius:8px;overflow:hidden;margin:10px 0 6px;}
   .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:8px;transition:width .6s;}
   .timeline{position:relative;padding-left:20px;}
@@ -53,7 +53,6 @@
   .spin{width:38px;height:38px;border:4px solid var(--wine-pale);border-top-color:var(--wine);border-radius:50%;animation:sp 0.8s linear infinite;margin:40px auto;}
   @keyframes sp{to{transform:rotate(360deg);}}
   .hide{display:none!important;}
-  .contact-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#fff;text-decoration:none;padding:13px;border-radius:12px;font-weight:700;font-size:15px;}
 </style>
 </head>
 <body>
@@ -62,7 +61,6 @@
 <script>
   const LIFF_ID = '2010461984-kt5dSgin';   // จาก LINE Developers > LIFF
   const API = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
-  const CLINIC_TEL = '0959476759';        // เบอร์คลินิก (ปุ่มติดต่อ)
 </script>
 
 <!-- LOADING -->
@@ -109,6 +107,7 @@
     <div class="card" id="sec-loose">
       <h3>🔧 จำนวนเครื่องมือที่หลุด</h3>
       <div class="center"><div class="big" id="d-loose">—</div></div>
+      <div id="d-loose-dates"></div>
       <p class="center muted" style="margin-top:6px;">ติดฟรี 3 ครั้งแรก ครั้งต่อไป 500 บาท</p>
     </div>
 
@@ -145,8 +144,6 @@
         <li>รีเทนเนอร์ ราคา 4,000 บาท</li>
       </ul>
     </div>
-
-    <a class="contact-btn" id="contactBtn" href="#">📞 โทรหาคลินิก</a>
   </div>
 </div>
 
@@ -206,11 +203,13 @@ function renderData(d){
   $('d-name').textContent = p['ชื่อ'] ? ('คุณ' + p['ชื่อ']) : 'คนไข้จัดฟัน';
   $('d-meta').textContent = [braceLabel(p['แบบจัด']), p['หมอ']].filter(Boolean).join(' · ') || '';
   $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
-  const hasRetainer = !!p['วันใส่รีเทนเนอร์'];
-  $('sec-retainer').style.display = hasRetainer ? '' : 'none';
-  if(hasRetainer) $('d-retainer').textContent = thaiDateFull(p['วันใส่รีเทนเนอร์']);
+  $('d-retainer').textContent = p['วันใส่รีเทนเนอร์'] ? thaiDateFull(p['วันใส่รีเทนเนอร์']) : '—';
   $('d-screw').textContent = p['ปักหมุด'] || 'ไม่ปัก';
-  $('d-loose').textContent = (d.logs||[]).filter(l=> l['ทำอะไร'] === 'เครื่องมือหลุด').length + ' ครั้ง';
+  const looseLogs = (d.logs||[]).filter(l=> l['ทำอะไร'] === 'เครื่องมือหลุด');
+  $('d-loose').textContent = looseLogs.length + ' ครั้ง';
+  $('d-loose-dates').innerHTML = looseLogs.map(l=>
+    `<div class="row"><span class="k">วันที่หลุด</span><span class="v">${thaiDateFull(l['วันที่'])}</span></div>`
+  ).join('');
 
   // progress — เฉพาะแผน "28 ครั้ง" ถึงมี progress bar (นับจาก log adjust จริง ไม่รวมเครื่องมือหลุด)
   if(p['แผนเดือน'] === '28 ครั้ง'){
@@ -262,9 +261,6 @@ function renderData(d){
       </div>`;
     }).join('');
   }
-
-  // contact
-  $('contactBtn').href = 'tel:' + CLINIC_TEL;
 
   // hash scroll (จาก rich menu)
   const map = {appt:'sec-appt', progress:'sec-progress', log:'sec-log'};

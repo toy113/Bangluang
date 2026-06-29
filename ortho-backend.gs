@@ -48,7 +48,6 @@ function orthoRouteGet_(e) {
   if (p.action === 'orthoGet')  return orthoJsonOut_(orthoGetByLineId(p.lineUserId));
   if (p.action === 'orthoBind') return orthoJsonOut_(orthoBind(p.lineUserId, p.idcode, p.phone));
   if (p.action === 'orthoList') return orthoJsonOut_(orthoList());      // ใช้ใน admin tab
-  if (p.action === 'orthoLogsAll') return orthoJsonOut_(orthoLogsAll()); // admin: log ทั้งหมด (นับครั้งจริงจาก log)
   if (p.action === 'orthoLogsByHn') return orthoJsonOut_(orthoLogsByHn(p.hn)); // admin: ดูประวัติการรักษา
   return null; // ไม่ใช่งานของ ortho
 }
@@ -129,12 +128,23 @@ function orthoGetByLineId(lineUserId) {
 }
 
 /* ===================== WRITE (admin tab) ===================== */
+// นับ _visitCount/_looseCount จาก ortho_log ให้แต่ละแถวในรอบเดียว (เลี่ยงดึง log ทั้งชีตไปนับฝั่ง client
+// ซึ่งช้าลงเรื่อยๆเมื่อ log โตขึ้น — เห็นผลจริงตอน log มีหลายร้อยแถวแล้วหน้าโหลดช้ามาก)
 function orthoList() {
-  return { ok: true, rows: orthoSheetToObjects_(SHEET_ORTHO) };
-}
-
-function orthoLogsAll() {
-  return { ok: true, logs: orthoSheetToObjects_(SHEET_ORTHO_LOG) };
+  var rows = orthoSheetToObjects_(SHEET_ORTHO);
+  var logs = orthoSheetToObjects_(SHEET_ORTHO_LOG);
+  var visitCount = {}, looseCount = {};
+  logs.forEach(function (l) {
+    var hn = String(l.hn);
+    if (l['ทำอะไร'] === 'เครื่องมือหลุด') looseCount[hn] = (looseCount[hn] || 0) + 1;
+    else visitCount[hn] = (visitCount[hn] || 0) + 1;
+  });
+  rows.forEach(function (r) {
+    var hn = String(r.hn);
+    r._visitCount = visitCount[hn] || 0;
+    r._looseCount = looseCount[hn] || 0;
+  });
+  return { ok: true, rows: rows };
 }
 
 function orthoLogsByHn(hn) {

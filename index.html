@@ -5393,7 +5393,6 @@ function logout(){
 //  ORTHO (จัดฟัน)
 // ============================================================
 let orthoData = [];
-let orthoAllLogs = [];
 let orthoSortDir = 'asc';
 
 function toggleOrthoSort(){
@@ -5414,23 +5413,18 @@ async function loadOrthoData(force){
   _orthoLoaded = true; // กัน retry loop ถ้า fetch ล้มเหลว
   try{
     const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
-    const [res, resLogs] = await Promise.all([
-      fetch(url+'?action=orthoList',{cache:'no-store'}),
-      fetch(url+'?action=orthoLogsAll',{cache:'no-store'})
-    ]);
+    const res = await fetch(url+'?action=orthoList',{cache:'no-store'});
     const d = await res.json();
     if(d && d.ok && Array.isArray(d.rows)) orthoData = d.rows;
-    const dl = await resLogs.json();
-    if(dl && dl.ok && Array.isArray(dl.logs)) orthoAllLogs = dl.logs;
   }catch(e){ console.warn('loadOrtho error',e); }
 }
 
-// นับครั้งจริงจาก ortho_log (ไม่ใช้ค่าที่เก็บไว้ในชีต ortho) กันเลขเพี้ยนเวลาลบแถวใน log ตรงๆ
-function orthoVisitCount_(hn){
-  return orthoAllLogs.filter(l=> String(l.hn)===String(hn) && l['ทำอะไร'] !== 'เครื่องมือหลุด').length;
+// นับครั้งจริงจาก ortho_log คำนวณไว้แล้วฝั่ง backend (orthoList) ติดมากับแถว — ไม่ต้องดึง log ทั้งชีตมานับฝั่งนี้
+function orthoVisitCount_(r){
+  return Number(r?._visitCount||0);
 }
-function orthoLooseCount_(hn){
-  return orthoAllLogs.filter(l=> String(l.hn)===String(hn) && l['ทำอะไร'] === 'เครื่องมือหลุด').length;
+function orthoLooseCount_(r){
+  return Number(r?._looseCount||0);
 }
 
 /* ===================== ปฏิทินนัด ===================== */
@@ -5470,8 +5464,8 @@ function orthoBuildDayLines_(dateStr){
   const list = (orthoApptsByDate_()[dateStr] || []).slice()
     .sort((a,b)=> String(a['นัดถัดไปเวลา']||'').localeCompare(String(b['นัดถัดไปเวลา']||'')));
   return list.map((r,i)=>{
-    const visitNo = orthoVisitCount_(r.hn) + 1;
-    const looseCount = orthoLooseCount_(r.hn);
+    const visitNo = orthoVisitCount_(r) + 1;
+    const looseCount = orthoLooseCount_(r);
     const code = r['รหัสประจำตัว'] || r.hn || '';
     const lastVisit = r['ปรับล่าสุด'] || r['วันเริ่ม'];
     const lastD = lastVisit ? new Date(lastVisit) : null;
@@ -5631,9 +5625,9 @@ function orthoCardHtml(r){
         <div style="font-size:11px;margin-top:3px;">${bound}</div>
       </div>
       <div style="text-align:right;font-size:12px;">
-        <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r.hn)}</strong> ครั้ง</div>
+        <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r)}</strong> ครั้ง</div>
         ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${r['นัดถัดไป']}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']:''}</div>`:''}
-        ${orthoLooseCount_(r.hn)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r.hn)} ครั้ง</div>`:''}
+        ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
@@ -5727,7 +5721,7 @@ async function saveOrthoLog(){
     'note': document.getElementById('olog-note').value.trim()
   };
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
-  const visits = orthoVisitCount_(hn) + 1;
+  const visits = orthoVisitCount_(idx>=0?orthoData[idx]:null) + 1;
   const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
     'ปรับล่าสุด': log['วันที่'],
     'ครั้งที่มาแล้ว': visits
@@ -5777,7 +5771,7 @@ function openLooseModal(hn){
   document.getElementById('looseModalTitle').textContent = 'เครื่องมือหลุด — '+(r?.['ชื่อ']||hn);
   document.getElementById('loose-hn').value = hn;
   document.getElementById('loose-date').value = todayStr();
-  const count = orthoLooseCount_(hn);
+  const count = orthoLooseCount_(r);
   document.getElementById('loose-hint').textContent = 'ผ่านมาหลุดแล้ว '+count+' ครั้ง — ครั้งนี้จะเป็นครั้งที่ '+(count+1)+' ('+((count+1)<=3?'ฟรี':'เก็บ 500 บาท')+')';
   document.getElementById('modalLoose').classList.add('open');
 }
@@ -5788,7 +5782,7 @@ async function saveLoose(){
   if(!hn) return;
   _looseSaving = true;
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
-  const newCount = orthoLooseCount_(hn) + 1;
+  const newCount = orthoLooseCount_(idx>=0?orthoData[idx]:null) + 1;
   const log = {
     hn,
     'วันที่': document.getElementById('loose-date').value || todayStr(),
@@ -5836,7 +5830,7 @@ async function saveReschedule(){
   await orthoPost({action:'orthoSave', row});
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalReschedule');
-  showToast('เลื่อนนัดสำเร็จ');
+  showToast('นัดสำเร็จ');
   renderOrthoPage();
   _reschedSaving = false;
 }
@@ -5904,7 +5898,7 @@ async function saveQuickLog(){
   const r = idx>=0 ? orthoData[idx] : {hn};
   const doc = r['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   const logs = dates.map(d=> ({ hn, 'วันที่': d, 'ทำอะไร': 'ปรับเครื่องมือ', 'หมอ': doc, 'note': '' }));
-  const visits = orthoVisitCount_(hn) + dates.length;
+  const visits = orthoVisitCount_(r) + dates.length;
   const row = Object.assign({}, r, {
     'ปรับล่าสุด': dates[dates.length-1],
     'ครั้งที่มาแล้ว': visits
