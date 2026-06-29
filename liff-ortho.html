@@ -128,6 +128,11 @@
       <div class="timeline" id="d-timeline"><p class="muted">ยังไม่มีบันทึก</p></div>
     </div>
 
+    <div class="card" id="sec-retainer">
+      <h3>🦷 วันใส่รีเทนเนอร์</h3>
+      <div class="center"><div class="big" id="d-retainer">—</div></div>
+    </div>
+
     <div class="card" id="sec-care">
       <h3>📝 หมายเหตุ</h3>
       <ul class="care">
@@ -201,6 +206,9 @@ function renderData(d){
   $('d-name').textContent = p['ชื่อ'] ? ('คุณ' + p['ชื่อ']) : 'คนไข้จัดฟัน';
   $('d-meta').textContent = [braceLabel(p['แบบจัด']), p['หมอ']].filter(Boolean).join(' · ') || '';
   $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
+  const hasRetainer = !!p['วันใส่รีเทนเนอร์'];
+  $('sec-retainer').style.display = hasRetainer ? '' : 'none';
+  if(hasRetainer) $('d-retainer').textContent = thaiDateFull(p['วันใส่รีเทนเนอร์']);
   $('d-screw').textContent = p['ปักหมุด'] || 'ไม่ปัก';
   $('d-loose').textContent = (d.logs||[]).filter(l=> l['ทำอะไร'] === 'เครื่องมือหลุด').length + ' ครั้ง';
 

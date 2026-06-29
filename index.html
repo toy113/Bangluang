@@ -1619,6 +1619,24 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalRetainer">
+  <div class="modal-box">
+    <div class="modal-title">🦷 <span id="retainerModalTitle">วันใส่รีเทนเนอร์</span></div>
+    <button class="modal-close" onclick="closeModal('modalRetainer')">×</button>
+    <input type="hidden" id="retainer-hn">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันใส่รีเทนเนอร์</label>
+        <input type="date" class="form-control" id="retainer-date">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalRetainer')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveRetainer()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOrthoHistory">
   <div class="modal-box">
     <div class="modal-title">🦷 <span id="historyModalTitle">ประวัติการรักษา</span></div>
@@ -5389,6 +5407,7 @@ let _ologSaving = false;
 let _looseSaving = false;
 let _reschedSaving = false;
 let _qlogSaving = false;
+let _retainerSaving = false;
 
 async function loadOrthoData(force){
   if(_orthoLoaded && !force) return;
@@ -5619,9 +5638,9 @@ function orthoCardHtml(r){
     </div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
-      <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}')">➕ บันทึกการรักษา</button>
       <button class="btn btn-ghost btn-sm" onclick="openQuickLog('${hnEsc}')">⚡ ประวัติปรับเครื่องมือ</button>
-      <button class="btn btn-ghost btn-sm" onclick="openReschedule('${hnEsc}')">📅 เลื่อนนัด</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReschedule('${hnEsc}')">📅 นัดถัดไป</button>
+      <button class="btn btn-ghost btn-sm" onclick="openRetainer('${hnEsc}')">🦷 ใส่รีเทนเนอร์</button>
       <button class="btn btn-ghost btn-sm" onclick="openLooseModal('${hnEsc}')">🔧 เครื่องมือหลุด</button>
     </div>
   </div>`;
@@ -5822,6 +5841,31 @@ async function saveReschedule(){
   _reschedSaving = false;
 }
 
+function openRetainer(hn){
+  const r = orthoData.find(x=> String(x.hn)===String(hn));
+  document.getElementById('retainerModalTitle').textContent = 'วันใส่รีเทนเนอร์ — '+(r?.['ชื่อ']||hn);
+  document.getElementById('retainer-hn').value = hn;
+  document.getElementById('retainer-date').value = r?.['วันใส่รีเทนเนอร์'] || todayStr();
+  document.getElementById('modalRetainer').classList.add('open');
+}
+
+async function saveRetainer(){
+  if(_retainerSaving) return;
+  const hn = document.getElementById('retainer-hn').value;
+  if(!hn) return;
+  _retainerSaving = true;
+  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
+  const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
+    'วันใส่รีเทนเนอร์': document.getElementById('retainer-date').value
+  });
+  await orthoPost({action:'orthoSave', row});
+  if(idx>=0) orthoData[idx] = row;
+  closeModal('modalRetainer');
+  showToast('บันทึกวันใส่รีเทนเนอร์สำเร็จ');
+  renderOrthoPage();
+  _retainerSaving = false;
+}
+
 const QLOG_SLOTS = 28;
 
 function qlogSlotHtml_(i){
@@ -5851,7 +5895,8 @@ async function saveQuickLog(){
   if(_qlogSaving) return;
   const hn = document.getElementById('qlog-hn').value;
   if(!hn) return;
-  const dates = Array.from(document.querySelectorAll('.qlog-date-input')).map(i=>i.value).filter(Boolean);
+  const inputs = Array.from(document.querySelectorAll('.qlog-date-input:not(:disabled)')).filter(i=>i.value);
+  const dates = inputs.map(i=>i.value);
   if(!dates.length){ showToast('กรุณาเพิ่มวันที่อย่างน้อย 1 วัน','error'); return; }
   dates.sort();
   _qlogSaving = true;
@@ -5866,7 +5911,8 @@ async function saveQuickLog(){
   });
   await Promise.all([orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row})]);
   if(idx>=0) orthoData[idx] = row;
-  closeModal('modalQuickLog');
+  // ไม่ปิด modal — ปล่อยให้เห็นวันที่ที่กรอกไว้ แต่ disable ช่องที่บันทึกไปแล้วกันกดซ้ำ
+  inputs.forEach(i=> i.disabled = true);
   showToast('บันทึกย้อนสำเร็จ ('+dates.length+' ครั้ง)');
   renderOrthoPage();
   if(document.getElementById('orthoCalendarBox').style.display !== 'none') renderOrthoCalendar();
