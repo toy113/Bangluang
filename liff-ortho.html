@@ -208,7 +208,7 @@ function renderData(d){
   const lastAdjust = p['ปรับล่าสุด'] || p['วันเริ่ม'];
   const lastAdjustD = lastAdjust ? new Date(lastAdjust) : null;
   const isOverdue = lastAdjustD && !isNaN(lastAdjustD) && Math.round((Date.now()-lastAdjustD.getTime())/86400000) > 45;
-  $('overdueBanner').style.display = isOverdue ? '' : 'none';
+  $('overdueBanner').style.display = isOverdue ? 'block' : 'none';
   $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
   $('d-retainer').textContent = p['วันใส่รีเทนเนอร์'] ? thaiDateFull(p['วันใส่รีเทนเนอร์']) : '—';
   $('d-screw').textContent = p['ปักหมุด'] || 'ไม่ปัก';
