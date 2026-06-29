@@ -1512,7 +1512,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 <div class="modal-overlay" id="modalQuickLog">
   <div class="modal-box">
-    <div class="modal-title">⚡ <span id="qlogModalTitle">บันทึกย้อน</span></div>
+    <div class="modal-title">⚡ <span id="qlogModalTitle">ประวัติการรักษา</span></div>
     <button class="modal-close" onclick="closeModal('modalQuickLog')">×</button>
     <input type="hidden" id="qlog-hn">
     <div class="form-grid" id="qlog-dates" style="max-height:55vh;overflow-y:auto;"></div>
@@ -5876,7 +5876,7 @@ function addQuickLogSlot(){
 
 function openQuickLog(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
-  document.getElementById('qlogModalTitle').textContent = 'บันทึกย้อน — '+(r?.['ชื่อ']||hn);
+  document.getElementById('qlogModalTitle').textContent = 'ประวัติการรักษา — '+(r?.['ชื่อ']||hn);
   document.getElementById('qlog-hn').value = hn;
   let html = '';
   for(let i=1; i<=QLOG_SLOTS; i++){ html += qlogSlotHtml_(i); }
