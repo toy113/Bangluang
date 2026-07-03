@@ -19,7 +19,7 @@
 var PUSH_HOUR = 8;   // ส่งเวลา 08:xx น.
 
 // จำนวนวันที่ต้องการเตือน — แก้ได้
-var ADJ_WARN_DAYS    = [35, 45];  // เตือนเมื่อไม่มา adjust นาน 35 / 45 วัน
+var ADJ_WARN_DAYS    = [35, 60];  // เตือนเมื่อไม่มา adjust นาน 35 / 60 วัน
 
 /* ============== MAIN ============== */
 function dailyPush() {
@@ -69,7 +69,7 @@ function sendAdjustReminders_(today, dry) {
       if (alreadySent_(key)) { Logger.log('skip(ส่งแล้ว) ' + key); return; }
 
       var msg = threshold === ADJ_WARN_DAYS[ADJ_WARN_DAYS.length - 1]
-        ? buildAdjUrgent_(r, threshold)   // วันสูงสุด (45) = urgent
+        ? buildAdjUrgent_(r, threshold)   // วันสูงสุด (60) = urgent
         : buildAdjWarn_(r, threshold);    // วันกลาง (35) = แจ้งเตือน
 
       Logger.log((dry ? '[DRY] ' : '') + 'เตือน adj ' + threshold + 'วัน → ' + r['ชื่อ'] + ' (ไม่มาตั้งแต่ ' + base + ')');
@@ -86,7 +86,7 @@ function buildAdjWarn_(r, days) {
     '🦷 แจ้งเตือนจากคลินิกทันตกรรมบางหลวง(auto)\n\n' +
     'คุณ' + (r['ชื่อ']||'') + ' ผ่านมา ' + days + ' วันแล้ว\n' +
     'นับตั้งแต่ครั้งล่าสุดที่มาปรับเครื่องมือ\n' +
-    'หากเกิน 45 วัน  จะเสียสิทธิ์ในการได้โปรชำระ 28ครั้งค่ะ\n\n' +
+    'หากเกิน 60 วัน  จะเสียสิทธิ์ในการได้โปรชำระ 28ครั้งค่ะ\n\n' +
     'ควรนัดมาพบหมอเพื่อปรับเครื่องมือ ตามแผนการรักษานะคะ\n' +
     'ติดต่อคลินิกเพื่อนัดได้เลยค่ะ 😊'
   );

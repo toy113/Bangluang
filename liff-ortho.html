@@ -91,7 +91,7 @@
   </div>
   <div class="wrap">
 
-    <div class="overdue-banner" id="overdueBanner">⚠️ คุณค้างมาปรับเครื่องมือเกิน 45 วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาด้วยนะคะ</div>
+    <div class="overdue-banner" id="overdueBanner">⚠️ คุณค้างมาปรับเครื่องมือเกิน 60 วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาด้วยนะคะ</div>
 
     <div class="card" id="sec-appt">
       <h3>📅 นัดครั้งถัดไป</h3>
@@ -143,7 +143,7 @@
         <li>ถ้าลวดหลุด/ทิ่มแก้ม ใช้ขี้ผึ้ง (wax) กดไว้ แล้วรีบติดต่อคลินิก</li>
         <li>ใส่ยาง (elastic) ตามที่หมอสั่งอย่างสม่ำเสมอ จะช่วยให้ตรงตามแผน</li>
         <li>มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น</li>
-        <li>กรณีมาปรับเครื่องมือห่างเกิน 45 วัน ขอสงวนสิทธิ์ยกเลิกโปร 28 ครั้ง</li>
+        <li>กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์ยกเลิกโปร 28 ครั้ง</li>
         <li>รีเทนเนอร์ ราคา 4,000 บาท</li>
       </ul>
     </div>
@@ -207,7 +207,7 @@ function renderData(d){
   $('d-meta').textContent = [braceLabel(p['แบบจัด']), p['หมอ']].filter(Boolean).join(' · ') || '';
   const lastAdjust = p['ปรับล่าสุด'] || p['วันเริ่ม'];
   const lastAdjustD = lastAdjust ? new Date(lastAdjust) : null;
-  const isOverdue = lastAdjustD && !isNaN(lastAdjustD) && Math.round((Date.now()-lastAdjustD.getTime())/86400000) > 45;
+  const isOverdue = lastAdjustD && !isNaN(lastAdjustD) && Math.round((Date.now()-lastAdjustD.getTime())/86400000) > 60;
   $('overdueBanner').style.display = isOverdue ? 'block' : 'none';
   $('d-startdate').textContent = p['วันเริ่ม'] ? thaiDateFull(p['วันเริ่ม']) : '—';
   $('d-retainer').textContent = p['วันใส่รีเทนเนอร์'] ? thaiDateFull(p['วันใส่รีเทนเนอร์']) : '—';

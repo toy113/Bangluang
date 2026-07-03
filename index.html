@@ -1070,7 +1070,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <option value="หยุด/เลิกรักษา">หยุด/เลิกรักษา</option>
             </select>
             <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--red);cursor:pointer;">
-              <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน 45 วัน
+              <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน 60 วัน
             </label>
             <button class="btn btn-ghost btn-sm" id="orthoSortBtn" onclick="toggleOrthoSort()">รหัส ↑</button>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
@@ -1256,11 +1256,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>ชื่อ-สกุล</label>
-        <input class="form-control" id="apt-name" placeholder="ชื่อผู้ป่วย">
+        <input class="form-control" id="apt-name" placeholder="ชื่อผู้ป่วย" oninput="autoFillByName(this.value,'apt')">
       </div>
       <div class="form-group">
         <label>เบอร์โทรศัพท์</label>
-        <input class="form-control" id="apt-phone" placeholder="0xx-xxx-xxxx" type="tel" inputmode="numeric" maxlength="12" oninput="fmtPhone(this)">
+        <input class="form-control" id="apt-phone" placeholder="0xx-xxx-xxxx" type="tel" inputmode="numeric" maxlength="12" oninput="fmtPhone(this);autoFillByPhone(this.value,'apt')">
       </div>
 
       <div class="form-group form-control-full">
@@ -4498,6 +4498,34 @@ function saveDayNote(date, val){
   syncToSheet('day_notes', { id: date, date: date, note: val||'' });
 }
 
+function autoFillByName(rawName, prefix){
+  const q = rawName.trim();
+  if(q.length < 2) return;
+  const matches = patients.filter(p => p.name && p.name.toLowerCase().includes(q.toLowerCase()) && (p.hn || p.phone));
+  if(matches.length !== 1) return; // ถ้ามีหลายคนชื่อคล้ายกัน ไม่เดา
+  const found = matches[0];
+  const hnEl    = document.getElementById(prefix+'-hn');
+  const phoneEl = document.getElementById(prefix+'-phone');
+  const hint    = document.getElementById(prefix+'-hn-hint');
+  if(hnEl && found.hn) hnEl.value = found.hn;
+  if(phoneEl && found.phone) phoneEl.value = found.phone;
+  if(hint) hint.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${found.name}${found.hn?' | HN: '+found.hn:''}</span>`;
+}
+
+function autoFillByPhone(rawPhone, prefix){
+  const digits = rawPhone.replace(/\D/g,'');
+  if(digits.length < 9) return;
+  const tail = digits.slice(-9);
+  const found = patients.find(p => p.phone && p.phone.replace(/\D/g,'').slice(-9) === tail && p.name);
+  if(!found) return;
+  const hnEl   = document.getElementById(prefix+'-hn');
+  const nameEl = document.getElementById(prefix+'-name');
+  const hint   = document.getElementById(prefix+'-hn-hint');
+  if(nameEl && found.name) nameEl.value = found.name;
+  if(hnEl && found.hn) hnEl.value = found.hn;
+  if(hint) hint.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${found.name}${found.hn?' | HN: '+found.hn:''}</span>`;
+}
+
 function autoFillPatient(hn, prefix){
   const hint = document.getElementById(prefix+'-hn-hint');
   if(!hn || String(hn).trim().length < 1){
@@ -5583,7 +5611,7 @@ function orthoOverdue_(r){
   if(!last) return false;
   const d = new Date(last);
   if(isNaN(d)) return false;
-  return Math.round((Date.now()-d.getTime())/86400000) > 45;
+  return Math.round((Date.now()-d.getTime())/86400000) > 60;
 }
 
 function orthoMissedAppt_(r){
@@ -5611,7 +5639,7 @@ function orthoCardHtml(r){
   const overdue = isActive && orthoOverdue_(r);
   const sc = orthoStatusColor_(status);
   const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
-  const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 45 วัน</span>` : '';
+  const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 60 วัน</span>` : '';
   const missedPill = (isActive && orthoMissedAppt_(r)) ? `<span style="background:#E67E22;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">⏰ ขาดนัด</span>` : '';
   return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
