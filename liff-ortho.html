@@ -111,7 +111,7 @@
       <h3>🔧 จำนวนเครื่องมือที่หลุด</h3>
       <div class="center"><div class="big" id="d-loose">—</div></div>
       <div id="d-loose-dates"></div>
-      <p class="center muted" style="margin-top:6px;">ติดฟรี 3 ครั้งแรก ครั้งต่อไป 500 บาท</p>
+      <p class="center muted" style="margin-top:6px;">ติดฟรี 3 ครั้งแรก ครั้งต่อไป 300 บาท</p>
     </div>
 
     <div class="card" id="sec-screw">
@@ -216,7 +216,7 @@ function renderData(d){
   $('d-loose').textContent = looseLogs.length + ' ครั้ง';
   $('d-loose-dates').innerHTML = looseLogs.map((l,i)=>{
     const seq = looseLogs.length - i; // log เรียงใหม่สุดก่อน -> นับครั้งที่ 1 จากอันเก่าสุด
-    const fee = seq <= 3 ? 'ฟรี' : '500 บาท';
+    const fee = seq <= 3 ? 'ฟรี' : '300 บาท';
     return `<div class="row"><span class="k">ครั้งที่ ${seq} — ${thaiDateFull(l['วันที่'])}</span><span class="v">${fee}</span></div>`;
   }).join('');
 
