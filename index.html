@@ -823,6 +823,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon">📊</span>สรุปรายได้</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon">🧪</span>ค่าแลป</button>
       <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon">😬</span>จัดฟัน</button>
+      <button class="nav-item" onclick="showPage('insight')" id="nav-insight" style="display:none;"><span class="nav-icon">📈</span>สรุปรายสัปดาห์</button>
       <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -865,6 +866,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
       <button class="top-tab" id="ttab-ortho" style="display:none;" onclick="showPage('ortho')"><span class="mn-icon">😬</span>จัดฟัน</button>
+      <button class="top-tab" id="ttab-insight" style="display:none;" onclick="showPage('insight')"><span class="mn-icon">📈</span>สรุปรายสัปดาห์</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -1089,6 +1091,18 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
         <div id="orthoList" style="padding:8px;"></div>
       </div>
+    </div>
+
+    <!-- ===== WEEKLY INSIGHT PAGE (Manager only) ===== -->
+    <div class="page" id="page-insight">
+      <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div class="section-title"><span>📈</span>สรุปรายสัปดาห์ (AI)</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span id="insightLastGen" style="font-size:12px;color:var(--text-light);"></span>
+          <button class="btn btn-primary" id="btnGenInsight" onclick="generateInsight()">🔄 สร้างสรุปใหม่</button>
+        </div>
+      </div>
+      <div id="insightBody"></div>
     </div>
 
     <div class="page" id="page-lab">
@@ -1935,7 +1949,7 @@ function startApp(){
   if(iyr) iyr.value = now.getFullYear()+543;
 
   // Show settings + schedule tab for manager only
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho','nav-insight','ttab-insight'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
@@ -1952,7 +1966,7 @@ function startApp(){
   buildSettingsPage();
   // Load all data from Sheet on startup
   // Show page immediately, sync in background
-  const managerOnlyPages = ['settings','schedule','ortho'];
+  const managerOnlyPages = ['settings','schedule','ortho','insight'];
   let lastPage = localStorage.getItem('bl_lastPage') || 'home';
   // ถ้าหมอ restore ไปหน้า manager-only ให้ redirect ไปหน้าหลักแทน
   if(!isManager && managerOnlyPages.includes(lastPage)) lastPage = 'home';
@@ -2033,7 +2047,7 @@ function showPage(p){
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
   localStorage.setItem('bl_lastPage', p);
-  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน'};
+  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',insight:'📈 สรุปรายสัปดาห์'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
   if(p==='treatment') renderTreatPage();
@@ -2045,6 +2059,7 @@ function showPage(p){
     syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
   }
   if(p==='recall') renderRecall();
+  if(p==='insight') renderInsight();
   if(p==='schedule'){
     const el = document.getElementById('schDate');
     if(el && !el.value) el.value = todayStr();
@@ -3227,6 +3242,7 @@ async function syncAll(){
       const colorMap = {};
       const noteWriteTs = JSON.parse(localStorage.getItem('bl_note_write_ts')||'{}');
       const now = Date.now();
+      let noteWriteTsChanged = false;
       d.day_notes.forEach(r=>{
         if(!r.date) return;
         const key = String(r.date).trim();
@@ -3234,8 +3250,20 @@ async function syncAll(){
           const date = key.replace('__color__','');
           if(r.note) colorMap[date] = r.note;
         } else {
-          // ถ้าเพิ่ง write ไปไม่เกิน 30 วิ → ไม่ทับ
-          if(noteWriteTs[key] && (now - noteWriteTs[key]) < 30000) return;
+          // ถ้าเพิ่ง write ไป ให้เช็คว่า Sheet ตามค่าที่เรา save ทันหรือยัง
+          // (แทนที่จะเดาด้วยเวลาลอย ๆ 30 วิ ซึ่งถ้า Apps Script ช้ากว่านั้น
+          //  จะทำให้ค่าเก่าจาก Sheet มาทับค่าที่เพิ่งพิมพ์ไป)
+          if(noteWriteTs[key]){
+            const pending = dayNotes[key]||'';
+            const fromSheet = r.note||'';
+            if(fromSheet === pending){
+              delete noteWriteTs[key]; // Sheet ตามทันแล้ว เลิก guard
+              noteWriteTsChanged = true;
+            } else if((now - noteWriteTs[key]) < 300000){
+              // ยังไม่ตรงกัน และยังไม่เกิน 5 นาที → เชื่อค่า local ไปก่อน
+              return;
+            }
+          }
           // ถ้า input โน้ตวันนั้น focus อยู่ → ไม่ทับ
           const activeEl = document.activeElement;
           if(activeEl && activeEl.classList.contains('cal-note-input') && activeEl.dataset.date === key) return;
@@ -3243,6 +3271,9 @@ async function syncAll(){
           else delete dayNotes[key];
         }
       });
+      if(noteWriteTsChanged){
+        try{ localStorage.setItem('bl_note_write_ts', JSON.stringify(noteWriteTs)); }catch(e){}
+      }
       try {
         const existing = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
         Object.assign(existing, colorMap);
@@ -5408,6 +5439,147 @@ function renderRecallSummary(wait, done, urgent, total){
   </div>`;
 }
 
+// ============================================================
+//  WEEKLY INSIGHT (สรุปรายสัปดาห์ + โปรโมชั่นจาก Claude — manager กดเองเท่านั้น)
+//  ตั้งใจไม่ผูกกับ syncAll()/setInterval 4 วิ เพราะการ generate เรียก Claude API มีค่าใช้จ่ายจริง
+//  โหลดข้อมูลแค่ตอนเปิดหน้า (ผ่าน showPage → renderInsight) และตอนกดปุ่มสร้างใหม่เท่านั้น
+// ============================================================
+let _lastInsight = null;
+
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function fmtInsightTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('th-TH',{day:'numeric',month:'short',timeZone:'Asia/Bangkok'}) + ' ' + d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+}
+
+async function renderInsight(){
+  const body = document.getElementById('insightBody');
+  const lastGenEl = document.getElementById('insightLastGen');
+  if(!body) return;
+  body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);">⏳ กำลังโหลด...</div>`;
+  try {
+    const res = await fetch(APPS_SCRIPT_URL+'?action=getInsight',{cache:'no-store'});
+    const d = await res.json();
+    if(!d.found){
+      body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);">ยังไม่มีสรุป กด "สร้างสรุปใหม่" เพื่อเริ่มต้น</div>`;
+      if(lastGenEl) lastGenEl.textContent = '';
+      _lastInsight = null;
+      return;
+    }
+    _lastInsight = d;
+    if(lastGenEl) lastGenEl.textContent = 'อัปเดตล่าสุด: ' + fmtInsightTime(d.generatedAt);
+    body.innerHTML = buildInsightHtml(d);
+  } catch(e){
+    body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">⚠️ โหลดไม่สำเร็จ</div>`;
+  }
+}
+
+async function generateInsight(){
+  let force = false;
+  if(_lastInsight && _lastInsight.generatedAt){
+    const ageMin = (Date.now() - new Date(_lastInsight.generatedAt).getTime()) / 60000;
+    if(ageMin < 5){
+      if(!confirm(`สร้างสรุปไปแล้วเมื่อ ${Math.max(0,Math.round(ageMin))} นาทีก่อน ต้องการสร้างใหม่อีกครั้งหรือไม่? (ใช้ Claude API เพิ่ม 1 ครั้ง)`)) return;
+      force = true;
+    }
+  }
+  const genBtn = document.getElementById('btnGenInsight');
+  const body = document.getElementById('insightBody');
+  if(genBtn){ genBtn.disabled = true; genBtn.textContent = '⏳ กำลังวิเคราะห์...'; }
+  if(body) body.style.opacity = '0.5';
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type:'generate_insight', data:{ force } })
+    });
+    // ไม่ใช้ mode:'no-cors' ตรงนี้ (ต่างจาก syncToSheet) เพราะต้องอ่าน response กลับมาแสดงผลจริง
+    const d = await resp.json();
+    if(d.error){ showToast('สร้างสรุปไม่สำเร็จ: '+d.error,'error'); return; }
+    if(d.alreadyRecent) showToast('ใช้สรุปล่าสุดที่มีอยู่แล้ว (สร้างไปเมื่อครู่)');
+    else showToast('สร้างสรุปสำเร็จ ✅');
+    await renderInsight();
+  } catch(e){
+    showToast('สร้างสรุปไม่สำเร็จ (เชื่อมต่อไม่ได้)','error');
+  } finally {
+    if(genBtn){ genBtn.disabled = false; genBtn.textContent = '🔄 สร้างสรุปใหม่'; }
+    if(body) body.style.opacity = '';
+  }
+}
+
+function buildInsightHtml(d){
+  const s = d.stats || {};
+  const tw = s.thisWeek || {cases:0,revenue:0,byDoc:{},topProcs:[]};
+  const lw = s.lastWeekSameDays || {cases:0,revenue:0,byDoc:{},topProcs:[]};
+  const apt = s.appointments || {thisWeek:{total:0,cancelled:0,cancelRate:0}};
+  const overdue = s.ssoRecallOverdueCount || 0;
+
+  const pctDelta = (a,b) => b>0 ? Math.round(((a-b)/b)*100) : (a>0?100:0);
+  const deltaBadge = (a,b) => {
+    const pct = pctDelta(a,b);
+    const color = pct>0 ? 'var(--green)' : (pct<0 ? 'var(--red)' : 'var(--text-light)');
+    return `<span style="color:${color};font-size:12px;font-weight:700;">${pct>0?'+':''}${pct}%</span>`;
+  };
+
+  let html = `<div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="stat-card purple"><div class="stat-icon">💰</div><div class="stat-label">รายได้สัปดาห์นี้</div><div class="stat-value">${fmt(tw.revenue)}</div><div class="stat-sub">${deltaBadge(tw.revenue,lw.revenue)} เทียบสัปดาห์ก่อน</div></div>
+    <div class="stat-card green"><div class="stat-icon">📋</div><div class="stat-label">เคสรักษา</div><div class="stat-value">${tw.cases}</div><div class="stat-sub">${deltaBadge(tw.cases,lw.cases)} เทียบสัปดาห์ก่อน</div></div>
+    <div class="stat-card gold"><div class="stat-icon">❌</div><div class="stat-label">อัตรายกเลิกนัด</div><div class="stat-value">${Math.round((apt.thisWeek.cancelRate||0)*100)}%</div><div class="stat-sub">${apt.thisWeek.cancelled}/${apt.thisWeek.total} นัด</div></div>
+    <div class="stat-card rose"><div class="stat-icon">🔔</div><div class="stat-label">ประกันสังคมค้าง recall</div><div class="stat-value">${overdue}</div><div class="stat-sub">คน (เกิน ~11 เดือน)</div></div>
+  </div>`;
+
+  const docNames = Object.keys(tw.byDoc||{}).sort((a,b)=>(tw.byDoc[b].revenue||0)-(tw.byDoc[a].revenue||0));
+  const docRows = docNames.map(name=>{
+    const a = tw.byDoc[name]||{cases:0,revenue:0};
+    const b = (lw.byDoc||{})[name]||{cases:0,revenue:0};
+    return `<tr><td style="color:${docColor(name)};font-weight:700;">${escapeHtml(name)}</td><td style="text-align:right;">${a.cases}</td><td style="text-align:right;">${fmt(a.revenue)}</td><td style="text-align:right;">${deltaBadge(a.revenue,b.revenue)}</td></tr>`;
+  }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--text-light);">ไม่มีข้อมูล</td></tr>`;
+
+  const procRows = (tw.topProcs||[]).map(p=>`<tr><td>${escapeHtml(p.name)}</td><td style="text-align:right;">${p.cases}</td><td style="text-align:right;">${fmt(p.revenue)}</td></tr>`).join('')
+    || `<tr><td colspan="3" style="text-align:center;color:var(--text-light);">ไม่มีข้อมูล</td></tr>`;
+
+  html += `<div class="card-box" style="margin-top:20px;">
+    <div class="card-box-hdr"><div class="card-box-title">👨‍⚕️ รายได้แยกตามหมอ (สัปดาห์นี้)</div></div>
+    <div style="padding:16px 20px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="color:var(--text-light);text-align:left;"><th>หมอ</th><th style="text-align:right;">เคส</th><th style="text-align:right;">รายได้</th><th style="text-align:right;">เทียบสัปดาห์ก่อน</th></tr></thead>
+        <tbody>${docRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+
+  html += `<div class="card-box" style="margin-top:16px;">
+    <div class="card-box-hdr"><div class="card-box-title">🦷 หัตถการยอดนิยม (สัปดาห์นี้)</div></div>
+    <div style="padding:16px 20px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="color:var(--text-light);text-align:left;"><th>หัตถการ</th><th style="text-align:right;">เคส</th><th style="text-align:right;">รายได้</th></tr></thead>
+        <tbody>${procRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+
+  html += `<div class="card-box" style="margin-top:16px;">
+    <div class="card-box-hdr"><div class="card-box-title">📝 สรุปภาพรวม</div></div>
+    <div style="padding:16px 20px;font-size:14px;line-height:1.7;color:var(--text-dark);">${escapeHtml(d.summary)}</div>
+  </div>`;
+
+  const promos = Array.isArray(d.promos) ? d.promos : [];
+  html += `<div class="card-box" style="margin-top:16px;">
+    <div class="card-box-hdr"><div class="card-box-title">💡 ไอเดียโปรโมชั่น</div></div>
+    <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
+      ${promos.map(p=>`<div style="background:rgba(107,45,94,0.04);border:1px solid var(--border);border-radius:10px;padding:14px;">
+        <div style="font-weight:700;color:var(--wine-dark);margin-bottom:6px;">${escapeHtml(p.title)}</div>
+        <div style="font-size:13px;color:var(--text-mid);line-height:1.6;">${escapeHtml(p.detail)}</div>
+      </div>`).join('') || '<div style="color:var(--text-light);">ไม่มีข้อเสนอ</div>'}
+    </div>
+  </div>`;
+
+  return html;
+}
 
 function logout(){
   if(!confirm('ออกจากระบบ?')) return;
@@ -5417,7 +5589,7 @@ function logout(){
   // ซ่อน tab manager-only ก่อนกลับหน้า login
   ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
    'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome',
-   'nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho'].forEach(id=>{
+   'nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho','nav-insight','ttab-insight'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });
