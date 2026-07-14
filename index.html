@@ -5493,16 +5493,11 @@ async function generateInsight(){
   if(genBtn){ genBtn.disabled = true; genBtn.textContent = '⏳ กำลังวิเคราะห์...'; }
   if(body) body.style.opacity = '0.5';
   try {
-    const resp = await fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      // Content-Type: text/plain (ไม่ใช่ application/json) เพื่อให้เป็น "simple request"
-      // ไม่ trigger CORS preflight (OPTIONS) ซึ่ง Apps Script ไม่รองรับ — ถ้าใช้ application/json
-      // เบราว์เซอร์จะยิง preflight ก่อน แล้วโดนบล็อกเพราะไม่มี doOptions ทำให้ fetch พัง (เชื่อมต่อไม่ได้)
-      // ฝั่ง Code.gs อ่าน e.postData.contents ตรง ๆ อยู่แล้ว ไม่สนใจ Content-Type ที่ประกาศมา
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({ type:'generate_insight', data:{ force } })
-    });
-    // ไม่ใช้ mode:'no-cors' ตรงนี้ (ต่างจาก syncToSheet) เพราะต้องอ่าน response กลับมาแสดงผลจริง
+    // ใช้ GET แทน POST: POST ปกติ (ไม่ใช่ no-cors) ไปยัง Apps Script exec URL ข้าม origin
+    // โดน redirect ไป script.googleusercontent.com แล้วเบราว์เซอร์บล็อกก่อนถึง server เลย
+    // (ไปไม่ถึงแม้แต่ execution log) — GET ไม่มีปัญหานี้ เพราะ syncAll()/getAll ก็เป็น GET
+    // แบบเดียวกันแล้วใช้งานได้ปกติอยู่แล้ว
+    const resp = await fetch(APPS_SCRIPT_URL+'?action=generateInsight&force='+(force?'true':'false'), {cache:'no-store'});
     const d = await resp.json();
     if(d.error){ showToast('สร้างสรุปไม่สำเร็จ: '+d.error,'error'); return; }
     if(d.alreadyRecent) showToast('ใช้สรุปล่าสุดที่มีอยู่แล้ว (สร้างไปเมื่อครู่)');

@@ -349,46 +349,6 @@ function doPost(e) {
       return ContentService.createTextOutput('ok');
     }
 
-    // GENERATE WEEKLY INSIGHT (เรียก Claude API วิเคราะห์ + เสนอโปรโมชั่น — manager กดเองเท่านั้น)
-    if (data.type === 'generate_insight') {
-      var lock = LockService.getScriptLock();
-      lock.waitLock(30000);
-      try {
-        var bounds = getWeekBounds_(new Date());
-        var sh = getInsightSheet_();
-        var vals = sh.getDataRange().getValues();
-        var rowIdx = -1;
-        for (var vi = 1; vi < vals.length; vi++) {
-          if (String(vals[vi][0]) === bounds.thisWeekStart) { rowIdx = vi + 1; break; }
-        }
-        var force = !!(data.data && data.data.force);
-        // กันสร้างซ้ำถี่เกินไป (กดรัว / สองคนกดพร้อมกัน) เว้นแต่ client ยืนยัน force มา
-        if (rowIdx > 0 && !force) {
-          var existingGeneratedAt = vals[rowIdx-1][1];
-          var ageMs = new Date() - new Date(existingGeneratedAt);
-          if (ageMs < 5*60*1000) {
-            return ContentService.createTextOutput(JSON.stringify({
-              alreadyRecent: true, weekStart: bounds.thisWeekStart, generatedAt: existingGeneratedAt,
-              stats: JSON.parse(vals[rowIdx-1][2]||'{}'), summary: vals[rowIdx-1][3], promos: JSON.parse(vals[rowIdx-1][4]||'[]')
-            })).setMimeType(ContentService.MimeType.JSON);
-          }
-        }
-        var stats = computeWeeklyStats_(bounds);
-        var result = generateWeeklyInsight_(stats);
-        var generatedAt = new Date().toISOString(); // UTC ISO ชัดเจน กัน client แปลผิดเป็น local time ของเครื่องดู
-        var row = [bounds.thisWeekStart, generatedAt, JSON.stringify(stats), result.summary, JSON.stringify(result.promos)];
-        if (rowIdx < 1) sh.appendRow(row);
-        else sh.getRange(rowIdx,1,1,row.length).setValues([row]);
-        return ContentService.createTextOutput(JSON.stringify({
-          ok: true, weekStart: bounds.thisWeekStart, generatedAt: generatedAt, stats: stats, summary: result.summary, promos: result.promos
-        })).setMimeType(ContentService.MimeType.JSON);
-      } catch (err) {
-        return ContentService.createTextOutput(JSON.stringify({ error: err.message })).setMimeType(ContentService.MimeType.JSON);
-      } finally {
-        lock.releaseLock();
-      }
-    }
-
     // APPOINTMENTS / TREATMENTS / LABS
     var sh;
     if (data.type === 'appointments') sh = ss.getSheetByName('ตารางนัด');
@@ -494,6 +454,50 @@ function doGet(e) {
         found: true, weekStart: last[0], generatedAt: last[1],
         stats: JSON.parse(last[2]||'{}'), summary: last[3], promos: JSON.parse(last[4]||'[]')
       })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // สร้างสรุปรายสัปดาห์ (เรียก Claude API) — manager กดเองเท่านั้น
+    // หมายเหตุ: ตั้งใจให้เป็น doGet ไม่ใช่ doPost เพราะ POST ปกติ (ไม่ใช่ no-cors) ไปยัง
+    // Apps Script exec URL ข้าม origin แล้วโดน redirect ไป script.googleusercontent.com
+    // เบราว์เซอร์จะบล็อกก่อนถึง server เลย (ไปไม่ถึงแม้แต่ execution log) — GET ไม่มีปัญหานี้
+    // เพราะ syncAll()/getAll ก็เป็น GET แบบเดียวกันแล้วใช้งานได้ปกติอยู่แล้ว
+    if (p.action === 'generateInsight') {
+      var lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        var bounds = getWeekBounds_(new Date());
+        var sh2 = getInsightSheet_();
+        var vals2 = sh2.getDataRange().getValues();
+        var rowIdx = -1;
+        for (var vi = 1; vi < vals2.length; vi++) {
+          if (String(vals2[vi][0]) === bounds.thisWeekStart) { rowIdx = vi + 1; break; }
+        }
+        var force = p.force === 'true';
+        // กันสร้างซ้ำถี่เกินไป (กดรัว / สองคนกดพร้อมกัน) เว้นแต่ client ยืนยัน force มา
+        if (rowIdx > 0 && !force) {
+          var existingGeneratedAt = vals2[rowIdx-1][1];
+          var ageMs = new Date() - new Date(existingGeneratedAt);
+          if (ageMs < 5*60*1000) {
+            return ContentService.createTextOutput(JSON.stringify({
+              alreadyRecent: true, weekStart: bounds.thisWeekStart, generatedAt: existingGeneratedAt,
+              stats: JSON.parse(vals2[rowIdx-1][2]||'{}'), summary: vals2[rowIdx-1][3], promos: JSON.parse(vals2[rowIdx-1][4]||'[]')
+            })).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+        var stats = computeWeeklyStats_(bounds);
+        var result = generateWeeklyInsight_(stats);
+        var generatedAt = new Date().toISOString(); // UTC ISO ชัดเจน กัน client แปลผิดเป็น local time ของเครื่องดู
+        var row = [bounds.thisWeekStart, generatedAt, JSON.stringify(stats), result.summary, JSON.stringify(result.promos)];
+        if (rowIdx < 1) sh2.appendRow(row);
+        else sh2.getRange(rowIdx,1,1,row.length).setValues([row]);
+        return ContentService.createTextOutput(JSON.stringify({
+          ok: true, weekStart: bounds.thisWeekStart, generatedAt: generatedAt, stats: stats, summary: result.summary, promos: result.promos
+        })).setMimeType(ContentService.MimeType.JSON);
+      } catch (err) {
+        return ContentService.createTextOutput(JSON.stringify({ error: err.message })).setMimeType(ContentService.MimeType.JSON);
+      } finally {
+        lock.releaseLock();
+      }
     }
 
     return ContentService.createTextOutput('Bangluang Dental API ready');
