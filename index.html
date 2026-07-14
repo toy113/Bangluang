@@ -5494,7 +5494,12 @@ async function generateInsight(){
   if(body) body.style.opacity = '0.5';
   try {
     const resp = await fetch(APPS_SCRIPT_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST',
+      // Content-Type: text/plain (ไม่ใช่ application/json) เพื่อให้เป็น "simple request"
+      // ไม่ trigger CORS preflight (OPTIONS) ซึ่ง Apps Script ไม่รองรับ — ถ้าใช้ application/json
+      // เบราว์เซอร์จะยิง preflight ก่อน แล้วโดนบล็อกเพราะไม่มี doOptions ทำให้ fetch พัง (เชื่อมต่อไม่ได้)
+      // ฝั่ง Code.gs อ่าน e.postData.contents ตรง ๆ อยู่แล้ว ไม่สนใจ Content-Type ที่ประกาศมา
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ type:'generate_insight', data:{ force } })
     });
     // ไม่ใช้ mode:'no-cors' ตรงนี้ (ต่างจาก syncToSheet) เพราะต้องอ่าน response กลับมาแสดงผลจริง
