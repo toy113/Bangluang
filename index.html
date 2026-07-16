@@ -713,6 +713,37 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 #schSlotScrollWrap { scrollbar-width: auto; scrollbar-color: var(--wine) #e8d8e4; transform: rotateX(180deg); }
 #schSlotScrollWrap > #schSlotView { transform: rotateX(180deg); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* ใบรับรองแพทย์: ซ่อนไว้ปกติ โชว์เฉพาะตอนสั่งพิมพ์ — ซ่อนทุกอย่างอื่นบนหน้าตอนพิมพ์ */
+#certPrintArea { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  #certPrintArea, #certPrintArea * { visibility: visible; }
+  #certPrintArea { display: block; position: absolute; top: 0; left: 0; width: 100%; }
+  @page { size: A4; margin: 0; }
+}
+.cert-paper { font-family: 'Sarabun', sans-serif; color: var(--text-dark); width: 210mm; min-height: 297mm; padding: 20mm 18mm; box-sizing: border-box; }
+.cert-letterhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--gold); }
+.cert-lh-name { font-size: 17px; font-weight: 800; color: var(--wine-dark); }
+.cert-lh-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+.cert-lh-right { text-align: right; font-size: 10.5px; color: var(--text-light); line-height: 1.6; }
+.cert-doc-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-light); margin-top: 10px; }
+.cert-title { text-align: center; margin: 20px 0 6px; }
+.cert-title h2 { margin: 0; font-size: 21px; font-weight: 800; color: var(--wine-dark); }
+.cert-title-en { font-size: 10px; color: var(--text-light); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+.cert-body { font-size: 13px; line-height: 2; color: var(--text-dark); text-align: justify; margin-top: 16px; }
+.cert-fill { display: inline-block; min-width: 70px; border-bottom: 1px solid var(--text-light); padding: 0 3px; font-weight: 700; color: var(--wine-dark); }
+.cert-fact-grid { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; background: var(--wine-glass); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; }
+.cert-fact { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.cert-fact .k { color: var(--text-light); }
+.cert-fact .v { font-weight: 700; color: var(--text-dark); text-align: right; }
+.cert-purpose { margin-top: 16px; font-size: 12.5px; color: var(--text-dark); }
+.cert-footer { margin-top: 40px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; align-items: end; }
+.cert-seal { width: 84px; height: 84px; border-radius: 50%; border: 1.5px dashed var(--gold); display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9px; color: var(--wine); line-height: 1.4; }
+.cert-sign { text-align: center; }
+.cert-sign-line { border-bottom: 1px solid var(--text-light); height: 36px; margin-bottom: 6px; }
+.cert-sign-name { font-size: 13px; font-weight: 800; color: var(--text-dark); }
+.cert-sign-role { font-size: 10.5px; color: var(--text-light); margin-top: 2px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -823,7 +854,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon">📊</span>สรุปรายได้</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon">🧪</span>ค่าแลป</button>
       <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon">😬</span>จัดฟัน</button>
-      <button class="nav-item" onclick="showPage('insight')" id="nav-insight" style="display:none;"><span class="nav-icon">📈</span>สรุปรายสัปดาห์</button>
       <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -866,7 +896,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
       <button class="top-tab" id="ttab-ortho" style="display:none;" onclick="showPage('ortho')"><span class="mn-icon">😬</span>จัดฟัน</button>
-      <button class="top-tab" id="ttab-insight" style="display:none;" onclick="showPage('insight')"><span class="mn-icon">📈</span>สรุปรายสัปดาห์</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -904,7 +933,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           </div>
         </div>
         <table>
-          <thead><tr><th>เวลา</th><th>HN</th><th>ชื่อ</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th></tr></thead>
+          <thead><tr><th>เวลา</th><th>HN</th><th>ชื่อ</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th><th>ใบรับรอง</th></tr></thead>
           <tbody id="treatListBody"></tbody>
         </table>
       </div>
@@ -986,7 +1015,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           </div>
         </div>
         <table>
-          <thead id="treatPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ-สกุล</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th><th id="treatPageColMgr">จัดการ</th></tr></thead>
+          <thead id="treatPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ-สกุล</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th><th>ใบรับรอง</th><th id="treatPageColMgr">จัดการ</th></tr></thead>
           <tbody id="treatPageBody"></tbody>
         </table>
       </div>
@@ -1091,18 +1120,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
         <div id="orthoList" style="padding:8px;"></div>
       </div>
-    </div>
-
-    <!-- ===== WEEKLY INSIGHT PAGE (Manager only) ===== -->
-    <div class="page" id="page-insight">
-      <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-        <div class="section-title"><span>📈</span>สรุปรายสัปดาห์ (AI)</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span id="insightLastGen" style="font-size:12px;color:var(--text-light);"></span>
-          <button class="btn btn-primary" id="btnGenInsight" onclick="generateInsight()">🔄 สร้างสรุปใหม่</button>
-        </div>
-      </div>
-      <div id="insightBody"></div>
     </div>
 
     <div class="page" id="page-lab">
@@ -1392,6 +1409,65 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     </div>
   </div>
 </div>
+
+<!-- ใบรับรองแพทย์ -->
+<div class="modal-overlay" id="modalCertificate">
+  <div class="modal-box">
+    <div class="modal-title">🖨️ ออกใบรับรองแพทย์</div>
+    <button class="modal-close" onclick="closeModal('modalCertificate')">×</button>
+    <input type="hidden" id="cert-treatId">
+    <div style="background:var(--cream);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;">
+      <div><b id="cert-patName-display"></b> · HN <span id="cert-hn-display"></span></div>
+      <div id="cert-proc-display" style="color:var(--text-mid);"></div>
+      <div style="color:var(--text-light);font-size:12px;">วันที่รักษา <span id="cert-treatDate-display"></span></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>อายุคนไข้ (ปี)</label>
+        <input type="number" class="form-control" id="cert-age" min="0" max="120">
+      </div>
+      <div class="form-group">
+        <label>ทันตแพทย์ผู้ตรวจ</label>
+        <select class="form-control" id="cert-doc"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+        <input type="checkbox" id="cert-needsRest" onchange="toggleCertRestFields()" style="width:16px;height:16px;">
+        ควรหยุดพักรักษาตัว
+      </label>
+    </div>
+    <div id="cert-rest-fields" style="display:none;">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>จำนวนวันที่ควรพัก</label>
+          <input type="number" class="form-control" id="cert-restDays" min="1" max="30" value="1" oninput="calcCertRestEnd()">
+        </div>
+        <div class="form-group">
+          <label>ตั้งแต่วันที่</label>
+          <input type="date" class="form-control" id="cert-restStart" onchange="calcCertRestEnd()">
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text-light);margin:-6px 0 10px;">ถึงวันที่ <b id="cert-restEnd-display">—</b></div>
+    </div>
+    <div class="form-group">
+      <label>ออกให้เพื่อ</label>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="ลาป่วยต่อนายจ้าง/สถานศึกษา" checked> ลาป่วยต่อนายจ้าง/สถานศึกษา</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="ยื่นเบิกประกันสุขภาพ"> ยื่นเบิกประกันสุขภาพ</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="อื่นๆ"> อื่นๆ</label>
+      </div>
+    </div>
+    <div id="cert-status-note" style="font-size:12px;color:var(--text-light);min-height:16px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalCertificate')">ยกเลิก</button>
+      <button class="btn btn-primary" id="btnIssueCert" onclick="issueCertificateAndPrint()">🖨️ ออกใบรับรอง + พิมพ์</button>
+    </div>
+  </div>
+</div>
+
+<!-- ใบรับรองแพทย์ที่จะพิมพ์ (ซ่อนไว้ปกติ โชว์เฉพาะตอนพิมพ์ผ่าน @media print) -->
+<div id="certPrintArea"></div>
 
 <!-- ADD LAB -->
 <div class="modal-overlay" id="modalLab">
@@ -1763,13 +1839,13 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KF
 //  DOCTORS & AUTH
 // ============================================================
 const DOCTORS_DATA = [
-  { id:'toy',   name:'หมอทอย',  pin:'1111', emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6' },
-  { id:'mind',  name:'หมอมายด์', pin:'6465', emoji:'👩‍⚕️', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C' },
-  { id:'koi',   name:'หมอก้อย',  pin:'9677', emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085' },
-  { id:'pong',  name:'หมอป้อง',  pin:'3467', emoji:'👨‍⚕️', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3' },
-  { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   pin:'7699', emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400' },
-  { id:'khao',  name:'หมอข้าว',  pin:'8986', emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#27AE60' },
-  { id:'part',  name:'หมอพาร์ท', pin:'8888', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B' },
+  { id:'toy',   name:'หมอทอย',  pin:'1111', emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'ทพ.สรวิศ สุภาพ',           licenseNo:'ท.12951' },
+  { id:'mind',  name:'หมอมายด์', pin:'6465', emoji:'👩‍⚕️', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'ทพ.ภาคภูมิ สุนทราภิรมย์',     licenseNo:'ท.12927' },
+  { id:'koi',   name:'หมอก้อย',  pin:'9677', emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'ทพญ.พัทธนันท์ กฐินหอม',      licenseNo:'ท.21491' },
+  { id:'pong',  name:'หมอป้อง',  pin:'3467', emoji:'👨‍⚕️', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'ทพ.สหพล หังสพฤกษ์',          licenseNo:'ท.15323' },
+  { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   pin:'7699', emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'ทพญ.วัจน์กร เสือดี',          licenseNo:'ท.12942' },
+  { id:'khao',  name:'หมอข้าว',  pin:'8986', emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#27AE60', fullName:'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์', licenseNo:'ท.12957' },
+  { id:'part',  name:'หมอพาร์ท', pin:'8888', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B', fullName:'',                          licenseNo:'' },
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', pin:'1234', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
@@ -1949,7 +2025,7 @@ function startApp(){
   if(iyr) iyr.value = now.getFullYear()+543;
 
   // Show settings + schedule tab for manager only
-  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho','nav-insight','ttab-insight'].forEach(id=>{
+  ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule','nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
@@ -1966,7 +2042,7 @@ function startApp(){
   buildSettingsPage();
   // Load all data from Sheet on startup
   // Show page immediately, sync in background
-  const managerOnlyPages = ['settings','schedule','ortho','insight'];
+  const managerOnlyPages = ['settings','schedule','ortho'];
   let lastPage = localStorage.getItem('bl_lastPage') || 'home';
   // ถ้าหมอ restore ไปหน้า manager-only ให้ redirect ไปหน้าหลักแทน
   if(!isManager && managerOnlyPages.includes(lastPage)) lastPage = 'home';
@@ -2047,7 +2123,7 @@ function showPage(p){
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
   localStorage.setItem('bl_lastPage', p);
-  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',insight:'📈 สรุปรายสัปดาห์'};
+  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
   if(p==='treatment') renderTreatPage();
@@ -2059,7 +2135,6 @@ function showPage(p){
     syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
   }
   if(p==='recall') renderRecall();
-  if(p==='insight') renderInsight();
   if(p==='schedule'){
     const el = document.getElementById('schDate');
     if(el && !el.value) el.value = todayStr();
@@ -2199,7 +2274,7 @@ function renderTreatList(treats){
       const docTotal = list.reduce((s,t)=>s+totalPrice(t),0);
       const c = docColor(doc);
       html += `<tr style="background:${c}12;">
-        <td colspan="9" style="padding:8px 12px;font-weight:800;color:${c};font-size:13px;border-left:4px solid ${c};">
+        <td colspan="10" style="padding:8px 12px;font-weight:800;color:${c};font-size:13px;border-left:4px solid ${c};">
           ${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${list.length} ราย · ${fmt(docTotal)}</span>
         </td>
       </tr>`;
@@ -2220,6 +2295,7 @@ function treatRow(t){
     <td style="color:var(--blue);font-weight:600">${t.transfer?fmt(+t.transfer):''}</td>
     <td style="color:var(--orange);font-weight:600">${t.sso?fmt(+t.sso):''}</td>
     <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์">🖨️</button></td>
   </tr>`;
 }
 
@@ -2538,6 +2614,143 @@ function deleteTreat(id){
   syncToSheet('delete',{type:'treatments',id});
 }
 
+// ============================================================
+//  ใบรับรองแพทย์ — ออกจากบันทึกการรักษา, เก็บ log + เลขที่รันที่ Code.gs
+//  หมายเหตุ: ใช้ GET เหมือน getInsight/generateInsight (ไม่ใช้ POST ธรรมดา
+//  เพราะ Apps Script exec URL redirect ข้าม origin ทำให้ POST แบบอ่าน response ไปไม่ถึง server)
+// ============================================================
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function openCertificateModal(t){
+  document.getElementById('cert-treatId').value = t.id;
+  document.getElementById('cert-patName-display').textContent = t.patName||'';
+  document.getElementById('cert-hn-display').textContent = t.hn||'—';
+  document.getElementById('cert-proc-display').textContent = String(t.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
+  document.getElementById('cert-treatDate-display').textContent = fmtDate(t.date);
+  document.getElementById('cert-age').value = '';
+  const docSel = document.getElementById('cert-doc');
+  const eligible = doctors.filter(d=>d.fullName && d.licenseNo);
+  docSel.innerHTML = eligible.map(d=>`<option value="${d.id}" ${d.name===t.docName?'selected':''}>${escapeHtml(d.fullName)}</option>`).join('')
+    || `<option value="">— ยังไม่มีหมอที่ตั้งค่าเลขใบอนุญาตไว้ —</option>`;
+  document.getElementById('cert-needsRest').checked = false;
+  document.getElementById('cert-restDays').value = 1;
+  document.getElementById('cert-restStart').value = t.date||todayStr();
+  toggleCertRestFields();
+  document.querySelectorAll('input[name="cert-purpose"]')[0].checked = true;
+  document.getElementById('cert-status-note').textContent = '';
+  const btn = document.getElementById('btnIssueCert');
+  btn.disabled = false; btn.textContent = '🖨️ ออกใบรับรอง + พิมพ์';
+  document.getElementById('modalCertificate').classList.add('open');
+  // เช็คว่าเคยออกให้ treatment นี้แล้วหรือยัง เผื่อพิมพ์ซ้ำ (เลขที่เอกสารต้องคงเดิม)
+  fetch(APPS_SCRIPT_URL+'?action=getCertificate&treatId='+encodeURIComponent(t.id), {cache:'no-store'})
+    .then(r=>r.json()).then(d=>{
+      if(d.found && d.cert) document.getElementById('cert-status-note').textContent = 'เคยออกใบรับรองนี้แล้ว เลขที่ '+d.cert.docNo+' — กดปุ่มด้านล่างเพื่อพิมพ์ซ้ำ (เลขที่เดิม)';
+    }).catch(()=>{});
+}
+
+function toggleCertRestFields(){
+  const on = document.getElementById('cert-needsRest').checked;
+  document.getElementById('cert-rest-fields').style.display = on ? '' : 'none';
+  if(on) calcCertRestEnd();
+}
+
+function calcCertRestEnd(){
+  const days = parseInt(document.getElementById('cert-restDays').value)||1;
+  const startStr = document.getElementById('cert-restStart').value || todayStr();
+  const end = new Date(startStr+'T00:00:00');
+  end.setDate(end.getDate() + (days-1));
+  const endStr = toDateStr(end);
+  const disp = document.getElementById('cert-restEnd-display');
+  disp.textContent = fmtDate(endStr);
+  disp.dataset.value = endStr;
+}
+
+async function issueCertificateAndPrint(){
+  const treatId = document.getElementById('cert-treatId').value;
+  const t = treatments.find(x=>x.id===treatId);
+  if(!t){ showToast('ไม่พบรายการรักษานี้','error'); return; }
+  const docId = document.getElementById('cert-doc').value;
+  const doc = doctors.find(d=>d.id===docId);
+  if(!doc || !doc.fullName || !doc.licenseNo){ showToast('เลือกหมอที่มีชื่อเต็ม/เลขใบอนุญาตแล้วก่อน (ไปตั้งค่าได้ที่หน้าตั้งค่า)','error'); return; }
+  const needsRest = document.getElementById('cert-needsRest').checked;
+  const purpose = document.querySelector('input[name="cert-purpose"]:checked')?.value||'';
+  const payload = {
+    treatId: t.id, hn: t.hn||'', patName: t.patName||'',
+    age: document.getElementById('cert-age').value||'',
+    treatDate: t.date||'', proc: t.proc||'',
+    docId: doc.id, docFullName: doc.fullName, docLicense: doc.licenseNo,
+    needsRest,
+    restDays: needsRest ? (document.getElementById('cert-restDays').value||'1') : '',
+    restStart: needsRest ? (document.getElementById('cert-restStart').value||'') : '',
+    restEnd: needsRest ? (document.getElementById('cert-restEnd-display').dataset.value||'') : '',
+    purpose
+  };
+  const btn = document.getElementById('btnIssueCert');
+  btn.disabled = true; btn.textContent = '⏳ กำลังออกใบรับรอง...';
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL+'?action=issueCertificate&data='+encodeURIComponent(JSON.stringify(payload)), {cache:'no-store'});
+    const d = await resp.json();
+    if(d.error){ showToast('ออกใบรับรองไม่สำเร็จ: '+d.error,'error'); return; }
+    document.getElementById('certPrintArea').innerHTML = buildCertPrintHtml(d.cert);
+    closeModal('modalCertificate');
+    showToast(d.reused ? 'ใช้เลขที่เอกสารเดิม ('+d.cert.docNo+')' : 'ออกใบรับรองสำเร็จ เลขที่ '+d.cert.docNo);
+    setTimeout(()=>window.print(), 300);
+  } catch(e){
+    showToast('ออกใบรับรองไม่สำเร็จ (เชื่อมต่อไม่ได้)','error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🖨️ ออกใบรับรอง + พิมพ์';
+  }
+}
+
+function buildCertPrintHtml(cert){
+  const procList = String(cert.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
+  const needsRest = cert.needsRest === true || cert.needsRest === 'TRUE';
+  const restBlock = needsRest ? `
+    <div class="cert-fact-grid">
+      <div class="cert-fact"><span class="k">ควรหยุดพักรักษาตัว</span><span class="v">${escapeHtml(cert.restDays)} วัน</span></div>
+      <div class="cert-fact"><span class="k">ตั้งแต่ — ถึงวันที่</span><span class="v">${fmtDate(cert.restStart)} – ${fmtDate(cert.restEnd)}</span></div>
+    </div>` : '';
+  const issuedDateStr = cert.issuedAt ? toDateStr(new Date(cert.issuedAt)) : todayStr();
+  return `
+  <div class="cert-paper">
+    <div class="cert-letterhead">
+      <div>
+        <div class="cert-lh-name">คลินิกทันตกรรมบางหลวง</div>
+        <div class="cert-lh-sub">Bangluang Dental Clinic</div>
+      </div>
+      <div class="cert-lh-right">119/14 ถ.ปทุมธานีสายใน<br>อ.เมืองปทุมธานี จ.ปทุมธานี 12000<br>โทร. 095-947-6759</div>
+    </div>
+    <div class="cert-doc-meta">
+      <div>เลขที่ <b>${escapeHtml(cert.docNo)}</b></div>
+      <div>วันที่ออกใบรับรอง <b>${fmtDate(issuedDateStr)}</b></div>
+    </div>
+    <div class="cert-title"><h2>ใบรับรองแพทย์</h2><div class="cert-title-en">Medical Certificate</div></div>
+    <div class="cert-body">
+      ข้าพเจ้า <span class="cert-fill">${escapeHtml(cert.docFullName)}</span> ทันตแพทย์ เลขที่ใบอนุญาตประกอบวิชาชีพทันตกรรม
+      <span class="cert-fill">${escapeHtml(cert.docLicense)}</span> ขอรับรองว่าได้ทำการตรวจรักษา
+      <span class="cert-fill">${escapeHtml(cert.patName)}</span>${cert.age?` อายุ <span class="cert-fill">${escapeHtml(cert.age)}</span> ปี`:''}
+      จริงตามรายละเอียดด้านล่างนี้
+    </div>
+    <div class="cert-fact-grid">
+      <div class="cert-fact"><span class="k">หมายเลขผู้ป่วย (HN)</span><span class="v">${escapeHtml(cert.hn)||'—'}</span></div>
+      <div class="cert-fact"><span class="k">วันที่เข้ารับการรักษา</span><span class="v">${fmtDate(cert.treatDate)}</span></div>
+      <div class="cert-fact" style="grid-column:1/-1;"><span class="k">การวินิจฉัย / หัตถการ</span><span class="v">${escapeHtml(procList)}</span></div>
+    </div>
+    ${restBlock}
+    <div class="cert-purpose">ใบรับรองฉบับนี้ออกให้เพื่อ: <b>${escapeHtml(cert.purpose)}</b></div>
+    <div class="cert-footer">
+      <div class="cert-seal">ตราประทับ<br>คลินิก</div>
+      <div class="cert-sign">
+        <div class="cert-sign-line"></div>
+        <div class="cert-sign-name">(${escapeHtml(cert.docFullName)})</div>
+        <div class="cert-sign-role">ทันตแพทย์ผู้ตรวจรักษา<br>ใบอนุญาตเลขที่ ${escapeHtml(cert.docLicense)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 let treatMode = 'day';
 function setTreatMode(mode, btn){
   treatMode = mode;
@@ -2592,6 +2805,7 @@ function renderTreatPage(){
       <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
       <td style="color:var(--orange)">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
       <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์">🖨️</button></td>
       ${isManager?`<td>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-ghost btn-sm" onclick='openAddTreat(${JSON.stringify(t)})'>✏️</button>
@@ -3071,6 +3285,14 @@ function buildSettingsPage(){
           <input class="form-control" value="${doc.specialty||''}" id="set-spec-${doc.id}" placeholder="เช่น จัดฟัน, รักษารากฟัน">
         </div>
         <div class="form-group">
+          <label>ชื่อเต็ม (สำหรับใบรับรองแพทย์)</label>
+          <input class="form-control" value="${doc.fullName||''}" id="set-fullname-${doc.id}" placeholder="เช่น ทพ.สรวิศ สุภาพ">
+        </div>
+        <div class="form-group">
+          <label>เลขที่ใบอนุญาตประกอบวิชาชีพ</label>
+          <input class="form-control" value="${doc.licenseNo||''}" id="set-license-${doc.id}" placeholder="เช่น ท.12951">
+        </div>
+        <div class="form-group">
           <label>ส่วนแบ่งหมอ (%)</label>
           <input type="number" class="form-control" value="${doc.share||50}" id="set-share-${doc.id}" min="0" max="100">
         </div>
@@ -3095,6 +3317,8 @@ function saveDocSettings(docId){
   if(!doc) return;
   doc.name=document.getElementById('set-name-'+docId)?.value||doc.name;
   doc.specialty=document.getElementById('set-spec-'+docId)?.value||'';
+  doc.fullName=document.getElementById('set-fullname-'+docId)?.value||'';
+  doc.licenseNo=document.getElementById('set-license-'+docId)?.value||'';
   doc.share=parseInt(document.getElementById('set-share-'+docId)?.value)||50;
   if(isManager){
     const pinEl=document.getElementById('set-pin-'+docId);
@@ -3105,6 +3329,8 @@ function saveDocSettings(docId){
   if(origDoc){
     origDoc.name = doc.name;
     origDoc.specialty = doc.specialty;
+    origDoc.fullName = doc.fullName;
+    origDoc.licenseNo = doc.licenseNo;
     origDoc.share = doc.share;
     origDoc.gender = doc.gender;
     if(doc.pin) origDoc.pin = doc.pin;
@@ -3313,6 +3539,8 @@ async function syncAll(){
           if(s.specialty) x.specialty = s.specialty;
           if(s.gender) x.gender = s.gender;
           if(s.name) x.name = s.name;
+          if(s.fullName) x.fullName = s.fullName;
+          if(s.licenseNo) x.licenseNo = s.licenseNo;
         });
       });
     }
@@ -5439,148 +5667,6 @@ function renderRecallSummary(wait, done, urgent, total){
   </div>`;
 }
 
-// ============================================================
-//  WEEKLY INSIGHT (สรุปรายสัปดาห์ + โปรโมชั่นจาก Claude — manager กดเองเท่านั้น)
-//  ตั้งใจไม่ผูกกับ syncAll()/setInterval 4 วิ เพราะการ generate เรียก Claude API มีค่าใช้จ่ายจริง
-//  โหลดข้อมูลแค่ตอนเปิดหน้า (ผ่าน showPage → renderInsight) และตอนกดปุ่มสร้างใหม่เท่านั้น
-// ============================================================
-let _lastInsight = null;
-
-function escapeHtml(s){
-  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function fmtInsightTime(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  if(isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('th-TH',{day:'numeric',month:'short',timeZone:'Asia/Bangkok'}) + ' ' + d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
-}
-
-async function renderInsight(){
-  const body = document.getElementById('insightBody');
-  const lastGenEl = document.getElementById('insightLastGen');
-  if(!body) return;
-  body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);">⏳ กำลังโหลด...</div>`;
-  try {
-    const res = await fetch(APPS_SCRIPT_URL+'?action=getInsight',{cache:'no-store'});
-    const d = await res.json();
-    if(!d.found){
-      body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light);">ยังไม่มีสรุป กด "สร้างสรุปใหม่" เพื่อเริ่มต้น</div>`;
-      if(lastGenEl) lastGenEl.textContent = '';
-      _lastInsight = null;
-      return;
-    }
-    _lastInsight = d;
-    if(lastGenEl) lastGenEl.textContent = 'อัปเดตล่าสุด: ' + fmtInsightTime(d.generatedAt);
-    body.innerHTML = buildInsightHtml(d);
-  } catch(e){
-    body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">⚠️ โหลดไม่สำเร็จ</div>`;
-  }
-}
-
-async function generateInsight(){
-  let force = false;
-  if(_lastInsight && _lastInsight.generatedAt){
-    const ageMin = (Date.now() - new Date(_lastInsight.generatedAt).getTime()) / 60000;
-    if(ageMin < 5){
-      if(!confirm(`สร้างสรุปไปแล้วเมื่อ ${Math.max(0,Math.round(ageMin))} นาทีก่อน ต้องการสร้างใหม่อีกครั้งหรือไม่? (ใช้ Claude API เพิ่ม 1 ครั้ง)`)) return;
-      force = true;
-    }
-  }
-  const genBtn = document.getElementById('btnGenInsight');
-  const body = document.getElementById('insightBody');
-  if(genBtn){ genBtn.disabled = true; genBtn.textContent = '⏳ กำลังวิเคราะห์...'; }
-  if(body) body.style.opacity = '0.5';
-  try {
-    // ใช้ GET แทน POST: POST ปกติ (ไม่ใช่ no-cors) ไปยัง Apps Script exec URL ข้าม origin
-    // โดน redirect ไป script.googleusercontent.com แล้วเบราว์เซอร์บล็อกก่อนถึง server เลย
-    // (ไปไม่ถึงแม้แต่ execution log) — GET ไม่มีปัญหานี้ เพราะ syncAll()/getAll ก็เป็น GET
-    // แบบเดียวกันแล้วใช้งานได้ปกติอยู่แล้ว
-    const resp = await fetch(APPS_SCRIPT_URL+'?action=generateInsight&force='+(force?'true':'false'), {cache:'no-store'});
-    const d = await resp.json();
-    if(d.error){ showToast('สร้างสรุปไม่สำเร็จ: '+d.error,'error'); return; }
-    if(d.alreadyRecent) showToast('ใช้สรุปล่าสุดที่มีอยู่แล้ว (สร้างไปเมื่อครู่)');
-    else showToast('สร้างสรุปสำเร็จ ✅');
-    await renderInsight();
-  } catch(e){
-    showToast('สร้างสรุปไม่สำเร็จ (เชื่อมต่อไม่ได้)','error');
-  } finally {
-    if(genBtn){ genBtn.disabled = false; genBtn.textContent = '🔄 สร้างสรุปใหม่'; }
-    if(body) body.style.opacity = '';
-  }
-}
-
-function buildInsightHtml(d){
-  const s = d.stats || {};
-  const tw = s.thisWeek || {cases:0,revenue:0,byDoc:{},topProcs:[]};
-  const lw = s.lastWeekSameDays || {cases:0,revenue:0,byDoc:{},topProcs:[]};
-  const apt = s.appointments || {thisWeek:{total:0,cancelled:0,cancelRate:0}};
-  const overdue = s.ssoRecallOverdueCount || 0;
-
-  const pctDelta = (a,b) => b>0 ? Math.round(((a-b)/b)*100) : (a>0?100:0);
-  const deltaBadge = (a,b) => {
-    const pct = pctDelta(a,b);
-    const color = pct>0 ? 'var(--green)' : (pct<0 ? 'var(--red)' : 'var(--text-light)');
-    return `<span style="color:${color};font-size:12px;font-weight:700;">${pct>0?'+':''}${pct}%</span>`;
-  };
-
-  let html = `<div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
-    <div class="stat-card purple"><div class="stat-icon">💰</div><div class="stat-label">รายได้สัปดาห์นี้</div><div class="stat-value">${fmt(tw.revenue)}</div><div class="stat-sub">${deltaBadge(tw.revenue,lw.revenue)} เทียบสัปดาห์ก่อน</div></div>
-    <div class="stat-card green"><div class="stat-icon">📋</div><div class="stat-label">เคสรักษา</div><div class="stat-value">${tw.cases}</div><div class="stat-sub">${deltaBadge(tw.cases,lw.cases)} เทียบสัปดาห์ก่อน</div></div>
-    <div class="stat-card gold"><div class="stat-icon">❌</div><div class="stat-label">อัตรายกเลิกนัด</div><div class="stat-value">${Math.round((apt.thisWeek.cancelRate||0)*100)}%</div><div class="stat-sub">${apt.thisWeek.cancelled}/${apt.thisWeek.total} นัด</div></div>
-    <div class="stat-card rose"><div class="stat-icon">🔔</div><div class="stat-label">ประกันสังคมค้าง recall</div><div class="stat-value">${overdue}</div><div class="stat-sub">คน (เกิน ~11 เดือน)</div></div>
-  </div>`;
-
-  const docNames = Object.keys(tw.byDoc||{}).sort((a,b)=>(tw.byDoc[b].revenue||0)-(tw.byDoc[a].revenue||0));
-  const docRows = docNames.map(name=>{
-    const a = tw.byDoc[name]||{cases:0,revenue:0};
-    const b = (lw.byDoc||{})[name]||{cases:0,revenue:0};
-    return `<tr><td style="color:${docColor(name)};font-weight:700;">${escapeHtml(name)}</td><td style="text-align:right;">${a.cases}</td><td style="text-align:right;">${fmt(a.revenue)}</td><td style="text-align:right;">${deltaBadge(a.revenue,b.revenue)}</td></tr>`;
-  }).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--text-light);">ไม่มีข้อมูล</td></tr>`;
-
-  const procRows = (tw.topProcs||[]).map(p=>`<tr><td>${escapeHtml(p.name)}</td><td style="text-align:right;">${p.cases}</td><td style="text-align:right;">${fmt(p.revenue)}</td></tr>`).join('')
-    || `<tr><td colspan="3" style="text-align:center;color:var(--text-light);">ไม่มีข้อมูล</td></tr>`;
-
-  html += `<div class="card-box" style="margin-top:20px;">
-    <div class="card-box-hdr"><div class="card-box-title">👨‍⚕️ รายได้แยกตามหมอ (สัปดาห์นี้)</div></div>
-    <div style="padding:16px 20px;overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead><tr style="color:var(--text-light);text-align:left;"><th>หมอ</th><th style="text-align:right;">เคส</th><th style="text-align:right;">รายได้</th><th style="text-align:right;">เทียบสัปดาห์ก่อน</th></tr></thead>
-        <tbody>${docRows}</tbody>
-      </table>
-    </div>
-  </div>`;
-
-  html += `<div class="card-box" style="margin-top:16px;">
-    <div class="card-box-hdr"><div class="card-box-title">🦷 หัตถการยอดนิยม (สัปดาห์นี้)</div></div>
-    <div style="padding:16px 20px;overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead><tr style="color:var(--text-light);text-align:left;"><th>หัตถการ</th><th style="text-align:right;">เคส</th><th style="text-align:right;">รายได้</th></tr></thead>
-        <tbody>${procRows}</tbody>
-      </table>
-    </div>
-  </div>`;
-
-  html += `<div class="card-box" style="margin-top:16px;">
-    <div class="card-box-hdr"><div class="card-box-title">📝 สรุปภาพรวม</div></div>
-    <div style="padding:16px 20px;font-size:14px;line-height:1.7;color:var(--text-dark);">${escapeHtml(d.summary)}</div>
-  </div>`;
-
-  const promos = Array.isArray(d.promos) ? d.promos : [];
-  html += `<div class="card-box" style="margin-top:16px;">
-    <div class="card-box-hdr"><div class="card-box-title">💡 ไอเดียโปรโมชั่น</div></div>
-    <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">
-      ${promos.map(p=>`<div style="background:rgba(107,45,94,0.04);border:1px solid var(--border);border-radius:10px;padding:14px;">
-        <div style="font-weight:700;color:var(--wine-dark);margin-bottom:6px;">${escapeHtml(p.title)}</div>
-        <div style="font-size:13px;color:var(--text-mid);line-height:1.6;">${escapeHtml(p.detail)}</div>
-      </div>`).join('') || '<div style="color:var(--text-light);">ไม่มีข้อเสนอ</div>'}
-    </div>
-  </div>`;
-
-  return html;
-}
-
 function logout(){
   if(!confirm('ออกจากระบบ?')) return;
   localStorage.removeItem('bl_session');
@@ -5589,7 +5675,7 @@ function logout(){
   // ซ่อน tab manager-only ก่อนกลับหน้า login
   ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
    'btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome',
-   'nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho','nav-insight','ttab-insight'].forEach(id=>{
+   'nav-patients','ttab-patients','mnav-patients','mnav-settings','nav-recall','ttab-recall','mnav-recall','nav-ortho','ttab-ortho'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });

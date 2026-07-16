@@ -26,203 +26,32 @@ function cellToStr(cell, colName) {
 }
 
 // ============================================================
-//  WEEKLY INSIGHT (สรุปรายสัปดาห์ + โปรโมชั่นจาก Claude API)
-//  ตั้งค่า CLAUDE_API_KEY ใน Apps Script > Project Settings > Script Properties
-//  ห้าม hardcode key ในไฟล์นี้ (ไฟล์นี้อยู่ใน git repo)
+//  ใบรับรองแพทย์ — log เอกสารที่เคยออก + เลขที่รันต่อปี (พ.ศ.)
 // ============================================================
+var CERT_HEADERS_ = ['docNo','issuedAt','treatId','hn','patName','age','treatDate','proc','docId','docFullName','docLicense','needsRest','restDays','restStart','restEnd','purpose'];
 
-function getInsightSheet_() {
-  // orthoGetSheet_ อยู่ใน ortho-backend.gs แต่ทุกไฟล์ .gs ใช้ namespace เดียวกัน
-  return orthoGetSheet_('insights', ['weekStart','generatedAt','statsJson','summary','promosJson']);
-}
-
-// หมายเหตุ: คำนวณทั้งหมดใน UTC-anchored space (ไม่ใช้ new Date(str) แบบ local parse)
-// เพื่อไม่ให้ผลลัพธ์ขึ้นกับ default timezone ของ Apps Script runtime — กันเคส
-// ที่ project timezone ไม่ตรงกับ TZ='Asia/Bangkok' แล้ววันที่เพี้ยนไป 1 วัน
-function dateStrToUtc_(s) {
-  var p = s.split('-').map(Number);
-  return new Date(Date.UTC(p[0], p[1]-1, p[2]));
-}
-function addDaysUtc_(base, n) {
-  return new Date(base.getTime() + n*86400000);
-}
-function fmtUtc_(x) {
-  return Utilities.formatDate(x, 'UTC', 'yyyy-MM-dd');
+function getCertificateSheet_() {
+  return orthoGetSheet_('certificates', CERT_HEADERS_);
 }
 
-function getWeekBounds_(refDate) {
-  var todayStr = Utilities.formatDate(refDate, TZ, 'yyyy-MM-dd'); // วันที่ตามปฏิทินไทย (Bangkok) ล้วนๆ
-  var dUtc = dateStrToUtc_(todayStr); // เที่ยงคืน UTC ของเลขปฏิทินเดียวกัน — ใช้แค่คำนวณวันในสัปดาห์/บวกลบวัน
-  var dow = dUtc.getUTCDay(); // 0=อาทิตย์..6=เสาร์
-  var isoDow = dow === 0 ? 7 : dow; // 1=จันทร์..7=อาทิตย์
-  var thisMonUtc = addDaysUtc_(dUtc, -(isoDow - 1));
-  var thisSunUtc = addDaysUtc_(thisMonUtc, 6);
-  var lastMonUtc = addDaysUtc_(thisMonUtc, -7);
-  var lastSunUtc = addDaysUtc_(thisMonUtc, -1);
-  return {
-    today: todayStr,
-    thisWeekStart: fmtUtc_(thisMonUtc),
-    thisWeekEnd: fmtUtc_(thisSunUtc),
-    lastWeekStart: fmtUtc_(lastMonUtc),
-    lastWeekEnd: fmtUtc_(lastSunUtc),
-    daysSoFar: isoDow // 1..7 วันแล้วของสัปดาห์นี้ (จันทร์=1)
-  };
-}
-
-function readSheetAsObjects_(sh) {
-  var lastRow = sh.getLastRow(), lastCol = sh.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) return [];
-  var hdr = sh.getRange(1,1,1,lastCol).getValues()[0];
-  var raw = sh.getRange(2,1,lastRow-1,lastCol).getValues();
-  var result = [];
-  for (var i = 0; i < raw.length; i++) {
-    var row = raw[i];
-    var hasData = false;
-    for (var c = 0; c < row.length; c++) { if (row[c] !== '' && row[c] !== null) { hasData = true; break; } }
-    if (!hasData) continue;
-    var obj = {};
-    for (var c = 0; c < hdr.length; c++) obj[hdr[c]] = cellToStr(row[c], hdr[c]);
-    result.push(obj);
+function nextCertDocNo_(sh, beYear) {
+  var vals = sh.getDataRange().getValues();
+  var prefix = 'บล.' + beYear + '/';
+  var maxSeq = 0;
+  for (var i = 1; i < vals.length; i++) {
+    var docNo = String(vals[i][0] || '');
+    if (docNo.indexOf(prefix) === 0) {
+      var seq = parseInt(docNo.slice(prefix.length), 10);
+      if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+    }
   }
-  return result;
+  return prefix + ('0000' + (maxSeq + 1)).slice(-4);
 }
 
-function computeWeeklyStats_(bounds) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var treatSh = ss.getSheetByName('บันทึกการรักษา');
-  var aptSh = ss.getSheetByName('ตารางนัด');
-  var patSh = ss.getSheetByName('คนไข้');
-
-  var treatments = treatSh ? readSheetAsObjects_(treatSh) : [];
-  var appointments = aptSh ? readSheetAsObjects_(aptSh) : [];
-  var patients = patSh ? readSheetAsObjects_(patSh) : [];
-
-  // ช่วงเทียบแบบ fair: เอาจำนวนวันเท่ากับสัปดาห์นี้ (daysSoFar) จากสัปดาห์ก่อน
-  // (UTC-anchored เหมือน getWeekBounds_ กันวันเพี้ยนจาก timezone ของ runtime)
-  var sameLastEnd = fmtUtc_(addDaysUtc_(dateStrToUtc_(bounds.lastWeekStart), bounds.daysSoFar - 1));
-
-  function inRange(dateStr, start, end) { return dateStr && dateStr >= start && dateStr <= end; }
-  function totalPrice(t) { return (+t.cash||0) + (+t.transfer||0) + (+t.sso||0); }
-
-  function aggregate(rows, start, end) {
-    var inWin = rows.filter(function(t){ return inRange(t.date, start, end); });
-    var byDoc = {}, byProc = {}, revenue = 0;
-    inWin.forEach(function(t){
-      var price = totalPrice(t);
-      revenue += price;
-      var doc = t.docName || 'ไม่ระบุ';
-      if (!byDoc[doc]) byDoc[doc] = { cases:0, revenue:0 };
-      byDoc[doc].cases++; byDoc[doc].revenue += price;
-      var procs = String(t.proc||'').split(',').map(function(p){return p.trim();}).filter(Boolean);
-      procs.forEach(function(p){
-        if (!byProc[p]) byProc[p] = { cases:0, revenue:0 };
-        byProc[p].cases++; byProc[p].revenue += price;
-      });
-    });
-    var topProcs = Object.keys(byProc).map(function(p){ return { name:p, cases:byProc[p].cases, revenue:byProc[p].revenue }; })
-      .sort(function(a,b){ return b.cases - a.cases; }).slice(0,5);
-    return { cases: inWin.length, revenue: revenue, byDoc: byDoc, topProcs: topProcs };
-  }
-
-  function aggregateAppointments(rows, start, end) {
-    var inWin = rows.filter(function(a){ return inRange(a.date, start, end); });
-    var cancelled = inWin.filter(function(a){ return a.status === 'ยกเลิก'; }).length;
-    return { total: inWin.length, cancelled: cancelled, cancelRate: inWin.length ? cancelled/inWin.length : 0 };
-  }
-
-  // recall ค้างนาน (snapshot ปัจจุบัน) — logic เดียวกับ renderRecall() ฝั่ง client: THRESHOLD_DAYS=335
-  var THRESHOLD_DAYS = 335;
-  var lastTreatByHn = {};
-  treatments.forEach(function(t){
-    if (!t.hn || !t.date) return;
-    if (!lastTreatByHn[t.hn] || t.date > lastTreatByHn[t.hn]) lastTreatByHn[t.hn] = t.date;
-  });
-  var nowMs = new Date(bounds.today + 'T00:00:00').getTime();
-  var overdueCount = 0;
-  patients.forEach(function(p){
-    var isSso = p.sso === true || String(p.sso).toUpperCase() === 'TRUE';
-    if (!isSso) return;
-    var lastDate = lastTreatByHn[p.hn];
-    var diffDays = lastDate ? Math.floor((nowMs - new Date(lastDate+'T00:00:00').getTime())/86400000) : 9999;
-    if (diffDays >= THRESHOLD_DAYS && diffDays < 9999) overdueCount++;
-  });
-
-  return {
-    meta: { today: bounds.today, thisWeekStart: bounds.thisWeekStart, daysSoFar: bounds.daysSoFar,
-            lastWeekStart: bounds.lastWeekStart, lastWeekEnd: bounds.lastWeekEnd },
-    thisWeek: aggregate(treatments, bounds.thisWeekStart, bounds.today),
-    lastWeekSameDays: aggregate(treatments, bounds.lastWeekStart, sameLastEnd),
-    lastWeekFull: aggregate(treatments, bounds.lastWeekStart, bounds.lastWeekEnd),
-    appointments: {
-      thisWeek: aggregateAppointments(appointments, bounds.thisWeekStart, bounds.today),
-      lastWeekSameDays: aggregateAppointments(appointments, bounds.lastWeekStart, sameLastEnd)
-    },
-    ssoRecallOverdueCount: overdueCount
-  };
-}
-
-function buildInsightPrompt_(stats) {
-  var tw = stats.thisWeek, lwS = stats.lastWeekSameDays, lwF = stats.lastWeekFull;
-  var procStr = function(list){ return list.map(function(p){ return p.name+' ('+p.cases+' ครั้ง)'; }).join(', ') || '—'; };
-  var lines = [];
-  lines.push('คุณเป็นผู้ช่วยวิเคราะห์ข้อมูลคลินิกทันตกรรม วิเคราะห์สถิติจริงต่อไปนี้แล้วให้คำแนะนำ อิงจากตัวเลขจริงเท่านั้น ห้ามสมมติข้อมูลที่ไม่มีในสถิติ');
-  lines.push('');
-  lines.push('สัปดาห์นี้ (' + stats.meta.thisWeekStart + ' ถึง ' + stats.meta.today + ', ' + stats.meta.daysSoFar + ' วัน):');
-  lines.push('- เคสรักษา: ' + tw.cases + ' ครั้ง, รายได้รวม: ' + Math.round(tw.revenue) + ' บาท');
-  lines.push('- นัดหมาย: ' + stats.appointments.thisWeek.total + ' นัด, ยกเลิก: ' + stats.appointments.thisWeek.cancelled + ' นัด (' + Math.round(stats.appointments.thisWeek.cancelRate*100) + '%)');
-  lines.push('- หัตถการยอดนิยม: ' + procStr(tw.topProcs));
-  lines.push('');
-  lines.push('สัปดาห์ก่อน ช่วงเดียวกัน (' + stats.meta.daysSoFar + ' วันแรก เทียบแบบ fair):');
-  lines.push('- เคสรักษา: ' + lwS.cases + ' ครั้ง, รายได้รวม: ' + Math.round(lwS.revenue) + ' บาท');
-  lines.push('- นัดหมาย: ' + stats.appointments.lastWeekSameDays.total + ' นัด, ยกเลิก: ' + stats.appointments.lastWeekSameDays.cancelled + ' นัด');
-  lines.push('');
-  lines.push('สัปดาห์ก่อนทั้งสัปดาห์ (' + stats.meta.lastWeekStart + ' ถึง ' + stats.meta.lastWeekEnd + ', 7 วันเต็ม):');
-  lines.push('- เคสรักษา: ' + lwF.cases + ' ครั้ง, รายได้รวม: ' + Math.round(lwF.revenue) + ' บาท');
-  lines.push('- หัตถการยอดนิยม: ' + procStr(lwF.topProcs));
-  lines.push('');
-  lines.push('คนไข้ประกันสังคมที่ค้าง recall (ไม่มาเกิน ~11 เดือน): ' + stats.ssoRecallOverdueCount + ' คน');
-  lines.push('');
-  var docs = {};
-  Object.keys(tw.byDoc).forEach(function(d){ docs[d] = true; });
-  Object.keys(lwS.byDoc).forEach(function(d){ docs[d] = true; });
-  lines.push('รายได้แยกตามหมอ (สัปดาห์นี้ vs สัปดาห์ก่อนช่วงเดียวกัน):');
-  Object.keys(docs).forEach(function(d){
-    var a = tw.byDoc[d] || {cases:0,revenue:0};
-    var b = lwS.byDoc[d] || {cases:0,revenue:0};
-    lines.push('- ' + d + ': ' + a.cases + ' ครั้ง/' + Math.round(a.revenue) + ' บาท (ก่อนหน้า ' + b.cases + ' ครั้ง/' + Math.round(b.revenue) + ' บาท)');
-  });
-  lines.push('');
-  lines.push('ตอบกลับเป็น JSON ล้วน ๆ เท่านั้น ห้ามมี markdown code fence หรือข้อความอื่นนอก JSON รูปแบบนี้เป๊ะ ๆ:');
-  lines.push('{"summary": "สรุปภาพรวมสัปดาห์นี้ 2-4 ประโยค ภาษาไทย", "promos": [{"title": "ชื่อโปรสั้นๆ", "detail": "รายละเอียด 1-2 ประโยค อ้างอิงตัวเลขข้างต้น"}, ... รวม 2 ถึง 4 รายการ]}');
-  return lines.join('\n');
-}
-
-function generateWeeklyInsight_(stats) {
-  var apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
-  if (!apiKey) throw new Error('ยังไม่ได้ตั้งค่า CLAUDE_API_KEY ใน Script Properties');
-
-  var resp = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-    method: 'post',
-    contentType: 'application/json',
-    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({
-      model: 'claude-sonnet-5',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: buildInsightPrompt_(stats) }]
-    }),
-    muteHttpExceptions: true
-  });
-
-  var code = resp.getResponseCode();
-  if (code !== 200) throw new Error('Claude API error ' + code + ': ' + resp.getContentText().slice(0,300));
-
-  var body = JSON.parse(resp.getContentText());
-  var text = (body.content && body.content[0] && body.content[0].text) || '';
-  // กันเผื่อ Claude ห่อ JSON ด้วย ```json ทั้งที่ prompt สั่งห้ามแล้ว
-  text = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
-  var parsed = JSON.parse(text);
-  if (!parsed.summary || !Array.isArray(parsed.promos)) throw new Error('รูปแบบคำตอบจาก Claude ไม่ถูกต้อง');
-  return parsed;
+function certRowToObj_(hdr, row) {
+  var obj = {};
+  for (var c = 0; c < hdr.length; c++) obj[hdr[c]] = row[c];
+  return obj;
 }
 
 function doPost(e) {
@@ -262,9 +91,13 @@ function doPost(e) {
       var sh = ss.getSheetByName('settings');
       if (sh) {
         var r = data.data;
+        // เพิ่ม header คอลัมน์ fullName/licenseNo อัตโนมัติถ้าชีตเดิมยังไม่มี (self-heal ไม่ต้องแก้ header เอง)
+        var hdrRow = sh.getRange(1,1,1,Math.max(sh.getLastColumn(),8)).getValues()[0];
+        if (!hdrRow[6]) sh.getRange(1,7).setValue('fullName');
+        if (!hdrRow[7]) sh.getRange(1,8).setValue('licenseNo');
         var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
         var i = ids.indexOf(String(r.id));
-        var row = [r.id, r.name, r.gender||'', r.specialty||'', r.share||50, r.pin||''];
+        var row = [r.id, r.name, r.gender||'', r.specialty||'', r.share||50, r.pin||'', r.fullName||'', r.licenseNo||''];
         if (i < 1) sh.appendRow(row);
         else sh.getRange(i+1,1,1,row.length).setValues([row]);
       }
@@ -442,57 +275,44 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // สรุปรายสัปดาห์ล่าสุดที่ generate ไว้แล้ว — endpoint แยกจาก getAll ตั้งใจ ไม่ให้โหลดหนักขึ้นทุก 4 วิ
-    if (p.action === 'getInsight') {
-      var sh = getInsightSheet_();
+    // เช็คว่าเคยออกใบรับรองแพทย์ให้ treatment นี้แล้วหรือยัง (สำหรับพิมพ์ซ้ำ)
+    if (p.action === 'getCertificate') {
+      var sh = getCertificateSheet_();
       var vals = sh.getDataRange().getValues();
-      if (vals.length < 2) {
-        return ContentService.createTextOutput(JSON.stringify({ found: false })).setMimeType(ContentService.MimeType.JSON);
+      var hdr = vals[0];
+      for (var i = 1; i < vals.length; i++) {
+        if (String(vals[i][2]) === String(p.treatId)) {
+          return ContentService.createTextOutput(JSON.stringify({ found: true, cert: certRowToObj_(hdr, vals[i]) })).setMimeType(ContentService.MimeType.JSON);
+        }
       }
-      var last = vals[vals.length - 1];
-      return ContentService.createTextOutput(JSON.stringify({
-        found: true, weekStart: last[0], generatedAt: last[1],
-        stats: JSON.parse(last[2]||'{}'), summary: last[3], promos: JSON.parse(last[4]||'[]')
-      })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ found: false })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // สร้างสรุปรายสัปดาห์ (เรียก Claude API) — manager กดเองเท่านั้น
-    // หมายเหตุ: ตั้งใจให้เป็น doGet ไม่ใช่ doPost เพราะ POST ปกติ (ไม่ใช่ no-cors) ไปยัง
-    // Apps Script exec URL ข้าม origin แล้วโดน redirect ไป script.googleusercontent.com
-    // เบราว์เซอร์จะบล็อกก่อนถึง server เลย (ไปไม่ถึงแม้แต่ execution log) — GET ไม่มีปัญหานี้
-    // เพราะ syncAll()/getAll ก็เป็น GET แบบเดียวกันแล้วใช้งานได้ปกติอยู่แล้ว
-    if (p.action === 'generateInsight') {
+    // ออกใบรับรองแพทย์ — GET เหมือน generateInsight (POST ธรรมดาโดน CORS/redirect บล็อกไปไม่ถึง server)
+    // idempotent ตาม treatId: ถ้าเคยออกแล้วคืนของเดิม (เลขที่เอกสารต้องคงที่ตอนพิมพ์ซ้ำ ไม่สร้างเลขใหม่)
+    if (p.action === 'issueCertificate') {
       var lock = LockService.getScriptLock();
       lock.waitLock(30000);
       try {
-        var bounds = getWeekBounds_(new Date());
-        var sh2 = getInsightSheet_();
-        var vals2 = sh2.getDataRange().getValues();
-        var rowIdx = -1;
-        for (var vi = 1; vi < vals2.length; vi++) {
-          if (String(vals2[vi][0]) === bounds.thisWeekStart) { rowIdx = vi + 1; break; }
-        }
-        var force = p.force === 'true';
-        // กันสร้างซ้ำถี่เกินไป (กดรัว / สองคนกดพร้อมกัน) เว้นแต่ client ยืนยัน force มา
-        if (rowIdx > 0 && !force) {
-          var existingGeneratedAt = vals2[rowIdx-1][1];
-          var ageMs = new Date() - new Date(existingGeneratedAt);
-          if (ageMs < 5*60*1000) {
-            return ContentService.createTextOutput(JSON.stringify({
-              alreadyRecent: true, weekStart: bounds.thisWeekStart, generatedAt: existingGeneratedAt,
-              stats: JSON.parse(vals2[rowIdx-1][2]||'{}'), summary: vals2[rowIdx-1][3], promos: JSON.parse(vals2[rowIdx-1][4]||'[]')
-            })).setMimeType(ContentService.MimeType.JSON);
+        var sh = getCertificateSheet_();
+        var reqData = JSON.parse(p.data || '{}');
+        var vals = sh.getDataRange().getValues();
+        var hdr = vals[0];
+        for (var i = 1; i < vals.length; i++) {
+          if (String(vals[i][2]) === String(reqData.treatId)) {
+            return ContentService.createTextOutput(JSON.stringify({ ok: true, reused: true, cert: certRowToObj_(hdr, vals[i]) })).setMimeType(ContentService.MimeType.JSON);
           }
         }
-        var stats = computeWeeklyStats_(bounds);
-        var result = generateWeeklyInsight_(stats);
-        var generatedAt = new Date().toISOString(); // UTC ISO ชัดเจน กัน client แปลผิดเป็น local time ของเครื่องดู
-        var row = [bounds.thisWeekStart, generatedAt, JSON.stringify(stats), result.summary, JSON.stringify(result.promos)];
-        if (rowIdx < 1) sh2.appendRow(row);
-        else sh2.getRange(rowIdx,1,1,row.length).setValues([row]);
-        return ContentService.createTextOutput(JSON.stringify({
-          ok: true, weekStart: bounds.thisWeekStart, generatedAt: generatedAt, stats: stats, summary: result.summary, promos: result.promos
-        })).setMimeType(ContentService.MimeType.JSON);
+        var now = new Date();
+        var beYear = Utilities.formatDate(now, TZ, 'yyyy') * 1 + 543;
+        var docNo = nextCertDocNo_(sh, beYear);
+        var row = [
+          docNo, now.toISOString(), reqData.treatId||'', reqData.hn||'', reqData.patName||'', reqData.age||'',
+          reqData.treatDate||'', reqData.proc||'', reqData.docId||'', reqData.docFullName||'', reqData.docLicense||'',
+          reqData.needsRest ? 'TRUE' : 'FALSE', reqData.restDays||'', reqData.restStart||'', reqData.restEnd||'', reqData.purpose||''
+        ];
+        sh.appendRow(row);
+        return ContentService.createTextOutput(JSON.stringify({ ok: true, reused: false, cert: certRowToObj_(hdr, row) })).setMimeType(ContentService.MimeType.JSON);
       } catch (err) {
         return ContentService.createTextOutput(JSON.stringify({ error: err.message })).setMimeType(ContentService.MimeType.JSON);
       } finally {
