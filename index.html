@@ -1418,8 +1418,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <input type="hidden" id="cert-treatId">
     <div style="background:var(--cream);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;">
       <div><b id="cert-patName-display"></b> · HN <span id="cert-hn-display"></span></div>
-      <div id="cert-proc-display" style="color:var(--text-mid);"></div>
       <div style="color:var(--text-light);font-size:12px;">วันที่รักษา <span id="cert-treatDate-display"></span></div>
+    </div>
+    <div class="form-group">
+      <label>หัตถการ / การวินิจฉัย (แก้ไขได้)</label>
+      <input type="text" class="form-control" id="cert-proc">
     </div>
     <div class="form-grid">
       <div class="form-group">
@@ -2291,9 +2294,9 @@ function treatRow(t){
     <td style="font-weight:600">${t.patName}</td>
     <td>${procBadge(t.proc)}</td>
     <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
-    <td style="color:var(--green);font-weight:600">${t.cash?fmt(+t.cash):''}</td>
-    <td style="color:var(--blue);font-weight:600">${t.transfer?fmt(+t.transfer):''}</td>
-    <td style="color:var(--orange);font-weight:600">${t.sso?fmt(+t.sso):''}</td>
+    <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
+    <td style="color:var(--blue);font-weight:600">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
+    <td style="color:var(--orange);font-weight:600">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
     <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
     <td><button class="btn btn-ghost btn-sm" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์">🖨️</button></td>
   </tr>`;
@@ -2627,7 +2630,7 @@ function openCertificateModal(t){
   document.getElementById('cert-treatId').value = t.id;
   document.getElementById('cert-patName-display').textContent = t.patName||'';
   document.getElementById('cert-hn-display').textContent = t.hn||'—';
-  document.getElementById('cert-proc-display').textContent = String(t.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
+  document.getElementById('cert-proc').value = String(t.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
   document.getElementById('cert-treatDate-display').textContent = fmtDate(t.date);
   document.getElementById('cert-age').value = '';
   const docSel = document.getElementById('cert-doc');
@@ -2679,7 +2682,7 @@ async function issueCertificateAndPrint(){
   const payload = {
     treatId: t.id, hn: t.hn||'', patName: t.patName||'',
     age: document.getElementById('cert-age').value||'',
-    treatDate: t.date||'', proc: t.proc||'',
+    treatDate: t.date||'', proc: document.getElementById('cert-proc').value||'',
     docId: doc.id, docFullName: doc.fullName, docLicense: doc.licenseNo,
     needsRest,
     restDays: needsRest ? (document.getElementById('cert-restDays').value||'1') : '',
@@ -2710,7 +2713,7 @@ function buildCertPrintHtml(cert){
   const restBlock = needsRest ? `
     <div class="cert-fact-grid">
       <div class="cert-fact"><span class="k">ควรหยุดพักรักษาตัว</span><span class="v">${escapeHtml(cert.restDays)} วัน</span></div>
-      <div class="cert-fact"><span class="k">ตั้งแต่ — ถึงวันที่</span><span class="v">${fmtDate(cert.restStart)} – ${fmtDate(cert.restEnd)}</span></div>
+      <div class="cert-fact"><span class="k">ตั้งแต่ — ถึงวันที่</span><span class="v">${fmtDateThai(cert.restStart)} – ${fmtDateThai(cert.restEnd)}</span></div>
     </div>` : '';
   const issuedDateStr = cert.issuedAt ? toDateStr(new Date(cert.issuedAt)) : todayStr();
   return `
@@ -2724,18 +2727,19 @@ function buildCertPrintHtml(cert){
     </div>
     <div class="cert-doc-meta">
       <div>เลขที่ <b>${escapeHtml(cert.docNo)}</b></div>
-      <div>วันที่ออกใบรับรอง <b>${fmtDate(issuedDateStr)}</b></div>
+      <div>วันที่ออกใบรับรอง <b>${fmtDateThai(issuedDateStr)}</b></div>
     </div>
     <div class="cert-title"><h2>ใบรับรองแพทย์</h2><div class="cert-title-en">Medical Certificate</div></div>
     <div class="cert-body">
       ข้าพเจ้า <span class="cert-fill">${escapeHtml(cert.docFullName)}</span> ทันตแพทย์ เลขที่ใบอนุญาตประกอบวิชาชีพทันตกรรม
-      <span class="cert-fill">${escapeHtml(cert.docLicense)}</span> ขอรับรองว่าได้ทำการตรวจรักษา
+      <span class="cert-fill">${escapeHtml(cert.docLicense)}</span><br>
+      ขอรับรองว่าได้ทำการตรวจรักษา
       <span class="cert-fill">${escapeHtml(cert.patName)}</span>${cert.age?` อายุ <span class="cert-fill">${escapeHtml(cert.age)}</span> ปี`:''}
       จริงตามรายละเอียดด้านล่างนี้
     </div>
     <div class="cert-fact-grid">
       <div class="cert-fact"><span class="k">หมายเลขผู้ป่วย (HN)</span><span class="v">${escapeHtml(cert.hn)||'—'}</span></div>
-      <div class="cert-fact"><span class="k">วันที่เข้ารับการรักษา</span><span class="v">${fmtDate(cert.treatDate)}</span></div>
+      <div class="cert-fact"><span class="k">วันที่เข้ารับการรักษา</span><span class="v">${fmtDateThai(cert.treatDate)}</span></div>
       <div class="cert-fact" style="grid-column:1/-1;"><span class="k">การวินิจฉัย / หัตถการ</span><span class="v">${escapeHtml(procList)}</span></div>
     </div>
     ${restBlock}
@@ -5023,6 +5027,13 @@ function fmtDate(s){
   const [y,m,d] = String(s).split('-').map(Number);
   if(!y||!m||!d) return s;
   return `${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+}
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function fmtDateThai(s){
+  if(!s) return '—';
+  const [y,m,d] = String(s).split('-').map(Number);
+  if(!y||!m||!d) return s;
+  return `${d} ${THAI_MONTHS[m-1]} ${y+543}`;
 }
 function statusClass(s){
   return {

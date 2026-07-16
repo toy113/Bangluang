@@ -13,7 +13,7 @@ function cellToStr(cell, colName) {
   if (cell === null || cell === undefined || cell === '') return '';
   if (cell instanceof Date) {
     var col = String(colName).toLowerCase();
-    if (col === 'date' || col === 'addedat') {
+    if (col === 'date' || col === 'addedat' || col === 'treatdate') {
       return Utilities.formatDate(cell, TZ, 'yyyy-MM-dd');
     }
     if (col === 'time') {
@@ -22,7 +22,9 @@ function cellToStr(cell, colName) {
     return Utilities.formatDate(cell, TZ, 'yyyy-MM-dd HH:mm');
   }
   if (typeof cell === 'boolean') return cell ? 'TRUE' : 'FALSE';
-  return cell;
+  // ป้องกัน Sheets auto-detect เลขล้วนๆ (เช่น id ที่เป็น Date.now().toString()) เป็น Number
+  // แล้วทำให้ฝั่ง client เทียบ id ด้วย === ไม่ตรงกัน (number !== string)
+  return String(cell);
 }
 
 // ============================================================
@@ -50,7 +52,9 @@ function nextCertDocNo_(sh, beYear) {
 
 function certRowToObj_(hdr, row) {
   var obj = {};
-  for (var c = 0; c < hdr.length; c++) obj[hdr[c]] = row[c];
+  // ใช้ cellToStr เหมือน getAll เพื่อกัน Sheets auto-convert วันที่/ตัวเลขล้วนๆ
+  // เป็น Date/Number object แล้วหลุดไปเป็น ISO timestamp ตอน JSON.stringify (เช่น treatDate)
+  for (var c = 0; c < hdr.length; c++) obj[hdr[c]] = cellToStr(row[c], hdr[c]);
   return obj;
 }
 
