@@ -304,7 +304,15 @@ function doGet(e) {
         var hdr = vals[0];
         for (var i = 1; i < vals.length; i++) {
           if (String(vals[i][2]) === String(reqData.treatId)) {
-            return ContentService.createTextOutput(JSON.stringify({ ok: true, reused: true, cert: certRowToObj_(hdr, vals[i]) })).setMimeType(ContentService.MimeType.JSON);
+            // เคยออกให้ treatment นี้แล้ว — คงเลขที่เอกสาร/วันที่ออกเดิมไว้ (idempotent)
+            // แต่อัปเดตข้อมูลที่เหลือด้วยค่าล่าสุด เผื่อผู้ใช้แก้ไข (เช่น หัตถการ, อายุ) ก่อนพิมพ์ซ้ำ
+            var updatedRow = [
+              vals[i][0], vals[i][1], reqData.treatId||'', reqData.hn||'', reqData.patName||'', reqData.age||'',
+              reqData.treatDate||'', reqData.proc||'', reqData.docId||'', reqData.docFullName||'', reqData.docLicense||'',
+              reqData.needsRest ? 'TRUE' : 'FALSE', reqData.restDays||'', reqData.restStart||'', reqData.restEnd||'', reqData.purpose||''
+            ];
+            sh.getRange(i+1, 1, 1, updatedRow.length).setValues([updatedRow]);
+            return ContentService.createTextOutput(JSON.stringify({ ok: true, reused: true, cert: certRowToObj_(hdr, updatedRow) })).setMimeType(ContentService.MimeType.JSON);
           }
         }
         var now = new Date();
