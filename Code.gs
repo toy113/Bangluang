@@ -197,10 +197,30 @@ function doPost(e) {
     var r = data.data;
     var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
     var i = ids.indexOf(String(r.id));
-    var row = Object.keys(r).map(function(k){ var v=r[k]; return (v===null||v===undefined)?'':v; });
+    var rKeys = Object.keys(r);
 
-    // หา index ของ column date และ time จาก header row
-    var hdr = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
+    var hdr = sh.getRange(1,1,1,Math.max(sh.getLastColumn(),1)).getValues()[0];
+    // จับคู่แต่ละ key กับคอลัมน์ตาม "ชื่อ header จริง" ไม่ใช่ตามลำดับใน object เหมือนเดิม
+    // (ลำดับ key ใน object ไม่รับประกันว่าตรงกับลำดับคอลัมน์ในชีตเสมอไป — โดยเฉพาะถ้ามีคอลัมน์ blank ค้างอยู่)
+    // key ไหนยังไม่มี header ให้เข้าไปแทรกในช่อง blank ที่มีอยู่ก่อน ถ้าไม่มีช่อง blank ค่อยเพิ่มคอลัมน์ใหม่ต่อท้าย
+    rKeys.forEach(function(k){
+      if (hdr.indexOf(k) === -1) {
+        var blankIdx = hdr.indexOf('');
+        if (blankIdx !== -1) {
+          hdr[blankIdx] = k;
+          sh.getRange(1, blankIdx+1).setValue(k);
+        } else {
+          hdr.push(k);
+          sh.getRange(1, hdr.length).setValue(k);
+        }
+      }
+    });
+    // สร้าง row ตามตำแหน่งจริงของ header แต่ละคอลัมน์ (ไม่ใช่ตามลำดับ key ใน object)
+    var row = hdr.map(function(h){
+      if (!h) return '';
+      var v = r[h];
+      return (v===null||v===undefined)?'':v;
+    });
     var dateCol = -1, timeCol = -1;
     for (var c = 0; c < hdr.length; c++) {
       var h = String(hdr[c]).toLowerCase();

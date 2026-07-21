@@ -24,17 +24,19 @@
   --white: #FFFFFF;
   --text-dark: #1A0A17;
   --text-mid: #4A3347;
-  --text-light: #9B7A94;
+  /* text-light และสี semantic ด้านล่าง ปรับให้เข้มขึ้นจากต้นฉบับเพื่อให้ contrast ผ่าน WCAG AA (4.5:1)
+     ทั้งตอนใช้เป็นตัวอักษรบนพื้นขาว/ครีม และตอนใช้เป็นพื้นหลังกับตัวอักษรขาว (เช่น toast) — ค่าเดิมตกมาตรฐานทั้งสองทาง */
+  --text-light: #83627C;
   --border: rgba(107,45,94,0.18);
   --shadow: 0 4px 24px rgba(107,45,94,0.14);
   --shadow-lg: 0 8px 40px rgba(107,45,94,0.22);
   --radius: 16px;
   --radius-sm: 10px;
   --sidebar-w: 220px;
-  --green: #2ECC90;
-  --orange: #F39C12;
-  --red: #E74C5A;
-  --blue: #3498DB;
+  --green: #1D825C;
+  --orange: #A26608;
+  --red: #E11F31;
+  --blue: #2078B4;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -228,7 +230,8 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 }
 .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .nav-item.active { background: linear-gradient(90deg, rgba(212,168,71,0.2) 0%, rgba(212,168,71,0.08) 100%); color: var(--gold-light); border-left: 3px solid var(--gold); }
-.nav-icon { font-size: 18px; width: 22px; text-align: center; }
+.nav-icon { font-size: 18px; width: 22px; text-align: center; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-icon svg { width: 18px; height: 18px; }
 
 .sidebar-footer {
   padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.08);
@@ -280,6 +283,20 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .page { display: none; flex: 1; padding: 24px 28px; min-width: 0; max-width: 100%; }
 .page.active { display: block; }
 
+/* โหลดครั้งแรกที่ยังไม่มีข้อมูล cache ใน localStorage — กันไม่ให้ตารางโชว์ "ไม่มีรายการ" ซ้อนตอนกำลังโหลดจริง */
+#initialLoadOverlay {
+  position: fixed; inset: 0; z-index: 5000; background: var(--cream);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+#initialLoadOverlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+.initial-load-spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid var(--wine-pale); border-top-color: var(--wine);
+  animation: initialLoadSpin 0.8s linear infinite;
+}
+@keyframes initialLoadSpin { to { transform: rotate(360deg); } }
+
 /* ======= CARDS ======= */
 .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
 .stat-card {
@@ -318,7 +335,8 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
   background: linear-gradient(90deg, rgba(107,45,94,0.04) 0%, transparent 100%);
 }
 .card-box-title { font-size: 15px; font-weight: 700; color: var(--wine-dark); font-family: 'Prompt', sans-serif; }
-table { width: 100%; border-collapse: collapse; }
+/* display:block + overflow-x:auto ให้ตารางเลื่อนแนวนอนได้เองตอนแคบเกิน แทนที่จะโดน card-box (overflow:hidden) ตัดคอลัมน์ทิ้งเงียบๆ */
+table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 thead th {
   background: var(--wine-pale); color: var(--wine-dark); font-size: 12px;
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
@@ -361,6 +379,11 @@ tbody td { padding: 10px 14px; font-size: 13px; color: var(--text-mid); }
 .btn-danger { background: rgba(231,76,90,0.1); border: 1px solid rgba(231,76,90,0.25); color: var(--red); }
 .btn-danger:hover { background: rgba(231,76,90,0.2); }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
+/* ปุ่มไอคอนเดี่ยวในตาราง (พิมพ์/แก้ไข/ลบ) เดิม tap area ~24px ต่ำกว่ามาตรฐานขั้นต่ำที่แนะนำ ขยายเป็น 36px */
+.btn-icon { min-width: 36px; min-height: 36px; padding: 6px; justify-content: center; }
+/* utility class ที่ใช้แทน inline class="text-caption" ที่ซ้ำกันหลายจุด */
+.text-caption { font-size: 12px; color: var(--text-light); }
+.checkbox-label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; cursor: pointer; }
 
 /* FORM */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -579,7 +602,7 @@ select.form-control { cursor: pointer; }
   .card-box { border-radius: 12px; }
   .card-box-hdr { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
   .card-box-title { font-size: 13px; }
-  table { font-size: 12px; display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  table { font-size: 12px; white-space: nowrap; }
   thead th { padding: 8px 10px; font-size: 11px; }
   tbody td { padding: 8px 10px; }
 
@@ -683,15 +706,20 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 ::-webkit-scrollbar-thumb { background: rgba(107,45,94,0.25); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(107,45,94,0.4); }
 
-/* TOAST */
-.toast {
+/* TOAST — หลายอันซ้อนกันได้ในคอนเทนเนอร์เดียว ไม่ทับข้อความเก่าทิ้งเหมือนเดิม */
+#toastContainer {
   position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+  pointer-events: none;
+}
+.toast {
   background: var(--wine-deep, var(--wine)); color: #fff;
   padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
-  box-shadow: var(--shadow-lg); display: none; align-items: center; gap: 8px;
-  animation: slideIn 0.2s ease-out;
+  box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 8px;
+  animation: slideIn 0.2s ease-out; pointer-events: auto; max-width: 320px;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.toast.show { display: flex; }
+.toast.toast-out { opacity: 0; transform: translateY(6px); }
 @keyframes slideIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
 .toast.success { background: var(--green); }
 .toast.error { background: var(--red); }
@@ -823,6 +851,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 </div>
 
+<!-- แสดงเฉพาะตอนล็อกอินครั้งแรกที่ยังไม่มีข้อมูล cache ระหว่างรอ sync ครั้งแรกจาก Sheet -->
+<div id="initialLoadOverlay" style="display:none;">
+  <div class="initial-load-spinner"></div>
+  <div style="color:var(--wine);font-weight:600;font-size:14px;">กำลังโหลดข้อมูล...</div>
+</div>
+
 <!-- ======== APP SHELL ======== -->
 <div id="appShell">
   <div class="sidebar">
@@ -846,15 +880,15 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
     </div>
     <div class="sidebar-nav">
-      <button class="nav-item" onclick="showPage('patients')" id="nav-patients" style="display:none;"><span class="nav-icon">👥</span>รายชื่อคนไข้</button>
-      <button class="nav-item" onclick="showPage('recall')" id="nav-recall" style="display:none;"><span class="nav-icon">🔔</span>Recall ปกส</button>
-      <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon">🏠</span>หน้าหลัก</button>
-      <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule" style="display:none;"><span class="nav-icon">📆</span>ดูนัด</button>
-      <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon">📋</span>บันทึกการรักษา</button>
-      <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon">📊</span>สรุปรายได้</button>
-      <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon">🧪</span>ค่าแลป</button>
-      <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon">😬</span>จัดฟัน</button>
-      <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon">⚙️</span>ตั้งค่า</button>
+      <button class="nav-item" onclick="showPage('patients')" id="nav-patients" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>รายชื่อคนไข้</button>
+      <button class="nav-item" onclick="showPage('recall')" id="nav-recall" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>Recall ปกส</button>
+      <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>หน้าหลัก</button>
+      <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>ดูนัด</button>
+      <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="4" y="4" width="16" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg></span>บันทึกการรักษา</button>
+      <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>สรุปรายได้</button>
+      <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8.5 13h7"/></svg></span>ค่าแลป</button>
+      <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>จัดฟัน</button>
+      <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>ตั้งค่า</button>
 
     </div>
     <div class="sidebar-footer">
@@ -863,9 +897,9 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div class="sync-dot" id="syncDot"></div>
           <span id="syncText">เชื่อมต่อ Google Sheet</span>
         </div>
-        <button onclick="manualSync()" id="syncBtn" title="Sync ตอนนี้" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1;transition:transform 0.3s;" >🔄</button>
+        <button onclick="manualSync()" id="syncBtn" title="Sync ตอนนี้" aria-label="Sync ตอนนี้" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;transition:transform 0.3s;color:inherit;" ><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>
       </div>
-      <button class="logout-btn" onclick="logout()">🚪 ออกจากระบบ</button>
+      <button class="logout-btn" onclick="logout()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ออกจากระบบ</button>
     </div>
   </div>
 
@@ -883,7 +917,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             Synced
           </div>
         </div>
-        <button onclick="logout()" class="mobile-logout-btn" title="ออกจากระบบ">🚪</button>
+        <button onclick="logout()" class="mobile-logout-btn" title="ออกจากระบบ" aria-label="ออกจากระบบ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
       </div>
     </div>
     <!-- TOP TAB BAR (mobile navigation) -->
@@ -996,7 +1030,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             </div>
             <input type="date" class="form-control" id="treatFilterDate" onchange="renderTreatPage()" style="height:36px;width:180px;">
             <input type="month" class="form-control" id="treatFilterMonth" onchange="renderTreatPage()" style="height:36px;display:none;">
-            <div class="search-box"><input type="text" class="form-control" placeholder="ค้นหาชื่อ/HN" id="treatSearch" oninput="renderTreatPage()" style="height:36px;padding-left:32px;width:180px;"></div>
+            <div class="search-box"><input type="text" class="form-control" placeholder="ค้นหาชื่อ/HN" id="treatSearch" oninput="debounceTreatSearch()" style="height:36px;padding-left:32px;width:180px;"></div>
             <button class="btn btn-primary btn-sm" id="btnAddTreat" onclick="openAddTreat()">+ เพิ่มรายการ</button>
           </div>
         </div>
@@ -1006,7 +1040,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <div style="display:flex;align-items:baseline;gap:6px;">
               <span style="font-size:12px;color:var(--text-light);font-weight:700;">จำนวนราย</span>
               <span style="font-size:26px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;" id="ms-count">0</span>
-              <span style="font-size:12px;color:var(--text-light);">ราย</span>
+              <span class="text-caption">ราย</span>
             </div>
             <span id="ms-total" style="display:none"></span>
             <span id="ms-cash" style="display:none"></span>
@@ -1049,6 +1083,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div id="shareTotalBadge" style="font-size:13px;font-weight:700;color:var(--wine-mid);"></div>
         </div>
         <div style="padding:20px 24px;"><div class="share-grid" id="shareGrid"></div></div>
+        <div style="padding:0 24px 20px;"><div class="chart-wrap" style="height:220px;"><canvas id="doctorShareChart"></canvas></div></div>
       </div>
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
         <div class="stat-card purple"><div class="stat-icon">💰</div><div class="stat-label">รายได้รวม</div><div class="stat-value" id="i-total">0</div><div class="stat-sub">บาท</div></div>
@@ -1215,6 +1250,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
     <!-- ===== SETTINGS PAGE ===== -->
     <div class="page" id="page-settings">
+      <div id="settingsDocTabs" style="display:none;position:sticky;top:0;z-index:10;background:var(--cream);padding:8px 0 12px;margin:-8px 0 8px;overflow-x:auto;white-space:nowrap;"></div>
       <div class="settings-grid" id="settingsGrid"></div>
 
       <!-- DANGER ZONE - Manager only -->
@@ -1264,7 +1300,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalApt">
   <div class="modal-box">
     <div class="modal-title">📅 <span id="aptModalTitle">เพิ่มนัด</span></div>
-    <button class="modal-close" onclick="closeModal('modalApt')">×</button>
+    <button class="modal-close" onclick="closeModal('modalApt')" aria-label="ปิดหน้าต่าง">×</button>
     <div class="form-grid">
       <div class="form-group">
         <label>วันที่</label>
@@ -1335,7 +1371,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalTreat">
   <div class="modal-box">
     <div class="modal-title">🦷 <span id="treatModalTitle">เพิ่มรายการรักษา</span></div>
-    <button class="modal-close" onclick="closeModal('modalTreat')">×</button>
+    <button class="modal-close" onclick="closeModal('modalTreat')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="treat-id">
     <div class="form-grid">
       <div class="form-group">
@@ -1414,7 +1450,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalCertificate">
   <div class="modal-box">
     <div class="modal-title">🖨️ ออกใบรับรองแพทย์</div>
-    <button class="modal-close" onclick="closeModal('modalCertificate')">×</button>
+    <button class="modal-close" onclick="closeModal('modalCertificate')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="cert-treatId">
     <div style="background:var(--cream);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;">
       <div><b id="cert-patName-display"></b> · HN <span id="cert-hn-display"></span></div>
@@ -1476,7 +1512,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalLab">
   <div class="modal-box">
     <div class="modal-title">🧪 <span id="labModalTitle">เพิ่มค่าแลป</span></div>
-    <button class="modal-close" onclick="closeModal('modalLab')">×</button>
+    <button class="modal-close" onclick="closeModal('modalLab')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="lab-id">
     <div class="form-grid">
       <div class="form-group">
@@ -1543,7 +1579,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalOrtho">
   <div class="modal-box">
     <div class="modal-title">😬 <span id="orthoModalTitle">เพิ่มคนไข้จัดฟัน</span></div>
-    <button class="modal-close" onclick="closeModal('modalOrtho')">×</button>
+    <button class="modal-close" onclick="closeModal('modalOrtho')" aria-label="ปิดหน้าต่าง">×</button>
     <div class="form-grid">
       <div class="form-group">
         <label>HN</label>
@@ -1607,7 +1643,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalQuickLog">
   <div class="modal-box">
     <div class="modal-title">⚡ <span id="qlogModalTitle">ประวัติการรักษา</span></div>
-    <button class="modal-close" onclick="closeModal('modalQuickLog')">×</button>
+    <button class="modal-close" onclick="closeModal('modalQuickLog')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="qlog-hn">
     <div class="form-grid" id="qlog-dates" style="max-height:55vh;overflow-y:auto;"></div>
     <button type="button" class="btn btn-ghost btn-sm" onclick="addQuickLogSlot()" style="margin-top:8px;">+ เพิ่มช่อง</button>
@@ -1621,7 +1657,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalOrthoLog">
   <div class="modal-box">
     <div class="modal-title">➕ <span id="ologModalTitle">บันทึกการรักษา</span></div>
-    <button class="modal-close" onclick="closeModal('modalOrthoLog')">×</button>
+    <button class="modal-close" onclick="closeModal('modalOrthoLog')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="olog-hn">
     <div class="form-grid">
       <div class="form-group">
@@ -1635,13 +1671,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group" style="grid-column:1/-1;">
         <label>การรักษา (เลือกได้หลายอัน)</label>
         <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ปักหมุด"> ปักหมุด</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="olog-do-chk" value="X-ray"> X-ray</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปักหมุด"> ปักหมุด</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="X-ray"> X-ray</label>
         </div>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
@@ -1659,7 +1695,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalLoose">
   <div class="modal-box">
     <div class="modal-title">🔧 <span id="looseModalTitle">เครื่องมือหลุด</span></div>
-    <button class="modal-close" onclick="closeModal('modalLoose')">×</button>
+    <button class="modal-close" onclick="closeModal('modalLoose')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="loose-hn">
     <div class="form-grid">
       <div class="form-group">
@@ -1678,7 +1714,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalReschedule">
   <div class="modal-box">
     <div class="modal-title">📅 <span id="reschedModalTitle">ลงนัด</span></div>
-    <button class="modal-close" onclick="closeModal('modalReschedule')">×</button>
+    <button class="modal-close" onclick="closeModal('modalReschedule')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="resched-hn">
     <div class="form-grid">
       <div class="form-group">
@@ -1692,13 +1728,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group" style="grid-column:1/-1;">
         <label>รายการนัด (เลือกได้หลายอัน)</label>
         <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ปักหมุด"> ปักหมุด</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;"><input type="checkbox" class="resched-do-chk" value="X-ray"> X-ray</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ปักหมุด"> ปักหมุด</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="X-ray"> X-ray</label>
         </div>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
@@ -1716,7 +1752,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalRetainer">
   <div class="modal-box">
     <div class="modal-title">🦷 <span id="retainerModalTitle">วันใส่รีเทนเนอร์</span></div>
-    <button class="modal-close" onclick="closeModal('modalRetainer')">×</button>
+    <button class="modal-close" onclick="closeModal('modalRetainer')" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="retainer-hn">
     <div class="form-grid">
       <div class="form-group">
@@ -1734,7 +1770,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalOrthoHistory">
   <div class="modal-box">
     <div class="modal-title">🦷 <span id="historyModalTitle">ประวัติการรักษา</span></div>
-    <button class="modal-close" onclick="closeModal('modalOrthoHistory')">×</button>
+    <button class="modal-close" onclick="closeModal('modalOrthoHistory')" aria-label="ปิดหน้าต่าง">×</button>
     <div id="ortho-history-list" style="max-height:60vh;overflow-y:auto;"></div>
   </div>
 </div>
@@ -1755,7 +1791,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalEditPatient">
   <div class="modal-box" style="max-width:460px;">
     <div class="modal-title">✏️ แก้ไขข้อมูล · <span id="editPat-hn-display" style="font-size:14px;color:var(--wine-mid);"></span></div>
-    <button class="modal-close" onclick="closeEditPatient()">×</button>
+    <button class="modal-close" onclick="closeEditPatient()" aria-label="ปิดหน้าต่าง">×</button>
     <input type="hidden" id="editPat-hn">
     <div class="form-grid">
       <div class="form-group form-control-full">
@@ -1786,7 +1822,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalAddPatient">
   <div class="modal-box" style="max-width:460px;">
     <div class="modal-title">👥 เพิ่มคนไข้รายใหม่</div>
-    <button class="modal-close" onclick="closeAddPatient()">×</button>
+    <button class="modal-close" onclick="closeAddPatient()" aria-label="ปิดหน้าต่าง">×</button>
     <div class="form-grid">
       <div class="form-group">
         <label>HN *</label>
@@ -1820,7 +1856,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div class="modal-overlay" id="modalPatientDetail">
   <div class="modal-box" style="max-width:600px;">
     <div class="modal-title">🦷 <span id="pdTitle">ประวัติคนไข้</span></div>
-    <button class="modal-close" onclick="closePatientDetail()">×</button>
+    <button class="modal-close" onclick="closePatientDetail()" aria-label="ปิดหน้าต่าง">×</button>
     <div id="pdContent" style="max-height:65vh;overflow-y:auto;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closePatientDetail()">ปิด</button>
@@ -1829,7 +1865,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast">✓ บันทึกสำเร็จ</div>
+<div id="toastContainer"></div>
 
 <script>
 // ============================================================
@@ -1897,7 +1933,7 @@ let labs = JSON.parse(localStorage.getItem('bl_lab')||'[]');
 
 let selectedLoginDoc = null;
 let currentPin = '';
-let barChartInst = null, pieChartInst = null;
+let barChartInst = null, pieChartInst = null, doctorChartInst = null;
 let statusTargetId = null;
 let editTreatId = null, editLabId = null;
 let currentPeriod = 'day';
@@ -2050,7 +2086,14 @@ function startApp(){
   // ถ้าหมอ restore ไปหน้า manager-only ให้ redirect ไปหน้าหลักแทน
   if(!isManager && managerOnlyPages.includes(lastPage)) lastPage = 'home';
   showPage(lastPage);
-  syncAll();
+  // ล็อกอินครั้งแรกที่ยังไม่มี cache เลย (treatments/appointments ว่างเปล่า) ตารางจะโชว์ "ไม่มีรายการ"
+  // ทั้งที่จริงกำลังโหลดอยู่ — โชว์ overlay คลุมไว้จนกว่า sync ครั้งแรกจะเสร็จ
+  const isFirstEverLoad = treatments.length===0 && appointments.length===0;
+  const loadOverlay = document.getElementById('initialLoadOverlay');
+  if(isFirstEverLoad && loadOverlay) loadOverlay.style.display = 'flex';
+  syncAll().finally(()=>{
+    if(loadOverlay){ loadOverlay.classList.add('hide'); setTimeout(()=>loadOverlay.style.display='none', 300); }
+  });
   startAutoSync();
 }
 
@@ -2133,6 +2176,9 @@ function showPage(p){
   if(p==='income') renderIncome();
   if(p==='lab') renderLabPage();
   if(p==='settings') buildSettingsPage();
+  // เดิม showPage('ortho') ไม่ได้เรียก renderOrthoPage() เลย — หน้าจัดฟันเลยว่างเปล่าจนกว่า
+  // background syncAll() รอบถัดไปจะ re-render ให้ (นานสุดเท่าความถี่ auto-sync)
+  if(p==='ortho') renderOrthoPage();
   if(p==='patients'){
     renderPatients();
     syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
@@ -2169,8 +2215,7 @@ function renderHome(){
   // calc share
   const shareDoc = treats.reduce((s,t)=>{
     const doc = doctors.find(d=>d.name===t.docName);
-    const pct = doc ? doc.share : 50;
-    return s + totalPrice(t)*pct/100;
+    return s + totalPrice(t)*docSharePct(t,doc)/100;
   },0);
 
   document.getElementById('statCount').textContent = treats.length;
@@ -2220,7 +2265,7 @@ function renderAptList(today){
   const rowHtml = a=>`
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
-      <div style="font-size:12px;color:var(--text-light)">${a.hn||'—'}</div>
+      <div class="text-caption">${a.hn||'—'}</div>
       <div style="font-weight:600">${a.patName}</div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
@@ -2253,7 +2298,7 @@ function renderTreatList(treats){
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   document.getElementById('treatCountBadge').textContent=`${treats.length} ราย`;
   document.getElementById('treatTotalBadge').textContent=`${fmt(total)}`;
-  if(!treats.length){ tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ</td></tr>`; return; }
+  if(!treats.length){ tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
 
   // จัดกลุ่มตามหมอ
   const byDoc = {};
@@ -2290,7 +2335,7 @@ function renderTreatList(treats){
 function treatRow(t){
   return `<tr>
     <td>${t.time||'—'}</td>
-    <td style="font-size:12px;color:var(--text-light)">${t.hn||'—'}</td>
+    <td class="text-caption">${t.hn||'—'}</td>
     <td style="font-weight:600">${t.patName}</td>
     <td>${procBadge(t.proc)}</td>
     <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
@@ -2298,7 +2343,7 @@ function treatRow(t){
     <td style="color:var(--blue);font-weight:600">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
     <td style="color:var(--orange);font-weight:600">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
     <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
-    <td><button class="btn btn-ghost btn-sm" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์">🖨️</button></td>
+    <td><button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
   </tr>`;
 }
 
@@ -2450,6 +2495,7 @@ function saveApt(){
   if(p==='home') renderHome();
   else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
   showToast(_editAptId ? 'แก้ไขนัดสำเร็จ' : 'เพิ่มนัดสำเร็จ');
+  markPendingSync('appointments', apt);
   syncToSheet('appointments', apt).then(()=>{
     setTimeout(syncAll, 2000);
   }).catch(()=>{
@@ -2484,14 +2530,22 @@ function _deletedAptIds(){
 }
 function deleteApt(id){
   if(!confirm('ยืนยันลบนัดนี้?')) return;
+  const idx = appointments.findIndex(a=>String(a.id)===String(id));
+  if(idx<0) return;
+  const removed = appointments[idx];
   appointments = appointments.filter(a=>String(a.id)!==String(id));
-  _blacklistDeletedApt(id);
+  _blacklistDeletedApt(id); // กัน syncAll ดึงกลับมาก่อน Sheet propagate ระหว่างรอ undo + ลบจริง
   saveLocal();
-  const p=document.querySelector('.page.active')?.id?.replace('page-','');
-  if(p==='home') renderHome();
-  else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
-  showToast('ลบนัดสำเร็จ');
-  syncToSheet('delete',{type:'appointments',id});
+  const rerender = () => {
+    const p=document.querySelector('.page.active')?.id?.replace('page-','');
+    if(p==='home') renderHome();
+    else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); }
+  };
+  rerender();
+  showUndoToast('ลบนัดสำเร็จ',
+    () => { syncToSheet('delete',{type:'appointments',id}); },
+    () => { appointments.splice(idx,0,removed); saveLocal(); rerender(); }
+  );
 }
 
 // ============================================================
@@ -2522,6 +2576,7 @@ function setStatus(s){
     appointments[idx].status=s;
     saveLocal();
     showToast('เปลี่ยนสถานะเป็น '+s);
+    markPendingSync('appointments', appointments[idx]);
     syncToSheet('appointments',appointments[idx]);
     // Re-render whichever page is active
     const p=document.querySelector('.page.active')?.id?.replace('page-','');
@@ -2581,12 +2636,20 @@ function saveTreat(){
   const treatTimeEl = document.getElementById('treat-time');
   if(treatTimeEl) fmtTimeBlur(treatTimeEl);
   const id = document.getElementById('treat-id').value || Date.now().toString();
+  const docName = document.getElementById('treat-doc').value;
+  // Snapshot ส่วนแบ่ง % ของหมอ ณ ตอนบันทึก เพื่อไม่ให้การแก้ % ในอนาคตย้อนไปเปลี่ยนรายงานเก่า
+  // ถ้าเป็นการแก้ไขรายการเดิมและหมอไม่เปลี่ยน ให้คง docShare เดิมไว้ (ไม่ snapshot ซ้ำทับของเก่า)
+  const existingTreat = treatments.find(x=>x.id===id);
+  const doc = doctors.find(d=>d.name===docName);
+  const docShare = (existingTreat && existingTreat.docName===docName && existingTreat.docShare!==undefined && existingTreat.docShare!=='')
+    ? existingTreat.docShare
+    : (doc ? doc.share : '');
   const t = {
     id, date:document.getElementById('treat-date').value,
     time:treatTimeEl?.value||'10:00',
     hn:document.getElementById('treat-hn').value,
     patName:document.getElementById('treat-name').value,
-    docName:document.getElementById('treat-doc').value,
+    docName,
     proc:getProcSelected()||document.getElementById('treat-proc').value,
     cash:document.getElementById('treat-cash').value||'0',
     transfer:document.getElementById('treat-transfer').value||'0',
@@ -2594,6 +2657,7 @@ function saveTreat(){
     company:'0',
     note:document.getElementById('treat-note').value,
     status:'เสร็จ',
+    docShare,
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
   if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
@@ -2603,6 +2667,7 @@ function saveTreat(){
   closeModal('modalTreat');
   renderHome(); renderTreatPage();
   showToast('บันทึกการรักษาสำเร็จ');
+  markPendingSync('treatments', t);
   syncToSheet('treatments', t).then(()=>{
     setTimeout(syncAll, 2000);
   }).catch(err => {
@@ -2611,10 +2676,15 @@ function saveTreat(){
 }
 function deleteTreat(id){
   if(!confirm('ยืนยันลบรายการนี้?')) return;
-  treatments=treatments.filter(t=>t.id!==id);
+  const idx = treatments.findIndex(t=>t.id===id);
+  if(idx<0) return;
+  const removed = treatments[idx];
+  treatments = treatments.filter(t=>t.id!==id);
   saveLocal(); renderTreatPage(); renderHome();
-  showToast('ลบรายการสำเร็จ');
-  syncToSheet('delete',{type:'treatments',id});
+  showUndoToast('ลบรายการสำเร็จ',
+    () => { syncToSheet('delete',{type:'treatments',id}); },
+    () => { treatments.splice(idx,0,removed); saveLocal(); renderTreatPage(); renderHome(); }
+  );
 }
 
 // ============================================================
@@ -2797,11 +2867,11 @@ function renderTreatPage(){
   const countBadge = document.getElementById('treatPageCountBadge');
   if(countBadge) countBadge.textContent = rows.length + ' ราย';
   const tbody=document.getElementById('treatPageBody');
-  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ</td></tr>`; return; }
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
   tbody.innerHTML=rows.map(t=>`
     <tr class="${t.docName===currentUser?.name?'own-row':''}">
       <td>${fmtDate(t.date)}</td>
-      <td style="font-size:12px;color:var(--text-light)">${t.hn||'—'}</td>
+      <td class="text-caption">${t.hn||'—'}</td>
       <td style="font-weight:600">${t.patName}</td>
       <td>${procBadge(t.proc)}</td>
       <td style="font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
@@ -2809,11 +2879,11 @@ function renderTreatPage(){
       <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
       <td style="color:var(--orange)">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
       <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์">🖨️</button></td>
+      <td><button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
       ${isManager?`<td>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick='openAddTreat(${JSON.stringify(t)})'>✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteTreat('${t.id}')">🗑️</button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick='openAddTreat(${JSON.stringify(t)})' aria-label="แก้ไขรายการรักษา" title="แก้ไข">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteTreat('${t.id}')" aria-label="ลบรายการรักษา" title="ลบ">🗑️</button>
         </div>
       </td>`:''}
     </tr>`).join('');
@@ -2996,19 +3066,23 @@ function buildShareGrid(rows){
   // Update badge
   const badge = document.getElementById('shareTotalBadge');
   if(badge) badge.textContent = 'รายได้รวมทั้งหมด '+fmt(grandTotal);
+  const chartRows = []; // เก็บข้อมูลต่อหมอไว้เทียบกันเป็นกราฟ นอกเหนือจากการ์ดเดี่ยวๆ ด้านล่าง
   el.innerHTML=docList.map(doc=>{
     const dr=rows.filter(r=>r.docName===doc.name);
     const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
-    const share=tot*doc.share/100;
-    const clinicShare=tot*(100-doc.share)/100;
+    const share=dr.reduce((s,r)=>s+totalPrice(r)*docSharePct(r,doc)/100,0);
+    const clinicShare=tot-share;
     const pct=maxTot>0?Math.round(tot/maxTot*100):0;
+    chartRows.push({name:doc.name, share, clinicShare});
+    // % ที่โชว์คำนวณย้อนจากยอดจริง (ไม่ใช่ doc.share ตรงๆ) เผื่อรายการในช่วงนี้มี % สแนปช็อตไม่เท่ากัน (เพิ่งเปลี่ยน % ระหว่างทาง)
+    const effectivePct = tot>0 ? Math.round(share/tot*100) : doc.share;
     return `<div class="share-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
           <div class="share-card-name">${doc.emoji||'🦷'} ${doc.name}</div>
-          <div class="share-card-pct">${dr.length} ราย · ส่วนแบ่ง ${doc.share}%</div>
+          <div class="share-card-pct">${dr.length} ราย · ส่วนแบ่ง ${effectivePct}%</div>
         </div>
-        <div style="background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;">${doc.share}%</div>
+        <div style="background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;">${effectivePct}%</div>
       </div>
       <div class="share-card-amount">${fmt(share)}</div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;">
@@ -3031,6 +3105,34 @@ function buildShareGrid(rows){
       </div>
     </div>`;
   }).join('');
+
+  // กราฟเทียบรายได้ระหว่างหมอแต่ละคน (แยกส่วนแบ่งหมอ/คลินิกเป็นแท่งซ้อน) เสริมจากการ์ดด้านบนที่ดูทีละคน
+  const chartCanvas = document.getElementById('doctorShareChart');
+  if(chartCanvas && typeof Chart!=='undefined'){
+    if(doctorChartInst) doctorChartInst.destroy();
+    doctorChartInst = new Chart(chartCanvas, {
+      type: 'bar',
+      data: {
+        labels: chartRows.map(r=>r.name),
+        datasets: [
+          { label:'ส่วนแบ่งหมอ', data:chartRows.map(r=>r.share), backgroundColor:'rgba(212,168,71,0.85)', borderRadius:4, stack:'s' },
+          { label:'ส่วนแบ่งคลินิก', data:chartRows.map(r=>r.clinicShare), backgroundColor:'rgba(107,45,94,0.85)', borderRadius:4, stack:'s' },
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:14, padding:10 } },
+          title:{ display:true, text:'📊 เปรียบเทียบรายได้ระหว่างหมอ', font:{size:13,weight:'bold'}, color:'#4A1E42', padding:{bottom:10} },
+          tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+ctx.parsed.y.toLocaleString('th-TH') } }
+        },
+        scales:{
+          x:{ stacked:true, grid:{display:false}, ticks:{font:{size:10}, color:'#9B7A94'} },
+          y:{ stacked:true, grid:{color:'rgba(107,45,94,0.08)'}, ticks:{ callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v, font:{size:10}, color:'#9B7A94' } }
+        }
+      }
+    });
+  }
 }
 
 // ============================================================
@@ -3072,14 +3174,21 @@ function saveLab(){
   if(idx>-1) labs[idx]=l; else labs.push(l);
   saveLocal(); closeModal('modalLab'); renderLabPage();
   showToast('บันทึกค่าแลปสำเร็จ');
+  markPendingSync('labs', l);
   // sync แล้ว re-render ให้แน่ใจว่าข้อมูลถูก
   syncToSheet('labs',l).then(()=>{ setTimeout(()=>{ syncAll().then(renderLabPage); }, 1000); });
 }
 function deleteLab(id){
   if(!confirm('ยืนยันลบ?')) return;
-  labs=labs.filter(l=>l.id!==id);
-  saveLocal(); renderLabPage(); showToast('ลบสำเร็จ');
-  syncToSheet('delete',{type:'labs',id});
+  const idx = labs.findIndex(l=>l.id===id);
+  if(idx<0) return;
+  const removed = labs[idx];
+  labs = labs.filter(l=>l.id!==id);
+  saveLocal(); renderLabPage();
+  showUndoToast('ลบสำเร็จ',
+    () => { syncToSheet('delete',{type:'labs',id}); },
+    () => { labs.splice(idx,0,removed); saveLocal(); renderLabPage(); }
+  );
 }
 function hideFollowup(hn){
   try {
@@ -3196,12 +3305,12 @@ function renderLabPage(){
   rows=rows.filter(l=>l.date&&l.date.startsWith(month));
   rows.sort((a,b)=>a.date.localeCompare(b.date));
   const tbody=document.getElementById('labPageBody');
-  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ</td></tr>`; }
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddLab()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; }
   else {
     tbody.innerHTML=rows.map(l=>`
       <tr>
         <td>${fmtDate(l.date)}</td>
-        <td style="font-size:12px;color:var(--text-light)">${l.hn||'—'}</td>
+        <td class="text-caption">${l.hn||'—'}</td>
         <td style="font-weight:600">${l.patName}</td>
         <td>${l.work}</td>
         <td><span class="lab-badge ${labBadgeClass(l.lab)}">${l.lab}</span></td>
@@ -3210,8 +3319,8 @@ function renderLabPage(){
         <td style="font-size:12px;color:var(--text-light);font-style:${l.note?'normal':'italic'}">${l.note||'—'}</td>
         ${isManager
           ? `<td><div style="display:flex;gap:6px;">
-              <button class="btn btn-ghost btn-sm" onclick='openAddLab(${JSON.stringify(l)})'>✏️</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteLab('${l.id}')">🗑️</button>
+              <button class="btn btn-ghost btn-sm btn-icon" onclick='openAddLab(${JSON.stringify(l)})' aria-label="แก้ไขรายการแลป" title="แก้ไข">✏️</button>
+              <button class="btn btn-danger btn-sm btn-icon" onclick="deleteLab('${l.id}')" aria-label="ลบรายการแลป" title="ลบ">🗑️</button>
              </div></td>`
           : ''
         }
@@ -3269,8 +3378,22 @@ function labBadgeClass(lab){ return {สายน้ำทิพย์:'lab-snt'
 function buildSettingsPage(){
   const grid=document.getElementById('settingsGrid');
   const docList=isManager?doctors:doctors.filter(d=>d.id===currentUser.id);
+  // แถบ tab กระโดดไปหาหมอแต่ละคน — จำเป็นตอนเป็นผู้จัดการเพราะฟอร์มหมอทุกคนเรียงต่อกันเป็นหน้ายาวมาก
+  const tabsEl = document.getElementById('settingsDocTabs');
+  if(tabsEl){
+    if(isManager && docList.length>1){
+      tabsEl.style.display = 'block';
+      tabsEl.innerHTML = docList.map(doc=>
+        `<button onclick="document.getElementById('settings-doc-${doc.id}').scrollIntoView({behavior:'smooth',block:'start'})"
+          style="display:inline-block;margin:0 6px 0 0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--wine-dark);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">${doc.emoji||'🦷'} ${doc.name}</button>`
+      ).join('');
+    } else {
+      tabsEl.style.display = 'none';
+      tabsEl.innerHTML = '';
+    }
+  }
   grid.innerHTML=docList.map(doc=>`
-    <div class="settings-card">
+    <div class="settings-card" id="settings-doc-${doc.id}" style="scroll-margin-top:70px;">
       <div class="settings-card-title">${doc.emoji||'🦷'} ${doc.name}</div>
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div class="form-group">
@@ -3353,6 +3476,28 @@ function saveDocSettings(docId){
 // ============================================================
 //  GOOGLE SHEETS SYNC
 // ============================================================
+// เก็บรายการที่เพิ่ง sync ไปแต่ยังไม่ยืนยันว่าขึ้น Sheet จริง — syncToSheet ใช้ mode:'no-cors'
+// (กัน CORS บล็อก) ซึ่งทำให้ fetch resolve เป็น "สำเร็จ" เสมอแม้ request จะไปไม่ถึง/พังฝั่ง server จริงๆ
+// syncAll() ที่ทำงานทุก 4 วิ (full-replace จาก Sheet) เลยเสี่ยงทับรายการที่เพิ่งบันทึกทิ้งไปเงียบๆ
+// ก่อนที่ผู้ใช้จะทันสังเกต — pendingSync กันไว้จนกว่าจะเห็นรายการนั้นขึ้น Sheet จริงจาก syncAll ครั้งถัดไป
+const pendingSync = { treatments: new Map(), appointments: new Map(), labs: new Map() };
+function markPendingSync(type, record){
+  if(pendingSync[type]) pendingSync[type].set(record.id, record);
+}
+function reconcilePendingSync(type, arr){
+  const pending = pendingSync[type];
+  if(!pending || !pending.size) return arr;
+  const serverIds = new Set(arr.map(r=>r.id));
+  pending.forEach((record, id) => {
+    if(serverIds.has(id)){
+      pending.delete(id); // เห็นขึ้น Sheet แล้ว ยืนยันว่า sync สำเร็จจริง
+    } else {
+      arr.push(record); // ยังไม่ขึ้น Sheet — ใส่กลับกันหาย แล้วลอง sync ซ้ำให้อัตโนมัติ
+      syncToSheet(type, record).catch(()=>{});
+    }
+  });
+  return arr;
+}
 async function syncToSheet(type, data){
   if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) return Promise.resolve();
   const dot = document.getElementById('syncDot');
@@ -3452,9 +3597,9 @@ async function syncAll(){
       return r; 
     };
     const _delAptIds = _deletedAptIds();
-    if(Array.isArray(d.appointments)) appointments = d.appointments.filter(r=>sid(r) && !_delAptIds.has(sid(r))).map(normRow);
-    if(Array.isArray(d.treatments))  treatments  = d.treatments.filter(r=>sid(r)).map(normRow);
-    if(Array.isArray(d.labs))        labs        = d.labs.filter(r=>sid(r)).map(normRow);
+    if(Array.isArray(d.appointments)) appointments = reconcilePendingSync('appointments', d.appointments.filter(r=>sid(r) && !_delAptIds.has(sid(r))).map(normRow));
+    if(Array.isArray(d.treatments))  treatments  = reconcilePendingSync('treatments', d.treatments.filter(r=>sid(r)).map(normRow));
+    if(Array.isArray(d.labs))        labs        = reconcilePendingSync('labs', d.labs.filter(r=>sid(r)).map(normRow));
     // Load patients from Sheet via clean function
     loadPatientsFromSheet(d.patients);
     // Load recall status from Sheet
@@ -3924,10 +4069,10 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
             onclick="event.stopPropagation();openStatusDropdown(event,this.dataset.aptId)"
             style="font-size:9px;cursor:pointer;">${a.status||''}</span>
-          <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)"
-            style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:1px 5px;cursor:pointer;font-size:11px;">✏️</button>
-          <button data-apt-id="${safeId}" onclick="event.stopPropagation();deleteApt(this.dataset.aptId)"
-            style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:1px 5px;cursor:pointer;font-size:11px;">🗑️</button>
+          <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)" aria-label="แก้ไขนัด" title="แก้ไขนัด"
+            style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:4px 6px;min-width:24px;min-height:24px;cursor:pointer;font-size:11px;">✏️</button>
+          <button data-apt-id="${safeId}" onclick="event.stopPropagation();deleteApt(this.dataset.aptId)" aria-label="ลบนัด" title="ลบนัด"
+            style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:4px 6px;min-width:24px;min-height:24px;cursor:pointer;font-size:11px;">🗑️</button>
         </div>
       </div>
       ${(a.proc||a.note)?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
@@ -3961,11 +4106,11 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           padding:3px 4px;min-width:58px;display:inline-block;">${slot}</span>
         <div style="flex:1;"></div>
         ${blocked
-          ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" style="font-size:10px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 7px;cursor:pointer;color:#555;">เปิด</button>`
-          : `<button onclick="openAddApt(null,'${date}','${slot}','${dparam}')" style="font-size:10px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
-             <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" style="font-size:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
+          ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" aria-label="เปิดช่องเวลานี้" style="font-size:10px;min-height:26px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;color:#555;">เปิด</button>`
+          : `<button onclick="openAddApt(null,'${date}','${slot}','${dparam}')" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
+             <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" aria-label="เว้นว่างช่องเวลานี้" style="font-size:12px;min-width:26px;min-height:26px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
         }
-        <button onclick="schRemoveSlot('${date}','${slot}','${dparam}')" style="font-size:10px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 2px;display:inline;">✕</button>
+        <button onclick="schRemoveSlot('${date}','${slot}','${dparam}')" title="ลบช่องเวลานี้" aria-label="ลบช่องเวลานี้" style="font-size:10px;min-width:22px;min-height:26px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;display:inline;">✕</button>
       </div>
       ${blocked?`<div style="font-size:10px;color:#bbb;text-align:center;padding:3px 0;">— เว้นว่าง —</div>`:''}
       ${aptCards}
@@ -4402,7 +4547,7 @@ function renderSchedulePage(){
         <tr>
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
-          <td style="font-size:12px;color:var(--text-light);">${a.hn||'—'}</td>
+          <td class="text-caption">${a.hn||'—'}</td>
           <td style="font-weight:600;">${a.patName||'—'}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
@@ -4410,8 +4555,8 @@ function renderSchedulePage(){
           <td><span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'};">${a.status||'รอ'}</span></td>
           <td>
             <div style="display:flex;gap:6px;">
-              <button class="btn btn-ghost btn-sm sch-edit-btn" data-id="${a.id}">✏️</button>
-              <button class="btn btn-danger btn-sm sch-del-btn" data-id="${a.id}">🗑️</button>
+              <button class="btn btn-ghost btn-sm btn-icon sch-edit-btn" data-id="${a.id}" aria-label="แก้ไขนัด" title="แก้ไขนัด">✏️</button>
+              <button class="btn btn-danger btn-sm btn-icon sch-del-btn" data-id="${a.id}" aria-label="ลบนัด" title="ลบนัด">🗑️</button>
             </div>
           </td>
         </tr>`).join('');
@@ -4999,13 +5144,18 @@ function buildDaySlotSettingsUI(){
 function startAutoSync(){
   if(_autoSyncStarted) return;
   _autoSyncStarted = true;
-  setInterval(syncAll, 4000); // sync ทุก 4 วินาที
+  setInterval(syncAll, 20000); // sync ทุก 20 วินาที (เดิม 4 วิ ถี่เกินไปสำหรับหลายเครื่องพร้อมกัน ใช้ปุ่ม Sync ตอนนี้ เวลาต้องการข้อมูลสดทันที)
 }
 
 // ============================================================
 //  HELPERS
 // ============================================================
 function totalPrice(t){ return (+t.cash||0)+(+t.transfer||0)+(+t.sso||0); }
+// ใช้ % ส่วนแบ่งที่ snapshot ไว้ในรายการรักษาแต่ละรายการ (docShare) ถ้ามี
+// เพื่อไม่ให้การแก้ % ปัจจุบันของหมอ (doc.share) ย้อนไปกระทบรายงานเก่า — fallback ไปใช้ doc.share สำหรับรายการเก่าที่ยังไม่มี docShare
+function docSharePct(t, doc){
+  return (t.docShare!==undefined && t.docShare!==null && t.docShare!=='') ? +t.docShare : (doc ? +doc.share : 50);
+}
 function docColor(name){
   const doc = doctors.find(d=>d.name===name) || DOCTORS_DATA.find(d=>d.name===name);
   return doc?.color || 'var(--text-mid)';
@@ -5059,10 +5209,41 @@ function closeModal(id){
   if(id==='modalOrthoLog') _ologSaving=false;
 }
 function showToast(msg,type='success'){
-  const el=document.getElementById('toast');
-  el.textContent=(type==='success'?'✅ ':'❌ ')+msg;
-  el.className='toast show'+(type==='error'?' error':' success');
-  setTimeout(()=>el.classList.remove('show'),2800);
+  const container = document.getElementById('toastContainer');
+  if(!container) return;
+  const el = document.createElement('div');
+  el.className = 'toast'+(type==='error'?' error':' success');
+  el.textContent = (type==='success'?'✅ ':'❌ ')+msg;
+  container.appendChild(el);
+  setTimeout(()=>{
+    el.classList.add('toast-out');
+    setTimeout(()=>el.remove(), 250);
+  }, 2800);
+}
+// Toast ที่มีปุ่ม "เลิกทำ" — ใช้กับการลบ: ลบออกจาก local/UI ทันที แต่หน่วง onCommit (เช่น sync ลบขึ้น Sheet จริง)
+// ไว้จนกว่าจะครบเวลา ถ้ากด "เลิกทำ" ก่อนครบเวลาจะเรียก onUndo แทนและไม่ลบขึ้น Sheet เลย
+function showUndoToast(msg, onCommit, onUndo, delayMs=5000){
+  const container = document.getElementById('toastContainer');
+  if(!container){ onCommit(); return; }
+  const el = document.createElement('div');
+  el.className = 'toast success';
+  const msgSpan = document.createElement('span');
+  msgSpan.textContent = '✅ '+msg;
+  const undoBtn = document.createElement('button');
+  undoBtn.textContent = 'เลิกทำ';
+  undoBtn.style.cssText = 'background:rgba(255,255,255,0.22);border:1px solid rgba(255,255,255,0.4);color:#fff;font-weight:700;font-size:12px;padding:4px 10px;border-radius:6px;cursor:pointer;flex-shrink:0;';
+  el.appendChild(msgSpan); el.appendChild(undoBtn);
+  container.appendChild(el);
+  let settled = false;
+  const dismiss = () => { el.classList.add('toast-out'); setTimeout(()=>el.remove(),250); };
+  const timer = setTimeout(()=>{
+    if(settled) return;
+    settled = true; dismiss(); onCommit();
+  }, delayMs);
+  undoBtn.onclick = () => {
+    if(settled) return;
+    settled = true; clearTimeout(timer); dismiss(); onUndo();
+  };
 }
 function clearCacheAndReload(){
   if(!confirm('ล้าง Cache และโหลดข้อมูลใหม่จาก Sheet? ข้อมูลในเครื่องจะถูกล้างและดึงใหม่จาก Google Sheet')) return;
@@ -5160,6 +5341,11 @@ function debouncePatientSearch(){
   clearTimeout(_patientSearchTimer);
   _patientSearchTimer = setTimeout(renderPatients, 300);
 }
+let _treatSearchTimer = null;
+function debounceTreatSearch(){
+  clearTimeout(_treatSearchTimer);
+  _treatSearchTimer = setTimeout(renderTreatPage, 300);
+}
 
 function renderPatients(){
   const q = (document.getElementById('patientSearch')?.value||'').toLowerCase().trim();
@@ -5216,8 +5402,8 @@ function renderPatients(){
         <button onclick="openEditPatient('${hn}')"
           style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--wine);"
           onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background='#fff'">✏️ แก้ไข</button>
-        <button onclick="deletePatient('${hn}','${nameSafe}')"
-          style="padding:6px 10px;border-radius:8px;border:1.5px solid rgba(231,76,90,0.25);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--red);"
+        <button onclick="deletePatient('${hn}','${nameSafe}')" aria-label="ลบคนไข้" title="ลบคนไข้"
+          style="padding:6px 10px;min-height:36px;border-radius:8px;border:1.5px solid rgba(231,76,90,0.25);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--red);"
           onmouseover="this.style.background='rgba(231,76,90,0.08)'" onmouseout="this.style.background='#fff'">🗑️</button>
       </div>
     </div>`;
@@ -5340,7 +5526,7 @@ function openPatientDetail(hn){
       <div style="background:var(--wine-pale);border-radius:10px;padding:14px;text-align:center;">
         <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:4px;">มาทั้งหมด</div>
         <div style="font-size:38px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${visits}</div>
-        <div style="font-size:12px;color:var(--text-light);">ครั้ง</div>
+        <div class="text-caption">ครั้ง</div>
       </div>
       <div style="background:#f0f9f4;border-radius:10px;padding:14px;font-size:13px;line-height:2;">
         <div style="font-size:12px;color:var(--text-light);font-weight:700;margin-bottom:4px;">ข้อมูลติดต่อ</div>
@@ -5470,8 +5656,8 @@ function doSendIncome(periodLabel){
 
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   const doc = doctors.find(d=>d.name===selected)||DOCTORS_DATA.find(d=>d.name===selected);
-  const share = doc?.share ? parseInt(doc.share) : 50;
-  const df = Math.round(total * share / 100);
+  const df = Math.round(treats.reduce((s,t)=>s+totalPrice(t)*docSharePct(t,doc)/100,0));
+  const share = total>0 ? Math.round(df/total*100) : (doc ? doc.share : 50);
   const LINE = '─'.repeat(28);
 
   let text = `💰 สรุปรายได้ ${periodLabel}\n`;
@@ -5665,15 +5851,15 @@ function renderRecallSummary(wait, done, urgent, total){
   return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
     <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);">
       <div style="font-size:28px;font-weight:800;color:#E74C3C;font-family:'Prompt',sans-serif;">${wait}</div>
-      <div style="font-size:12px;color:var(--text-light);">รอติดตาม</div>
+      <div class="text-caption">รอติดตาม</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);">
       <div style="font-size:28px;font-weight:800;color:#C0392B;font-family:'Prompt',sans-serif;">${urgent}</div>
-      <div style="font-size:12px;color:var(--text-light);">🚨 เกิน 20 เดือน</div>
+      <div class="text-caption">🚨 เกิน 20 เดือน</div>
     </div>
     <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);">
       <div style="font-size:28px;font-weight:800;color:#16A085;font-family:'Prompt',sans-serif;">${done}</div>
-      <div style="font-size:12px;color:var(--text-light);">ติดตามแล้ว</div>
+      <div class="text-caption">ติดตามแล้ว</div>
     </div>
   </div>`;
 }
