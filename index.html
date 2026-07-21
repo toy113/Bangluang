@@ -5765,7 +5765,7 @@ function doSendIncome(periodLabel){
     const procs = Array.isArray(t.proc) ? t.proc.join(', ') : (t.proc||'');
     const price = totalPrice(t);
     const timeStr = t.time ? `${t.time}  ` : '';
-    text += `${timeStr}${t.patName||'—'} — ${procs}  ${fmt(price)}\n`;
+    text += `${timeStr}${t.patName||'—'}\n— ${procs}  ${fmt(price)}\n`;
   });
 
   text += LINE + '\n';
@@ -5805,7 +5805,7 @@ function doSendSummary(date, dayName, dd, mon, yy){
   dayApts.forEach(a=>{
     const procs = Array.isArray(a.proc) ? a.proc.join(', ') : (a.proc||'');
     const note = a.note ? ` (${a.note})` : '';
-    text += `${a.time||'—'}  ${a.patName||'—'} — ${procs}${note}\n`;
+    text += `${a.time||'—'}  ${a.patName||'—'}\n— ${procs}${note}\n`;
   });
 
   text += LINE + '\n';
