@@ -937,6 +937,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <!-- ===== HOME PAGE ===== -->
     <div class="page active" id="page-home">
 
+      <!-- 0) DAILY INSIGHT (แผนเตรียมตัววันนี้ ต่อหมอ จาก Claude API) -->
+      <div class="card-box" id="dailyInsightCard" style="display:none;margin-bottom:20px;">
+        <div class="card-box-hdr">
+          <div class="card-box-title">✨ แผนเตรียมตัววันนี้</div>
+        </div>
+        <div id="dailyInsightBody" style="padding:18px 20px;"></div>
+      </div>
+
       <!-- 1) APPOINTMENT TABLE (TOP) -->
       <div class="card-box" style="margin-bottom:20px;">
         <div class="card-box-hdr">
@@ -2200,6 +2208,7 @@ function showPage(p){
 //  HOME
 // ============================================================
 function renderHome(){
+  renderDailyInsightCard();
   const today = todayStr();
   // Normalize dates before comparing
   const normD = v=>{ if(!v) return ''; const s=String(v).trim(); if(/\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10); const d2=new Date(s); return isNaN(d2)?s:d2.toISOString().slice(0,10); };
@@ -2290,6 +2299,84 @@ function renderAptList(today){
     el.innerHTML = html;
   } else {
     el.innerHTML = apts.map(rowHtml).join('');
+  }
+}
+
+// ============================================================
+//  DAILY INSIGHT — แผนเตรียมตัววันนี้ต่อหมอ จากตารางนัด (Claude API ฝั่ง server)
+//  แสดงเฉพาะตอนหมอ login เอง (ไม่ใช่ผู้จัดการ) ไม่ auto-generate เพื่อคุมค่าใช้จ่าย API
+// ============================================================
+function renderDailyInsightCard(){
+  const card = document.getElementById('dailyInsightCard');
+  const body = document.getElementById('dailyInsightBody');
+  if(!card || !body) return;
+  if(isManager || !currentUser){ card.style.display='none'; return; }
+  // ถ้ากำลัง generate อยู่ (รอ Claude ตอบ) ห้าม re-render ทับ — กัน background sync/auto-sync
+  // ที่เรียก renderHome() ทุก 20 วิ มาเผลอรีเซ็ตการ์ดกลับเป็นปุ่ม "สร้าง" ระหว่างรอผลอยู่
+  if(_dailyInsightGenerating) return;
+  card.style.display='';
+  const today = todayStr();
+  const hasAptToday = appointments.some(a=>a.date===today && a.docName===currentUser.name && a.status!=='ยกเลิก');
+  if(!hasAptToday){
+    body.innerHTML = `<div style="text-align:center;color:var(--text-light);padding:8px 0;">วันนี้ไม่มีนัด พักผ่อนได้เต็มที่ 😌</div>`;
+    return;
+  }
+  body.innerHTML = `<div style="text-align:center;padding:8px 0;">
+    <button class="btn btn-primary" onclick="generateDailyInsight()">✨ สร้างแผนเตรียมตัววันนี้</button>
+  </div>`;
+  // เช็คว่าเคยสร้างไว้แล้ววันนี้หรือยัง (โหลดจาก cache ฝั่ง server ถ้ามี ไม่เสีย API ซ้ำ)
+  fetch(APPS_SCRIPT_URL+'?action=getDailyInsight&date='+encodeURIComponent(today)+'&docId='+encodeURIComponent(currentUser.id), {cache:'no-store'})
+    .then(r=>r.json()).then(d=>{
+      if(d.found && d.result) renderDailyInsightResult_(d.result, d.generatedAt);
+    }).catch(()=>{});
+}
+
+function renderDailyInsightResult_(result, generatedAt){
+  const body = document.getElementById('dailyInsightBody');
+  if(!body) return;
+  const timeStr = generatedAt ? new Date(generatedAt).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
+  const patientsHtml = (result.patients||[]).map(p=>`
+    <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="font-weight:700;color:var(--wine);min-width:48px;flex-shrink:0;">${escapeHtml(p.time||'')}</div>
+      <div>
+        <div style="font-weight:700;color:var(--text-dark);">${escapeHtml(p.name||'')}</div>
+        <div style="font-size:13px;color:var(--text-mid);">${escapeHtml(p.note||'')}</div>
+      </div>
+    </div>`).join('');
+  const prepHtml = (result.prep&&result.prep.length) ? `
+    <div style="margin-top:14px;padding:12px 14px;background:var(--wine-pale);border-radius:10px;">
+      <div style="font-weight:700;color:var(--wine-dark);font-size:13px;margin-bottom:6px;">🧰 ควรเตรียม</div>
+      <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text-mid);">
+        ${result.prep.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}
+      </ul>
+    </div>` : '';
+  body.innerHTML = `
+    <div style="font-size:14px;color:var(--text-dark);line-height:1.6;margin-bottom:14px;">${escapeHtml(result.overview||'')}</div>
+    <div>${patientsHtml}</div>
+    ${prepHtml}
+    ${timeStr?`<div style="text-align:right;font-size:11px;color:var(--text-light);margin-top:10px;">สร้างเมื่อ ${timeStr}</div>`:''}
+  `;
+}
+
+let _dailyInsightGenerating = false;
+async function generateDailyInsight(){
+  if(_dailyInsightGenerating) return;
+  _dailyInsightGenerating = true;
+  const body = document.getElementById('dailyInsightBody');
+  body.innerHTML = `<div style="text-align:center;color:var(--text-light);padding:16px 0;">⏳ กำลังวิเคราะห์ตารางนัดวันนี้...</div>`;
+  try {
+    const today = todayStr();
+    const url = APPS_SCRIPT_URL+'?action=generateDailyInsight&date='+encodeURIComponent(today)
+      +'&docId='+encodeURIComponent(currentUser.id)+'&docName='+encodeURIComponent(currentUser.name);
+    const resp = await fetch(url, {cache:'no-store'});
+    const d = await resp.json();
+    if(d.error){ body.innerHTML = `<div style="text-align:center;color:var(--red);padding:16px 0;font-size:13px;">สร้างไม่สำเร็จ: ${escapeHtml(d.error)}</div>`; return; }
+    if(d.empty){ body.innerHTML = `<div style="text-align:center;color:var(--text-light);padding:8px 0;">วันนี้ไม่มีนัด พักผ่อนได้เต็มที่ 😌</div>`; return; }
+    renderDailyInsightResult_(d.result, d.generatedAt);
+  } catch(e){
+    body.innerHTML = `<div style="text-align:center;color:var(--red);padding:16px 0;font-size:13px;">เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง</div>`;
+  } finally {
+    _dailyInsightGenerating = false;
   }
 }
 

@@ -58,6 +58,123 @@ function certRowToObj_(hdr, row) {
   return obj;
 }
 
+// ============================================================
+//  DAILY INSIGHT — แผนเตรียมตัวรายวันต่อหมอ จากตารางนัด (Claude API)
+//  ตั้งค่า CLAUDE_API_KEY ใน Apps Script > Project Settings > Script Properties
+//  ห้าม hardcode key ในไฟล์นี้ (ไฟล์นี้อยู่ใน git repo)
+// ============================================================
+
+function readSheetAsObjects_(sh) {
+  var lastRow = sh.getLastRow(), lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+  var hdr = sh.getRange(1,1,1,lastCol).getValues()[0];
+  var raw = sh.getRange(2,1,lastRow-1,lastCol).getValues();
+  var result = [];
+  for (var i = 0; i < raw.length; i++) {
+    var row = raw[i];
+    var hasData = false;
+    for (var c = 0; c < row.length; c++) { if (row[c] !== '' && row[c] !== null) { hasData = true; break; } }
+    if (!hasData) continue;
+    var obj = {};
+    for (var c = 0; c < hdr.length; c++) obj[hdr[c]] = cellToStr(row[c], hdr[c]);
+    result.push(obj);
+  }
+  return result;
+}
+
+function getDailyInsightSheet_() {
+  return orthoGetSheet_('daily_insights', ['date','docId','generatedAt','resultJson']);
+}
+
+// รวมตารางนัดวันนี้ของหมอคนนี้ + ประวัติการรักษาล่าสุดของคนไข้แต่ละคน (ก่อนวันนี้)
+function computeDailyAppointmentsAndHistory_(docName, dateStr) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var aptSh = ss.getSheetByName('ตารางนัด');
+  var treatSh = ss.getSheetByName('บันทึกการรักษา');
+  var appts = aptSh ? readSheetAsObjects_(aptSh) : [];
+  var treatments = treatSh ? readSheetAsObjects_(treatSh) : [];
+
+  var todays = appts.filter(function(a){
+    return a.date === dateStr && a.docName === docName && a.status !== 'ยกเลิก';
+  }).sort(function(a,b){ return String(a.time||'').localeCompare(String(b.time||'')); });
+
+  var historyByHn = {};
+  treatments.forEach(function(t){
+    if (!t.hn || !t.date || t.date >= dateStr) return; // เอาแค่ประวัติก่อนวันนี้
+    if (!historyByHn[t.hn] || t.date > historyByHn[t.hn].date) {
+      historyByHn[t.hn] = { date: t.date, proc: t.proc || '' };
+    }
+  });
+
+  return { appts: todays, historyByHn: historyByHn };
+}
+
+function buildDailyInsightPrompt_(docName, dateStr, appts, historyByHn) {
+  var lines = [];
+  lines.push('คุณเป็นผู้ช่วยเตรียมความพร้อมให้ทันตแพทย์ก่อนเริ่มวันทำงาน วิเคราะห์ตารางนัดวันนี้ต่อไปนี้');
+  lines.push('อิงจากข้อมูลจริงที่ให้มาเท่านั้น ห้ามสมมติอาการ/ประวัติที่ไม่มีในข้อมูล');
+  lines.push('');
+  lines.push('หมอ: ' + docName);
+  lines.push('วันที่: ' + dateStr);
+  lines.push('จำนวนนัดวันนี้: ' + appts.length + ' ราย');
+  lines.push('');
+  lines.push('รายการนัดวันนี้ (เวลา, ชื่อคนไข้, HN, สาเหตุที่นัด, หมายเหตุ, ประวัติล่าสุดก่อนหน้า):');
+  appts.forEach(function(a){
+    var hist = historyByHn[a.hn];
+    var histStr = hist ? ('เคยมาล่าสุดวันที่ ' + hist.date + ' ทำ: ' + hist.proc) : 'ไม่มีประวัติการรักษามาก่อน (คนไข้ใหม่)';
+    lines.push('- ' + (a.time||'—') + ' | ' + (a.patName||'ไม่ระบุชื่อ') + ' | HN ' + (a.hn||'—') +
+      ' | นัดเพื่อ: ' + (a.proc||'ไม่ระบุ') + (a.note ? (' | หมายเหตุ: '+a.note) : '') + ' | ' + histStr);
+  });
+  lines.push('');
+  lines.push('ตอบกลับเป็น JSON ล้วน ๆ เท่านั้น ห้ามมี markdown code fence หรือข้อความอื่นนอก JSON รูปแบบนี้เป๊ะ ๆ:');
+  lines.push('{"overview": "ภาพรวมวันนี้ 1-2 ประโยค ภาษาไทย เช่น จำนวนคนไข้ ความหนาแน่นของตาราง เคสที่ควรระวังเป็นพิเศษ", ' +
+    '"patients": [{"time":"เวลานัด","name":"ชื่อคนไข้","note":"1 ประโยคสรุปสิ่งที่ควรรู้ก่อนเจอคนไข้คนนี้ อ้างอิงจากสาเหตุที่นัด+ประวัติที่ให้มา"}], ' +
+    '"prep": ["สิ่งที่ควรเตรียมเป็นพิเศษก่อนเริ่มวัน ถ้ามี — ถ้าไม่มีอะไรพิเศษให้เป็น array ว่าง"]}');
+  return lines.join('\n');
+}
+
+function callClaudeForInsight_(prompt) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+  if (!apiKey) throw new Error('ยังไม่ได้ตั้งค่า CLAUDE_API_KEY ใน Script Properties');
+
+  var resp = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({
+      model: 'claude-sonnet-5',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: prompt }]
+    }),
+    muteHttpExceptions: true
+  });
+
+  var code = resp.getResponseCode();
+  var raw = resp.getContentText();
+  if (code !== 200) throw new Error('Claude API error ' + code + ': ' + raw.slice(0,300));
+
+  var body;
+  try { body = JSON.parse(raw); }
+  catch (e) { throw new Error('แปลง response หลักจาก Claude ไม่ได้ (' + code + '): ' + raw.slice(0,300)); }
+
+  // หา content block ที่เป็น type:'text' จริงๆ แทนที่จะเดาว่า content[0] คือ text เสมอ
+  // (ถ้ามี thinking block นำหน้า text block จะไม่ได้อยู่ตำแหน่ง [0])
+  var contentArr = body.content || [];
+  var textBlock = contentArr.filter(function(c){ return c && c.type === 'text'; })[0];
+  var text = (textBlock && textBlock.text) || '';
+  // กันเผื่อ Claude ห่อ JSON ด้วย ```json ทั้งที่ prompt สั่งห้ามแล้ว
+  text = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
+  var parsed;
+  try { parsed = JSON.parse(text); }
+  catch (e) {
+    var blockTypes = contentArr.map(function(c){ return c && c.type; }).join(',');
+    throw new Error('แปลง JSON จากคำตอบ Claude ไม่ได้ — เนื้อหาที่ได้: ' + (text.slice(0,300) || '(ว่างเปล่า)') +
+      ' | stop_reason: ' + (body.stop_reason||'-') + ' | content block types: [' + blockTypes + ']');
+  }
+  if (!parsed.overview || !Array.isArray(parsed.patients)) throw new Error('รูปแบบคำตอบจาก Claude ไม่ถูกต้อง: ' + text.slice(0,300));
+  return parsed;
+}
+
 function doPost(e) {
   try {
     // ---- ORTHO + LINE webhook (อยู่ในไฟล์ ortho-backend.gs) ----
@@ -345,6 +462,60 @@ function doGet(e) {
         ];
         sh.appendRow(row);
         return ContentService.createTextOutput(JSON.stringify({ ok: true, reused: false, cert: certRowToObj_(hdr, row) })).setMimeType(ContentService.MimeType.JSON);
+      } catch (err) {
+        return ContentService.createTextOutput(JSON.stringify({ error: err.message })).setMimeType(ContentService.MimeType.JSON);
+      } finally {
+        lock.releaseLock();
+      }
+    }
+
+    // เช็คว่าเคยสร้างแผนเตรียมตัวรายวันให้หมอคนนี้ วันนี้ ไว้แล้วหรือยัง (cache กันเรียก Claude API ซ้ำ)
+    // ใช้ cellToStr(...,'date') แทน String(...) ตรงๆ — คอลัมน์ date ถูก Sheets auto-convert เป็น Date object
+    // (ยืนยันจาก debug: ค่า "2026-07-21" ที่ appendRow ไปกลายเป็น Date เมื่ออ่านกลับ ทำให้ String() เทียบไม่ตรงกับ p.date เดิม
+    // จึงหา cache ไม่เจอทุกครั้ง สร้างซ้ำเรื่อยๆ — เหมือน bug id/treatDate ที่เจอมาก่อนหน้านี้)
+    if (p.action === 'getDailyInsight') {
+      var sh = getDailyInsightSheet_();
+      var vals = sh.getDataRange().getValues();
+      for (var i = 1; i < vals.length; i++) {
+        if (cellToStr(vals[i][0], 'date') === String(p.date) && String(vals[i][1]) === String(p.docId)) {
+          return ContentService.createTextOutput(JSON.stringify({
+            found: true, result: JSON.parse(vals[i][3]), generatedAt: vals[i][2]
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ found: false })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // สร้างแผนเตรียมตัวรายวัน — idempotent ตาม (date, docId) เหมือนใบรับรองแพทย์ กันกดซ้ำเปลือง API
+    if (p.action === 'generateDailyInsight') {
+      var lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        var sh = getDailyInsightSheet_();
+        var dateStr = p.date;
+        var docId = p.docId;
+        var docName = p.docName;
+        var vals = sh.getDataRange().getValues();
+        for (var i = 1; i < vals.length; i++) {
+          if (cellToStr(vals[i][0], 'date') === String(dateStr) && String(vals[i][1]) === String(docId)) {
+            return ContentService.createTextOutput(JSON.stringify({
+              ok: true, reused: true, result: JSON.parse(vals[i][3]), generatedAt: vals[i][2]
+            })).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+        var data = computeDailyAppointmentsAndHistory_(docName, dateStr);
+        if (!data.appts.length) {
+          return ContentService.createTextOutput(JSON.stringify({ ok: true, empty: true })).setMimeType(ContentService.MimeType.JSON);
+        }
+        var prompt = buildDailyInsightPrompt_(docName, dateStr, data.appts, data.historyByHn);
+        var result = callClaudeForInsight_(prompt);
+        var now = new Date();
+        sh.appendRow([dateStr, docId, now.toISOString(), JSON.stringify(result)]);
+        // บังคับคอลัมน์ date เป็น plain text กัน Sheets auto-convert เป็น Date object (เหมือน date/time ใน treatments/appointments)
+        sh.getRange(sh.getLastRow(), 1).setNumberFormat('@STRING@').setValue(String(dateStr));
+        return ContentService.createTextOutput(JSON.stringify({
+          ok: true, reused: false, result: result, generatedAt: now.toISOString()
+        })).setMimeType(ContentService.MimeType.JSON);
       } catch (err) {
         return ContentService.createTextOutput(JSON.stringify({ error: err.message })).setMimeType(ContentService.MimeType.JSON);
       } finally {
