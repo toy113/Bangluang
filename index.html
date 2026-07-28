@@ -2982,6 +2982,9 @@ function renderTreatPage(){
   const countBadge = document.getElementById('treatPageCountBadge');
   if(countBadge) countBadge.textContent = rows.length + ' ราย';
   const tbody=document.getElementById('treatPageBody');
+  // ซ่อน/แสดง header จัดการ — ต้องทำก่อนเช็ค empty เพราะ colspan ของแถว "ไม่มีรายการ" อ้างอิงจำนวนคอลัมน์ที่เห็นจริง
+  const colMgr = document.getElementById('treatPageColMgr');
+  if(colMgr) colMgr.style.display = isManager ? '' : 'none';
   if(!rows.length){
     tbody.innerHTML=`<tr><td colspan="${isManager?11:10}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`;
     // ตารางเต็มความกว้างไม่ได้เองตอน content สั้น เพราะ table{display:block} — ดูคำอธิบายเต็มที่ renderTreatList
@@ -3010,9 +3013,6 @@ function renderTreatPage(){
         </div>
       </td>`:''}
     </tr>`).join('');
-  // ซ่อน/แสดง header จัดการ
-  const colMgr = document.getElementById('treatPageColMgr');
-  if(colMgr) colMgr.style.display = isManager ? '' : 'none';
 }
 
 // ============================================================
