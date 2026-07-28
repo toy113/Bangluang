@@ -2982,7 +2982,15 @@ function renderTreatPage(){
   const countBadge = document.getElementById('treatPageCountBadge');
   if(countBadge) countBadge.textContent = rows.length + ' ราย';
   const tbody=document.getElementById('treatPageBody');
-  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="${isManager?11:10}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`;
+    // ตารางเต็มความกว้างไม่ได้เองตอน content สั้น เพราะ table{display:block} — ดูคำอธิบายเต็มที่ renderTreatList
+    const emptyTd = tbody.querySelector('td');
+    const tbl = tbody.closest('table');
+    const w = tbl ? tbl.getBoundingClientRect().width : 0;
+    if(emptyTd && w>0) emptyTd.style.minWidth = (w-2)+'px';
+    return;
+  }
   tbody.innerHTML=rows.map(t=>`
     <tr class="${t.docName===currentUser?.name?'own-row':''}">
       <td>${fmtDate(t.date)}</td>
@@ -3420,7 +3428,14 @@ function renderLabPage(){
   rows=rows.filter(l=>l.date&&l.date.startsWith(month));
   rows.sort((a,b)=>a.date.localeCompare(b.date));
   const tbody=document.getElementById('labPageBody');
-  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddLab()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; }
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="${isManager?9:8}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddLab()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`;
+    // ตารางเต็มความกว้างไม่ได้เองตอน content สั้น เพราะ table{display:block} — ดูคำอธิบายเต็มที่ renderTreatList
+    const emptyTd = tbody.querySelector('td');
+    const tbl = tbody.closest('table');
+    const w = tbl ? tbl.getBoundingClientRect().width : 0;
+    if(emptyTd && w>0) emptyTd.style.minWidth = (w-2)+'px';
+  }
   else {
     tbody.innerHTML=rows.map(l=>`
       <tr>
