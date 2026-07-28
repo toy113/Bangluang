@@ -2395,7 +2395,17 @@ function renderTreatList(treats){
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   document.getElementById('treatCountBadge').textContent=`${treats.length} ราย`;
   document.getElementById('treatTotalBadge').textContent=`${fmt(total)}`;
-  if(!treats.length){ tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
+  if(!treats.length){
+    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`;
+    // colspan เดียวไม่พอให้ตารางเต็มความกว้าง เพราะ table{display:block} ทำให้ thead/tbody
+    // กลายเป็น anonymous table ที่ shrink ตาม content เอง ไม่รับ width:100% ปกติ — เลยต้องกำหนด
+    // min-width ตรงๆ ให้ตรงกับความกว้างจริงของ table หลังจากใส่ innerHTML ไปแล้ว
+    const emptyTd = tbody.querySelector('td');
+    const tbl = tbody.closest('table');
+    const w = tbl ? tbl.getBoundingClientRect().width : 0;
+    if(emptyTd && w>0) emptyTd.style.minWidth = (w-2)+'px';
+    return;
+  }
 
   // จัดกลุ่มตามหมอ
   const byDoc = {};
