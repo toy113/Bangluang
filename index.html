@@ -501,8 +501,9 @@ select.form-control { cursor: pointer; }
 
 /* APPOINTMENT MINI */
 .apt-row { display: grid; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(107,45,94,0.06); font-size: 13px; transition: background 0.14s; }
-.apt-row.no-phone { grid-template-columns: 80px 70px 160px 150px 180px 110px 100px; }
-.apt-row.with-phone { grid-template-columns: 80px 70px 150px 110px 140px 170px 110px 100px; }
+.apt-row > div { min-width: 0; overflow-wrap: break-word; word-break: break-word; }
+.apt-row.no-phone { grid-template-columns: 70px 70px minmax(140px,1.3fr) minmax(140px,1fr) minmax(110px,1fr) 110px; }
+.apt-row.with-phone { grid-template-columns: 64px 64px minmax(90px,1.2fr) 100px minmax(80px,1fr) minmax(70px,1fr) 80px 90px; }
 .apt-row:hover { background: rgba(107,45,94,0.02); }
 .apt-row:last-child { border-bottom: none; }
 .apt-hdr { font-size: 11px; font-weight: 700; color: var(--wine-dark); text-transform: uppercase; letter-spacing: 0.4px; background: var(--wine-pale); border-bottom: 1px solid var(--border); }
