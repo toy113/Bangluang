@@ -1417,6 +1417,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>หมอ</label>
         <select class="form-control" id="treat-doc"></select>
       </div>
+      <div class="form-group" id="treat-share-wrap" style="display:none;">
+        <label>ส่วนแบ่งหมอเฉพาะรายการนี้ (%) <span style="font-size:11px;color:var(--text-light);font-weight:400;">— เว้นว่างไว้ = ใช้ % ปัจจุบันของหมอ</span></label>
+        <input type="number" class="form-control" id="treat-share" min="0" max="100" placeholder="เช่น 60">
+      </div>
       <div class="form-group">
         <label>รายการรักษา <span style="font-size:11px;color:var(--text-light);">(เลือกได้หลายรายการ)</span></label>
         <div id="treat-proc-wrap" style="position:relative;">
@@ -2731,6 +2735,10 @@ function openAddTreat(t=null){
   if(treatHint) treatHint.innerHTML = '';
   if(t?.hn) autoFillPatient(t.hn, 'treat');
   document.getElementById('treat-doc').value = t?.docName || (isManager ? (localStorage.getItem('bl_last_doc') || doctors[0]?.name) : currentUser.name);
+  const shareWrap = document.getElementById('treat-share-wrap');
+  const shareInput = document.getElementById('treat-share');
+  if(shareWrap) shareWrap.style.display = isManager ? '' : 'none';
+  if(shareInput) shareInput.value = (t && t.docShare!==undefined && t.docShare!=='') ? t.docShare : '';
   document.getElementById('treat-proc').value = t?.proc||'';
   setProcSelected(t?.proc||'');
   document.getElementById('treat-cash').value = t?.cash||'';
@@ -2757,7 +2765,11 @@ function saveTreat(){
   // ถ้าเป็นการแก้ไขรายการเดิมและหมอไม่เปลี่ยน ให้คง docShare เดิมไว้ (ไม่ snapshot ซ้ำทับของเก่า)
   const existingTreat = treatments.find(x=>x.id===id);
   const doc = doctors.find(d=>d.name===docName);
-  const docShare = (existingTreat && existingTreat.docName===docName && existingTreat.docShare!==undefined && existingTreat.docShare!=='')
+  // manager พิมพ์ % เจาะจงรายการนี้ไว้ (ช่อง treat-share) ให้ใช้ค่านั้นเสมอ ข้ามการ snapshot อัตโนมัติ
+  const shareOverrideEl = document.getElementById('treat-share');
+  const shareOverride = (isManager && shareOverrideEl && shareOverrideEl.value!=='') ? +shareOverrideEl.value : null;
+  const docShare = shareOverride!==null ? shareOverride
+    : (existingTreat && existingTreat.docName===docName && existingTreat.docShare!==undefined && existingTreat.docShare!=='')
     ? existingTreat.docShare
     : (doc ? doc.share : '');
   const t = {
