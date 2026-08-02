@@ -335,8 +335,13 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
   background: linear-gradient(90deg, rgba(107,45,94,0.04) 0%, transparent 100%);
 }
 .card-box-title { font-size: 15px; font-weight: 700; color: var(--wine-dark); font-family: 'Prompt', sans-serif; }
-/* display:block + overflow-x:auto ให้ตารางเลื่อนแนวนอนได้เองตอนแคบเกิน แทนที่จะโดน card-box (overflow:hidden) ตัดคอลัมน์ทิ้งเงียบๆ */
-table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* เดิมใช้ display:block บน table เองให้เลื่อนแนวนอนได้ตอนแคบเกิน แต่ table{display:block} ทำให้
+   thead/tbody กลายเป็น anonymous table ที่ shrink ตาม content เอง ไม่ยอมเต็ม width:100% ตอน content
+   สั้น (เช่นตารางว่าง) — เปลี่ยนมาห่อ table ด้วย div.table-scroll แทน (แบบเดียวกับปฏิทินนัด/
+   ประวัติคนไข้ในหน้า modal ที่ทำถูกมาแต่แรก) ให้ table เป็น display:table ปกติ กว้างเต็ม wrapper
+   เสมอไม่ว่า content จะสั้นยาวแค่ไหน หรือ zoom เปลี่ยนกี่ % ก็ตาม เพราะเป็น CSS ล้วนไม่ใช่ JS วัดครั้งเดียว */
+table { width: 100%; border-collapse: collapse; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 thead th {
   background: var(--wine-pale); color: var(--wine-dark); font-size: 12px;
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
@@ -975,10 +980,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <div style="font-size:14px;font-weight:700;color:var(--gold);">รวม: <span id="treatTotalBadge">0</span></div>
           </div>
         </div>
+        <div class="table-scroll">
         <table>
           <thead><tr><th>เวลา</th><th>HN</th><th>ชื่อ</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th><th>ใบรับรอง</th></tr></thead>
           <tbody id="treatListBody"></tbody>
         </table>
+        </div>
       </div>
 
       <!-- 3) STAT CARDS (BOTTOM) -->
@@ -1057,10 +1064,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <span id="ms-sso" style="display:none"></span>
           </div>
         </div>
+        <div class="table-scroll">
         <table>
           <thead id="treatPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ-สกุล</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th><th>ใบรับรอง</th><th id="treatPageColMgr">จัดการ</th></tr></thead>
           <tbody id="treatPageBody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -1178,10 +1187,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <button class="btn btn-primary btn-sm" id="btnAddLab" onclick="openAddLab()">+ เพิ่มค่าแลป</button>
           </div>
         </div>
+        <div class="table-scroll">
         <table>
           <thead id="labPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ</th><th>งาน</th><th>แลป</th><th>ราคา</th><th>หมอ</th><th>หมายเหตุ</th><th id="labPageColLast">จัดการ</th></tr></thead>
           <tbody id="labPageBody"></tbody>
         </table>
+        </div>
       </div>
       <div class="card-box" style="margin-top:16px;">
         <div class="card-box-hdr"><div class="card-box-title">📋 สรุปค่าแลปรายเดือน</div></div>
@@ -2403,17 +2414,7 @@ function renderTreatList(treats){
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   document.getElementById('treatCountBadge').textContent=`${treats.length} ราย`;
   document.getElementById('treatTotalBadge').textContent=`${fmt(total)}`;
-  if(!treats.length){
-    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`;
-    // colspan เดียวไม่พอให้ตารางเต็มความกว้าง เพราะ table{display:block} ทำให้ thead/tbody
-    // กลายเป็น anonymous table ที่ shrink ตาม content เอง ไม่รับ width:100% ปกติ — เลยต้องกำหนด
-    // min-width ตรงๆ ให้ตรงกับความกว้างจริงของ table หลังจากใส่ innerHTML ไปแล้ว
-    const emptyTd = tbody.querySelector('td');
-    const tbl = tbody.closest('table');
-    const w = tbl ? tbl.getBoundingClientRect().width : 0;
-    if(emptyTd && w>0) emptyTd.style.minWidth = (w-2)+'px';
-    return;
-  }
+  if(!treats.length){ tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
 
   // จัดกลุ่มตามหมอ
   const byDoc = {};
@@ -2985,15 +2986,7 @@ function renderTreatPage(){
   // ซ่อน/แสดง header จัดการ — ต้องทำก่อนเช็ค empty เพราะ colspan ของแถว "ไม่มีรายการ" อ้างอิงจำนวนคอลัมน์ที่เห็นจริง
   const colMgr = document.getElementById('treatPageColMgr');
   if(colMgr) colMgr.style.display = isManager ? '' : 'none';
-  if(!rows.length){
-    tbody.innerHTML=`<tr><td colspan="${isManager?11:10}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`;
-    // ตารางเต็มความกว้างไม่ได้เองตอน content สั้น เพราะ table{display:block} — ดูคำอธิบายเต็มที่ renderTreatList
-    const emptyTd = tbody.querySelector('td');
-    const tbl = tbody.closest('table');
-    const w = tbl ? tbl.getBoundingClientRect().width : 0;
-    if(emptyTd && w>0) emptyTd.style.minWidth = (w-2)+'px';
-    return;
-  }
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${isManager?11:10}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
   tbody.innerHTML=rows.map(t=>`
     <tr class="${t.docName===currentUser?.name?'own-row':''}">
       <td>${fmtDate(t.date)}</td>
@@ -3428,14 +3421,7 @@ function renderLabPage(){
   rows=rows.filter(l=>l.date&&l.date.startsWith(month));
   rows.sort((a,b)=>a.date.localeCompare(b.date));
   const tbody=document.getElementById('labPageBody');
-  if(!rows.length){
-    tbody.innerHTML=`<tr><td colspan="${isManager?9:8}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddLab()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`;
-    // ตารางเต็มความกว้างไม่ได้เองตอน content สั้น เพราะ table{display:block} — ดูคำอธิบายเต็มที่ renderTreatList
-    const emptyTd = tbody.querySelector('td');
-    const tbl = tbody.closest('table');
-    const w = tbl ? tbl.getBoundingClientRect().width : 0;
-    if(emptyTd && w>0) emptyTd.style.minWidth = (w-2)+'px';
-  }
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${isManager?9:8}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddLab()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; }
   else {
     tbody.innerHTML=rows.map(l=>`
       <tr>
