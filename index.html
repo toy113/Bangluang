@@ -785,6 +785,20 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .dental-3d-orb::after{content:'';position:absolute;width:55px;height:18px;left:-12px;top:-8px;border-radius:50%;background:rgba(255,255,255,.48);transform:rotate(-25deg)}
 .dental-3d-orb.tooth::before{content:'🦷'} .dental-3d-orb.calendar::before{content:'🗓️';font-size:22px} .dental-3d-orb.record::before{content:'📋';font-size:22px}
 @media(max-width:768px){.dental-3d-orb{width:34px;height:34px;flex-basis:34px;border-radius:12px}.dental-3d-orb::before{font-size:20px}.dental-3d-orb.calendar::before,.dental-3d-orb.record::before{font-size:17px}}
+
+/* ===== FUTURISTIC LUXURY LOGIN BACKGROUND ===== */
+#loginScreen{isolation:isolate;background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.98) 0 10%,rgba(252,239,248,.92) 29%,rgba(237,210,234,.78) 52%,rgba(82,25,78,.92) 100%);}
+#loginScreen::before{content:'';position:absolute;inset:-20%;z-index:-2;pointer-events:none;background:radial-gradient(circle at 20% 20%,rgba(255,211,126,.55),transparent 20%),radial-gradient(circle at 83% 22%,rgba(209,105,185,.48),transparent 23%),radial-gradient(circle at 82% 86%,rgba(120,45,105,.58),transparent 25%),repeating-linear-gradient(120deg,rgba(255,255,255,.13) 0 1px,transparent 1px 34px);filter:blur(.1px);animation:loginAurora 16s ease-in-out infinite alternate;}
+#loginScreen::after{content:'';position:absolute;width:min(88vw,940px);height:min(88vw,940px);border-radius:50%;z-index:-1;pointer-events:none;border:1px solid rgba(255,229,163,.45);box-shadow:0 0 0 30px rgba(255,255,255,.04),0 0 0 72px rgba(212,168,71,.08),inset 0 0 90px rgba(255,255,255,.16),0 0 100px rgba(255,202,118,.28);background:conic-gradient(from 20deg,transparent 0 14%,rgba(255,218,145,.25) 18%,transparent 23% 48%,rgba(212,105,184,.2) 55%,transparent 63% 82%,rgba(255,229,163,.25) 90%,transparent);animation:loginOrbit 28s linear infinite;}
+@keyframes loginAurora{from{transform:translate3d(-2%,-1%,0) scale(1)}to{transform:translate3d(2%,2%,0) scale(1.06)}}
+@keyframes loginOrbit{to{transform:rotate(360deg)}}
+.login-step{position:relative;z-index:1;padding:30px 34px;border:1px solid rgba(255,255,255,.66);border-radius:30px;background:linear-gradient(135deg,rgba(255,255,255,.52),rgba(255,248,253,.2));box-shadow:0 24px 70px rgba(50,15,45,.24),inset 0 1px 0 rgba(255,255,255,.82);backdrop-filter:blur(16px);}
+.login-logo-circle{position:relative;box-shadow:0 12px 30px rgba(75,18,69,.38),0 0 0 5px rgba(255,231,167,.34),0 0 38px rgba(255,205,113,.48)!important;}
+.login-logo-circle::after{content:'';position:absolute;inset:-16px;border:1px solid rgba(255,222,145,.65);border-radius:28px;animation:logoHalo 3.8s ease-in-out infinite;}
+@keyframes logoHalo{50%{transform:scale(1.12);opacity:.35}}
+.login-select-label{color:#78516f;text-shadow:0 1px 0 rgba(255,255,255,.9);}
+.login-manager-btn,.login-doc-btn{backdrop-filter:blur(8px);}
+@media(max-width:560px){.login-step{padding:24px 18px;border-radius:24px}.login-logo-wrap{margin-bottom:26px}#loginScreen::after{width:120vw;height:120vw}}
 </style>
 </head>
 <body>
