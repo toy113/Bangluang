@@ -5245,7 +5245,7 @@ function autoFillPatient(hn, prefix){
   let hintHtml = `<span style="color:var(--green);font-weight:700;">✓ ${found.patName}${displayPhone?' | '+displayPhone:''}</span>`;
   if(lastTreat){
     const d = lastTreat.date ? new Date(lastTreat.date+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}) : '';
-    hintHtml += `<br><span style="color:var(--text-mid);font-size:11px;">มาล่าสุด ${d}${lastTreat.proc?' · '+lastTreat.proc:''}${lastTreat.docName?' · หมอ'+lastTreat.docName:''}</span>`;
+    hintHtml += `<br><span style="color:var(--text-mid);font-size:11px;">${d}${lastTreat.proc?' · '+lastTreat.proc:''}${lastTreat.docName?' · หมอ'+lastTreat.docName:''}</span>`;
   }
   if(hint) hint.innerHTML = hintHtml;
 }
