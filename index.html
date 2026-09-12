@@ -1343,6 +1343,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>เบอร์โทรศัพท์</label>
         <input class="form-control" id="apt-phone" placeholder="0xx-xxx-xxxx" type="tel" inputmode="numeric" maxlength="12" oninput="fmtPhone(this);autoFillByPhone(this.value,'apt')">
       </div>
+      <div class="form-group form-control-full" id="apt-patient-summary" style="display:none;"></div>
 
       <div class="form-group form-control-full">
         <label>รายการรักษา <span style="color:var(--text-light);font-weight:400;font-size:11px;">(เลือกได้หลายรายการ)</span></label>
@@ -1350,6 +1351,9 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <span id="apt-proc-label" style="color:#9B7A94;font-size:14px;">เลือกรายการรักษา...</span>
         </div>
         <div id="apt-proc-dropdown" style="display:none;position:absolute;z-index:999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:8px;max-height:260px;overflow-y:auto;width:100%;margin-top:4px;">
+          <div style="position:sticky;top:0;background:#fff;padding:0 0 8px;z-index:1;">
+            <input id="apt-proc-search" class="form-control" placeholder="🔍 ค้นหารายการรักษา" oninput="filterProcedureOptions('apt-proc-options',this.value)" onclick="event.stopPropagation()" style="width:100%;font-size:13px;">
+          </div>
           <div id="apt-proc-options"></div>
         </div>
         <input type="hidden" id="apt-proc">
@@ -1907,7 +1911,31 @@ const DOCTORS_DATA = [
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', pin:'1234', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
-const PROCEDURES = ['ขูดหินปูน','อุดฟัน','ถอนฟัน','ผ่าฟันคุด','ตรวจฟัน','X-Ray','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ'];
+const PROCEDURE_GROUPS = [
+  { label:'🩺 ตรวจและป้องกัน', items:['ตรวจฟัน','X-Ray','ขูดหินปูน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ฟอกสีฟัน','ดูอาการ','recheck','จ่ายยา'] },
+  { label:'🦷 บูรณะและรักษาราก', items:['อุดฟัน','onlay','ครอบฟัน','เดือยฟัน','รักษารากฟัน','เกลารากฟัน'] },
+  { label:'🩸 ศัลยกรรมช่องปาก', items:['ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตัดไหม'] },
+  { label:'🪥 ฟันปลอมและรากเทียม', items:['TP','RPD','Valplast','Splint','ใส่ฟัน','ใส่ครอบฟัน','รากฟันเทียม','พิมพ์ปาก'] },
+  { label:'😬 จัดฟันและรีเทนเนอร์', items:['จัดฟัน','ถอดเครื่องมือจัดฟัน','รีเทนเนอร์','ใส่รีเทนเนอร์'] },
+  { label:'อื่นๆ', items:['อื่นๆ'] },
+];
+const PROCEDURES = PROCEDURE_GROUPS.flatMap(group=>group.items);
+
+function procedureOptionsHtml(onChange, compact){
+  const padding = compact ? '6px 8px' : '8px 14px';
+  const gap = compact ? '8px' : '10px';
+  const fontSize = compact ? '13px' : '14px';
+  const inputSize = compact ? '15px' : '16px';
+  return PROCEDURE_GROUPS.map(group=>`
+    <div data-procedure-group style="padding:6px 0 8px;border-bottom:1px solid rgba(107,45,94,0.10);">
+      <div data-procedure-group-title style="padding:0 8px 4px;color:var(--wine);font-size:11px;font-weight:800;letter-spacing:0.2px;">${group.label}</div>
+      ${group.items.map(p=>`
+        <label data-procedure-option onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:${gap};padding:${padding};border-radius:6px;cursor:pointer;font-size:${fontSize};transition:background 0.12s;" onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background='transparent'">
+          <input type="checkbox" value="${p}" onchange="${onChange}" style="accent-color:var(--wine);width:${inputSize};height:${inputSize};cursor:pointer;">
+          <span>${p}</span>
+        </label>`).join('')}
+    </div>`).join('');
+}
 
 const PROC_COLORS = {
   'ขูดหินปูน':    '#2980B9',
@@ -1937,6 +1965,10 @@ const PROC_COLORS = {
   'recheck':      '#52BE80',
   'ใส่ฟัน':       '#DC7633',
   'ใส่ครอบฟัน':   '#D4AC0D',
+  'ถอนฟันคุด':   '#B03A2E',
+  'รีเทนเนอร์':  '#8E44AD',
+  'onlay':       '#D68910',
+  'ดูอาการ':     '#5D6D7E',
   'อื่นๆ':        '#626567',
 };
 
@@ -2154,17 +2186,13 @@ function todayStr(){ return toDateStr(new Date()); }
 
 function populateSelects(){
   const docOpts = getDoctorOptions();
-  const procOpts = PROCEDURES.map(p=>`<option>${p}</option>`).join('');
+  const procOpts = PROCEDURE_GROUPS.map(group=>`<optgroup label="${group.label}">${group.items.map(p=>`<option>${p}</option>`).join('')}</optgroup>`).join('');
   const timeOpts = TIME_SLOTS.map(t=>`<option>${t}</option>`).join('');
   document.getElementById('apt-doc').innerHTML = docOpts;
   // apt-proc is now multi-select checkbox - build options
   const procBox = document.getElementById('apt-proc-options');
   if(procBox){
-    procBox.innerHTML = PROCEDURES.map(p=>`
-      <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;transition:background 0.12s;" onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background='transparent'">
-        <input type="checkbox" value="${p}" onchange="updateProcLabel()" style="accent-color:var(--wine);width:15px;height:15px;cursor:pointer;">
-        <span>${p}</span>
-      </label>`).join('');
+    procBox.innerHTML = procedureOptionsHtml('updateProcLabel()', true);
   }
   // apt-time is now type=time input, no need to populate
   document.getElementById('treat-doc').innerHTML = docOpts;
@@ -2291,21 +2319,11 @@ function renderAptList(today){
 
   if(!apts.length){ el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text-light);font-size:14px;">ไม่มี</div>`; return; }
 
-  const lastVisitHtml = hn=>{
-    if(!hn) return '';
-    const t = treatments
-      .filter(x=>String(x.hn||'').trim()===String(hn).trim() && x.date && x.date<today)
-      .sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
-    if(!t) return '';
-    const d = new Date(t.date+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
-    return `<div style="font-size:11px;color:var(--text-light);font-weight:400;margin-top:2px;">มาล่าสุด ${d}${t.proc?' · '+t.proc:''}</div>`;
-  };
-
   const rowHtml = a=>`
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${a.hn||'—'}</div>
-      <div><div style="font-weight:600">${a.patName}</div>${lastVisitHtml(a.hn)}</div>
+      <div><div style="font-weight:600">${a.patName}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
@@ -2470,6 +2488,85 @@ function treatRow(t){
 let _editAptId = null;
 let _prefillSlot = null; // slot ที่กด +นัด มาจาก schedule page
 let _editAptOrigTime = null; // เวลาเดิมก่อนแก้ไข (สำหรับลบ slot เก่า)
+function filterProcedureOptions(containerId, query){
+  const root = document.getElementById(containerId);
+  if(!root) return;
+  const q = String(query||'').trim().toLowerCase();
+  root.querySelectorAll('[data-procedure-group]').forEach(group=>{
+    let visible = 0;
+    group.querySelectorAll('[data-procedure-option]').forEach(option=>{
+      const match = !q || option.textContent.toLowerCase().includes(q);
+      option.style.display = match ? 'flex' : 'none';
+      if(match) visible++;
+    });
+    group.style.display = visible ? '' : 'none';
+  });
+}
+
+function renderAptPatientSummary(){
+  const box = document.getElementById('apt-patient-summary');
+  if(!box) return;
+  const hn = document.getElementById('apt-hn')?.value.trim();
+  const name = document.getElementById('apt-name')?.value.trim();
+  if(!hn && !name){ box.style.display='none'; box.innerHTML=''; return; }
+  const history = treatments.filter(t=>{
+    const sameHn = hn && t.hn && String(t.hn).trim()===hn;
+    const sameName = !hn && name && t.patName && String(t.patName).trim()===name;
+    return sameHn || sameName;
+  }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.time||'').localeCompare(String(a.time||'')));
+  box.style.display='block';
+  if(!history.length){
+    box.innerHTML = '<div style="padding:10px 12px;border:1px dashed var(--border);border-radius:8px;background:rgba(107,45,94,0.04);font-size:12px;color:var(--text-light);">📋 ยังไม่มีประวัติการรักษาที่บันทึกไว้</div>';
+    return;
+  }
+  const items = history.slice(0,3).map(t=>`<div style="font-size:12px;color:var(--text-mid);padding:3px 0;border-bottom:1px solid rgba(107,45,94,0.08);">${fmtDate(t.date)} · ${t.proc||'—'} · ${t.docName||'—'}</div>`).join('');
+  box.innerHTML = `<div style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:rgba(107,45,94,0.04);">
+    <div style="font-size:12px;font-weight:800;color:var(--wine-dark);margin-bottom:4px;">📋 ประวัติย่อคนไข้ · ${history.length} ครั้ง</div>${items}
+  </div>`;
+}
+
+function ensureSaveSummary(modalId, cardId){
+  const modal = document.getElementById(modalId);
+  if(!modal) return null;
+  let card = document.getElementById(cardId);
+  if(!card){
+    card = document.createElement('div');
+    card.id = cardId;
+    card.style.cssText = 'margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(107,45,94,0.04);font-size:12px;';
+    const footer = modal.querySelector('.modal-footer');
+    if(footer) footer.parentNode.insertBefore(card, footer);
+  }
+  return card;
+}
+
+function renderAptSaveSummary(){
+  const card = ensureSaveSummary('modalApt','apt-save-summary');
+  if(!card) return;
+  const val = id=>document.getElementById(id)?.value.trim()||'—';
+  card.innerHTML = `<div style="font-weight:800;color:var(--wine-dark);margin-bottom:4px;">📝 ตรวจสอบก่อนบันทึกนัด</div>
+    <div>${val('apt-date')} · ${val('apt-time')} · ${val('apt-doc')}</div>
+    <div style="margin-top:2px;">${val('apt-name')} (HN ${val('apt-hn')}) · ${val('apt-proc')} · <strong>${val('apt-status')}</strong></div>`;
+}
+
+function renderTreatSaveSummary(){
+  const card = ensureSaveSummary('modalTreat','treat-save-summary');
+  if(!card) return;
+  const val = id=>document.getElementById(id)?.value.trim()||'—';
+  const total = ['treat-cash','treat-transfer','treat-sso'].reduce((sum,id)=>sum+(+document.getElementById(id)?.value||0),0);
+  card.innerHTML = `<div style="font-weight:800;color:var(--wine-dark);margin-bottom:4px;">📝 ตรวจสอบก่อนบันทึกการรักษา</div>
+    <div>${val('treat-date')} · ${val('treat-time')} · ${val('treat-doc')}</div>
+    <div style="margin-top:2px;">${val('treat-name')} (HN ${val('treat-hn')}) · ${val('treat-proc')} · <strong>รวม ${fmt(total)}</strong></div>`;
+}
+
+document.addEventListener('input', e=>{
+  if(e.target.closest('#modalApt')){ renderAptPatientSummary(); renderAptSaveSummary(); }
+  if(e.target.closest('#modalTreat')) renderTreatSaveSummary();
+});
+document.addEventListener('change', e=>{
+  if(e.target.closest('#modalApt')){ renderAptPatientSummary(); renderAptSaveSummary(); }
+  if(e.target.closest('#modalTreat')) renderTreatSaveSummary();
+});
+
 function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=null){
   _editAptId = apt ? apt.id : null;
   _prefillSlot = (!apt && prefillTime) ? prefillTime : null;
@@ -2514,6 +2611,8 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=nul
     if(lastDoc) document.getElementById('apt-doc').value = lastDoc;
   }
   document.getElementById('modalApt').classList.add('open');
+  renderAptPatientSummary();
+  renderAptSaveSummary();
   // แสดงปุ่มลบเฉพาะตอนแก้ไข
   const delBtn = document.getElementById('btnDeleteAptModal');
   if(delBtn) delBtn.style.display = _editAptId ? '' : 'none';
@@ -2744,6 +2843,7 @@ function openAddTreat(t=null){
   document.getElementById('treat-note').value = t?.note||'';
   calcTotal();
   document.getElementById('modalTreat').classList.add('open');
+  renderTreatSaveSummary();
 }
 function calcTotal(){
   const v = ['treat-cash','treat-transfer','treat-sso'].reduce((s,id)=>s+(+document.getElementById(id).value||0),0);
@@ -2788,15 +2888,34 @@ function saveTreat(){
   if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
+
+  // Completing treatment completes the matching same-day appointment automatically.
+  // HN is the primary match; use the patient name only when either record has no HN.
+  const completedAppointments = appointments.filter(a=>{
+    const sameDate = a.date===t.date;
+    const sameHn = t.hn && a.hn && String(a.hn).trim()===String(t.hn).trim();
+    const sameName = (!t.hn || !a.hn) && t.patName && a.patName && String(a.patName).trim()===String(t.patName).trim();
+    const sameDoctor = !t.docName || !a.docName || a.docName===t.docName;
+    const isOpen = !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status);
+    return sameDate && sameDoctor && isOpen && (sameHn || sameName);
+  });
+  completedAppointments.forEach(a=>{ a.status='เสร็จสิ้น'; });
+
   saveLocal();
   closeModal('modalTreat');
   renderHome(); renderTreatPage();
-  showToast('บันทึกการรักษาสำเร็จ');
+  showToast(completedAppointments.length ? 'บันทึกการรักษาและเปลี่ยนสถานะนัดเป็นเสร็จสิ้นแล้ว' : 'บันทึกการรักษาสำเร็จ');
   markPendingSync('treatments', t);
   syncToSheet('treatments', t).then(()=>{
     setTimeout(syncAll, 2000);
   }).catch(err => {
     showToast('⚠️ บันทึกไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ', 'error');
+  });
+  completedAppointments.forEach(a=>{
+    markPendingSync('appointments', a);
+    syncToSheet('appointments', a).catch(()=>{
+      showToast('⚠️ เปลี่ยนสถานะนัดในเครื่องแล้ว แต่ sync ไม่สำเร็จ', 'error');
+    });
   });
 }
 function deleteTreat(id){
@@ -5135,13 +5254,9 @@ function autoFillPatient(hn, prefix){
 function buildProcDropdown(){
   const dd = document.getElementById('treat-proc-dropdown');
   if(!dd) return;
-  dd.innerHTML = PROCEDURES.map(p=>`
-    <label onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:14px;transition:background 0.1s;"
-      onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background=''"
-    >
-      <input type="checkbox" value="${p}" onchange="updateProcDisplay()" style="width:16px;height:16px;accent-color:var(--wine);cursor:pointer;">
-      <span>${p}</span>
-    </label>`).join('');
+  dd.innerHTML = `<div style="position:sticky;top:0;background:#fff;padding:0 10px 8px;z-index:1;">
+    <input id="treat-proc-search" class="form-control" placeholder="🔍 ค้นหารายการรักษา" oninput="filterProcedureOptions('treat-proc-options',this.value)" onclick="event.stopPropagation()" style="width:100%;font-size:13px;">
+  </div><div id="treat-proc-options">${procedureOptionsHtml('updateProcDisplay()', false)}</div>`;
 }
 
 function toggleTreatProcDropdown(){
