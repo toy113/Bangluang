@@ -869,11 +869,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div class="sidebar-clinic-sub">คลินิกทันตกรรมบางหลวง</div>
       </div>
     </div>
-    <div class="sidebar-user">
+    <div class="sidebar-user" style="flex-wrap:wrap;align-items:flex-start;">
       <div class="user-avatar" id="sideUserAvatar">🦷</div>
       <div>
         <div class="user-name" id="sideUserName">—</div>
         <div class="user-role" id="sideUserRole">—</div>
+      </div>
+      <div id="sideUserPortraitWrap" style="display:none;flex-basis:100%;margin-top:10px;text-align:center;">
+        <img src="codex-clipboard-a6174fee-69c3-472a-8ca1-576eaea4acaf.png" alt="รูปหมอก้อย" style="width:150px;max-width:100%;height:auto;max-height:210px;object-fit:cover;object-position:top;border-radius:14px;display:inline-block;border:1px solid rgba(212,168,71,0.55);box-shadow:0 5px 16px rgba(0,0,0,0.25);">
       </div>
     </div>
     <div class="sidebar-nav">
@@ -2057,6 +2060,9 @@ function startApp(){
   document.getElementById('sideUserAvatar').textContent = currentUser.emoji;
   document.getElementById('sideUserName').textContent = currentUser.name;
   document.getElementById('sideUserRole').textContent = isManager ? 'ผู้จัดการ' : (currentUser.specialty||'');
+  // Show the portrait below หมอก้อย's specialty in the sidebar.
+  const portraitWrap = document.getElementById('sideUserPortraitWrap');
+  if(portraitWrap) portraitWrap.style.display = (!isManager && currentUser.id==='koi') ? 'block' : 'none';
   // แสดงชื่อผู้ login ใน topbar
   const topbarName = document.getElementById('topbarUserName');
   if(topbarName) topbarName.textContent = (currentUser.emoji||'') + ' ' + currentUser.name;
