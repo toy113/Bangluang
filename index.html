@@ -3558,6 +3558,16 @@ function setGender(docId,gender,btn){
   const doc=doctors.find(d=>d.id===docId);
   if(doc) doc.gender=gender;
 }
+function saveDoctorSettingsLocal(){
+  try {
+    localStorage.setItem('bl_doctor_settings', JSON.stringify(
+      doctors.map(({id,name,pin,emoji,specialty,gender,share,color,fullName,licenseNo}) =>
+        ({id,name,pin,emoji,specialty,gender,share,color,fullName,licenseNo})
+      )
+    ));
+  } catch(e){ console.warn('saveDoctorSettingsLocal error:', e); }
+}
+
 function saveDocSettings(docId){
   const doc=doctors.find(d=>d.id===docId);
   if(!doc) return;
@@ -3581,11 +3591,9 @@ function saveDocSettings(docId){
     origDoc.gender = doc.gender;
     if(doc.pin) origDoc.pin = doc.pin;
   }
-  // Save PIN to localStorage for persistence across refresh
-  // Save only PIN and share to localStorage (names stay in DOCTORS_DATA)
-  localStorage.setItem('bl_doctors_pins', JSON.stringify(
-    doctors.map(d=>({id:d.id, pin:d.pin||'', share:d.share||50}))
-  ));
+  // Cache all editable doctor settings locally so a refresh does not discard changes
+  // while Google Sheet is unavailable or still syncing.
+  saveDoctorSettingsLocal();
   saveLocal();
   syncToSheet('settings', doc);
   showToast('บันทึกการตั้งค่าสำเร็จ');
@@ -6591,29 +6599,37 @@ function setMobileNav(page){
 // ============================================================
 //  INIT
 // ============================================================
-// Restore only PIN and share from localStorage (not names - those are in DOCTORS_DATA)
-(function restorePinsOnly(){
+// Restore every saved doctor setting from localStorage before login/session restoration.
+(function restoreDoctorSettings(){
   try {
-    const saved = localStorage.getItem('bl_doctors_pins');
-    if(!saved) return;
-    const pins = JSON.parse(saved);
-    if(!Array.isArray(pins)) return;
-    // If old format has names, clear it (corrupted data)
-    if(pins[0] && pins[0].name !== undefined){
-      localStorage.removeItem('bl_doctors_pins');
+    const saved = localStorage.getItem('bl_doctor_settings');
+    if(saved){
+      const savedDoctors = JSON.parse(saved);
+      if(!Array.isArray(savedDoctors)) return;
+      const editableFields = ['name','pin','emoji','specialty','gender','share','color','fullName','licenseNo'];
+      savedDoctors.forEach(record=>{
+        if(!record || !record.id) return;
+        const doctor = doctors.find(d=>d.id===record.id);
+        const original = DOCTORS_DATA.find(d=>d.id===record.id);
+        editableFields.forEach(field=>{
+          if(!Object.prototype.hasOwnProperty.call(record, field)) return;
+          if(doctor) doctor[field] = record[field];
+          if(original) original[field] = record[field];
+        });
+      });
       return;
     }
-    pins.forEach(p=>{
-      if(!p || !p.id) return;
-      const d = doctors.find(x=>x.id===p.id);
-      const orig = DOCTORS_DATA.find(x=>x.id===p.id);
-      // Only restore PIN and share - never touch names
-      if(d && p.pin && String(p.pin).length===4){ d.pin=String(p.pin); }
-      if(d && p.share && +p.share>0){ d.share=+p.share; }
-      if(orig && p.pin && String(p.pin).length===4){ orig.pin=String(p.pin); }
-      if(orig && p.share && +p.share>0){ orig.share=+p.share; }
+    // Backward compatibility with the former PIN/share-only cache.
+    const legacy = JSON.parse(localStorage.getItem('bl_doctors_pins')||'[]');
+    if(!Array.isArray(legacy)) return;
+    legacy.forEach(record=>{
+      if(!record || !record.id) return;
+      const doctor = doctors.find(d=>d.id===record.id);
+      const original = DOCTORS_DATA.find(d=>d.id===record.id);
+      if(record.pin && String(record.pin).length===4){ if(doctor) doctor.pin=String(record.pin); if(original) original.pin=String(record.pin); }
+      if(record.share && +record.share>0){ if(doctor) doctor.share=+record.share; if(original) original.share=+record.share; }
     });
-  } catch(e){ console.warn('restorePins error:',e); }
+  } catch(e){ console.warn('restoreDoctorSettings error:', e); }
 })();
 
 buildDoctorGrid();
