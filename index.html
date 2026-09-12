@@ -778,6 +778,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .cert-sign-line { border-bottom: 1px solid var(--text-light); height: 36px; margin-bottom: 6px; }
 .cert-sign-name { font-size: 13px; font-weight: 800; color: var(--text-dark); }
 .cert-sign-role { font-size: 10.5px; color: var(--text-light); margin-top: 2px; line-height: 1.5; }
+
+/* ===== 3D DENTAL DECORATIONS ===== */
+.dental-3d-orb{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;border-radius:15px;position:relative;isolation:isolate;background:radial-gradient(circle at 30% 22%,#fff7de 0 6%,#f4c86e 7% 16%,#b3479a 34%,#6b2d5e 72%,#35122f 100%);border:1px solid rgba(255,232,167,.9);box-shadow:inset 0 2px 3px rgba(255,255,255,.8),inset 0 -5px 9px rgba(50,15,45,.5),0 6px 12px rgba(107,45,94,.22);transform:rotate(-7deg);overflow:hidden}
+.dental-3d-orb::before{position:relative;z-index:2;font-size:25px;filter:drop-shadow(0 3px 1px rgba(48,15,45,.36));transform:rotate(7deg)}
+.dental-3d-orb::after{content:'';position:absolute;width:55px;height:18px;left:-12px;top:-8px;border-radius:50%;background:rgba(255,255,255,.48);transform:rotate(-25deg)}
+.dental-3d-orb.tooth::before{content:'🦷'} .dental-3d-orb.calendar::before{content:'🗓️';font-size:22px} .dental-3d-orb.record::before{content:'📋';font-size:22px}
+@media(max-width:768px){.dental-3d-orb{width:34px;height:34px;flex-basis:34px;border-radius:12px}.dental-3d-orb::before{font-size:20px}.dental-3d-orb.calendar::before,.dental-3d-orb.record::before{font-size:17px}}
 </style>
 </head>
 <body>
@@ -948,7 +955,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <!-- 1) APPOINTMENT TABLE (TOP) -->
       <div class="card-box" style="margin-bottom:20px;">
         <div class="card-box-hdr">
-          <div class="card-box-title">📅 ตารางนัด</div>
+          <div style="display:flex;align-items:center;gap:9px;"><span class="dental-3d-orb calendar" aria-hidden="true"></span><div class="card-box-title">📅 ตารางนัด</div></div>
           <button class="btn btn-primary btn-sm" id="btnAddAptHome" onclick="openAddApt()">+ เพิ่มนัด</button>
         </div>
         <div id="aptListHdr" class="apt-row apt-hdr"></div>
@@ -959,7 +966,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="card-box" style="margin-bottom:20px;">
         <div class="card-box-hdr">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <div class="card-box-title">🦷 รายการรักษาวันนี้ <span id="treatCountBadge" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">0 ราย</span></div>
+            <span class="dental-3d-orb tooth" aria-hidden="true"></span><div class="card-box-title">🦷 รายการรักษาวันนี้ <span id="treatCountBadge" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;">0 ราย</span></div>
             <button id="btnAddTreatHome" class="btn btn-primary btn-sm" onclick="openAddTreat()" style="display:none;">+ เพิ่มรายการ</button>
           </div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1032,7 +1039,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="page" id="page-treatment">
       <div class="card-box">
         <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
-          <div class="card-box-title">📋 บันทึกการรักษา <span id="treatPageCountBadge" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;">0 ราย</span></div>
+          <div style="display:flex;align-items:center;gap:9px;"><span class="dental-3d-orb record" aria-hidden="true"></span><div class="card-box-title">📋 บันทึกการรักษา <span id="treatPageCountBadge" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;">0 ราย</span></div></div>
           <div class="filter-row" style="flex-wrap:wrap;gap:8px;">
             <div class="period-tabs" style="background:var(--wine-pale);">
               <button class="period-tab active" id="treatModeDay" onclick="setTreatMode('day',this)">รายวัน</button>
