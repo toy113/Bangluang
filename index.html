@@ -3757,7 +3757,6 @@ async function syncToSheet(type, data){
 }
 async function syncAll(){
   if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) return;
-  if(document.querySelector('.modal-overlay.open')) return;
   const dot=document.getElementById('syncDot');
   const txt=document.getElementById('syncText');
   try {
@@ -5378,7 +5377,8 @@ function buildDaySlotSettingsUI(){
 function startAutoSync(){
   if(_autoSyncStarted) return;
   _autoSyncStarted = true;
-  setInterval(syncAll, 20000); // sync ทุก 20 วินาที (เดิม 4 วิ ถี่เกินไปสำหรับหลายเครื่องพร้อมกัน ใช้ปุ่ม Sync ตอนนี้ เวลาต้องการข้อมูลสดทันที)
+  const syncEveryMs = window.matchMedia('(max-width: 768px)').matches ? 5000 : 20000;
+  setInterval(syncAll, syncEveryMs); // มือถือเช็คข้อมูลใหม่ทุก 5 วินาที; เดสก์ท็อปทุก 20 วินาที
 }
 
 // ============================================================
@@ -6689,6 +6689,26 @@ async function orthoPost(payload){
     await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   }catch(e){ console.warn('orthoPost error',e); showToast('บันทึกไม่สำเร็จ','error'); }
 }
+
+// ============================================================
+//  MOBILE LIVE STATUS SYNC
+// ============================================================
+// มือถือมักถูก browser พักการทำงานเมื่อสลับแอป/ล็อกจอ จึงดึงข้อมูลทันทีเมื่อกลับมา
+// เพื่อให้สถานะที่เปลี่ยนจากเดสก์ท็อปสะท้อนโดยไม่ต้องรอรอบ auto-sync
+let _mobileStatusRefreshAt = 0;
+function refreshMobileStatusNow(){
+  if(!window.matchMedia('(max-width: 768px)').matches) return;
+  if(document.visibilityState === 'hidden') return;
+  const now = Date.now();
+  if(now - _mobileStatusRefreshAt < 1200) return;
+  _mobileStatusRefreshAt = now;
+  syncAll();
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible') refreshMobileStatusNow();
+});
+window.addEventListener('focus', refreshMobileStatusNow);
+window.addEventListener('pageshow', refreshMobileStatusNow);
 
 // ============================================================
 //  MOBILE NAV
