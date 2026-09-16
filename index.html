@@ -3765,6 +3765,17 @@ async function syncAll(){
     const d=await res.json();
     // ---- Sheet is source of truth: full replace ----
     const sid = r=>String(r.id||'').trim();
+    // ข้อมูลเก่าที่เคยถูก append ซ้ำจากคำขอพร้อมกัน อาจยังอยู่ใน Sheet
+    // แสดงเฉพาะข้อมูลแถวล่าสุดของแต่ละ ID จนกว่าจะถูกเขียนทับ/ล้างซ้ำจาก backend
+    const dedupeByIdKeepLast = rows => {
+      const seen = new Set();
+      return [...rows].reverse().filter(r => {
+        const id = sid(r);
+        if(!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      }).reverse();
+    };
     // Normalize date fields to YYYY-MM-DD
     const normDate = v => {
       if(!v && v!==0) return '';
@@ -3831,7 +3842,7 @@ async function syncAll(){
       return r; 
     };
     const _delAptIds = _deletedAptIds();
-    if(Array.isArray(d.appointments)) appointments = reconcilePendingSync('appointments', d.appointments.filter(r=>sid(r) && !_delAptIds.has(sid(r))).map(normRow));
+    if(Array.isArray(d.appointments)) appointments = reconcilePendingSync('appointments', dedupeByIdKeepLast(d.appointments.filter(r=>sid(r) && !_delAptIds.has(sid(r))).map(normRow)));
     if(Array.isArray(d.treatments))  treatments  = reconcilePendingSync('treatments', d.treatments.filter(r=>sid(r)).map(normRow));
     if(Array.isArray(d.labs))        labs        = reconcilePendingSync('labs', d.labs.filter(r=>sid(r)).map(normRow));
     // Load patients from Sheet via clean function

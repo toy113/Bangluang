@@ -311,58 +311,71 @@ function doPost(e) {
 
     if (!sh) return ContentService.createTextOutput('error: unknown type ' + data.type);
 
-    var r = data.data;
-    var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
-    var i = ids.indexOf(String(r.id));
-    var rKeys = Object.keys(r);
+    // คำขอจากหน้าเว็บใช้ no-cors จึงอาจถูกส่งซ้ำ/มาพร้อมกันได้
+    // ล็อกทั้งช่วงค้นหา ID และ append/update เพื่อไม่ให้สองคำขอเห็นว่า
+    // "ยังไม่มี" พร้อมกันแล้ว append แถวซ้ำ
+    var recordLock = LockService.getScriptLock();
+    recordLock.waitLock(30000);
+    try {
+      var r = data.data;
+      var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
+      var i = ids.indexOf(String(r.id));
+      var duplicateRows = [];
+      ids.forEach(function(id, idx){ if(idx > i && id === String(r.id)) duplicateRows.push(idx + 1); });
+      var rKeys = Object.keys(r);
 
-    var hdr = sh.getRange(1,1,1,Math.max(sh.getLastColumn(),1)).getValues()[0];
+      var hdr = sh.getRange(1,1,1,Math.max(sh.getLastColumn(),1)).getValues()[0];
     // จับคู่แต่ละ key กับคอลัมน์ตาม "ชื่อ header จริง" ไม่ใช่ตามลำดับใน object เหมือนเดิม
     // (ลำดับ key ใน object ไม่รับประกันว่าตรงกับลำดับคอลัมน์ในชีตเสมอไป — โดยเฉพาะถ้ามีคอลัมน์ blank ค้างอยู่)
     // key ไหนยังไม่มี header ให้เข้าไปแทรกในช่อง blank ที่มีอยู่ก่อน ถ้าไม่มีช่อง blank ค่อยเพิ่มคอลัมน์ใหม่ต่อท้าย
-    rKeys.forEach(function(k){
-      if (hdr.indexOf(k) === -1) {
-        var blankIdx = hdr.indexOf('');
-        if (blankIdx !== -1) {
-          hdr[blankIdx] = k;
-          sh.getRange(1, blankIdx+1).setValue(k);
-        } else {
-          hdr.push(k);
-          sh.getRange(1, hdr.length).setValue(k);
+      rKeys.forEach(function(k){
+        if (hdr.indexOf(k) === -1) {
+          var blankIdx = hdr.indexOf('');
+          if (blankIdx !== -1) {
+            hdr[blankIdx] = k;
+            sh.getRange(1, blankIdx+1).setValue(k);
+          } else {
+            hdr.push(k);
+            sh.getRange(1, hdr.length).setValue(k);
+          }
         }
-      }
-    });
+      });
     // สร้าง row ตามตำแหน่งจริงของ header แต่ละคอลัมน์ (ไม่ใช่ตามลำดับ key ใน object)
-    var row = hdr.map(function(h){
-      if (!h) return '';
-      var v = r[h];
-      return (v===null||v===undefined)?'':v;
-    });
-    var dateCol = -1, timeCol = -1;
-    for (var c = 0; c < hdr.length; c++) {
-      var h = String(hdr[c]).toLowerCase();
-      if (h === 'date') dateCol = c;
-      if (h === 'time') timeCol = c;
-    }
+      var row = hdr.map(function(h){
+        if (!h) return '';
+        var v = r[h];
+        return (v===null||v===undefined)?'':v;
+      });
+      var dateCol = -1, timeCol = -1;
+      for (var c = 0; c < hdr.length; c++) {
+        var h = String(hdr[c]).toLowerCase();
+        if (h === 'date') dateCol = c;
+        if (h === 'time') timeCol = c;
+      }
 
-    var targetRow;
-    if (i < 1) {
-      sh.appendRow(row);
-      targetRow = sh.getLastRow();
-    } else {
-      sh.getRange(i+1,1,1,row.length).setValues([row]);
-      targetRow = i + 1;
-    }
+      var targetRow;
+      if (i < 1) {
+        sh.appendRow(row);
+        targetRow = sh.getLastRow();
+      } else {
+        sh.getRange(i+1,1,1,row.length).setValues([row]);
+        targetRow = i + 1;
+      }
 
     // Force date และ time เป็น plain text เพื่อป้องกัน Sheets แปลงเป็น Date object
-    if (dateCol >= 0 && r.date) {
-      sh.getRange(targetRow, dateCol+1).setNumberFormat('@STRING@').setValue(String(r.date));
-    }
-    if (timeCol >= 0 && r.time) {
-      sh.getRange(targetRow, timeCol+1).setNumberFormat('@STRING@').setValue(String(r.time));
-    }
+      if (dateCol >= 0 && r.date) {
+        sh.getRange(targetRow, dateCol+1).setNumberFormat('@STRING@').setValue(String(r.date));
+      }
+      if (timeCol >= 0 && r.time) {
+        sh.getRange(targetRow, timeCol+1).setNumberFormat('@STRING@').setValue(String(r.time));
+      }
 
-    return ContentService.createTextOutput('ok');
+      // เก็บแถวแรกไว้เป็นแถวล่าสุด แล้วลบแถวซ้ำจากล่างขึ้นบนเพื่อไม่ให้ index เลื่อน
+      for (var d = duplicateRows.length - 1; d >= 0; d--) sh.deleteRow(duplicateRows[d]);
+      return ContentService.createTextOutput('ok');
+    } finally {
+      recordLock.releaseLock();
+    }
 
   } catch(err) {
     return ContentService.createTextOutput('error: ' + err.message);
