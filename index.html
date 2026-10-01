@@ -1532,9 +1532,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="form-group">
       <label>ออกให้เพื่อ</label>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="ลาป่วยต่อนายจ้าง/สถานศึกษา" checked> ลาป่วยต่อนายจ้าง/สถานศึกษา</label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="ยื่นเบิกประกันสุขภาพ"> ยื่นเบิกประกันสุขภาพ</label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="อื่นๆ"> อื่นๆ</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="ลาป่วยต่อนายจ้าง/สถานศึกษา" checked onchange="toggleCertPurposeOther()"> ลาป่วยต่อนายจ้าง/สถานศึกษา</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="ยื่นเบิกประกันสุขภาพ" onchange="toggleCertPurposeOther()"> ยื่นเบิกประกันสุขภาพ</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="cert-purpose" value="อื่นๆ" onchange="toggleCertPurposeOther()"> อื่นๆ</label>
+      </div>
+      <div id="cert-purpose-other-wrap" style="display:none;margin-top:10px;">
+        <input type="text" class="form-control" id="cert-purpose-other" placeholder="ระบุวัตถุประสงค์">
       </div>
     </div>
     <div id="cert-status-note" style="font-size:12px;color:var(--text-light);min-height:16px;"></div>
@@ -2939,6 +2942,8 @@ function openCertificateModal(t){
   document.getElementById('cert-restStart').value = t.date||todayStr();
   toggleCertRestFields();
   document.querySelectorAll('input[name="cert-purpose"]')[0].checked = true;
+  document.getElementById('cert-purpose-other').value = '';
+  toggleCertPurposeOther();
   document.getElementById('cert-status-note').textContent = '';
   const btn = document.getElementById('btnIssueCert');
   btn.disabled = false; btn.textContent = '🖨️ ออกใบรับรอง + พิมพ์';
@@ -2954,6 +2959,15 @@ function toggleCertRestFields(){
   const on = document.getElementById('cert-needsRest').checked;
   document.getElementById('cert-rest-fields').style.display = on ? '' : 'none';
   if(on) calcCertRestEnd();
+}
+
+function toggleCertPurposeOther(){
+  const isOther = document.querySelector('input[name="cert-purpose"]:checked')?.value === 'อื่นๆ';
+  const wrap = document.getElementById('cert-purpose-other-wrap');
+  const input = document.getElementById('cert-purpose-other');
+  wrap.style.display = isOther ? '' : 'none';
+  input.required = isOther;
+  if(isOther) setTimeout(()=>input.focus(), 0);
 }
 
 function calcCertRestEnd(){
@@ -2975,7 +2989,14 @@ async function issueCertificateAndPrint(){
   const doc = doctors.find(d=>d.id===docId);
   if(!doc || !doc.fullName || !doc.licenseNo){ showToast('เลือกหมอที่มีชื่อเต็ม/เลขใบอนุญาตแล้วก่อน (ไปตั้งค่าได้ที่หน้าตั้งค่า)','error'); return; }
   const needsRest = document.getElementById('cert-needsRest').checked;
-  const purpose = document.querySelector('input[name="cert-purpose"]:checked')?.value||'';
+  const purposeChoice = document.querySelector('input[name="cert-purpose"]:checked')?.value||'';
+  const purposeOther = document.getElementById('cert-purpose-other').value.trim();
+  if(purposeChoice === 'อื่นๆ' && !purposeOther){
+    showToast('กรุณาระบุวัตถุประสงค์ของใบรับรอง','error');
+    document.getElementById('cert-purpose-other').focus();
+    return;
+  }
+  const purpose = purposeChoice === 'อื่นๆ' ? purposeOther : purposeChoice;
   const payload = {
     treatId: t.id, hn: t.hn||'', patName: t.patName||'',
     age: document.getElementById('cert-age').value||'',
