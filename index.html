@@ -388,6 +388,7 @@ tbody td { padding: 10px 14px; font-size: 13px; color: var(--text-mid); }
 .btn-icon { min-width: 36px; min-height: 36px; padding: 6px; justify-content: center; }
 /* utility class ที่ใช้แทน inline class="text-caption" ที่ซ้ำกันหลายจุด */
 .text-caption { font-size: 12px; color: var(--text-light); }
+.hn-cell { white-space: nowrap; } /* เลข HN เช่น 66-12264 ต้องอยู่บรรทัดเดียว ไม่ตัดที่ขีด */
 .checkbox-label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; cursor: pointer; }
 
 /* FORM */
@@ -495,6 +496,11 @@ select.form-control { cursor: pointer; }
 .dbk-case-meta { font-size: 11px; color: var(--text-light); }
 .dbk-case-amt { text-align: right; white-space: nowrap; font-weight: 800; color: var(--wine-dark); }
 .dbk-case-amt small { display: block; font-size: 11px; font-weight: 700; color: var(--gold); }
+.dbk-warn { background: #FFF4E5; border: 1.5px solid #F0B25E; color: #7A4A00; border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.55; margin-bottom: 4px; }
+.dbk-case-off { background: #FFF4E5; margin: 0 -8px; padding: 9px 8px; border-radius: 8px; border-bottom-color: transparent; }
+.dbk-pct { display: inline-block; font-size: 11px; font-weight: 700; color: var(--text-light); margin-left: 4px; }
+.dbk-pct-off { background: #F0B25E; color: #4A2B00; border-radius: 999px; padding: 0 7px; }
+.dbk-edit { margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--wine); background: #fff; border: 1.5px solid var(--border); border-radius: 8px; padding: 2px 8px; cursor: pointer; }
 .dbk-note { font-size: 11px; color: var(--text-light); margin-top: 8px; line-height: 1.5; }
 @media (max-width: 480px) { .dbk-stat-value { font-size: 15px; } }
 
@@ -1959,15 +1965,16 @@ const DOCTORS_DATA = [
   { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   pin:'7699', emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
   { id:'khao',  name:'หมอข้าว',  pin:'8986', emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#27AE60', fullName:'', licenseNo:'' },
   { id:'part',  name:'หมอพาร์ท', pin:'8888', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B', fullName:'', licenseNo:'' },
-  { id:'ben',   name:'หมอเบญ',  pin:'2233', emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#1ABC9C', fullName:'ภาสิริ ศิริรังษี', licenseNo:'' },
+  { id:'ben',   name:'หมอเบญ',  pin:'2233', emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#F27A0D', fullName:'ภาสิริ ศิริรังษี', licenseNo:'' },
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', pin:'1234', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
-const PROCEDURES = ['ขูดหินปูน','อุดฟัน','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
+const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
 
 const PROC_COLORS = {
   'ขูดหินปูน':    '#2980B9',
   'อุดฟัน':       '#27AE60',
+  'อุดชั่วคราว':  '#B7950B',
   'ถอนฟัน':       '#E74C3C',
   'ผ่าฟันคุด':    '#C0392B',
   'ตรวจฟัน':      '#8E44AD',
@@ -2500,12 +2507,12 @@ function renderTreatList(treats){
 }
 
 function treatRow(t){
-  return `<tr>
-    <td>${t.time||'—'}</td>
-    <td class="text-caption">${t.hn||'—'}</td>
+  return `<tr style="${docRowStyle(t.docName)}">
+    <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
+    <td class="text-caption hn-cell">${t.hn||'—'}</td>
     <td style="font-weight:600">${t.patName}</td>
     <td>${procBadge(t.proc)}</td>
-    <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
+    <td>${docBadge(t.docName)}</td>
     <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
     <td style="color:var(--blue);font-weight:600">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
     <td style="color:var(--orange);font-weight:600">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
@@ -2565,7 +2572,34 @@ function renderAptSaveSummary(){
     <div style="margin-top:2px;">${val('apt-name')} (HN ${val('apt-hn')}) · ${val('apt-proc')} · <strong>${val('apt-status')}</strong></div>`;
 }
 
+// ฟอร์มบันทึกการรักษา: ถ้าเข้ากฎ X-Ray ให้ล็อกหมอเป็นหมอทอยและส่วนแบ่ง 0 ทันที พร้อมข้อความอธิบาย
+let _xrayFormLocked = false;
+function syncXrayRuleToForm(){
+  const docEl = document.getElementById('treat-doc');
+  const shareEl = document.getElementById('treat-share');
+  if(!docEl) return;
+  const applies = xrayRuleApplies({date:document.getElementById('treat-date')?.value, proc:getProcSelected()});
+  let hint = document.getElementById('treat-xray-hint');
+  if(applies){
+    docEl.value = xrayDoctorName();
+    docEl.disabled = true;
+    if(shareEl){ shareEl.value = '0'; shareEl.disabled = true; }
+    if(!hint){
+      docEl.insertAdjacentHTML('afterend','<div id="treat-xray-hint" style="margin-top:6px;font-size:12px;font-weight:700;color:var(--wine-dark);"></div>');
+      hint = document.getElementById('treat-xray-hint');
+    }
+    hint.textContent = '🩻 X-Ray ตั้งแต่ ต.ค. 2569 ผูกกับ '+xrayDoctorName()+' เท่านั้น · ส่วนแบ่งหมอ (DF) = 0';
+    hint.style.display = '';
+    _xrayFormLocked = true;
+  } else if(_xrayFormLocked){
+    docEl.disabled = false;
+    if(shareEl){ shareEl.disabled = false; shareEl.value = ''; }
+    if(hint) hint.style.display = 'none';
+    _xrayFormLocked = false;
+  }
+}
 function renderTreatSaveSummary(){
+  syncXrayRuleToForm();
   const card = ensureSaveSummary('modalTreat','treat-save-summary');
   if(!card) return;
   const val = id=>document.getElementById(id)?.value.trim()||'—';
@@ -2827,6 +2861,9 @@ document.addEventListener('click', function(e){
 //  TREATMENTS
 // ============================================================
 function openAddTreat(t=null){
+  _xrayFormLocked = false;
+  { const _d=document.getElementById('treat-doc'), _s=document.getElementById('treat-share'), _h=document.getElementById('treat-xray-hint');
+    if(_d) _d.disabled=false; if(_s) _s.disabled=false; if(_h) _h.style.display='none'; }
   document.getElementById('treatModalTitle').textContent = t?'แก้ไขรายการรักษา':'เพิ่มรายการรักษา';
   const today=todayStr();
   document.getElementById('treat-id').value = t?.id||'';
@@ -2902,7 +2939,8 @@ function saveTreat(){
     docShare,
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
-  if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
+  if(xrayRuleApplies(t)) applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0
+  else if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
 
@@ -3151,12 +3189,12 @@ function renderTreatPage(){
   if(colMgr) colMgr.style.display = isManager ? '' : 'none';
   if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${isManager?11:10}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
   tbody.innerHTML=rows.map(t=>`
-    <tr class="${t.docName===currentUser?.name?'own-row':''}">
-      <td>${fmtDate(t.date)}</td>
-      <td class="text-caption">${t.hn||'—'}</td>
+    <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
+      <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
+      <td class="text-caption hn-cell">${t.hn||'—'}</td>
       <td style="font-weight:600">${t.patName}</td>
       <td>${procBadge(t.proc)}</td>
-      <td style="font-weight:700;color:${docColor(t.docName)}">${t.docName}</td>
+      <td>${docBadge(t.docName)}</td>
       <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
       <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
       <td style="color:var(--orange)">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
@@ -3336,6 +3374,12 @@ function buildCharts(rows, period, today, month, year){
     options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:14, padding:10 } } } }
   });
 }
+let _dbkCases = [];
+function dbkEditCase(i){
+  const t=_dbkCases[i]; if(!t) return;
+  closeModal('modalDocBreakdown');
+  openAddTreat(t);
+}
 let _shareRows = [];
 let _shareDocList = [];
 function _escHtml(v){ return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -3360,6 +3404,11 @@ function openDoctorBreakdown(idx){
   const dr=_shareRows.filter(r=>r.docName===doc.name);
   const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
   const share=dr.reduce((s,r)=>s+totalPrice(r)*docSharePct(r,doc)/100,0);
+  // รายที่ % ส่วนแบ่งที่บันทึกไว้ ไม่ตรงกับ % ปัจจุบันของหมอ (ยกเว้นรายที่เข้ากฎ X-Ray ซึ่งตั้งใจให้เป็น 0)
+  const curPct=+doc.share||0;
+  const isOff=r=>!xrayRuleApplies(r) && Math.abs(docSharePct(r,doc)-curPct)>0.001;
+  const offRows=dr.filter(isOff);
+  const offExtra=offRows.reduce((s,r)=>s+totalPrice(r)*(docSharePct(r,doc)-curPct)/100,0);
 
   // รวมตามรายการรักษา (ถ้าคิดเงินหลายรายการรวมกันในครั้งเดียว จะนับเป็นกลุ่มเดียวกัน เพราะระบบเก็บราคาเป็นยอดรวมต่อครั้ง)
   const groups={};
@@ -3380,6 +3429,9 @@ function openDoctorBreakdown(idx){
     <div class="dbk-stat"><div class="dbk-stat-label">รายได้รวม</div><div class="dbk-stat-value">${fmt(tot)}</div></div>
     <div class="dbk-stat"><div class="dbk-stat-label">ส่วนแบ่งหมอ</div><div class="dbk-stat-value" style="color:var(--gold);">${fmt(share)}</div></div>
   </div>`;
+  if(offRows.length){
+    html+=`<div class="dbk-warn">⚠️ มี <b>${offRows.length} ราย</b> ที่ส่วนแบ่งไม่ใช่ ${curPct}% (ค่าปัจจุบันของหมอ) ทำให้ส่วนแบ่งรวม${offExtra>=0?'เกิน':'ขาด'}จากการคิด ${curPct}% ทุกราย อยู่ <b>${fmt(Math.abs(offExtra))}</b> · รายที่ติดป้าย % สีส้มอยู่ในรายชื่อด้านล่าง${isManager?' กด ✏️ แก้ไข แล้วพิมพ์ % ที่ต้องการในช่อง "ส่วนแบ่งหมอเฉพาะรายการนี้" (ห้ามเว้นว่าง ไม่งั้นระบบจะคงค่าเดิม)':''}</div>`;
+  }
 
   if(!dr.length){
     html+='<div style="text-align:center;padding:24px;color:var(--text-light);">ไม่มีรายการรักษาในช่วงเวลานี้</div>';
@@ -3392,13 +3444,13 @@ function openDoctorBreakdown(idx){
     </table></div>`;
     if(hasCombo) html+='<div class="dbk-note">รายการที่คิดเงินรวมหลายหัตถการในครั้งเดียว (เช่น "A, B") แสดงเป็นกลุ่มเดียว เพราะระบบเก็บราคาเป็นยอดรวมต่อครั้ง ไม่ได้แยกราคาต่อหัตถการ</div>';
 
-    html+=`<div class="dbk-h">รายชื่อคนไข้ (${cases.length} ราย)</div>`+cases.map(r=>`<div class="dbk-case">
+    html+=`<div class="dbk-h">รายชื่อคนไข้ (${cases.length} ราย)</div>`+(_dbkCases=cases).map((r,ci)=>`<div class="dbk-case${isOff(r)?' dbk-case-off':''}">
       <div>
         <div style="font-weight:700;">${_escHtml(r.patName||'—')} <span style="font-weight:600;color:var(--text-light);font-size:12px;">${r.hn?'HN '+_escHtml(r.hn):''}</span></div>
         <div class="dbk-case-meta">${showDate?fmtDate(r.date)+' · ':''}${_escHtml(r.time||'')}</div>
         <div>${procBadge(r.proc)}</div>
       </div>
-      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(totalPrice(r)*docSharePct(r,doc)/100)}</small></div>
+      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(totalPrice(r)*docSharePct(r,doc)/100)}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':(+docSharePct(r,doc))+'%'}</span></small>${(isManager&&isOff(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
     </div>`).join('');
   }
   document.getElementById('dbk-body').innerHTML=html;
@@ -3659,12 +3711,12 @@ function renderLabPage(){
     tbody.innerHTML=rows.map(l=>`
       <tr>
         <td>${fmtDate(l.date)}</td>
-        <td class="text-caption">${l.hn||'—'}</td>
+        <td class="text-caption hn-cell">${l.hn||'—'}</td>
         <td style="font-weight:600">${l.patName}</td>
         <td>${l.work}</td>
         <td><span class="lab-badge ${labBadgeClass(l.lab)}">${l.lab}</span></td>
         <td style="font-weight:700;color:var(--wine-dark)">${fmt(+l.price||0)}</td>
-        <td style="font-weight:700;color:${docColor(l.docName)}">${l.docName}</td>
+        <td>${docBadge(l.docName)}</td>
         <td style="font-size:12px;color:var(--text-light);font-style:${l.note?'normal':'italic'}">${l.note||'—'}</td>
         ${isManager
           ? `<td><div style="display:flex;gap:6px;">
@@ -3965,7 +4017,7 @@ async function syncAll(){
     };
     const _delAptIds = _deletedAptIds();
     if(Array.isArray(d.appointments)) appointments = reconcilePendingSync('appointments', dedupeByIdKeepLast(d.appointments.filter(r=>sid(r) && !_delAptIds.has(sid(r))).map(normRow)));
-    if(Array.isArray(d.treatments))  treatments  = reconcilePendingSync('treatments', d.treatments.filter(r=>sid(r)).map(normRow));
+    if(Array.isArray(d.treatments))  treatments  = reconcilePendingSync('treatments', d.treatments.filter(r=>sid(r)).map(normRow)).map(applyXrayRule);
     if(Array.isArray(d.labs))        labs        = reconcilePendingSync('labs', d.labs.filter(r=>sid(r)).map(normRow));
     // Load patients from Sheet via clean function
     loadPatientsFromSheet(d.patients);
@@ -4914,11 +4966,11 @@ function renderSchedulePage(){
         <tr>
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
-          <td class="text-caption">${a.hn||'—'}</td>
+          <td class="text-caption hn-cell">${a.hn||'—'}</td>
           <td style="font-weight:600;">${a.patName||'—'}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
-          <td style="font-size:12px;font-weight:700;color:${docColor(a.docName)}">${a.docName||'—'}</td>
+          <td>${docBadge(a.docName)}</td>
           <td><span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'};">${a.status||'รอ'}</span></td>
           <td>
             <div style="display:flex;gap:6px;">
@@ -5518,6 +5570,25 @@ function startAutoSync(){
 //  HELPERS
 // ============================================================
 function totalPrice(t){ return (+t.cash||0)+(+t.transfer||0)+(+t.sso||0); }
+// กฎ X-Ray: ตั้งแต่ 1 ต.ค. 2569 (2026-10-01) รายการรักษาที่เป็น X-Ray อย่างเดียว ผูกกับหมอทอยเท่านั้น และส่วนแบ่งหมอ (DF) = 0
+// ถ้าคิดเงินรวมหลายหัตถการในครั้งเดียว (เช่น "ขูดหินปูน, X-Ray") ไม่เข้ากฎ เพราะแยกราคาต่อหัตถการไม่ได้
+function xrayRuleStart(){ return '2026-10-01'; }
+function isXrayOnly(proc){
+  const parts = String(proc||'').split(',').map(p=>p.trim()).filter(Boolean);
+  return parts.length>0 && parts.every(p=>/^x[\s-]?ray$/i.test(p));
+}
+function xrayRuleApplies(t){
+  const d = String((t&&t.date)||'').slice(0,10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=xrayRuleStart() && isXrayOnly(t.proc);
+}
+function xrayDoctorName(){
+  const d = doctors.find(x=>x.id==='toy') || DOCTORS_DATA.find(x=>x.id==='toy');
+  return d ? d.name : 'หมอทอย';
+}
+function applyXrayRule(t){
+  if(xrayRuleApplies(t)){ t.docName = xrayDoctorName(); t.docShare = 0; }
+  return t;
+}
 // ใช้ % ส่วนแบ่งที่ snapshot ไว้ในรายการรักษาแต่ละรายการ (docShare) ถ้ามี
 // เพื่อไม่ให้การแก้ % ปัจจุบันของหมอ (doc.share) ย้อนไปกระทบรายงานเก่า — fallback ไปใช้ doc.share สำหรับรายการเก่าที่ยังไม่มี docShare
 function docSharePct(t, doc){
@@ -5526,6 +5597,26 @@ function docSharePct(t, doc){
 function docColor(name){
   const doc = doctors.find(d=>d.name===name) || DOCTORS_DATA.find(d=>d.name===name);
   return doc?.color || 'var(--text-mid)';
+}
+// ป้ายชื่อหมอแบบชัดเจน: อีโมจิ + ชื่อ ในแคปซูลสีประจำตัว (ไม่ตัดบรรทัดกลางชื่อ)
+function docBadge(name){
+  if(!name) return '—';
+  const doc = doctors.find(d=>d.name===name) || DOCTORS_DATA.find(d=>d.name===name);
+  const col = /^#[0-9a-f]{6}$/i.test(doc?.color||'') ? doc.color : '#7A6A78';
+  const nm = String(name).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const nowrap = nm.length<=12 ? 'white-space:nowrap;' : '';
+  return `<span style="display:inline-flex;align-items:center;gap:4px;background:${col}1A;color:${col};color:color-mix(in srgb,${col} 78%,#000);border:1.5px solid ${col}66;border-radius:999px;padding:2px 10px 2px 7px;font-size:12px;font-weight:800;line-height:1.4;${nowrap}"><span style="font-size:13px;">${doc?.emoji||''}</span>${nm}</span>`;
+}
+// แถบสี + พื้นอ่อนตามหมอ ใช้กับแถวในตาราง
+function docRowStyle(name){
+  const doc = doctors.find(d=>d.name===name) || DOCTORS_DATA.find(d=>d.name===name);
+  const col = /^#[0-9a-f]{6}$/i.test(doc?.color||'') ? doc.color : '#7A6A78';
+  return `background-image:linear-gradient(${col}12,${col}12);`;
+}
+function docStripeStyle(name){
+  const doc = doctors.find(d=>d.name===name) || DOCTORS_DATA.find(d=>d.name===name);
+  const col = /^#[0-9a-f]{6}$/i.test(doc?.color||'') ? doc.color : '#7A6A78';
+  return `box-shadow:inset 5px 0 0 ${col};`;
 }
 function procColor(proc){
   if(!proc) return 'var(--text-mid)';
@@ -5882,7 +5973,7 @@ function openPatientDetail(hn){
     <tr>
       <td style="font-size:12px;">${fmtDate(t.date)}</td>
       <td>${procBadge(t.proc)}</td>
-      <td style="font-size:13px;font-weight:700;color:${docColor(t.docName)}">${t.docName||'—'}</td>
+      <td>${docBadge(t.docName)}</td>
       <td style="font-weight:700;color:var(--wine-dark);">${fmt(totalPrice(t))}</td>
     </tr>`).join('') :
     `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-light);font-style:italic;">ยังไม่มีประวัติการรักษา</td></tr>`;
@@ -6892,6 +6983,27 @@ function setMobileNav(page){
   } catch(e){ console.warn('restoreDoctorSettings error:', e); }
 })();
 
+// ย้ายสีประจำตัวหมอเบญเป็นสีส้ม (ทำครั้งเดียวต่อเครื่อง) — เบราว์เซอร์ที่เคยบันทึกการตั้งค่าหมอไว้จะจำสีเก่าทับค่าในโค้ด
+(function migrateBenColorOrange(){
+  try {
+    const FLAG='bl_mig_ben_orange_v1', NEW_COLOR='#F27A0D';
+    if(localStorage.getItem(FLAG)) return;
+    const d=doctors.find(x=>x.id==='ben'); if(d) d.color=NEW_COLOR;
+    const o=DOCTORS_DATA.find(x=>x.id==='ben'); if(o) o.color=NEW_COLOR;
+    const saved=localStorage.getItem('bl_doctor_settings');
+    if(saved){
+      const arr=JSON.parse(saved);
+      if(Array.isArray(arr)){
+        arr.forEach(r=>{ if(r && r.id==='ben') r.color=NEW_COLOR; });
+        localStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
+      }
+    }
+    localStorage.setItem(FLAG,'1');
+  } catch(e){ console.warn('migrateBenColorOrange error:', e); }
+})();
+
+// ใช้กฎ X-Ray กับรายการที่แคชไว้ในเครื่อง (ข้อมูลจาก Sheet จะถูกปรับตอน sync)
+try { treatments.forEach(applyXrayRule); } catch(e){ console.warn('applyXrayRule init error:', e); }
 buildDoctorGrid();
 // Ensure correct initial state
 // Auto-restore session on page load/refresh
