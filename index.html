@@ -501,6 +501,23 @@ select.form-control { cursor: pointer; }
 .dbk-pct { display: inline-block; font-size: 11px; font-weight: 700; color: var(--text-light); margin-left: 4px; }
 .dbk-pct-off { background: #F0B25E; color: #4A2B00; border-radius: 999px; padding: 0 7px; }
 .dbk-edit { margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--wine); background: #fff; border: 1.5px solid var(--border); border-radius: 8px; padding: 2px 8px; cursor: pointer; }
+.tsum { padding: 14px 20px; border-bottom: 1px solid var(--border); background: linear-gradient(90deg,rgba(107,45,94,0.05) 0%,transparent 100%); }
+.tsum-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.tsum-title { font-size: 15px; font-weight: 800; color: var(--wine-dark); font-family: 'Prompt', sans-serif; }
+.tsum-sub { font-size: 12px; color: var(--text-light); font-weight: 600; }
+.tsum-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.tsum-cell { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.tsum-total { background: var(--wine-pale); border-color: transparent; }
+.tsum-lbl { font-size: 12px; font-weight: 700; color: var(--text-light); }
+.tsum-val { font-size: 22px; font-weight: 800; font-family: 'Prompt', sans-serif; line-height: 1.3; color: var(--wine-dark); }
+@media (max-width: 600px) { .tsum { padding: 12px; } .tsum-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tsum-val { font-size: 20px; } }
+.treat-grp-hdr td { padding: 10px 12px; font-weight: 800; cursor: pointer; user-select: none; border-top: 2px solid var(--border); }
+.treat-grp-hdr .tg-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
+.treat-grp-hdr .tg-name { font-size: 15px; font-family: 'Prompt', sans-serif; }
+.treat-grp-hdr .tg-meta { font-size: 12px; font-weight: 700; opacity: .85; }
+.note-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.note-chip { font-family: inherit; font-size: 13px; font-weight: 700; color: var(--wine); background: #fff; border: 1.5px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.note-chip.active { background: var(--wine); border-color: var(--wine); color: #fff; }
 .dbk-note { font-size: 11px; color: var(--text-light); margin-top: 8px; line-height: 1.5; }
 @media (max-width: 480px) { .dbk-stat-value { font-size: 15px; } }
 
@@ -1032,7 +1049,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
 
       <!-- 3) STAT CARDS (BOTTOM) -->
-      <div class="stat-grid" id="statGrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+      <div class="stat-grid" id="statGrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
         <div class="stat-card purple">
           <div class="stat-icon">👥</div>
           <div class="stat-label">รักษาวันนี้</div>
@@ -1050,6 +1067,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div class="stat-label">ส่วนแบ่งหมอ</div>
           <div class="stat-value" id="statShare" style="color:#B8860B;">0</div>
           <div class="stat-sub">บาท</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">🩻</div>
+          <div class="stat-label">ค่า X-Ray</div>
+          <div class="stat-value" id="statXray">0</div>
+          <div class="stat-sub" id="statXraySub">บาท</div>
         </div>
       </div>
 
@@ -1093,18 +1116,19 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <button class="btn btn-primary btn-sm" id="btnAddTreat" onclick="openAddTreat()">+ เพิ่มรายการ</button>
           </div>
         </div>
-        <!-- Monthly summary bar -->
-        <div id="treatMonthlySummary" style="display:none;padding:12px 20px;background:linear-gradient(90deg,rgba(107,45,94,0.05) 0%,transparent 100%);border-bottom:1px solid var(--border);">
-          <div style="display:flex;align-items:center;gap:20px;">
-            <div style="display:flex;align-items:baseline;gap:6px;">
-              <span style="font-size:12px;color:var(--text-light);font-weight:700;">จำนวนราย</span>
-              <span style="font-size:26px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;" id="ms-count">0</span>
-              <span class="text-caption">ราย</span>
+        <!-- Grand total bar (ทั้งรายวัน/รายเดือน) -->
+        <div id="treatMonthlySummary" class="tsum" style="display:none;">
+          <div class="tsum-hdr">
+            <div>
+              <div class="tsum-title" id="ms-title">ยอดรวมทุกหมอ</div>
+              <div class="tsum-sub"><span id="ms-label"></span> · <span id="ms-count">0</span> ราย</div>
             </div>
-            <span id="ms-total" style="display:none"></span>
-            <span id="ms-cash" style="display:none"></span>
-            <span id="ms-transfer" style="display:none"></span>
-            <span id="ms-sso" style="display:none"></span>
+          </div>
+          <div class="tsum-grid">
+            <div class="tsum-cell"><div class="tsum-lbl">เงินสด</div><div class="tsum-val" id="ms-cash" style="color:var(--green);">0</div></div>
+            <div class="tsum-cell"><div class="tsum-lbl">โอน</div><div class="tsum-val" id="ms-transfer" style="color:var(--blue);">0</div></div>
+            <div class="tsum-cell"><div class="tsum-lbl">ปสค.</div><div class="tsum-val" id="ms-sso" style="color:var(--orange);">0</div></div>
+            <div class="tsum-cell tsum-total"><div class="tsum-lbl">รวมทั้งหมด</div><div class="tsum-val" id="ms-total">0</div></div>
           </div>
         </div>
         <div class="table-scroll">
@@ -2029,6 +2053,8 @@ let barChartInst = null, pieChartInst = null, doctorChartInst = null;
 let statusTargetId = null;
 let editTreatId = null, editLabId = null;
 let currentPeriod = 'day';
+let _treatGroupKeys = [];            // กลุ่มหมอในหน้ารักษา (ใช้กับปุ่มพับ/ขยาย)
+const _treatCollapsed = new Set(); // ชื่อหมอที่พับกลุ่มไว้
 
 // ============================================================
 //  SAVE HELPERS
@@ -2317,6 +2343,10 @@ function renderHome(){
   document.getElementById('statCount').textContent = treats.length;
   document.getElementById('statTotal').textContent = fmt(total);
   document.getElementById('statShare').textContent = fmt(shareDoc);
+  // ค่า X-Ray: นับเฉพาะรายการที่เป็น X-Ray อย่างเดียว (ถ้าคิดเงินรวมกับหัตถการอื่นในครั้งเดียว แยกราคาไม่ได้จึงไม่นับ)
+  const xrayTreats = treats.filter(t=>isXrayOnly(t.proc));
+  document.getElementById('statXray').textContent = fmt(xrayTreats.reduce((s,t)=>s+totalPrice(t),0));
+  document.getElementById('statXraySub').textContent = 'บาท · '+xrayTreats.length+' ราย';
   document.getElementById('sumCash').textContent = fmt(cash);
   document.getElementById('sumTransfer').textContent = fmt(transfer);
   document.getElementById('sumSSO').textContent = fmt(sso);
@@ -2563,7 +2593,50 @@ function ensureSaveSummary(modalId, cardId){
   return card;
 }
 
+// ปุ่มลัดหมายเหตุ (กดเลือกแทนการพิมพ์) — แก้รายการได้ที่ NOTE_QUICK_OPTIONS
+const NOTE_QUICK_OPTIONS = ['ปวดฟัน','เสียวฟัน','เหงือกบวม','ฟันแตก/บิ่น','อุดหลุด','ฟันโยก'];
+const NOTE_CHIP_TARGETS = ['apt-note','treat-note'];
+function _noteTokens(v){ return String(v||'').split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean); }
+function toggleNoteChip(inputId, text){
+  const el = document.getElementById(inputId); if(!el) return;
+  const tokens = _noteTokens(el.value);
+  const i = tokens.indexOf(text);
+  if(i>-1) tokens.splice(i,1); else tokens.push(text);
+  el.value = tokens.join(', ');
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+  refreshNoteChips();
+}
+function refreshNoteChips(){
+  NOTE_CHIP_TARGETS.forEach(id=>{
+    const el = document.getElementById(id); if(!el) return;
+    const tokens = _noteTokens(el.value);
+    document.querySelectorAll('.note-chip[data-target="'+id+'"]').forEach(b=>{
+      b.classList.toggle('active', tokens.includes(b.dataset.text));
+    });
+  });
+}
+(function buildNoteChips(){
+  NOTE_CHIP_TARGETS.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el || document.getElementById(id+'-chips')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'note-chips';
+    wrap.id = id+'-chips';
+    NOTE_QUICK_OPTIONS.forEach(t=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'note-chip';
+      b.dataset.target = id;
+      b.dataset.text = t;
+      b.textContent = t;
+      b.addEventListener('click', ()=>toggleNoteChip(id, t));
+      wrap.appendChild(b);
+    });
+    el.insertAdjacentElement('afterend', wrap);
+  });
+})();
 function renderAptSaveSummary(){
+  refreshNoteChips();
   const card = ensureSaveSummary('modalApt','apt-save-summary');
   if(!card) return;
   const val = id=>document.getElementById(id)?.value.trim()||'—';
@@ -2600,6 +2673,7 @@ function syncXrayRuleToForm(){
 }
 function renderTreatSaveSummary(){
   syncXrayRuleToForm();
+  refreshNoteChips();
   const card = ensureSaveSummary('modalTreat','treat-save-summary');
   if(!card) return;
   const val = id=>document.getElementById(id)?.value.trim()||'—';
@@ -3151,7 +3225,7 @@ function setTreatMode(mode, btn){
   const monEl = document.getElementById('treatFilterMonth');
   const sumEl = document.getElementById('treatMonthlySummary');
   if(mode==='day'){
-    dayEl.style.display=''; monEl.style.display='none'; sumEl.style.display='none';
+    dayEl.style.display=''; monEl.style.display='none'; sumEl.style.display='';
   } else {
     dayEl.style.display='none'; monEl.style.display=''; sumEl.style.display='';
     if(!monEl.value) monEl.value = todayStr().slice(0,7);
@@ -3169,16 +3243,25 @@ function renderTreatPage(){
   else if(treatMode==='month'&&filterMonth) rows=rows.filter(t=>t.date&&t.date.startsWith(filterMonth));
   if(search) rows=rows.filter(t=>(t.patName+t.hn).toLowerCase().includes(search));
   rows.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
-  // Update monthly summary bar
-  if(treatMode==='month'){
-    const sumEl=document.getElementById('treatMonthlySummary');
-    if(sumEl){ sumEl.style.display='';
-      document.getElementById('ms-count').textContent=rows.length;
-      document.getElementById('ms-cash').textContent=fmt(rows.reduce((s,r)=>s+(+r.cash||0),0));
-      document.getElementById('ms-transfer').textContent=fmt(rows.reduce((s,r)=>s+(+r.transfer||0),0));
-      document.getElementById('ms-sso').textContent=fmt(rows.reduce((s,r)=>s+(+r.sso||0),0));
-      document.getElementById('ms-total').textContent=fmt(rows.reduce((s,r)=>s+totalPrice(r),0));
+  // แถบยอดรวม (ทุกหมอ ตามช่วงที่เลือก/คำค้นหา) — ใช้ทั้งรายวันและรายเดือน
+  const sumEl=document.getElementById('treatMonthlySummary');
+  if(sumEl){
+    sumEl.style.display='';
+    let lbl;
+    if(treatMode==='month'){
+      const [y,m]=(filterMonth||'').split('-').map(Number);
+      lbl=(y&&m)?`${THAI_MONTHS[m-1]} ${y+543}`:'ทุกเดือน';
+    } else {
+      lbl=filterDate?fmtDateThai(filterDate):'ทุกวัน';
     }
+    if(search) lbl+=' · ค้นหา';
+    document.getElementById('ms-title').textContent = isManager ? 'ยอดรวมทุกหมอ' : 'ยอดรวมของคุณ';
+    document.getElementById('ms-label').textContent=lbl;
+    document.getElementById('ms-count').textContent=rows.length;
+    document.getElementById('ms-cash').textContent=fmt(rows.reduce((s,r)=>s+(+r.cash||0),0));
+    document.getElementById('ms-transfer').textContent=fmt(rows.reduce((s,r)=>s+(+r.transfer||0),0));
+    document.getElementById('ms-sso').textContent=fmt(rows.reduce((s,r)=>s+(+r.sso||0),0));
+    document.getElementById('ms-total').textContent=fmt(rows.reduce((s,r)=>s+totalPrice(r),0));
   }
   // Update count badge
   const countBadge = document.getElementById('treatPageCountBadge');
@@ -3188,7 +3271,7 @@ function renderTreatPage(){
   const colMgr = document.getElementById('treatPageColMgr');
   if(colMgr) colMgr.style.display = isManager ? '' : 'none';
   if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${isManager?11:10}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddTreat()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; return; }
-  tbody.innerHTML=rows.map(t=>`
+  const rowHtml=t=>`
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
       <td class="text-caption hn-cell">${t.hn||'—'}</td>
@@ -3206,7 +3289,30 @@ function renderTreatPage(){
           <button class="btn btn-danger btn-sm btn-icon" onclick="deleteTreat('${t.id}')" aria-label="ลบรายการรักษา" title="ลบ">🗑️</button>
         </div>
       </td>`:''}
-    </tr>`).join('');
+    </tr>`;
+  // จัดกลุ่มตามหมอ: เรียงตามลำดับหมอในระบบ (ไม่รู้จักไว้ท้าย) แต่ละกลุ่มเรียงวันที่/เวลาเหมือนเดิม พร้อมสรุปราย/รายได้/ส่วนแบ่ง กดหัวกลุ่มเพื่อพับ/ขยาย
+  const groups={};
+  rows.forEach(t=>{ const k=t.docName||'ไม่ระบุหมอ'; (groups[k]||(groups[k]=[])).push(t); });
+  const order=n=>{ const i=doctors.findIndex(d=>d.name===n); return i<0?999:i; };
+  _treatGroupKeys=Object.keys(groups).sort((a,b)=>order(a)-order(b)||a.localeCompare(b));
+  const ncol=isManager?11:10;
+  tbody.innerHTML=_treatGroupKeys.map((k,gi)=>{
+    const list=groups[k];
+    const doc=doctors.find(d=>d.name===k)||DOCTORS_DATA.find(d=>d.name===k);
+    const col=/^#[0-9a-f]{6}$/i.test(doc?.color||'')?doc.color:'#7A6A78';
+    const tot=list.reduce((s,t)=>s+totalPrice(t),0);
+    const shr=list.reduce((s,t)=>s+totalPrice(t)*docSharePct(t,doc)/100,0);
+    const collapsed=_treatCollapsed.has(k);
+    const hdr=`<tr class="treat-grp-hdr" onclick="toggleTreatGroup(${gi})"><td colspan="${ncol}" style="background:${col}26;color:${col};color:color-mix(in srgb,${col} 70%,#000);box-shadow:inset 6px 0 0 ${col};">
+      <div class="tg-wrap"><span class="tg-name">${collapsed?'▸':'▾'} ${doc?.emoji||''} ${_escHtml(k)}</span>
+      <span class="tg-meta">${list.length} ราย</span><span class="tg-meta">รายได้ ${fmt(tot)}</span><span class="tg-meta">ส่วนแบ่งหมอ ${fmt(shr)}</span></div></td></tr>`;
+    return hdr+(collapsed?'':list.map(rowHtml).join(''));
+  }).join('');
+}
+function toggleTreatGroup(i){
+  const k=_treatGroupKeys[i]; if(k===undefined) return;
+  if(_treatCollapsed.has(k)) _treatCollapsed.delete(k); else _treatCollapsed.add(k);
+  renderTreatPage();
 }
 
 // ============================================================
