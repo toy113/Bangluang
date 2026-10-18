@@ -518,6 +518,26 @@ select.form-control { cursor: pointer; }
 .treat-grp-hdr .tg-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
 .treat-grp-hdr .tg-name { font-size: 15px; font-family: 'Prompt', sans-serif; }
 .treat-grp-hdr .tg-meta { font-size: 12px; font-weight: 700; opacity: .85; }
+.endo-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(17,122,101,0.13); border: 1px solid rgba(17,122,101,0.4); color: #0E6655; white-space: nowrap; vertical-align: middle; }
+.endo-grp-hdr { margin: 14px 0 8px; padding: 8px 12px; font-weight: 800; font-size: 14px; border-left: 6px solid; }
+.endo-grp-hdr:first-child { margin-top: 0; }
+.endo-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; background: #fff; }
+.endo-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.endo-name { font-weight: 800; font-size: 15px; color: var(--wine-dark); font-family: 'Prompt', sans-serif; }
+.endo-hn { font-size: 12px; font-weight: 600; color: var(--text-light); margin-left: 4px; }
+.endo-meta { font-size: 12px; color: var(--text-light); margin-top: 2px; line-height: 1.5; }
+.endo-ago { font-weight: 700; }
+.endo-ago.warn { color: #B9770E; }
+.endo-tl { margin-top: 8px; border-left: 3px solid rgba(17,122,101,0.35); padding-left: 10px; }
+.endo-step { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 3px 0; font-size: 13px; }
+.endo-date { font-weight: 700; color: var(--wine); min-width: 84px; }
+.endo-note { font-size: 12px; color: var(--text-light); }
+.endo-empty { text-align: center; padding: 28px 12px; color: var(--text-light); font-size: 13px; line-height: 1.7; }
+.date-nav { display: flex; align-items: center; gap: 6px; }
+.date-nav-btn { height: 36px; min-width: 36px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 10px; background: #fff; color: var(--wine); font-family: inherit; font-size: 20px; font-weight: 800; line-height: 1; cursor: pointer; }
+.date-nav-btn:hover { background: var(--wine-pale); }
+.date-nav-btn:active { transform: scale(0.96); }
+.date-nav-today { font-size: 13px; padding: 0 14px; }
 .contact-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .contact-chip { font-family: inherit; font-size: 14px; font-weight: 700; color: var(--wine); background: #fff; border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 16px; cursor: pointer; min-height: 40px; }
 .contact-chip.active { background: var(--wine); border-color: var(--wine); color: #fff; }
@@ -967,6 +987,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>หน้าหลัก</button>
       <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>ดูนัด</button>
       <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="4" y="4" width="16" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg></span>บันทึกการรักษา</button>
+      <button class="nav-item" onclick="showPage('endo')" id="nav-endo"><span class="nav-icon" style="font-size:17px;line-height:1;">🔁</span>เคสต่อเนื่อง</button>
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>สรุปรายได้</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8.5 13h7"/></svg></span>ค่าแลป</button>
       <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>จัดฟัน</button>
@@ -1009,6 +1030,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="top-tab active" id="ttab-home" onclick="showPage('home');setMobileNav('home')"><span class="mn-icon">🏠</span>หน้าหลัก</button>
       <button class="top-tab" id="ttab-schedule" style="display:none;" onclick="showPage('schedule');setMobileNav('schedule')"><span class="mn-icon">📆</span>ดูนัด</button>
       <button class="top-tab" id="ttab-treatment" onclick="showPage('treatment');setMobileNav('treatment')"><span class="mn-icon">📋</span>รักษา</button>
+      <button class="top-tab" id="ttab-endo" onclick="showPage('endo');setMobileNav('endo')"><span class="mn-icon">🔁</span>เคสต่อเนื่อง</button>
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
       <button class="top-tab" id="ttab-ortho" style="display:none;" onclick="showPage('ortho')"><span class="mn-icon">😬</span>จัดฟัน</button>
@@ -1126,8 +1148,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <button class="period-tab active" id="treatModeDay" onclick="setTreatMode('day',this)">รายวัน</button>
               <button class="period-tab" id="treatModeMonth" onclick="setTreatMode('month',this)">รายเดือน</button>
             </div>
-            <input type="date" class="form-control" id="treatFilterDate" onchange="renderTreatPage()" style="height:36px;width:180px;">
-            <input type="month" class="form-control" id="treatFilterMonth" onchange="renderTreatPage()" style="height:36px;display:none;">
+            <div class="date-nav">
+              <button type="button" class="date-nav-btn" onclick="shiftTreatDate(-1)" aria-label="ก่อนหน้า" title="ก่อนหน้า">‹</button>
+              <input type="date" class="form-control" id="treatFilterDate" onchange="renderTreatPage()" style="height:36px;width:180px;">
+              <input type="month" class="form-control" id="treatFilterMonth" onchange="renderTreatPage()" style="height:36px;display:none;">
+              <button type="button" class="date-nav-btn" onclick="shiftTreatDate(1)" aria-label="ถัดไป" title="ถัดไป">›</button>
+              <button type="button" class="date-nav-btn date-nav-today" id="treatTodayBtn" onclick="treatGoToday()">วันนี้</button>
+            </div>
             <div class="search-box"><input type="text" class="form-control" placeholder="ค้นหาชื่อ/HN" id="treatSearch" oninput="debounceTreatSearch()" style="height:36px;padding-left:32px;width:180px;"></div>
             <button class="btn btn-primary btn-sm" id="btnAddTreat" onclick="openAddTreat()">+ เพิ่มรายการ</button>
           </div>
@@ -1167,6 +1194,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <button class="period-tab" id="iperiod-year" onclick="setPeriod('year',this)">รายปี</button>
             <button class="period-tab" id="iperiod-range" onclick="setPeriod('range',this)">ช่วงวันที่</button>
           </div>
+          <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(-1)" aria-label="ก่อนหน้า" title="ก่อนหน้า">‹</button>
           <input type="date" id="income-filter-day" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
           <input type="month" id="income-filter-month" class="form-control" style="height:36px;width:150px;display:none;" onchange="renderIncome()">
           <input type="number" id="income-filter-year" class="form-control" style="height:36px;width:100px;display:none;" placeholder="ปี พ.ศ." min="2560" max="2600" onchange="renderIncome()">
@@ -1175,6 +1203,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <span style="color:var(--text-light);font-size:13px;">ถึง</span>
             <input type="date" id="income-range-end" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
           </div>
+          <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(1)" aria-label="ถัดไป" title="ถัดไป">›</button>
+          <button type="button" class="date-nav-btn date-nav-today" id="incomeTodayBtn" onclick="incomeGoToday()">วันนี้</button>
           <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
         </div>
       </div>
@@ -1263,7 +1293,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
           <div class="card-box-title">🧪 บันทึกค่าแลป <span id="labBillBadge" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;"></span></div>
           <div class="filter-row">
-            <input type="month" class="form-control" id="labFilterMonth" onchange="renderLabPage()" style="height:36px">
+            <div class="date-nav">
+              <button type="button" class="date-nav-btn" onclick="shiftLabMonth(-1)" aria-label="เดือนก่อนหน้า" title="เดือนก่อนหน้า">‹</button>
+              <input type="month" class="form-control" id="labFilterMonth" onchange="renderLabPage()" style="height:36px">
+              <button type="button" class="date-nav-btn" onclick="shiftLabMonth(1)" aria-label="เดือนถัดไป" title="เดือนถัดไป">›</button>
+              <button type="button" class="date-nav-btn date-nav-today" onclick="labGoThisMonth()">เดือนนี้</button>
+            </div>
             <select class="form-control" id="labDocFilter" onchange="renderLabPage()" style="height:36px;width:140px;display:none;">
               <option value="">— หมอทั้งหมด —</option>
             </select>
@@ -1324,7 +1359,24 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
     </div>
 
-    <!-- ===== RECALL PAGE (Manager only) ===== -->
+    <!-- ===== ENDO CASES PAGE (เคสต่อเนื่อง: กลุ่มรักษารากฟัน) ===== -->
+    <div class="page" id="page-endo">
+      <div class="card-box">
+        <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
+          <div class="card-box-title">🔁 เคสต่อเนื่อง <span id="endoCountBadge" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;">0 เคส</span></div>
+          <div class="filter-row" style="flex-wrap:wrap;gap:8px;">
+            <div class="period-tabs" style="background:var(--wine-pale);">
+              <button class="period-tab active" id="endoTabOpen" onclick="setEndoTab('open',this)">กำลังดำเนินการ</button>
+              <button class="period-tab" id="endoTabClosed" onclick="setEndoTab('closed',this)">จบเคสแล้ว</button>
+            </div>
+            <div class="search-box"><input type="text" class="form-control" placeholder="ค้นหาชื่อ/HN" id="endoSearch" oninput="renderEndoPage()" style="height:36px;padding-left:32px;width:180px;"></div>
+          </div>
+        </div>
+        <div id="endoList" style="padding:12px 16px 16px;"></div>
+      </div>
+    </div>
+
+    <!-- ===== RECALL PAGE (Manager only) =====
     <div class="page" id="page-recall">
       <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="section-title"><span>🔔</span>Recall ประกันสังคม</div>
@@ -1384,6 +1436,9 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </button>
       <button class="mobile-nav-btn" id="mnav-treatment" onclick="showPage('treatment');setMobileNav('treatment')">
         <span class="mn-icon">📋</span>รักษา
+      </button>
+      <button class="mobile-nav-btn" id="mnav-endo" onclick="showPage('endo');setMobileNav('endo')">
+        <span class="mn-icon">🔁</span>เคสต่อเนื่อง
       </button>
       <button class="mobile-nav-btn" id="mnav-income" onclick="showPage('income');setMobileNav('income')">
         <span class="mn-icon">📊</span>รายได้
@@ -2008,7 +2063,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KF
 // ============================================================
 const DOCTORS_DATA = [
   { id:'toy',   name:'หมอทอย',  pin:'1111', emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'', licenseNo:'' },
-  { id:'mind',  name:'หมอมายด์', pin:'6465', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#2F54EB', fullName:'', licenseNo:'' },
+  { id:'mind',  name:'หมอมายด์', pin:'6465', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'', licenseNo:'' },
   { id:'koi',   name:'หมอก้อย',  pin:'9677', emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'', licenseNo:'' },
   { id:'pong',  name:'หมอป้อง',  pin:'3467', emoji:'📷', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'', licenseNo:'' },
   { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   pin:'7699', emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
@@ -2315,12 +2370,13 @@ function showPage(p){
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
   localStorage.setItem('bl_lastPage', p);
-  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน'};
+  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',endo:'🔁 เคสต่อเนื่อง'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
   if(p==='treatment') renderTreatPage();
   if(p==='income') renderIncome();
   if(p==='lab') renderLabPage();
+  if(p==='endo') renderEndoPage();
   if(p==='settings') buildSettingsPage();
   // เดิม showPage('ortho') ไม่ได้เรียก renderOrthoPage() เลย — หน้าจัดฟันเลยว่างเปล่าจนกว่า
   // background syncAll() รอบถัดไปจะ re-render ให้ (นานสุดเท่าความถี่ auto-sync)
@@ -2346,6 +2402,7 @@ function showPage(p){
 //  HOME
 // ============================================================
 function renderHome(){
+  refreshEndoSet();
   // renderDailyInsightCard(); // ซ่อนไว้ก่อน
   const today = todayStr();
   // Normalize dates before comparing
@@ -2396,6 +2453,7 @@ function statusBgColor(s){
 }
 
 function renderAptList(today){
+  refreshEndoSet();
   let apts = appointments.filter(a=>a.date===today);
   if(!isManager) apts = apts.filter(a=>a.docName===currentUser.name);
   apts.sort((a,b)=>a.time.localeCompare(b.time));
@@ -2420,7 +2478,7 @@ function renderAptList(today){
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${a.hn||'—'}</div>
-      <div><div style="font-weight:600">${a.patName}</div></div>
+      <div><div style="font-weight:600">${a.patName}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
@@ -2567,7 +2625,7 @@ function treatRow(t){
   return `<tr style="${docRowStyle(t.docName)}">
     <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
     <td class="text-caption hn-cell">${t.hn||'—'}</td>
-    <td style="font-weight:600">${t.patName}</td>
+    <td style="font-weight:600">${t.patName}${endoBadge(t)}</td>
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
     <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -3060,6 +3118,7 @@ function saveTreat(){
     docShare,
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
+  if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
   if(xrayRuleApplies(t)) applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0
   else if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
@@ -3264,6 +3323,216 @@ function buildCertPrintHtml(cert){
 }
 
 let treatMode = 'day';
+// ============================================================
+//  เคสต่อเนื่อง (กลุ่มรักษารากฟัน)
+//  - เคส = คนไข้ (HN เดียวกัน ไม่มี HN ใช้ชื่อ) + หมอ ที่มีรายการรักษากลุ่มรากฟันยังไม่จบเคส
+//  - แอดมิน (ผู้จัดการ) กด "จบเคส" → ติดสถานะ caseClosed/caseClosedAt/caseClosedBy ที่รายการรากฟันทุกรายการของเคสนั้น (เก็บในชีต "บันทึกการรักษา")
+//  - ถ้าบันทึกรักษารากฟันใหม่หลังจบเคส จะเริ่มเป็นเคสใหม่ที่กำลังดำเนินการอัตโนมัติ
+//  - หมอเห็นเฉพาะเคสของตัวเอง ผู้จัดการเห็นทุกหมอ (แยกกลุ่มตามหมอ)
+// ============================================================
+var ENDO_PATTERN = /รักษารากฟัน|คลองราก|\brct\b|endo/i; // กลุ่มรักษารากฟัน (ไม่รวม เกลารากฟัน / รากฟันเทียม)
+function isEndoProc(proc){
+  const parts = Array.isArray(proc) ? proc : String(proc||'').split(',');
+  return parts.some(p=>ENDO_PATTERN.test(String(p).trim()));
+}
+function endoPatientKey(t){
+  const hn = String((t&&t.hn)||'').trim();
+  return hn ? 'hn:'+hn : 'n:'+String((t&&t.patName)||'').trim().toLowerCase();
+}
+function isEndoClosed(t){ const v=t&&t.caseClosed; return v===true||v==='Y'||v==='TRUE'||v==='true'||v===1||v==='1'; }
+function endoCanSee(docName){ return isManager || (!!currentUser && docName===currentUser.name); }
+function buildEndoCases(){
+  const map = new Map();
+  treatments.forEach(t=>{
+    if(!t.docName || !isEndoProc(t.proc)) return;
+    const closed = isEndoClosed(t);
+    const key = endoPatientKey(t);
+    const gk = key+'|'+t.docName+'|'+(closed ? 'C'+(+t.caseClosedAt||0) : 'O');
+    let c = map.get(gk);
+    if(!c){
+      c = { key, patName:t.patName||'', hn:t.hn||'', docName:t.docName, closed,
+            closedAt: closed ? (+t.caseClosedAt||0) : 0, closedBy: closed ? (t.caseClosedBy||'') : '', recs:[] };
+      map.set(gk,c);
+    }
+    if(!c.patName && t.patName) c.patName = t.patName;
+    if(!c.hn && t.hn) c.hn = t.hn;
+    c.recs.push(t);
+  });
+  const all = [...map.values()];
+  all.forEach(c=>c.recs.sort((a,b)=>(String(a.date||'')+String(a.time||'')).localeCompare(String(b.date||'')+String(b.time||''))));
+  return { open: all.filter(c=>!c.closed), closed: all.filter(c=>c.closed) };
+}
+var _endoSet = null;
+function refreshEndoSet(){
+  try { _endoSet = new Set(buildEndoCases().open.filter(c=>endoCanSee(c.docName)).map(c=>c.key)); }
+  catch(e){ _endoSet = new Set(); }
+}
+// ป้ายอัตโนมัติข้างชื่อคนไข้ที่มีเคสรากฟันที่ยังไม่จบ (หมอเห็นเฉพาะของตัวเอง)
+function endoBadge(o){
+  if(!_endoSet) refreshEndoSet();
+  return (o && _endoSet.has(endoPatientKey(o))) ? '<span class="endo-badge" title="เคสรักษารากฟันต่อเนื่อง">รากฟัน</span>' : '';
+}
+var endoTab = 'open';
+var _endoShown = [];
+function setEndoTab(tab, btn){
+  endoTab = tab;
+  document.querySelectorAll('#endoTabOpen,#endoTabClosed').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderEndoPage();
+}
+function _endoDaysAgo(dateStr){
+  const d = Math.round((new Date(todayStr()+'T12:00') - new Date(String(dateStr||'').slice(0,10)+'T12:00'))/86400000);
+  return isNaN(d) ? null : d;
+}
+function _endoFmtTs(ms){
+  if(!ms) return '—';
+  const d = new Date(+ms); if(isNaN(d)) return '—';
+  const p = n=>String(n).padStart(2,'0');
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();
+}
+function _endoCardHtml(c, idx){
+  const first = c.recs[0], last = c.recs[c.recs.length-1];
+  let meta = `${c.recs.length} ครั้ง · เริ่ม ${fmtDate(first.date)} · ล่าสุด ${fmtDate(last.date)}`;
+  if(!c.closed){
+    const d = _endoDaysAgo(last.date);
+    if(d!==null) meta += ` <span class="endo-ago${d>=30?' warn':''}">(${d<=0?'วันนี้':d+' วันที่แล้ว'})</span>`;
+  } else {
+    meta += ` · จบเคส ${_endoFmtTs(c.closedAt)}${c.closedBy?' โดย '+_escHtml(c.closedBy):''}`;
+  }
+  const btn = !isManager ? '' : (c.closed
+    ? `<button class="btn btn-ghost btn-sm" onclick="reopenEndoCase(${idx})">↩ เปิดเคสอีกครั้ง</button>`
+    : `<button class="btn btn-primary btn-sm" onclick="closeEndoCase(${idx})">✓ จบเคส</button>`);
+  const steps = c.recs.map(r=>`<div class="endo-step"><span class="endo-date">${fmtDate(r.date)}</span>${procBadge(r.proc)}${r.note?`<span class="endo-note">${_escHtml(r.note)}</span>`:''}</div>`).join('');
+  return `<div class="endo-card">
+    <div class="endo-card-top">
+      <div style="min-width:0;">
+        <div class="endo-name">${_escHtml(c.patName||'—')}${c.hn?`<span class="endo-hn">HN ${_escHtml(c.hn)}</span>`:''}</div>
+        <div class="endo-meta">${meta}</div>
+      </div>
+      ${btn}
+    </div>
+    <div class="endo-tl">${steps}</div>
+  </div>`;
+}
+function renderEndoPage(){
+  const el = document.getElementById('endoList'); if(!el) return;
+  const q = (document.getElementById('endoSearch')?.value||'').toLowerCase().trim();
+  const cs = buildEndoCases();
+  const openV = cs.open.filter(c=>endoCanSee(c.docName));
+  const closedV = cs.closed.filter(c=>endoCanSee(c.docName));
+  const bo = document.getElementById('endoTabOpen'), bc = document.getElementById('endoTabClosed');
+  if(bo) bo.textContent = 'กำลังดำเนินการ ('+openV.length+')';
+  if(bc) bc.textContent = 'จบเคสแล้ว ('+closedV.length+')';
+  const badge = document.getElementById('endoCountBadge'); if(badge) badge.textContent = openV.length+' เคส';
+
+  let list = (endoTab==='open' ? openV : closedV).filter(c=>!q || (c.patName+' '+c.hn).toLowerCase().includes(q));
+  if(endoTab==='open') list.sort((a,b)=>String(a.recs[a.recs.length-1].date||'').localeCompare(String(b.recs[b.recs.length-1].date||''))); // ไม่ได้มานานสุดขึ้นก่อน
+  else list.sort((a,b)=>b.closedAt-a.closedAt);
+
+  _endoShown = [];
+  if(!list.length){
+    el.innerHTML = `<div class="endo-empty">${q ? 'ไม่พบเคสที่ค้นหา' : (endoTab==='open' ? 'ยังไม่มีเคสที่กำลังดำเนินการ<br>เคสจะขึ้นที่นี่อัตโนมัติเมื่อบันทึกรักษา "รักษารากฟัน"' : 'ยังไม่มีเคสที่จบแล้ว')}</div>`;
+    return;
+  }
+  if(isManager){
+    const groups = {};
+    list.forEach(c=>{ (groups[c.docName]||(groups[c.docName]=[])).push(c); });
+    const order = n=>{ const i=doctors.findIndex(d=>d.name===n); return i<0?999:i; };
+    el.innerHTML = Object.keys(groups).sort((a,b)=>order(a)-order(b)||a.localeCompare(b)).map(name=>{
+      const doc = doctors.find(d=>d.name===name) || DOCTORS_DATA.find(d=>d.name===name);
+      const col = /^#[0-9a-f]{6}$/i.test(doc?.color||'') ? doc.color : '#7A6A78';
+      const cards = groups[name].map(c=>{ _endoShown.push(c); return _endoCardHtml(c, _endoShown.length-1); }).join('');
+      return `<div class="endo-grp-hdr" style="background:${col}26;border-left-color:${col};color:${col};color:color-mix(in srgb,${col} 70%,#000);">${doc?.emoji||''} ${_escHtml(name)} <span style="font-weight:700;font-size:12px;opacity:.85;">· ${groups[name].length} เคส</span></div>${cards}`;
+    }).join('');
+  } else {
+    el.innerHTML = list.map(c=>{ _endoShown.push(c); return _endoCardHtml(c, _endoShown.length-1); }).join('');
+  }
+}
+function _endoSyncRecs(recs){
+  return recs.reduce((p,r)=>p.then(()=>{ markPendingSync('treatments', r); return syncToSheet('treatments', r); }), Promise.resolve())
+    .then(()=>{ setTimeout(()=>{ syncAll().then(()=>{ if(document.getElementById('page-endo')?.classList.contains('active')) renderEndoPage(); }).catch(()=>{}); }, 1500); })
+    .catch(()=>showToast('⚠️ บันทึกขึ้น Sheet ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ','error'));
+}
+function closeEndoCase(i){
+  if(!isManager) return;
+  const c = _endoShown[i]; if(!c || c.closed) return;
+  if(!confirm('จบเคสรักษารากฟันของ '+(c.patName||'—')+' ('+c.docName+') ?\n'+c.recs.length+' ครั้ง · เลือก "เปิดเคสอีกครั้ง" ได้ภายหลัง')) return;
+  const ts = Date.now();
+  c.recs.forEach(r=>{ r.caseClosed='Y'; r.caseClosedAt=ts; r.caseClosedBy=(currentUser&&currentUser.name)||''; });
+  saveLocal(); renderEndoPage();
+  showToast('จบเคสแล้ว');
+  _endoSyncRecs(c.recs);
+}
+function reopenEndoCase(i){
+  if(!isManager) return;
+  const c = _endoShown[i]; if(!c || !c.closed) return;
+  if(!confirm('เปิดเคสของ '+(c.patName||'—')+' ('+c.docName+') อีกครั้ง?')) return;
+  c.recs.forEach(r=>{ r.caseClosed=''; r.caseClosedAt=''; r.caseClosedBy=''; });
+  saveLocal(); renderEndoPage();
+  showToast('เปิดเคสอีกครั้งแล้ว');
+  _endoSyncRecs(c.recs);
+}
+
+// เลื่อนค่าวันที่ 'YYYY-MM-DD' (kind='day') หรือเดือน 'YYYY-MM' (kind='month') ไปข้างหน้า/ถอยหลัง n หน่วย
+function shiftYMD(value, kind, n){
+  const base = value || (kind==='day' ? todayStr() : todayStr().slice(0,7));
+  const [y,m,d] = base.split('-').map(Number);
+  const dt = kind==='day' ? new Date(y, m-1, (d||1)+n, 12) : new Date(y, m-1+n, 1, 12);
+  const p = x=>String(x).padStart(2,'0');
+  return dt.getFullYear()+'-'+p(dt.getMonth()+1)+(kind==='day'?'-'+p(dt.getDate()):'');
+}
+// หน้าแลป: เลื่อนเดือน
+function shiftLabMonth(n){
+  const el=document.getElementById('labFilterMonth'); if(!el) return;
+  el.value = shiftYMD(el.value,'month',n); renderLabPage();
+}
+function labGoThisMonth(){
+  const el=document.getElementById('labFilterMonth'); if(!el) return;
+  el.value = todayStr().slice(0,7); renderLabPage();
+}
+// หน้ารายได้: เลื่อนตามช่วงที่เลือก (วัน / เดือน / ปี พ.ศ. / ช่วงวันที่ = เลื่อนทั้งช่วงตามจำนวนวันของช่วงนั้น)
+function shiftIncomePeriod(n){
+  const g=id=>document.getElementById(id);
+  if(currentPeriod==='day'){ g('income-filter-day').value = shiftYMD(g('income-filter-day').value,'day',n); }
+  else if(currentPeriod==='month'){ g('income-filter-month').value = shiftYMD(g('income-filter-month').value,'month',n); }
+  else if(currentPeriod==='year'){
+    const cur = parseInt(g('income-filter-year').value) || (new Date().getFullYear()+543);
+    g('income-filter-year').value = cur+n;
+  } else {
+    const t=todayStr();
+    const s0=g('income-range-start').value||g('income-range-end').value||t;
+    const e0=g('income-range-end').value||s0;
+    const span=Math.max(1, Math.round((new Date(e0+'T12:00')-new Date(s0+'T12:00'))/86400000)+1);
+    g('income-range-start').value = shiftYMD(s0,'day',n*span);
+    g('income-range-end').value   = shiftYMD(e0,'day',n*span);
+  }
+  renderIncome();
+}
+function incomeGoToday(){
+  const g=id=>document.getElementById(id), t=todayStr();
+  if(currentPeriod==='day') g('income-filter-day').value=t;
+  else if(currentPeriod==='month') g('income-filter-month').value=t.slice(0,7);
+  else if(currentPeriod==='year') g('income-filter-year').value=new Date().getFullYear()+543;
+  else { g('income-range-start').value=t; g('income-range-end').value=t; }
+  renderIncome();
+}
+// ปุ่มเลื่อนวัน/เดือนซ้าย-ขวา และปุ่มวันนี้/เดือนนี้ ของหน้ารักษา
+function shiftTreatDate(n){
+  const isDay = treatMode==='day';
+  const el = document.getElementById(isDay?'treatFilterDate':'treatFilterMonth'); if(!el) return;
+  const base = el.value || (isDay ? todayStr() : todayStr().slice(0,7));
+  const [y,m,d] = base.split('-').map(Number);
+  const dt = isDay ? new Date(y, m-1, (d||1)+n, 12) : new Date(y, m-1+n, 1, 12);
+  const p = x=>String(x).padStart(2,'0');
+  el.value = dt.getFullYear()+'-'+p(dt.getMonth()+1)+(isDay?'-'+p(dt.getDate()):'');
+  renderTreatPage();
+}
+function treatGoToday(){
+  const isDay = treatMode==='day';
+  const el = document.getElementById(isDay?'treatFilterDate':'treatFilterMonth'); if(!el) return;
+  el.value = isDay ? todayStr() : todayStr().slice(0,7);
+  renderTreatPage();
+}
 function setTreatMode(mode, btn){
   treatMode = mode;
   document.querySelectorAll('#treatModeDay,#treatModeMonth').forEach(b=>b.classList.remove('active'));
@@ -3273,7 +3542,9 @@ function setTreatMode(mode, btn){
   const sumEl = document.getElementById('treatMonthlySummary');
   if(mode==='day'){
     dayEl.style.display=''; monEl.style.display='none'; sumEl.style.display='';
+    const tb=document.getElementById('treatTodayBtn'); if(tb) tb.textContent='วันนี้';
   } else {
+    { const tb=document.getElementById('treatTodayBtn'); if(tb) tb.textContent='เดือนนี้'; }
     dayEl.style.display='none'; monEl.style.display=''; sumEl.style.display='';
     if(!monEl.value) monEl.value = todayStr().slice(0,7);
   }
@@ -3281,6 +3552,7 @@ function setTreatMode(mode, btn){
 }
 
 function renderTreatPage(){
+  refreshEndoSet();
   const filterDate = document.getElementById('treatFilterDate')?.value||'';
   const filterMonth = document.getElementById('treatFilterMonth')?.value||'';
   const search = (document.getElementById('treatSearch')?.value||'').toLowerCase();
@@ -3322,7 +3594,7 @@ function renderTreatPage(){
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
       <td class="text-caption hn-cell">${t.hn||'—'}</td>
-      <td style="font-weight:600">${t.patName}</td>
+      <td style="font-weight:600">${t.patName}${endoBadge(t)}</td>
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
       <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -3383,6 +3655,8 @@ function setPeriod(p,btn){
   if(monEl)   monEl.style.display   = p==='month' ? '' : 'none';
   if(yrEl)    yrEl.style.display    = p==='year'  ? '' : 'none';
   if(rangeEl) rangeEl.style.display = p==='range' ? 'flex' : 'none';
+  const tb=document.getElementById('incomeTodayBtn');
+  if(tb) tb.textContent = p==='month' ? 'เดือนนี้' : (p==='year' ? 'ปีนี้' : 'วันนี้');
   renderIncome();
 }
 function renderIncome(){
@@ -4312,6 +4586,7 @@ async function syncAll(){
     if(p==='home') renderHome();
     else if(p==='treatment') renderTreatPage();
     else if(p==='lab') renderLabPage();
+    else if(p==='endo') renderEndoPage();
     else if(p==='followup') renderFollowup();
     else if(p==='ortho') renderOrthoPage();
     else if(p==='income') renderIncome();
@@ -4558,6 +4833,7 @@ function schUpdateSlotTime(date, oldSlot, newVal, doc){
 }
 
 function renderScheduleDay(){
+  refreshEndoSet();
   const el = document.getElementById('schDate');
   if(!el.value) el.value = todayStr();
 
@@ -4675,7 +4951,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -4919,6 +5195,7 @@ function openAddAptSchedule(){
 }
 
 function renderSchedulePage(){
+  refreshEndoSet();
   try {
     const monthEl = document.getElementById('scheduleMonth');
     if(!monthEl){ console.warn('scheduleMonth not found'); return; }
@@ -5162,7 +5439,7 @@ function renderSchedulePage(){
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
           <td class="text-caption hn-cell">${a.hn||'—'}</td>
-          <td style="font-weight:600;">${a.patName||'—'}</td>
+          <td style="font-weight:600;">${a.patName||'—'}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
           <td>${docBadge(a.docName)}</td>
@@ -7216,10 +7493,10 @@ function setMobileNav(page){
   } catch(e){ console.warn('migrateMindEmoji error:', e); }
 })();
 
-// ย้ายสีประจำตัวหมอมายด์เป็นสีน้ำเงิน (ทำครั้งเดียวต่อเครื่อง) — เบราว์เซอร์ที่เคยบันทึกการตั้งค่าหมอไว้จะจำสีเก่าทับค่าในโค้ด
-(function migrateMindColorBlue(){
+// ย้ายสีประจำตัวหมอมายด์กลับเป็นสีชมพูเดิม (ทำครั้งเดียวต่อเครื่อง) — เบราว์เซอร์ที่เคยบันทึกการตั้งค่าหมอไว้จะจำสีเก่าทับค่าในโค้ด
+(function migrateMindColorPink(){
   try {
-    const FLAG='bl_mig_mind_color_blue_v1', NEW_COLOR='#2F54EB';
+    const FLAG='bl_mig_mind_color_pink_v2', NEW_COLOR='#E91E8C';
     if(localStorage.getItem(FLAG)) return;
     const d=doctors.find(x=>x.id==='mind'); if(d) d.color=NEW_COLOR;
     const o=DOCTORS_DATA.find(x=>x.id==='mind'); if(o) o.color=NEW_COLOR;
@@ -7232,7 +7509,7 @@ function setMobileNav(page){
       }
     }
     localStorage.setItem(FLAG,'1');
-  } catch(e){ console.warn('migrateMindColorBlue error:', e); }
+  } catch(e){ console.warn('migrateMindColorPink error:', e); }
 })();
 
 // ย้ายสีประจำตัวหมอข้าวเป็นสีเหลือง (ทำครั้งเดียวต่อเครื่อง) — เบราว์เซอร์ที่เคยบันทึกการตั้งค่าหมอไว้จะจำสีเก่าทับค่าในโค้ด
