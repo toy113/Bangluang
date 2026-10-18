@@ -518,6 +518,10 @@ select.form-control { cursor: pointer; }
 .treat-grp-hdr .tg-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
 .treat-grp-hdr .tg-name { font-size: 15px; font-family: 'Prompt', sans-serif; }
 .treat-grp-hdr .tg-meta { font-size: 12px; font-weight: 700; opacity: .85; }
+.contact-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.contact-chip { font-family: inherit; font-size: 14px; font-weight: 700; color: var(--wine); background: #fff; border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 16px; cursor: pointer; min-height: 40px; }
+.contact-chip.active { background: var(--wine); border-color: var(--wine); color: #fff; }
+.contact-tag { display: inline-block; font-size: 11px; font-weight: 700; color: var(--wine); background: var(--wine-pale); border-radius: 999px; padding: 1px 8px; margin-top: 2px; }
 .note-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .note-chip { font-family: inherit; font-size: 13px; font-weight: 700; color: var(--wine); background: #fff; border: 1.5px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
 .note-chip.active { background: var(--wine); border-color: var(--wine); color: #fff; }
@@ -798,6 +802,15 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
 /* ใบรับรองแพทย์: ซ่อนไว้ปกติ โชว์เฉพาะตอนสั่งพิมพ์ — ซ่อนทุกอย่างอื่นบนหน้าตอนพิมพ์ */
 #certPrintArea { display: none; }
+/* มือถือแนวตั้ง: รายการนัดหน้าหลัก — เวลา · HN · ชื่อ · รายการรักษา · สถานะ ในแถวเดียว (ซ่อนคอลัมน์หมอ เพราะมีหัวกลุ่มหมอแล้ว) */
+@media (max-width: 768px) and (orientation: portrait) {
+  .apt-row.with-phone > div:nth-child(5) { display: block; }
+  .apt-row.with-phone > div:nth-child(7) { display: none; }
+  .apt-row.no-phone > div:nth-child(4), .apt-row.no-phone > div:nth-child(6) { display: block; }
+  .apt-row.no-phone > div:nth-child(5) { display: none; }
+  .apt-row.with-phone, .apt-row.no-phone { grid-template-columns: 46px 58px minmax(0,1.25fr) minmax(0,1fr) auto !important; gap: 5px; padding: 10px 10px; }
+  .apt-row > div:last-child .badge { white-space: nowrap; }
+}
 @media print {
   body * { visibility: hidden; }
   #certPrintArea, #certPrintArea * { visibility: visible; }
@@ -1419,6 +1432,15 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>เบอร์โทรศัพท์</label>
         <input class="form-control" id="apt-phone" placeholder="0xx-xxx-xxxx" type="tel" inputmode="numeric" maxlength="12" oninput="fmtPhone(this);autoFillByPhone(this.value,'apt')">
       </div>
+      <div class="form-group form-control-full">
+        <label>ช่องทางติดต่อ <span style="color:var(--text-light);font-weight:400;font-size:11px;">(ไม่บังคับ)</span></label>
+        <div class="contact-chips" id="apt-contact-chips">
+          <button type="button" class="contact-chip" data-v="line" onclick="toggleAptContact('line')">💬 LINE</button>
+          <button type="button" class="contact-chip" data-v="phone" onclick="toggleAptContact('phone')">📞 โทรศัพท์</button>
+          <button type="button" class="contact-chip" data-v="fb" onclick="toggleAptContact('fb')">📘 Facebook</button>
+        </div>
+        <input type="hidden" id="apt-contact">
+      </div>
       <div class="form-group form-control-full" id="apt-patient-summary" style="display:none;"></div>
 
       <div class="form-group form-control-full">
@@ -1988,7 +2010,7 @@ const DOCTORS_DATA = [
   { id:'toy',   name:'หมอทอย',  pin:'1111', emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'', licenseNo:'' },
   { id:'mind',  name:'หมอมายด์', pin:'6465', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#2F54EB', fullName:'', licenseNo:'' },
   { id:'koi',   name:'หมอก้อย',  pin:'9677', emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'', licenseNo:'' },
-  { id:'pong',  name:'หมอป้อง',  pin:'3467', emoji:'👨‍⚕️', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'', licenseNo:'' },
+  { id:'pong',  name:'หมอป้อง',  pin:'3467', emoji:'📷', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'', licenseNo:'' },
   { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   pin:'7699', emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
   { id:'khao',  name:'หมอข้าว',  pin:'8986', emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#E5B80B', fullName:'', licenseNo:'' },
   { id:'part',  name:'หมอพาร์ท', pin:'8888', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B', fullName:'', licenseNo:'' },
@@ -2081,7 +2103,7 @@ function buildDoctorGrid(){ /* numpad ใช้ onclick โดยตรงแล
 
 function doSelectDoctor(id){
   selectedLoginDoc = id;
-  var avatars = {toy:'🦷',mind:'😎',koi:'🌸',pong:'👨‍⚕️',aim:'💫',khao:'⭐',part:'🔬',manager:'🔐'};
+  var avatars = {toy:'🦷',mind:'😎',koi:'🌸',pong:'📷',aim:'💫',khao:'⭐',part:'🔬',manager:'🔐'};
   var doc = id==='manager' ? MANAGER : (doctors.find(function(d){return d.id===id;})||DOCTORS_DATA.find(function(d){return d.id===id;}));
   document.getElementById('loginPinAvatar').textContent = avatars[id]||'🦷';
   document.getElementById('pinForName').textContent = doc ? doc.name : id;
@@ -2379,7 +2401,10 @@ function renderAptList(today){
   apts.sort((a,b)=>a.time.localeCompare(b.time));
   const el = document.getElementById('aptList');
   const hdr = document.getElementById('aptListHdr');
-  const rowClass = isManager ? 'apt-row with-phone' : 'apt-row no-phone';
+  // ผู้จัดการ → แยกกลุ่มเรียงตามหมอ (มีหัวกลุ่มบอกชื่อหมออยู่แล้ว มือถือแนวตั้งเลยซ่อนคอลัมน์หมอซ้ำในแต่ละแถว)
+  const docNames = isManager ? [...new Set(apts.map(a=>a.docName).filter(Boolean))].sort() : [];
+  const grouped = isManager && docNames.length >= 1;
+  const rowClass = (isManager ? 'apt-row with-phone' : 'apt-row no-phone') + (grouped ? ' grouped' : '');
 
   // Set header
   if(hdr){
@@ -2396,7 +2421,7 @@ function renderAptList(today){
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${a.hn||'—'}</div>
       <div><div style="font-weight:600">${a.patName}</div></div>
-      ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}</div>` : ''}
+      ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
       ${isManager ? `<div style="font-size:12px;font-weight:700;color:${docColor(a.docName)}">${a.docName}</div>` : ''}
@@ -2405,9 +2430,8 @@ function renderAptList(today){
       </div>
     </div>`;
 
-  // ผู้จัดการ + มี ≥2 หมอ → แยกกลุ่มเรียงตามหมอ (แต่ละกลุ่มเรียงตามเวลา)
-  const docNames = isManager ? [...new Set(apts.map(a=>a.docName).filter(Boolean))].sort() : [];
-  if(isManager && docNames.length >= 2){
+  // แต่ละกลุ่มเรียงตามเวลา
+  if(grouped){
     const groupHdr = (doc,n,c)=>`<div style="padding:8px 12px;margin:8px 0 2px;font-weight:800;color:${c};font-size:13px;border-left:4px solid ${c};background:${c}12;border-radius:8px;">${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${n} นัด</span></div>`;
     let html = '';
     docNames.forEach(doc=>{
@@ -2695,6 +2719,24 @@ document.addEventListener('change', e=>{
   if(e.target.closest('#modalTreat')) renderTreatSaveSummary();
 });
 
+// ช่องทางติดต่อของนัด (ไม่บังคับ): line / phone / fb — เก็บในคอลัมน์ contactChannel
+var CONTACT_CHANNELS = { line:'LINE', phone:'โทรศัพท์', fb:'Facebook' };
+function setAptContact(v){
+  const el = document.getElementById('apt-contact'); if(el) el.value = CONTACT_CHANNELS[v] ? v : '';
+  const cur = el ? el.value : '';
+  document.querySelectorAll('#apt-contact-chips .contact-chip').forEach(b=>b.classList.toggle('active', b.dataset.v===cur));
+}
+function toggleAptContact(v){
+  const el = document.getElementById('apt-contact'); if(!el) return;
+  setAptContact(el.value===v ? '' : v); // แตะซ้ำ = ยกเลิกการเลือก
+}
+// ป้ายเล็กๆ บอกช่องทางติดต่อ (LINE / โทร / FB) — ว่างถ้าไม่ได้เลือก
+function contactBadge(v){
+  const m = { line:{t:'LINE',c:'#06A94D'}, phone:{t:'โทร',c:'#8E4A86'}, fb:{t:'FB',c:'#1877F2'} }[v];
+  if(!m) return '';
+  return `<span title="ช่องทางติดต่อ: ${CONTACT_CHANNELS[v]}" style="display:inline-block;white-space:nowrap;font-size:10px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:999px;background:${m.c}1F;border:1px solid ${m.c}55;color:${m.c};color:color-mix(in srgb,${m.c} 80%,#000);">${m.t}</span>`;
+}
+function contactTag(v){ const b=contactBadge(v); return b ? `<div style="margin-top:2px;">${b}</div>` : ''; }
 function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=null){
   _editAptId = apt ? apt.id : null;
   _prefillSlot = (!apt && prefillTime) ? prefillTime : null;
@@ -2705,6 +2747,7 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=nul
   document.getElementById('apt-hn').value   = apt?.hn || '';
   document.getElementById('apt-name').value = apt?.patName || '';
   document.getElementById('apt-phone').value= apt?.phone || '';
+  setAptContact(apt?.contactChannel || '');
   document.getElementById('apt-note').value = apt?.note || '';
   document.getElementById('apt-status').value = apt?.status || 'ไม่คอนเฟิร์ม';
   if(apt?.hn) autoFillPatient(apt.hn, 'apt');
@@ -2771,6 +2814,7 @@ function saveApt(){
     docName: document.getElementById('apt-doc').value,
     hn: document.getElementById('apt-hn').value,
     phone: document.getElementById('apt-phone')?.value||'',
+    contactChannel: document.getElementById('apt-contact')?.value||'',
     patName: document.getElementById('apt-name').value,
     proc: document.getElementById('apt-proc').value,
     status: document.getElementById('apt-status').value,
@@ -4643,8 +4687,9 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
             style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:4px 6px;min-width:24px;min-height:24px;cursor:pointer;font-size:11px;">🗑️</button>
         </div>
       </div>
-      ${(a.proc||a.note)?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
+      ${(a.proc||a.note||a.contactChannel)?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
         ${a.proc?procBadge(a.proc):''}
+        ${contactBadge(a.contactChannel)}
         ${a.note?`<span style="font-size:10px;color:var(--text-mid);">📝 ${a.note}</span>`:''}
       </div>`:''}
     </div>`;
@@ -5081,6 +5126,7 @@ function renderSchedulePage(){
               ${a.hn?`<div style="font-size:9px;color:#888;">HN: ${a.hn}</div>`:''}
               ${a.phone?`<div style="font-size:9px;color:#888;">${a.phone}</div>`:''}
               ${a.proc?`<div style="font-size:9px;color:${sc};opacity:0.85;">${a.proc}</div>`:''}
+              ${a.contactChannel?`<div style="margin-top:1px;">${contactBadge(a.contactChannel)}</div>`:''}
             </div>`;
           });
           html += `</td>`;
@@ -5117,7 +5163,7 @@ function renderSchedulePage(){
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
           <td class="text-caption hn-cell">${a.hn||'—'}</td>
           <td style="font-weight:600;">${a.patName||'—'}</td>
-          <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}</td>
+          <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
           <td>${docBadge(a.docName)}</td>
           <td><span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'};">${a.status||'รอ'}</span></td>
@@ -7206,6 +7252,25 @@ function setMobileNav(page){
     }
     localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('migrateKhaoColorYellow error:', e); }
+})();
+
+// ย้ายอีโมจิหมอป้องเป็นกล้อง 📷 (ทำครั้งเดียวต่อเครื่อง) — เบราว์เซอร์ที่เคยบันทึกการตั้งค่าหมอไว้จะจำอีโมจิเก่าทับค่าในโค้ด
+(function migratePongEmojiCamera(){
+  try {
+    const FLAG='bl_mig_pong_emoji_camera_v1', NEW_EMOJI='📷';
+    if(localStorage.getItem(FLAG)) return;
+    const d=doctors.find(x=>x.id==='pong'); if(d) d.emoji=NEW_EMOJI;
+    const o=DOCTORS_DATA.find(x=>x.id==='pong'); if(o) o.emoji=NEW_EMOJI;
+    const saved=localStorage.getItem('bl_doctor_settings');
+    if(saved){
+      const arr=JSON.parse(saved);
+      if(Array.isArray(arr)){
+        arr.forEach(r=>{ if(r && r.id==='pong') r.emoji=NEW_EMOJI; });
+        localStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
+      }
+    }
+    localStorage.setItem(FLAG,'1');
+  } catch(e){ console.warn('migratePongEmojiCamera error:', e); }
 })();
 
 // ใช้กฎ X-Ray กับรายการที่แคชไว้ในเครื่อง (ข้อมูลจาก Sheet จะถูกปรับตอน sync)
