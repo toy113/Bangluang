@@ -1376,7 +1376,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
     </div>
 
-    <!-- ===== RECALL PAGE (Manager only) =====
+    <!-- ===== RECALL PAGE (Manager only) ===== -->
     <div class="page" id="page-recall">
       <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="section-title"><span>🔔</span>Recall ประกันสังคม</div>
@@ -1614,6 +1614,24 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalTreat')">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveTreat()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- จบเคสรากฟัน: เลือกหรือพิมพ์เหตุผล -->
+<div class="modal-overlay" id="modalEndoClose" onclick="if(event.target===this)closeModal('modalEndoClose')">
+  <div class="modal-box">
+    <div class="modal-title">✓ จบเคสรักษารากฟัน</div>
+    <button class="modal-close" onclick="closeModal('modalEndoClose')" aria-label="ปิดหน้าต่าง">×</button>
+    <div id="endoCloseInfo" style="font-size:13px;color:var(--text-mid);margin-bottom:14px;line-height:1.6;"></div>
+    <div class="form-group">
+      <label>เหตุผลที่จบเคส <span style="color:var(--red,#C0392B);">*</span></label>
+      <div class="note-chips" id="endoReasonChips" style="margin:0 0 8px;"></div>
+      <input type="text" class="form-control" id="endoReasonText" placeholder="หรือพิมพ์เหตุผลเอง..." oninput="refreshEndoReasonChips()" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmEndoClose();}">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalEndoClose')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="confirmEndoClose()">✓ ยืนยันจบเคส</button>
     </div>
   </div>
 </div>
@@ -3118,7 +3136,7 @@ function saveTreat(){
     docShare,
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
-  if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
+  if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
   if(xrayRuleApplies(t)) applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0
   else if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
@@ -3351,11 +3369,12 @@ function buildEndoCases(){
     let c = map.get(gk);
     if(!c){
       c = { key, patName:t.patName||'', hn:t.hn||'', docName:t.docName, closed,
-            closedAt: closed ? (+t.caseClosedAt||0) : 0, closedBy: closed ? (t.caseClosedBy||'') : '', recs:[] };
+            closedAt: closed ? (+t.caseClosedAt||0) : 0, closedBy: closed ? (t.caseClosedBy||'') : '', closedReason: closed ? (t.caseClosedReason||'') : '', recs:[] };
       map.set(gk,c);
     }
     if(!c.patName && t.patName) c.patName = t.patName;
     if(!c.hn && t.hn) c.hn = t.hn;
+    if(closed && !c.closedReason && t.caseClosedReason) c.closedReason = t.caseClosedReason;
     c.recs.push(t);
   });
   const all = [...map.values()];
@@ -3398,6 +3417,7 @@ function _endoCardHtml(c, idx){
     if(d!==null) meta += ` <span class="endo-ago${d>=30?' warn':''}">(${d<=0?'วันนี้':d+' วันที่แล้ว'})</span>`;
   } else {
     meta += ` · จบเคส ${_endoFmtTs(c.closedAt)}${c.closedBy?' โดย '+_escHtml(c.closedBy):''}`;
+    meta += `<br><b>เหตุผล:</b> ${c.closedReason ? _escHtml(c.closedReason) : '<span style="opacity:.7;">ไม่ได้ระบุ</span>'}`;
   }
   const btn = !isManager ? '' : (c.closed
     ? `<button class="btn btn-ghost btn-sm" onclick="reopenEndoCase(${idx})">↩ เปิดเคสอีกครั้ง</button>`
@@ -3453,12 +3473,41 @@ function _endoSyncRecs(recs){
     .then(()=>{ setTimeout(()=>{ syncAll().then(()=>{ if(document.getElementById('page-endo')?.classList.contains('active')) renderEndoPage(); }).catch(()=>{}); }, 1500); })
     .catch(()=>showToast('⚠️ บันทึกขึ้น Sheet ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ','error'));
 }
+var ENDO_CLOSE_REASONS = ['รักษาครบ/ใส่ครอบฟันแล้ว','คนไข้ไม่มาต่อ','ถอนฟันแทน','ย้ายไปรักษาที่อื่น','คนไข้ขอหยุดรักษา'];
+var _endoClosing = null;
+function refreshEndoReasonChips(){
+  const v = (document.getElementById('endoReasonText')?.value||'').trim();
+  document.querySelectorAll('#endoReasonChips .note-chip').forEach(b=>b.classList.toggle('active', b.dataset.text===v));
+}
+function pickEndoReason(text){
+  const el = document.getElementById('endoReasonText'); if(!el) return;
+  el.value = text; refreshEndoReasonChips(); el.focus();
+}
 function closeEndoCase(i){
   if(!isManager) return;
   const c = _endoShown[i]; if(!c || c.closed) return;
-  if(!confirm('จบเคสรักษารากฟันของ '+(c.patName||'—')+' ('+c.docName+') ?\n'+c.recs.length+' ครั้ง · เลือก "เปิดเคสอีกครั้ง" ได้ภายหลัง')) return;
+  _endoClosing = c;
+  document.getElementById('endoCloseInfo').innerHTML = `<b>${_escHtml(c.patName||'—')}</b>${c.hn?' · HN '+_escHtml(c.hn):''} · ${_escHtml(c.docName)}<br>${c.recs.length} ครั้ง · ล่าสุด ${fmtDate(c.recs[c.recs.length-1].date)}`;
+  const chips = document.getElementById('endoReasonChips');
+  chips.innerHTML = '';
+  ENDO_CLOSE_REASONS.forEach(t=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'note-chip'; b.dataset.text = t; b.textContent = t;
+    b.addEventListener('click', ()=>pickEndoReason(t));
+    chips.appendChild(b);
+  });
+  document.getElementById('endoReasonText').value = '';
+  refreshEndoReasonChips();
+  document.getElementById('modalEndoClose').classList.add('open');
+}
+function confirmEndoClose(){
+  if(!isManager || !_endoClosing) return;
+  const reason = (document.getElementById('endoReasonText')?.value||'').trim();
+  if(!reason){ showToast('กรุณาเลือกหรือพิมพ์เหตุผลที่จบเคส','error'); return; }
+  const c = _endoClosing; _endoClosing = null;
   const ts = Date.now();
-  c.recs.forEach(r=>{ r.caseClosed='Y'; r.caseClosedAt=ts; r.caseClosedBy=(currentUser&&currentUser.name)||''; });
+  c.recs.forEach(r=>{ r.caseClosed='Y'; r.caseClosedAt=ts; r.caseClosedBy=(currentUser&&currentUser.name)||''; r.caseClosedReason=reason; });
+  closeModal('modalEndoClose');
   saveLocal(); renderEndoPage();
   showToast('จบเคสแล้ว');
   _endoSyncRecs(c.recs);
@@ -3467,7 +3516,7 @@ function reopenEndoCase(i){
   if(!isManager) return;
   const c = _endoShown[i]; if(!c || !c.closed) return;
   if(!confirm('เปิดเคสของ '+(c.patName||'—')+' ('+c.docName+') อีกครั้ง?')) return;
-  c.recs.forEach(r=>{ r.caseClosed=''; r.caseClosedAt=''; r.caseClosedBy=''; });
+  c.recs.forEach(r=>{ r.caseClosed=''; r.caseClosedAt=''; r.caseClosedBy=''; r.caseClosedReason=''; });
   saveLocal(); renderEndoPage();
   showToast('เปิดเคสอีกครั้งแล้ว');
   _endoSyncRecs(c.recs);
