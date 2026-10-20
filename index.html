@@ -524,7 +524,7 @@ select.form-control { cursor: pointer; }
 .endo-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; background: #fff; }
 .endo-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
 .endo-name { font-weight: 800; font-size: 15px; color: var(--wine-dark); font-family: 'Prompt', sans-serif; }
-.endo-hn { font-size: 12px; font-weight: 600; color: var(--text-light); margin-left: 4px; }
+.endo-hn { font-size: 12px; font-weight: 600; color: var(--text-light); margin-right: 8px; }
 .endo-meta { font-size: 12px; color: var(--text-light); margin-top: 2px; line-height: 1.5; }
 .endo-ago { font-weight: 700; }
 .endo-ago.warn { color: #B9770E; }
@@ -533,6 +533,22 @@ select.form-control { cursor: pointer; }
 .endo-date { font-weight: 700; color: var(--wine); min-width: 84px; }
 .endo-note { font-size: 12px; color: var(--text-light); }
 .endo-empty { text-align: center; padding: 28px 12px; color: var(--text-light); font-size: 13px; line-height: 1.7; }
+.bank-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; flex: none; }
+.bank-chip-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.bank-cell { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: #fff; }
+.bank-cell-name { font-weight: 800; font-size: 14px; display: flex; align-items: center; }
+.bank-cell-amt { font-size: 22px; font-weight: 800; color: var(--wine-dark); font-family: 'Prompt', sans-serif; line-height: 1.3; }
+.bank-cell-sub { font-size: 12px; color: var(--text-light); font-weight: 600; }
+.bank-bar { height: 6px; border-radius: 3px; background: var(--wine-pale); margin-top: 8px; overflow: hidden; }
+.bank-bar > div { height: 100%; }
+.bank-warn { margin-top: 12px; padding: 8px 12px; border-radius: 8px; background: #FFF4E5; border: 1px solid #F0B25E; color: #7A4A00; font-size: 12px; line-height: 1.5; }
+.bank-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+.bank-table th { text-align: right; font-size: 12px; color: var(--text-light); font-weight: 700; padding: 8px; border-bottom: 1.5px solid var(--border); }
+.bank-table td { text-align: right; padding: 8px; border-bottom: 1px solid var(--border); }
+.bank-table th:first-child, .bank-table td:first-child { text-align: left; font-weight: 700; }
+.bank-table tfoot td { font-weight: 800; color: var(--wine-dark); border-bottom: none; border-top: 1.5px solid var(--border); }
+.bank-tag { font-size: 10px; font-weight: 700; color: var(--text-light); line-height: 1.3; }
 .date-nav { display: flex; align-items: center; gap: 6px; }
 .date-nav-btn { height: 36px; min-width: 36px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 10px; background: #fff; color: var(--wine); font-family: inherit; font-size: 20px; font-weight: 800; line-height: 1; cursor: pointer; }
 .date-nav-btn:hover { background: var(--wine-pale); }
@@ -1080,7 +1096,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
         <div class="table-scroll">
         <table>
-          <thead><tr><th>เวลา</th><th>HN</th><th>ชื่อ</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th><th>ใบรับรอง</th></tr></thead>
+          <thead><tr><th>เวลา</th><th>HN</th><th>ชื่อ</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปกส</th><th>รวม</th><th>ใบรับรอง</th></tr></thead>
           <tbody id="treatListBody"></tbody>
         </table>
         </div>
@@ -1170,13 +1186,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div class="tsum-grid">
             <div class="tsum-cell"><div class="tsum-lbl">เงินสด</div><div class="tsum-val" id="ms-cash" style="color:var(--green);">0</div></div>
             <div class="tsum-cell"><div class="tsum-lbl">โอน</div><div class="tsum-val" id="ms-transfer" style="color:var(--blue);">0</div></div>
-            <div class="tsum-cell"><div class="tsum-lbl">ปสค.</div><div class="tsum-val" id="ms-sso" style="color:var(--orange);">0</div></div>
+            <div class="tsum-cell"><div class="tsum-lbl">ปกส</div><div class="tsum-val" id="ms-sso" style="color:var(--orange);">0</div></div>
             <div class="tsum-cell tsum-total"><div class="tsum-lbl">รวมทั้งหมด</div><div class="tsum-val" id="ms-total">0</div></div>
           </div>
         </div>
         <div class="table-scroll">
         <table>
-          <thead id="treatPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ-สกุล</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปสค.</th><th>รวม</th><th>ใบรับรอง</th><th id="treatPageColMgr">จัดการ</th></tr></thead>
+          <thead id="treatPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ-สกุล</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปกส</th><th>รวม</th><th>ใบรับรอง</th><th id="treatPageColMgr">จัดการ</th></tr></thead>
           <tbody id="treatPageBody"></tbody>
         </table>
         </div>
@@ -1222,6 +1238,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div class="stat-card gold"><div class="stat-icon">📲</div><div class="stat-label">โอน</div><div class="stat-value" id="i-transfer">0</div><div class="stat-sub">บาท</div></div>
         <div class="stat-card rose"><div class="stat-icon">🏛️</div><div class="stat-label">ประกันสังคม</div><div class="stat-value" id="i-sso">0</div><div class="stat-sub">บาท</div></div>
 
+      </div>
+      <div class="card-box" style="margin-bottom:20px;" id="bankStatsCard">
+        <div class="card-box-hdr" style="padding:16px 24px;flex-wrap:wrap;gap:8px;">
+          <div class="card-box-title" style="font-size:17px;">🏦 ยอดโอนแยกตามธนาคาร</div>
+          <div id="bankStatsBadge" style="font-size:13px;font-weight:700;color:var(--wine-mid);"></div>
+        </div>
+        <div id="bankStatsBody" style="padding:16px 24px 20px;"></div>
       </div>
       <div class="chart-grid">
         <div class="chart-card">
@@ -1602,6 +1625,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input type="number" class="form-control" id="treat-sso" placeholder="0" min="0" oninput="calcTotal()">
       </div>
 
+    </div>
+    <div id="treat-bank-wrap" style="display:none;margin-top:10px;">
+      <div class="pay-label pay-transfer" style="margin-bottom:6px;">🏦 ธนาคารที่โอน <span style="color:var(--text-light);font-weight:400;font-size:11px;">(ไม่บังคับ)</span></div>
+      <div class="contact-chips" id="treat-bank-chips"></div>
+      <input type="hidden" id="treat-bank">
     </div>
     <div style="margin-top:12px;padding:12px 16px;background:var(--wine-pale);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:14px;font-weight:700;color:var(--wine-dark);">รวมทั้งหมด</span>
@@ -2647,7 +2675,7 @@ function treatRow(t){
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
     <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
-    <td style="color:var(--blue);font-weight:600">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
+    <td style="color:var(--blue);font-weight:600">${t.transfer&&+t.transfer?fmt(+t.transfer):''}${bankTag(t)}</td>
     <td style="color:var(--orange);font-weight:600">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
     <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
     <td><button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
@@ -2697,7 +2725,7 @@ function ensureSaveSummary(modalId, cardId){
 }
 
 // ปุ่มลัดหมายเหตุ (กดเลือกแทนการพิมพ์) — แก้รายการได้ที่ NOTE_QUICK_OPTIONS
-const NOTE_QUICK_OPTIONS = ['ปวดฟัน','เสียวฟัน','เหงือกบวม','ฟันแตก/บิ่น','อุดหลุด','ฟันโยก'];
+const NOTE_QUICK_OPTIONS = ['ปวดฟัน','เสียวฟัน','เหงือกบวม','ฟันแตก/บิ่น','อุดหลุด','อุดปิดช่องว่าง','ฟันโยก','ปกส','เบิกบริษัท','มาด้วยกัน'];
 const NOTE_CHIP_TARGETS = ['apt-note','treat-note'];
 function _noteTokens(v){ return String(v||'').split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean); }
 function toggleNoteChip(inputId, text){
@@ -3057,7 +3085,11 @@ document.addEventListener('click', function(e){
 // ============================================================
 //  TREATMENTS
 // ============================================================
+// ล็อกการแก้ไขย้อนหลัง: แก้ไข/ลบรายการรักษาได้เฉพาะรายการที่ลงวันที่ของวันนี้ (วันถัดไปรายการจะถูกล็อก)
+function canEditTreat(t){ return !!t && String(t.date||'').slice(0,10) === todayStr(); }
+function warnTreatLocked(){ showToast('🔒 รายการย้อนหลัง แก้ไข/ลบไม่ได้ (แก้ได้เฉพาะรายการของวันนี้)','error'); }
 function openAddTreat(t=null){
+  if(t && !canEditTreat(t)){ warnTreatLocked(); return; }
   _xrayFormLocked = false;
   { const _d=document.getElementById('treat-doc'), _s=document.getElementById('treat-share'), _h=document.getElementById('treat-xray-hint');
     if(_d) _d.disabled=false; if(_s) _s.disabled=false; if(_h) _h.style.display='none'; }
@@ -3065,6 +3097,7 @@ function openAddTreat(t=null){
   const today=todayStr();
   document.getElementById('treat-id').value = t?.id||'';
   document.getElementById('treat-date').value = t?.date||today;
+  document.getElementById('treat-date').disabled = !!t; // แก้ไขรายการเดิม: ล็อกวันที่ ไม่ให้ย้ายวัน
   
   // เวลาปัจจุบัน
   const treatTimeEl = document.getElementById('treat-time');
@@ -3092,6 +3125,7 @@ function openAddTreat(t=null){
   document.getElementById('treat-transfer').value = t?.transfer||'';
   document.getElementById('treat-sso').value = t?.sso||'';
   document.getElementById('treat-note').value = t?.note||'';
+  setTreatBank(t?.transferBank||'');
   calcTotal();
   document.getElementById('modalTreat').classList.add('open');
   renderTreatSaveSummary();
@@ -3099,6 +3133,8 @@ function openAddTreat(t=null){
 function calcTotal(){
   const v = ['treat-cash','treat-transfer','treat-sso'].reduce((s,id)=>s+(+document.getElementById(id).value||0),0);
   document.getElementById('totalDisplay').textContent=fmt(v);
+  const bw = document.getElementById('treat-bank-wrap');
+  if(bw) bw.style.display = (+document.getElementById('treat-transfer').value||0) > 0 ? '' : 'none';
 }
 let _treatSaving = false;
 function saveTreat(){
@@ -3112,6 +3148,7 @@ function saveTreat(){
   // Snapshot ส่วนแบ่ง % ของหมอ ณ ตอนบันทึก เพื่อไม่ให้การแก้ % ในอนาคตย้อนไปเปลี่ยนรายงานเก่า
   // ถ้าเป็นการแก้ไขรายการเดิมและหมอไม่เปลี่ยน ให้คง docShare เดิมไว้ (ไม่ snapshot ซ้ำทับของเก่า)
   const existingTreat = treatments.find(x=>x.id===id);
+  if(existingTreat && !canEditTreat(existingTreat)){ warnTreatLocked(); return; }
   const doc = doctors.find(d=>d.name===docName);
   // manager พิมพ์ % เจาะจงรายการนี้ไว้ (ช่อง treat-share) ให้ใช้ค่านั้นเสมอ ข้ามการ snapshot อัตโนมัติ
   const shareOverrideEl = document.getElementById('treat-share');
@@ -3130,6 +3167,7 @@ function saveTreat(){
     cash:document.getElementById('treat-cash').value||'0',
     transfer:document.getElementById('treat-transfer').value||'0',
     sso:document.getElementById('treat-sso').value||'0',
+    transferBank: (+document.getElementById('treat-transfer').value||0) > 0 ? (document.getElementById('treat-bank')?.value||'') : '',
     company:'0',
     note:document.getElementById('treat-note').value,
     status:'เสร็จ',
@@ -3172,6 +3210,8 @@ function saveTreat(){
   });
 }
 function deleteTreat(id){
+  const _rec = treatments.find(t=>t.id===id);
+  if(_rec && !canEditTreat(_rec)){ warnTreatLocked(); return; }
   if(!confirm('ยืนยันลบรายการนี้?')) return;
   const idx = treatments.findIndex(t=>t.id===id);
   if(idx<0) return;
@@ -3426,7 +3466,7 @@ function _endoCardHtml(c, idx){
   return `<div class="endo-card">
     <div class="endo-card-top">
       <div style="min-width:0;">
-        <div class="endo-name">${_escHtml(c.patName||'—')}${c.hn?`<span class="endo-hn">HN ${_escHtml(c.hn)}</span>`:''}</div>
+        <div class="endo-name">${c.hn?`<span class="endo-hn">HN ${_escHtml(c.hn)}</span>`:''}${_escHtml(c.patName||'—')}</div>
         <div class="endo-meta">${meta}</div>
       </div>
       ${btn}
@@ -3520,6 +3560,87 @@ function reopenEndoCase(i){
   saveLocal(); renderEndoPage();
   showToast('เปิดเคสอีกครั้งแล้ว');
   _endoSyncRecs(c.recs);
+}
+
+// ============================================================
+//  ธนาคารที่รับโอน (ช่อง "โอน" ในฟอร์มรักษา) + สถิติยอดโอนแยกธนาคาร (หน้ารายได้)
+//  เก็บในรายการรักษาที่ฟิลด์ transferBank (คอลัมน์ในชีต "บันทึกการรักษา" เพิ่มให้อัตโนมัติ)
+// ============================================================
+var TRANSFER_BANKS = [
+  { k:'ออมสิน',  c:'#EB2A7E' },
+  { k:'กรุงไทย', c:'#1BA9E1' },
+  { k:'ttb',     c:'#F58220' }
+];
+function bankColor(k){ const b=TRANSFER_BANKS.find(x=>x.k===k); return b ? b.c : '#8A8A8A'; }
+function setTreatBank(v){
+  const el = document.getElementById('treat-bank'); if(!el) return;
+  el.value = TRANSFER_BANKS.some(b=>b.k===v) ? v : '';
+  document.querySelectorAll('#treat-bank-chips .contact-chip').forEach(b=>b.classList.toggle('active', b.dataset.v===el.value));
+}
+function toggleTreatBank(v){
+  const el = document.getElementById('treat-bank'); if(!el) return;
+  setTreatBank(el.value===v ? '' : v); // แตะซ้ำ = ยกเลิกการเลือก
+}
+(function buildBankChips(){
+  const wrap = document.getElementById('treat-bank-chips');
+  if(!wrap || wrap.children.length) return;
+  TRANSFER_BANKS.forEach(b=>{
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'contact-chip'; btn.dataset.v = b.k;
+    btn.innerHTML = '<span class="bank-chip-dot" style="background:'+b.c+'"></span>'+b.k;
+    btn.addEventListener('click', ()=>toggleTreatBank(b.k));
+    wrap.appendChild(btn);
+  });
+})();
+function bankTag(t){
+  return (t && +t.transfer>0 && t.transferBank) ? '<div class="bank-tag">'+_escHtml(t.transferBank)+'</div>' : '';
+}
+function bankStatsAgg(list){
+  const agg = {}; TRANSFER_BANKS.forEach(b=>agg[b.k]={amt:0,n:0}); agg['ไม่ระบุ']={amt:0,n:0};
+  list.forEach(t=>{
+    const a = +t.transfer||0; if(a<=0) return;
+    const k = TRANSFER_BANKS.some(b=>b.k===t.transferBank) ? t.transferBank : 'ไม่ระบุ';
+    agg[k].amt += a; agg[k].n++;
+  });
+  return agg;
+}
+function buildBankStats(rows, period, selYrBE){
+  const body = document.getElementById('bankStatsBody'); if(!body) return;
+  const agg = bankStatsAgg(rows);
+  const keys = TRANSFER_BANKS.map(b=>b.k).concat(agg['ไม่ระบุ'].n ? ['ไม่ระบุ'] : []);
+  const total = keys.reduce((s,k)=>s+agg[k].amt,0);
+  const cnt = keys.reduce((s,k)=>s+agg[k].n,0);
+  const badge = document.getElementById('bankStatsBadge');
+  if(badge) badge.textContent = incomePeriodLabel()+' · โอนรวม '+fmt(total)+' ('+cnt+' รายการ)';
+  if(!total){ body.innerHTML = '<div class="endo-empty">ไม่มียอดโอนในช่วงนี้</div>'; return; }
+
+  let html = '<div class="bank-grid">'+keys.map(k=>{
+    const pct = total ? agg[k].amt/total*100 : 0;
+    return '<div class="bank-cell"><div class="bank-cell-name"><span class="bank-dot" style="background:'+bankColor(k)+'"></span>'+k+'</div>'
+      +'<div class="bank-cell-amt">'+fmt(agg[k].amt)+'</div>'
+      +'<div class="bank-cell-sub">'+agg[k].n+' รายการ · '+pct.toFixed(0)+'%</div>'
+      +'<div class="bank-bar"><div style="width:'+pct+'%;background:'+bankColor(k)+'"></div></div></div>';
+  }).join('')+'</div>';
+  if(agg['ไม่ระบุ'].n) html += '<div class="bank-warn">มี <b>'+agg['ไม่ระบุ'].n+' รายการ</b> ที่โอนแต่ยังไม่ได้ระบุธนาคาร ('+fmt(agg['ไม่ระบุ'].amt)+' บาท) · เปิดแก้ไขรายการในหน้ารักษาแล้วเลือกธนาคารได้</div>';
+
+  // ดูรายปี: ตารางแยกรายเดือน × ธนาคาร
+  if(period==='year'){
+    const ce = String((parseInt(selYrBE)||(new Date().getFullYear()+543)) - 543);
+    const mat = Array.from({length:12}, ()=>{ const o={}; keys.forEach(k=>o[k]=0); return o; });
+    rows.forEach(t=>{
+      const a = +t.transfer||0; if(a<=0 || !t.date || !String(t.date).startsWith(ce)) return;
+      const m = parseInt(String(t.date).slice(5,7),10)-1; if(m<0||m>11) return;
+      const k = TRANSFER_BANKS.some(b=>b.k===t.transferBank) ? t.transferBank : 'ไม่ระบุ';
+      if(mat[m][k]!==undefined) mat[m][k]+=a;
+    });
+    const cell = v => v ? fmt(v) : '<span style="opacity:.35">–</span>';
+    html += '<div style="overflow-x:auto;"><table class="bank-table"><thead><tr><th>เดือน</th>'
+      + keys.map(k=>'<th><span class="bank-dot" style="background:'+bankColor(k)+'"></span>'+k+'</th>').join('')
+      + '<th>รวม</th></tr></thead><tbody>'
+      + mat.map((r,i)=>{ const sum=keys.reduce((s,k)=>s+r[k],0); return '<tr><td>'+THAI_MONTHS[i]+'</td>'+keys.map(k=>'<td>'+cell(r[k])+'</td>').join('')+'<td style="font-weight:700;">'+cell(sum)+'</td></tr>'; }).join('')
+      + '</tbody><tfoot><tr><td>รวมทั้งปี</td>'+keys.map(k=>'<td>'+fmt(agg[k].amt)+'</td>').join('')+'<td>'+fmt(total)+'</td></tr></tfoot></table></div>';
+  }
+  body.innerHTML = html;
 }
 
 // เลื่อนค่าวันที่ 'YYYY-MM-DD' (kind='day') หรือเดือน 'YYYY-MM' (kind='month') ไปข้างหน้า/ถอยหลัง n หน่วย
@@ -3647,15 +3768,15 @@ function renderTreatPage(){
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
       <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
-      <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer):''}</td>
+      <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer):''}${bankTag(t)}</td>
       <td style="color:var(--orange)">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
       <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
       <td><button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
       ${isManager?`<td>
-        <div style="display:flex;gap:6px;">
+        ${canEditTreat(t) ? `<div style="display:flex;gap:6px;">
           <button class="btn btn-ghost btn-sm btn-icon" onclick='openAddTreat(${JSON.stringify(t)})' aria-label="แก้ไขรายการรักษา" title="แก้ไข">✏️</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="deleteTreat('${t.id}')" aria-label="ลบรายการรักษา" title="ลบ">🗑️</button>
-        </div>
+        </div>` : `<span title="รายการย้อนหลัง แก้ไข/ลบไม่ได้" aria-label="ล็อก" style="font-size:16px;opacity:.55;">🔒</span>`}
       </td>`:''}
     </tr>`;
   // จัดกลุ่มตามหมอ: เรียงตามลำดับหมอในระบบ (ไม่รู้จักไว้ท้าย) แต่ละกลุ่มเรียงวันที่/เวลาเหมือนเดิม พร้อมสรุปราย/รายได้/ส่วนแบ่ง กดหัวกลุ่มเพื่อพับ/ขยาย
@@ -3744,6 +3865,7 @@ function renderIncome(){
   const selYrCE2 = String(selYrBE2-543);
   buildCharts(rows, currentPeriod, selDay2, selMonth2, selYrCE2);
   buildShareGrid(rows);
+  buildBankStats(rows, currentPeriod, selYrBE);
 }
 function buildCharts(rows, period, today, month, year){
   const THMONTHS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -3907,7 +4029,7 @@ function openDoctorBreakdown(idx){
     <div class="dbk-stat"><div class="dbk-stat-label">ส่วนแบ่งหมอ</div><div class="dbk-stat-value" style="color:var(--gold);">${fmt(share)}</div></div>
   </div>`;
   if(offRows.length){
-    html+=`<div class="dbk-warn">⚠️ มี <b>${offRows.length} ราย</b> ที่ส่วนแบ่งไม่ใช่ ${curPct}% (ค่าปัจจุบันของหมอ) ทำให้ส่วนแบ่งรวม${offExtra>=0?'เกิน':'ขาด'}จากการคิด ${curPct}% ทุกราย อยู่ <b>${fmt(Math.abs(offExtra))}</b> · รายที่ติดป้าย % สีส้มอยู่ในรายชื่อด้านล่าง${isManager?' กด ✏️ แก้ไข แล้วพิมพ์ % ที่ต้องการในช่อง "ส่วนแบ่งหมอเฉพาะรายการนี้" (ห้ามเว้นว่าง ไม่งั้นระบบจะคงค่าเดิม)':''}</div>`;
+    html+=`<div class="dbk-warn">⚠️ มี <b>${offRows.length} ราย</b> ที่ส่วนแบ่งไม่ใช่ ${curPct}% (ค่าปัจจุบันของหมอ) ทำให้ส่วนแบ่งรวม${offExtra>=0?'เกิน':'ขาด'}จากการคิด ${curPct}% ทุกราย อยู่ <b>${fmt(Math.abs(offExtra))}</b> · รายที่ติดป้าย % สีส้มอยู่ในรายชื่อด้านล่าง${isManager ? (offRows.some(canEditTreat) ? ' กด ✏️ แก้ไข แล้วพิมพ์ % ที่ต้องการในช่อง "ส่วนแบ่งหมอเฉพาะรายการนี้" (ห้ามเว้นว่าง ไม่งั้นระบบจะคงค่าเดิม)' : ' · รายการย้อนหลังถูกล็อก แก้ไขไม่ได้') : ''}</div>`;
   }
 
   if(!dr.length){
@@ -3927,7 +4049,7 @@ function openDoctorBreakdown(idx){
         <div class="dbk-case-meta">${showDate?fmtDate(r.date)+' · ':''}${_escHtml(r.time||'')}</div>
         <div>${procBadge(r.proc)}</div>
       </div>
-      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(totalPrice(r)*docSharePct(r,doc)/100)}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':(+docSharePct(r,doc))+'%'}</span></small>${(isManager&&isOff(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
+      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(totalPrice(r)*docSharePct(r,doc)/100)}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':(+docSharePct(r,doc))+'%'}</span></small>${(isManager&&isOff(r)&&canEditTreat(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
     </div>`).join('');
   }
   document.getElementById('dbk-body').innerHTML=html;
@@ -4089,7 +4211,7 @@ function renderFollowup(){
   const today = new Date(); today.setHours(0,0,0,0);
   const cutoff = new Date(today); cutoff.setDate(cutoff.getDate()-days);
 
-  // กรองเฉพาะคนที่มี ปสค. > 0
+  // กรองเฉพาะคนที่มี ปกส > 0
   const pskTreats = treatments.filter(t=> parseFloat(t.psk||t.ins||0) > 0);
 
   // group by HN หาวันล่าสุด
