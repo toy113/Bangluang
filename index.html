@@ -546,6 +546,18 @@ select.form-control { cursor: pointer; }
 .st-forecast { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--wine-pale); font-size: 13px; line-height: 1.6; }
 .st-pbar { height: 8px; border-radius: 4px; background: #fff; margin-top: 8px; overflow: hidden; }
 .st-pbar > div { height: 100%; background: var(--wine); border-radius: 4px; }
+.st-section { margin: 26px 2px 12px; font-size: 18px; font-weight: 800; color: var(--wine-dark); font-family: 'Prompt', sans-serif; display: flex; align-items: center; gap: 10px; }
+.st-section::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, var(--wine-pale), transparent); }
+.st-vip { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.st-vip:last-child { border-bottom: none; }
+.st-vip-rank { width: 26px; height: 26px; border-radius: 50%; background: var(--wine-pale); color: var(--wine); font-weight: 800; display: flex; align-items: center; justify-content: center; flex: none; font-size: 12px; }
+.st-vip-rank.gold { background: #D4A843; color: #fff; }
+.st-cohort { border-collapse: separate; border-spacing: 3px; width: 100%; font-size: 12px; min-width: 460px; }
+.st-cohort th { font-size: 11px; color: var(--text-light); font-weight: 700; padding: 2px 4px; text-align: center; }
+.st-cohort td { text-align: center; padding: 7px 2px; border-radius: 6px; font-weight: 700; background: rgba(107,45,94,0.04); }
+.st-cohort td.lbl { text-align: left; background: none; padding-left: 0; font-weight: 700; color: var(--text-mid); white-space: nowrap; }
+.st-cohort tr.avg td { border-top: 1.5px solid var(--border); }
+.st-note { font-size: 11px; color: var(--text-light); margin-top: 8px; line-height: 1.5; }
 .st-chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--wine-pale); color: var(--wine); margin: 0 6px 6px 0; }
 @media (max-width: 768px) { .st-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-grid2 { grid-template-columns: 1fr; } .st-kpi-val { font-size: 21px; } .st-row-name { width: 96px; } }
 .endo-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(17,122,101,0.13); border: 1px solid rgba(17,122,101,0.4); color: #0E6655; white-space: nowrap; vertical-align: middle; }
@@ -3240,7 +3252,7 @@ function saveTreat(){
     docShare,
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
-  if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
+  if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason','dfPaid','dfPaidAt','dfPaidBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
   if(xrayRuleApplies(t)) applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0
   else if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
@@ -3717,6 +3729,7 @@ function buildBankStats(rows, period, selYrBE){
 // ============================================================
 var statsPeriod = 'month', statsDoc = '';
 var STATS_DOW = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+var STATS_MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function setStatsPeriod(p, btn){
   statsPeriod = p;
   document.querySelectorAll('#statsPeriodTabs .period-tab').forEach(b=>b.classList.remove('active'));
@@ -3788,7 +3801,7 @@ function statsSeries(rows, start, end){
     while(y<ey || (y===ey && m<=em)){
       const key=y+'-'+String(m).padStart(2,'0'); let v=0;
       byDate.forEach((val,dd)=>{ if(dd.startsWith(key)) v+=val; });
-      B.push({ label:THAI_MONTHS[m-1].slice(0,3)+(L>370?' '+String((y+543)%100):''), val:v });
+      B.push({ label:STATS_MON[m-1]+(L>370?' '+String((y+543)%100):''), val:v });
       m++; if(m>12){ m=1; y++; }
     }
   }
@@ -3835,6 +3848,158 @@ function statsRowsBar(items, color){ // [{name,val,label,color,html}]
 }
 function _statsCard(title, inner, sub){
   return '<div class="card-box st-card"><div class="card-box-hdr" style="padding:14px 18px;"><div class="card-box-title" style="font-size:15px;">'+title+'</div>'+(sub?'<div style="font-size:12px;color:var(--text-light);font-weight:600;">'+sub+'</div>':'')+'</div><div class="st-pad">'+inner+'</div></div>';
+}
+// ---------- วิเคราะห์เชิงลึก 5 ชุด ----------
+function _statsProcs(t){
+  const parts = (Array.isArray(t.proc)?t.proc:String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
+  return parts.length ? parts : [];
+}
+// รวมประวัติรายคนไข้ (HN เดียวกัน / ชื่อเดียวกัน) จากรายการที่ผู้ใช้เห็น: Map key → {name,hn,dates[],by:Map(date→{procs:Set,rev})}
+function statsPatients(){
+  const M = new Map();
+  treatments.forEach(t=>{
+    const d = String(t.date||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d) || !statsCanSee(t.docName)) return;
+    const k = endoPatientKey(t);
+    let o = M.get(k); if(!o){ o={ key:k, name:'', hn:'', by:new Map() }; M.set(k,o); }
+    if(t.patName) o.name = t.patName; if(t.hn) o.hn = t.hn;
+    let v = o.by.get(d); if(!v){ v={ procs:new Set(), rev:0 }; o.by.set(d,v); }
+    _statsProcs(t).forEach(x=>v.procs.add(x)); v.rev += totalPrice(t);
+  });
+  M.forEach(o=>{ o.dates = [...o.by.keys()].sort(); o.rev = [...o.by.values()].reduce((s,v)=>s+v.rev,0); });
+  return M;
+}
+function _vipRow(i, name, hn, sub, val){
+  return '<div class="st-vip"><div class="st-vip-rank'+(i===0?' gold':'')+'">'+(i+1)+'</div><div style="flex:1;min-width:0;"><div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_escHtml(name||'—')+(hn?' <span style="font-weight:600;font-size:11px;color:var(--text-light);">HN '+_escHtml(hn)+'</span>':'')+'</div><div style="font-size:11px;color:var(--text-light);">'+sub+'</div></div><div style="font-weight:800;color:var(--wine-dark);">'+val+'</div></div>';
+}
+// 1) 💎 คนไข้มูลค่าสูง: Pareto 80/20 + VIP
+function statsPareto(rows){
+  const per = new Map();
+  rows.forEach(t=>{ const k=endoPatientKey(t); let o=per.get(k); if(!o){ o={name:'',hn:'',rev:0,dates:new Set()}; per.set(k,o); } if(t.patName) o.name=t.patName; if(t.hn) o.hn=t.hn; o.rev+=totalPrice(t); o.dates.add(String(t.date).slice(0,10)); });
+  const arr = [...per.values()].filter(o=>o.rev>0).sort((a,b)=>b.rev-a.rev);
+  const N = arr.length, total = arr.reduce((s,o)=>s+o.rev,0);
+  if(N<3 || !total) return '';
+  let cum=0, k80=N; const pts=['0,0'];
+  arr.forEach((o,i)=>{ cum+=o.rev; pts.push(((i+1)/N).toFixed(4)+','+(cum/total).toFixed(4)); if(cum/total>=0.8 && k80===N && i<N) { k80=Math.min(k80,i+1); } });
+  // k80 = จำนวนคนไข้น้อยที่สุดที่รวมแล้วได้ ≥80%
+  let c2=0; k80=N; for(let i=0;i<N;i++){ c2+=arr[i].rev; if(c2/total>=0.8){ k80=i+1; break; } }
+  const top10n = Math.max(1,Math.ceil(N*0.1)); const top10 = arr.slice(0,top10n).reduce((s,o)=>s+o.rev,0)/total*100;
+  const W=300,H=170,pl=30,pb=22,pt=8,pr=8, iw=W-pl-pr, ih=H-pt-pb;
+  const X=v=>pl+iw*v, Y=v=>pt+ih*(1-v);
+  const path = pts.map((q,i)=>{ const [a,b]=q.split(',').map(Number); return (i?'L':'M')+X(a).toFixed(1)+','+Y(b).toFixed(1); }).join(' ');
+  const area = path+' L'+X(1).toFixed(1)+','+Y(0).toFixed(1)+' L'+X(0).toFixed(1)+','+Y(0).toFixed(1)+' Z';
+  const mx = X(k80/N), my = Y(0.8);
+  const svg = '<svg class="st-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="กราฟ Pareto">'
+    + [0,0.25,0.5,0.75,1].map(v=>'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'" stroke="currentColor" stroke-opacity=".12"/><text x="'+(pl-4)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="currentColor" fill-opacity=".65">'+Math.round(v*100)+'%</text>').join('')
+    + '<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(1)+'" y2="'+Y(1)+'" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="4 4"/>'
+    + '<path d="'+area+'" fill="#6B2D5E" fill-opacity=".14"/><path d="'+path+'" fill="none" stroke="#6B2D5E" stroke-width="2.5" stroke-linejoin="round"/>'
+    + '<line x1="'+mx.toFixed(1)+'" x2="'+mx.toFixed(1)+'" y1="'+my.toFixed(1)+'" y2="'+Y(0)+'" stroke="#D4A843" stroke-dasharray="3 3"/><line x1="'+X(0)+'" x2="'+mx.toFixed(1)+'" y1="'+my.toFixed(1)+'" y2="'+my.toFixed(1)+'" stroke="#D4A843" stroke-dasharray="3 3"/>'
+    + '<circle cx="'+mx.toFixed(1)+'" cy="'+my.toFixed(1)+'" r="4.5" fill="#D4A843"/>'
+    + '<text x="'+(W/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="9" fill="currentColor" fill-opacity=".65">สัดส่วนคนไข้ (เรียงจากจ่ายมากไปน้อย)</text></svg>';
+  const vip = arr.slice(0,5).map((o,i)=>_vipRow(i,o.name,o.hn,o.dates.size+' ครั้ง · '+(o.rev/total*100).toFixed(1)+'% ของรายได้','฿'+fmt(o.rev))).join('');
+  return _statsCard('💎 คนไข้มูลค่าสูง (Pareto)',
+    '<div style="font-size:13px;line-height:1.6;margin-bottom:6px;">คนไข้เพียง <b>'+Math.round(k80/N*100)+'%</b> ('+k80+' จาก '+N+' คน) สร้างรายได้ถึง <b>80%</b> · 10% แรกสร้าง <b>'+top10.toFixed(0)+'%</b></div>'
+    + '<div style="color:var(--text-mid);">'+svg+'</div>'
+    + '<div style="font-size:12px;font-weight:700;color:var(--text-light);margin:10px 0 2px;">⭐ VIP 5 อันดับแรก</div>'+vip, 'ช่วงที่เลือก');
+}
+// 2) 🧬 Cohort retention (คนไข้ใหม่แต่ละเดือน กลับมากี่ %)
+function statsCohort(P){
+  const first = new Map(), months = new Map(); let earliest = '9999-99';
+  P.forEach(o=>{ const ms = new Set(o.dates.map(d=>d.slice(0,7))); months.set(o.key, ms); const f=o.dates[0].slice(0,7); first.set(o.key,f); if(f<earliest) earliest=f; });
+  if(earliest==='9999-99') return '';
+  const cur = todayStr().slice(0,7);
+  const addM=(ym,n)=>{ let [y,m]=ym.split('-').map(Number); m+=n; y+=Math.floor((m-1)/12); m=((m-1)%12+12)%12+1; return y+'-'+String(m).padStart(2,'0'); };
+  const cohorts = [];
+  for(let i=5;i>=0;i--){ const c=addM(cur,-i); if(c>earliest) cohorts.push(c); } // ข้ามเดือนแรกของข้อมูล เพราะทุกคนจะดูเป็นคนไข้ใหม่
+  if(!cohorts.length) return '';
+  const K=6, sums = Array(K).fill(0), tots = Array(K).fill(0);
+  const rowsHtml = cohorts.map(c=>{
+    const members = [...first.entries()].filter(([k,f])=>f===c).map(([k])=>k);
+    const n = members.length;
+    const [y,m] = c.split('-').map(Number);
+    let tds = '';
+    for(let k=0;k<K;k++){
+      const mk = addM(c,k);
+      if(mk>cur || !n){ tds += '<td></td>'; continue; }
+      const back = k===0 ? n : members.filter(key=>months.get(key).has(mk)).length;
+      const pct = back/n; sums[k]+=back; tots[k]+=n;
+      tds += '<td style="background:rgba(107,45,94,'+(0.1+0.9*pct).toFixed(2)+');color:'+(pct>0.45?'#fff':'var(--wine-dark)')+'" title="'+STATS_MON[m-1]+' '+(y+543)+' → +'+k+' เดือน: '+back+'/'+n+' คน">'+Math.round(pct*100)+'%</td>';
+    }
+    return '<tr><td class="lbl">'+STATS_MON[m-1]+' '+String((y+543)%100)+' <span style="font-weight:600;color:var(--text-light);">('+n+' คน)</span></td>'+tds+'</tr>';
+  }).join('');
+  const avg = '<tr class="avg"><td class="lbl">เฉลี่ยถ่วงน้ำหนัก</td>'+sums.map((v,k)=>'<td style="background:none;color:var(--wine-dark);">'+(tots[k]?Math.round(v/tots[k]*100)+'%':'')+'</td>').join('')+'</tr>';
+  return _statsCard('🧬 การกลับมาของคนไข้ใหม่ (Cohort)',
+    '<div style="overflow-x:auto;"><table class="st-cohort"><thead><tr><th style="text-align:left;">เดือนที่มาครั้งแรก</th>'+Array.from({length:K},(_,k)=>'<th>'+(k===0?'เดือนแรก':'+'+k+' เดือน')+'</th>').join('')+'</tr></thead><tbody>'+rowsHtml+avg+'</tbody></table></div>'
+    + '<div class="st-note">อ่านว่า: คนไข้ที่มาครั้งแรกในเดือนนั้น มีกี่ % ที่กลับมารักษาอีกในเดือนถัดๆ ไป · สีเข้ม = กลับมามาก · นับจากประวัติทั้งหมดในระบบ (ข้ามเดือนแรกสุดของข้อมูล เพราะทุกคนจะดูเป็นคนไข้ใหม่)</div>', 'ย้อนหลัง 6 เดือน');
+}
+// 3) 💤 คนไข้หลับ + รอบการกลับมา
+function statsDormant(P){
+  const today = todayStr(); const ppl=[...P.values()].filter(o=>o.dates.length);
+  if(ppl.length<3) return '';
+  const info = ppl.map(o=>({ o, gap:_daysBetween(o.dates[o.dates.length-1], today), tk:o.rev/o.dates.length }));
+  const b1=info.filter(x=>x.gap>=90&&x.gap<180), b2=info.filter(x=>x.gap>=180&&x.gap<365), b3=info.filter(x=>x.gap>=365);
+  const dorm = info.filter(x=>x.gap>=180);
+  const pot = dorm.reduce((s,x)=>s+x.tk,0);
+  const gaps=[]; ppl.forEach(o=>{ for(let i=1;i<o.dates.length;i++) gaps.push(_daysBetween(o.dates[i-1],o.dates[i])); });
+  const bins=[['≤7 วัน',0,7],['8–14',8,14],['15–30',15,30],['31–60',31,60],['61–90',61,90],['91–180',91,180],['>180',181,1e9]].map(([n,a,b])=>({name:n,val:gaps.filter(g=>g>=a&&g<=b).length}));
+  gaps.sort((a,b)=>a-b); const med = gaps.length?gaps[Math.floor(gaps.length/2)]:null;
+  const top = dorm.sort((a,b)=>b.o.rev-a.o.rev).slice(0,4);
+  return _statsCard('💤 คนไข้หลับ & รอบการกลับมา',
+    '<div style="margin-bottom:8px;">'
+    + '<span class="st-chip">เริ่มห่าง 90–179 วัน · '+b1.length+' คน</span><span class="st-chip" style="background:#FFF4E5;color:#7A4A00;">หลับ 180–364 วัน · '+b2.length+' คน</span><span class="st-chip" style="background:#FDEDEC;color:#922B21;">หลับนาน ≥1 ปี · '+b3.length+' คน</span></div>'
+    + (dorm.length?'<div style="font-size:13px;line-height:1.6;">💰 ถ้าคนไข้ที่หลับ ≥180 วัน ('+dorm.length+' คน) กลับมาคนละ 1 ครั้ง ≈ <b>฿'+fmt(Math.round(pot))+'</b></div>':'')
+    + (med!==null?'<div style="font-size:12px;font-weight:700;color:var(--text-light);margin:12px 0 2px;">รอบการกลับมา (ระยะห่างระหว่างครั้ง) · มัธยฐาน <span style="color:var(--wine-dark);">'+med+' วัน</span></div>'+statsRowsBar(bins.map(b=>({name:b.name,val:b.val,color:'#6B2D5E',label:b.val+' ครั้ง'}))):'')
+    + (top.length?'<div style="font-size:12px;font-weight:700;color:var(--text-light);margin:12px 0 2px;">🎯 ควรโทรตามก่อน (มูลค่าสะสมสูงสุดที่หลับอยู่)</div>'+top.map((x,i)=>_vipRow(i,x.o.name,x.o.hn,'มาล่าสุด '+fmtDate(x.o.dates[x.o.dates.length-1])+' ('+x.gap+' วันที่แล้ว)','฿'+fmt(x.o.rev))).join(''):''), 'จากประวัติทั้งหมด');
+}
+// 4) 🧭 เส้นทางการรักษา (ทำ A แล้วครั้งถัดไปมักทำ B)
+function statsJourney(P){
+  const nA = {}, tr = {}; let pairs = 0;
+  P.forEach(o=>{
+    for(let i=0;i<o.dates.length-1;i++){
+      const a=o.by.get(o.dates[i]), b=o.by.get(o.dates[i+1]);
+      if(_daysBetween(o.dates[i], o.dates[i+1])>90) continue;
+      pairs++;
+      a.procs.forEach(A=>{ nA[A]=(nA[A]||0)+1; b.procs.forEach(B=>{ if(B!==A){ const k=A+'\u0001'+B; tr[k]=(tr[k]||0)+1; } }); });
+    }
+  });
+  const list = Object.entries(tr).map(([k,n])=>{ const [A,B]=k.split('\u0001'); return {A,B,n,p:n/nA[A]}; }).filter(x=>x.n>=2).sort((a,b)=>b.n-a.n||b.p-a.p).slice(0,8);
+  if(!list.length) return '';
+  return _statsCard('🧭 เส้นทางการรักษา (Treatment Journey)',
+    list.map(x=>'<div class="st-row" style="flex-wrap:wrap;"><div style="flex:0 0 auto;display:flex;align-items:center;gap:6px;min-width:0;">'+procBadge(x.A)+'<span style="font-weight:800;color:var(--text-light);">→</span>'+procBadge(x.B)+'</div><div class="st-row-bar" style="min-width:60px;"><div style="width:'+Math.round(x.p*100)+'%;background:#D4A843"></div></div><div class="st-row-val" style="width:96px;">'+Math.round(x.p*100)+'%<div style="font-weight:600;color:var(--text-light);font-size:11px;">'+x.n+' ครั้ง</div></div></div>').join('')
+    + '<div class="st-note">อ่านว่า: คนไข้ที่ทำหัตถการซ้ายมือ มี X% ที่ครั้งถัดไป (ภายใน 90 วัน) ทำหัตถการขวามือ · ใช้วางแผนนัดต่อเนื่องและเสนอบริการ · คำนวณจาก '+fmt(pairs)+' คู่การมาต่อเนื่อง ไม่นับคู่ที่เป็นหัตถการเดียวกัน', 'จากประวัติทั้งหมด');
+}
+// 5) 💸 เส้นทางเงิน (Sankey): ช่องทางชำระ → หมอ → ส่วนแบ่งหมอ / คลินิก
+function statsSankey(rows){
+  const CH = [{k:'เงินสด',f:'cash',c:'#27AE60'},{k:'โอน',f:'transfer',c:'#2078B4'},{k:'ปกส',f:'sso',c:'#D68910'}];
+  const docs = {};
+  rows.forEach(t=>{
+    const n=t.docName||'ไม่ระบุ'; const dd=doctors.find(d=>d.name===n)||DOCTORS_DATA.find(d=>d.name===n);
+    const o = docs[n] || (docs[n]={ name:n, emoji:dd?.emoji||'', color:/^#[0-9a-f]{6}$/i.test(dd?.color||'')?dd.color:'#7A6A78', rev:0, df:0, c:{cash:0,transfer:0,sso:0} });
+    const pr=totalPrice(t); o.rev+=pr; o.df+=pr*docSharePct(t,dd||{share:0})/100; CH.forEach(x=>{ o.c[x.f]+=(+t[x.f]||0); });
+  });
+  const D = Object.values(docs).filter(o=>o.rev>0).sort((a,b)=>b.rev-a.rev);
+  if(!D.length) return '';
+  const T = D.reduce((s,o)=>s+o.rev,0); if(!T) return '';
+  const L = CH.map(x=>({...x, v:D.reduce((s,o)=>s+o.c[x.f],0)})).filter(x=>x.v>0);
+  const DF = D.reduce((s,o)=>s+o.df,0), CL = T-DF;
+  const Rn = [{k:'ส่วนแบ่งหมอ (DF)',v:DF,c:'#D4A843'},{k:'ส่วนแบ่งคลินิก',v:CL,c:'#6B2D5E'}].filter(x=>x.v>0.5);
+  const W=620, H=Math.max(290, D.length*46+50), pt=16, pb=16, gap=10;
+  const nmax = Math.max(L.length, D.length, Rn.length);
+  const sc = (H-pt-pb-gap*(nmax-1))/T;
+  const layout = (nodes)=>{ const tot=nodes.reduce((s,n)=>s+n.v*sc,0)+gap*(nodes.length-1); let y=pt+(H-pt-pb-tot)/2; nodes.forEach(n=>{ n.y=y; n.h=Math.max(n.v*sc,2); y+=n.h+gap; n.off=0; n.inoff=0; }); };
+  D.forEach(o=>{ o.v=o.rev; }); layout(L); layout(D); layout(Rn);
+  const xL=120, xM=W/2-6, xR=W-156, nw=12;
+  let rib='';
+  const ribbon=(x0,y0,x1,y1,h,color,tip)=>{ const xm=(x0+x1)/2; return '<path d="M'+x0+','+y0.toFixed(1)+' C'+xm+','+y0.toFixed(1)+' '+xm+','+y1.toFixed(1)+' '+x1+','+y1.toFixed(1)+' L'+x1+','+(y1+h).toFixed(1)+' C'+xm+','+(y1+h).toFixed(1)+' '+xm+','+(y0+h).toFixed(1)+' '+x0+','+(y0+h).toFixed(1)+' Z" fill="'+color+'" fill-opacity=".38"><title>'+_escHtml(tip)+'</title></path>'; };
+  L.forEach(l=>{ D.forEach(d=>{ const f=d.c[l.f]; if(f<=0) return; const h=f*sc; rib+=ribbon(xL+nw, l.y+l.off, xM, d.y+d.inoff, h, l.c, l.k+' → '+d.name+': ฿'+fmt(f)); l.off+=h; d.inoff+=h; }); });
+  D.forEach(d=>{ const parts=[[Rn.find(r=>r.k.startsWith('ส่วนแบ่งหมอ')),d.df],[Rn.find(r=>r.k.startsWith('ส่วนแบ่งคลินิก')),d.rev-d.df]]; parts.forEach(([r,f])=>{ if(!r||f<=0.5) return; const h=f*sc; rib+=ribbon(xM+nw, d.y+d.off, xR, r.y+r.inoff, h, d.color, d.name+' → '+r.k+': ฿'+fmt(Math.round(f))); d.off+=h; r.inoff+=h; }); });
+  const halo='paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;';
+  let nodes='';
+  L.forEach(l=>{ nodes+='<rect x="'+xL+'" y="'+l.y.toFixed(1)+'" width="'+nw+'" height="'+l.h.toFixed(1)+'" rx="3" fill="'+l.c+'"/><text x="'+(xL-6)+'" y="'+(l.y+l.h/2-1).toFixed(1)+'" text-anchor="end" font-size="11" font-weight="700" fill="#333">'+l.k+'</text><text x="'+(xL-6)+'" y="'+(l.y+l.h/2+11).toFixed(1)+'" text-anchor="end" font-size="10" fill="#666">฿'+_statsK(l.v)+' · '+Math.round(l.v/T*100)+'%</text>'; });
+  D.forEach(d=>{ nodes+='<rect x="'+xM+'" y="'+d.y.toFixed(1)+'" width="'+nw+'" height="'+d.h.toFixed(1)+'" rx="3" fill="'+d.color+'"/><text x="'+(xM+nw+6)+'" y="'+(d.y+Math.min(d.h/2,14)).toFixed(1)+'" font-size="11" font-weight="800" fill="#333" style="'+halo+'">'+_escHtml((d.emoji?d.emoji+' ':'')+d.name)+'</text><text x="'+(xM+nw+6)+'" y="'+(d.y+Math.min(d.h/2,14)+12).toFixed(1)+'" font-size="10" fill="#555" style="'+halo+'">฿'+_statsK(d.rev)+'</text>'; });
+  Rn.forEach(r=>{ nodes+='<rect x="'+xR+'" y="'+r.y.toFixed(1)+'" width="'+nw+'" height="'+r.h.toFixed(1)+'" rx="3" fill="'+r.c+'"/><text x="'+(xR+nw+6)+'" y="'+(r.y+r.h/2-1).toFixed(1)+'" font-size="11" font-weight="800" fill="#333">'+_escHtml(r.k)+'</text><text x="'+(xR+nw+6)+'" y="'+(r.y+r.h/2+11).toFixed(1)+'" font-size="10" fill="#666">฿'+_statsK(r.v)+' · '+Math.round(r.v/T*100)+'%</text>'; });
+  const svg='<svg class="st-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="เส้นทางเงิน" style="color:#333;">'+rib+nodes+'</svg>';
+  return _statsCard('💸 เส้นทางเงิน (Money Flow)', '<div style="overflow-x:auto;">'+svg+'</div><div class="st-note">เส้นหนา = เงินมาก · ซ้าย: ช่องทางที่คนไข้จ่าย → กลาง: หมอที่ทำเคส → ขวา: ส่วนแบ่งหมอ (DF) กับส่วนที่เหลือเป็นของคลินิก · รวม ฿'+fmt(T)+'</div>', 'ช่วงที่เลือก');
 }
 function renderStatsPage(){
   const body = document.getElementById('statsBody'); if(!body) return;
@@ -4016,12 +4181,20 @@ function renderStatsPage(){
   const payCard = _statsCard('💳 ช่องทางชำระเงิน', statsDonut([{k:'เงินสด',v:cash,c:'#27AE60'},{k:'โอน',v:trf,c:'#2078B4'},{k:'ปกส',v:sso,c:'#D68910'}], '฿'+_statsK(payTotal), 'ยอดชำระรวม'), R.label);
   const patCard = statsPeriod==='all' ? '' : _statsCard('👥 คนไข้ใหม่ vs คนไข้เก่า', statsDonut([{k:'คนไข้ใหม่',v:cur.newP,c:'#D4A843',fmtv:cur.newP+' คน'},{k:'คนไข้เก่ากลับมา',v:cur.patients-cur.newP,c:'#6B2D5E',fmtv:(cur.patients-cur.newP)+' คน'}], String(cur.patients), 'คนไข้'), 'ใหม่ = มารักษาครั้งแรกในช่วงนี้');
 
+  let deep = '';
+  try{
+    const P = statsPatients();
+    deep = '<div class="st-section">🧠 วิเคราะห์เชิงลึก</div>'
+      + '<div class="st-grid2">'+(statsPareto(rows)||'')+(statsDormant(P)||'')+'</div>'
+      + (statsCohort(P)||'') + (statsJourney(P)||'') + (statsSankey(rows)||'');
+  }catch(e){ console.warn('stats deep error', e); }
   body.innerHTML = kpis + insHtml + trendHtml
     + '<div class="st-grid2">'+(heatCard||'')+(dowCard||'')+'</div>'
     + '<div class="st-grid2">'+procCard+docHtml+'</div>'
     + '<div class="st-grid2">'+payCard+(patCard||'')+'</div>'
     + '<div class="st-grid2">'+aptHtml+endoHtml+'</div>'
-    + (labHtml?'<div class="st-grid2">'+labHtml+'</div>':'');
+    + (labHtml?'<div class="st-grid2">'+labHtml+'</div>':'')
+    + deep;
 }
 
 // เลื่อนค่าวันที่ 'YYYY-MM-DD' (kind='day') หรือเดือน 'YYYY-MM' (kind='month') ไปข้างหน้า/ถอยหลัง n หน่วย
@@ -4378,6 +4551,23 @@ function incomePeriodLabel(){
   const re=document.getElementById('income-range-end')?.value||today;
   return `${fmtDate(rs)} – ${fmtDate(re)}`;
 }
+// ติ๊ก "โอนส่วนแบ่ง (DF) ให้หมอแล้ว" รายวัน: ติดสถานะ dfPaid / dfPaidAt / dfPaidBy ที่รายการรักษาทุกรายการของหมอคนนั้นในวันนั้น (เก็บในชีต "บันทึกการรักษา")
+function isDfPaid(r){ const v=r&&r.dfPaid; return v===true||v==='Y'||v==='TRUE'||v==='true'||v===1||v==='1'; }
+function toggleDfPaid(idx, date, checked){
+  if(!isManager) return;
+  const doc = _shareDocList[idx]; if(!doc) return;
+  const recs = treatments.filter(t=>t.docName===doc.name && String(t.date||'').slice(0,10)===date);
+  if(!recs.length) return;
+  const ts = Date.now();
+  recs.forEach(r=>{
+    if(checked){ r.dfPaid='Y'; r.dfPaidAt=ts; r.dfPaidBy=(currentUser&&currentUser.name)||''; }
+    else { r.dfPaid=''; r.dfPaidAt=''; r.dfPaidBy=''; }
+  });
+  saveLocal();
+  openDoctorBreakdown(idx);
+  showToast(checked ? 'บันทึกแล้ว: โอนส่วนแบ่งให้หมอแล้ว' : 'ยกเลิกการติ๊กโอนส่วนแบ่ง');
+  _endoSyncRecs(recs); // ซิงก์ทีละรายการขึ้นชีต
+}
 // กดการ์ดหมอในหน้าสรุปรายได้ → ดูว่าทำรายการอะไร กี่ราย ได้เท่าไร (ใช้ข้อมูลช่วงวันที่เดียวกับที่กรองอยู่)
 function openDoctorBreakdown(idx){
   const doc=_shareDocList[idx]; if(!doc) return;
@@ -4424,6 +4614,35 @@ function openDoctorBreakdown(idx){
     </table></div>`;
     if(hasCombo) html+='<div class="dbk-note">รายการที่คิดเงินรวมหลายหัตถการในครั้งเดียว (เช่น "A, B") แสดงเป็นกลุ่มเดียว เพราะระบบเก็บราคาเป็นยอดรวมต่อครั้ง ไม่ได้แยกราคาต่อหัตถการ</div>';
 
+    // สรุปรายวัน (รายเดือน/ช่วงวันที่) หรือรายเดือน (รายปี): จำนวนราย ยอด และส่วนแบ่งหมอ (DF) ต่อวัน
+    if(currentPeriod==='month'||currentPeriod==='range'||currentPeriod==='year'){
+      const byYear = currentPeriod==='year';
+      const gp = {};
+      dr.forEach(r=>{ const d=String(r.date||'').slice(0,10); const k=byYear?d.slice(0,7):d; const o=gp[k]||(gp[k]={n:0,rev:0,df:0}); const pr=totalPrice(r); o.n++; o.rev+=pr; o.df+=pr*docSharePct(r,doc)/100; });
+      const keys = Object.keys(gp).sort();
+      if(keys.length>1){
+        const best = keys.reduce((b,k)=>gp[k].rev>gp[b].rev?k:b, keys[0]);
+        const dw = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+        const lab = k=> byYear ? (THAI_MONTHS[parseInt(k.slice(5,7),10)-1]||k) : (dw[new Date(k+'T12:00').getDay()]+' '+fmtDate(k).slice(0,5));
+        const dayRecs = k => dr.filter(r=>String(r.date||'').slice(0,10)===k);
+        const dfState = k => { const rs=dayRecs(k); const np=rs.filter(isDfPaid).length; return np===0?0:(np===rs.length?2:1); };
+        const paidCell = k => {
+          if(gp[k].df<0.5) return '<span style="opacity:.4">–</span>';
+          const st = dfState(k);
+          if(!isManager) return st===2 ? '<span class="bill-ok-ro" title="โอนแล้ว">✓</span>' : (st===1 ? '<span title="โอนบางส่วน" style="font-size:16px;">◐</span>' : '<span style="color:var(--text-light)">—</span>');
+          let cap=''; if(st===2){ const ts=Math.max(...dayRecs(k).map(r=>+r.dfPaidAt||0)); if(ts){ const dd=new Date(ts); const q=n=>String(n).padStart(2,'0'); cap='<div class="bill-cap">โอน '+q(dd.getDate())+'/'+q(dd.getMonth()+1)+'</div>'; } }
+          return '<input type="checkbox" class="bill-chk dfpaid-chk" '+(st===2?'checked ':'')+(st===1?'data-ind="1" ':'')+'aria-label="โอนส่วนแบ่งให้หมอแล้ว" onchange="toggleDfPaid('+idx+',\''+k+'\',this.checked)">'+cap;
+        };
+        const paidDf = dr.filter(isDfPaid).reduce((s0,r)=>s0+totalPrice(r)*docSharePct(r,doc)/100,0);
+        const dailyCols = !byYear;
+        html += '<div class="dbk-h">'+(byYear?'สรุปรายเดือน':'สรุปรายวัน')+' ('+keys.length+(byYear?' เดือน':' วัน')+')</div><div style="overflow-x:auto;"><table class="dbk-table"><thead><tr><th>'+(byYear?'เดือน':'วัน')+'</th><th>ราย</th><th>รายได้</th><th>ส่วนแบ่งหมอ</th>'+(dailyCols?'<th>โอนแล้ว</th>':'')+'</tr></thead><tbody>'
+          + keys.map(k=>'<tr><td>'+lab(k)+(k===best&&keys.length>2?' <span style="color:var(--gold)" title="ยอดสูงสุด">★</span>':'')+'</td><td>'+gp[k].n+'</td><td style="font-weight:700;">'+fmt(gp[k].rev)+'</td><td style="color:var(--gold);font-weight:700;">'+fmt(gp[k].df)+'</td>'+(dailyCols?'<td style="text-align:center;">'+paidCell(k)+'</td>':'')+'</tr>').join('')
+          + '</tbody><tfoot><tr><td>รวม</td><td>'+dr.length+'</td><td>'+fmt(tot)+'</td><td style="color:var(--gold);">'+fmt(share)+'</td>'+(dailyCols?'<td></td>':'')+'</tr></tfoot></table></div>'
+          + (share>=0.5 ? '<div class="dbk-note" style="font-size:12px;margin-top:8px;"><b style="color:#1E8449;">โอนให้หมอแล้ว ฿'+fmt(paidDf)+'</b> · <b style="color:'+(share-paidDf>=0.5?'#B9770E':'inherit')+';">ค้างโอน ฿'+fmt(Math.max(0,share-paidDf))+'</b></div>' : '')
+          + (keys.length>2 ? '<div class="dbk-note">★ = '+(byYear?'เดือน':'วัน')+'ที่ยอดรายได้สูงสุด'+(dailyCols&&isManager?' · ติ๊กช่อง "โอนแล้ว" เมื่อโอนส่วนแบ่งของวันนั้นให้หมอแล้ว':'')+'</div>' : '');
+      }
+    }
+
     html+=`<div class="dbk-h">รายชื่อคนไข้ (${cases.length} ราย)</div>`+(_dbkCases=cases).map((r,ci)=>`<div class="dbk-case${isOff(r)?' dbk-case-off':''}">
       <div>
         <div style="font-weight:700;">${_escHtml(r.patName||'—')} <span style="font-weight:600;color:var(--text-light);font-size:12px;">${r.hn?'HN '+_escHtml(r.hn):''}</span></div>
@@ -4434,6 +4653,7 @@ function openDoctorBreakdown(idx){
     </div>`).join('');
   }
   document.getElementById('dbk-body').innerHTML=html;
+  document.querySelectorAll('#dbk-body .dfpaid-chk[data-ind="1"]').forEach(c=>{ c.indeterminate=true; });
   document.getElementById('modalDocBreakdown').classList.add('open');
 }
 function buildShareGrid(rows){
