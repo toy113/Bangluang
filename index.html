@@ -518,6 +518,36 @@ select.form-control { cursor: pointer; }
 .treat-grp-hdr .tg-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
 .treat-grp-hdr .tg-name { font-size: 15px; font-family: 'Prompt', sans-serif; }
 .treat-grp-hdr .tg-meta { font-size: 12px; font-weight: 700; opacity: .85; }
+.st-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.st-kpi { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+.st-kpi-lbl { font-size: 12px; font-weight: 700; color: var(--text-light); }
+.st-kpi-val { font-size: 24px; font-weight: 800; color: var(--wine-dark); font-family: 'Prompt', sans-serif; line-height: 1.3; }
+.st-delta { font-size: 12px; font-weight: 700; }
+.st-delta.up { color: #1E8449; } .st-delta.down { color: #C0392B; } .st-delta.flat { color: var(--text-light); }
+.st-card { margin-bottom: 16px; }
+.st-card .st-pad { padding: 14px 18px 18px; }
+.st-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.st-grid2 > .card-box { margin-bottom: 0; }
+.st-insight { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 1.55; }
+.st-insight:last-child { border-bottom: none; }
+.st-insight-ico { font-size: 18px; line-height: 1.3; flex: none; }
+.st-chart { width: 100%; height: auto; color: var(--text-mid); display: block; }
+.st-heat { display: grid; gap: 3px; font-size: 10px; color: var(--text-light); align-items: center; }
+.st-heat-cell { height: 24px; border-radius: 5px; background: rgba(107,45,94,0.06); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
+.st-heat-lbl { text-align: center; font-weight: 700; }
+.st-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 13px; }
+.st-row-name { width: 120px; flex: none; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-row-bar { flex: 1; height: 10px; border-radius: 5px; background: var(--wine-pale); overflow: hidden; min-width: 40px; }
+.st-row-bar > div { height: 100%; border-radius: 5px; }
+.st-row-val { width: 92px; flex: none; text-align: right; font-weight: 700; font-size: 12px; }
+.st-legend { display: flex; flex-direction: column; gap: 6px; font-size: 13px; flex: 1; min-width: 0; }
+.st-legend-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.st-donut-wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.st-forecast { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: var(--wine-pale); font-size: 13px; line-height: 1.6; }
+.st-pbar { height: 8px; border-radius: 4px; background: #fff; margin-top: 8px; overflow: hidden; }
+.st-pbar > div { height: 100%; background: var(--wine); border-radius: 4px; }
+.st-chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--wine-pale); color: var(--wine); margin: 0 6px 6px 0; }
+@media (max-width: 768px) { .st-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-grid2 { grid-template-columns: 1fr; } .st-kpi-val { font-size: 21px; } .st-row-name { width: 96px; } }
 .endo-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(17,122,101,0.13); border: 1px solid rgba(17,122,101,0.4); color: #0E6655; white-space: nowrap; vertical-align: middle; }
 .endo-grp-hdr { margin: 14px 0 8px; padding: 8px 12px; font-weight: 800; font-size: 14px; border-left: 6px solid; }
 .endo-grp-hdr:first-child { margin-top: 0; }
@@ -533,6 +563,7 @@ select.form-control { cursor: pointer; }
 .endo-date { font-weight: 700; color: var(--wine); min-width: 84px; }
 .endo-note { font-size: 12px; color: var(--text-light); }
 .endo-empty { text-align: center; padding: 28px 12px; color: var(--text-light); font-size: 13px; line-height: 1.7; }
+.bank-missing { outline: 2px solid #C0392B; outline-offset: 4px; border-radius: 10px; }
 .bank-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; flex: none; }
 .bank-chip-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 .bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
@@ -1005,6 +1036,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="4" y="4" width="16" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg></span>บันทึกการรักษา</button>
       <button class="nav-item" onclick="showPage('endo')" id="nav-endo"><span class="nav-icon" style="font-size:17px;line-height:1;">🔁</span>เคสต่อเนื่อง</button>
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>สรุปรายได้</button>
+      <button class="nav-item" onclick="showPage('stats')" id="nav-stats"><span class="nav-icon" style="font-size:17px;line-height:1;">📈</span>สถิติ</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8.5 13h7"/></svg></span>ค่าแลป</button>
       <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>จัดฟัน</button>
       <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>ตั้งค่า</button>
@@ -1048,6 +1080,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="top-tab" id="ttab-treatment" onclick="showPage('treatment');setMobileNav('treatment')"><span class="mn-icon">📋</span>รักษา</button>
       <button class="top-tab" id="ttab-endo" onclick="showPage('endo');setMobileNav('endo')"><span class="mn-icon">🔁</span>เคสต่อเนื่อง</button>
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
+      <button class="top-tab" id="ttab-stats" onclick="showPage('stats');setMobileNav('stats')"><span class="mn-icon">📈</span>สถิติ</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
       <button class="top-tab" id="ttab-ortho" style="display:none;" onclick="showPage('ortho')"><span class="mn-icon">😬</span>จัดฟัน</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
@@ -1382,6 +1415,26 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
     </div>
 
+    <!-- ===== STATS PAGE (สถิติ) ===== -->
+    <div class="page" id="page-stats">
+      <div class="card-box" style="margin-bottom:16px;">
+        <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
+          <div class="card-box-title">📈 สถิติคลินิก <span id="statsRangeLabel" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;"></span></div>
+          <div class="filter-row" style="flex-wrap:wrap;gap:8px;">
+            <div class="period-tabs" id="statsPeriodTabs" style="background:var(--wine-pale);">
+              <button class="period-tab" onclick="setStatsPeriod('30d',this)">30 วัน</button>
+              <button class="period-tab active" onclick="setStatsPeriod('month',this)">เดือนนี้</button>
+              <button class="period-tab" onclick="setStatsPeriod('90d',this)">90 วัน</button>
+              <button class="period-tab" onclick="setStatsPeriod('year',this)">ปีนี้</button>
+              <button class="period-tab" onclick="setStatsPeriod('all',this)">ทั้งหมด</button>
+            </div>
+            <select class="form-control" id="statsDocFilter" onchange="statsDoc=this.value;renderStatsPage()" style="height:36px;width:150px;display:none;"></select>
+          </div>
+        </div>
+      </div>
+      <div id="statsBody"></div>
+    </div>
+
     <!-- ===== ENDO CASES PAGE (เคสต่อเนื่อง: กลุ่มรักษารากฟัน) ===== -->
     <div class="page" id="page-endo">
       <div class="card-box">
@@ -1465,6 +1518,9 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </button>
       <button class="mobile-nav-btn" id="mnav-income" onclick="showPage('income');setMobileNav('income')">
         <span class="mn-icon">📊</span>รายได้
+      </button>
+      <button class="mobile-nav-btn" id="mnav-stats" onclick="showPage('stats');setMobileNav('stats')">
+        <span class="mn-icon">📈</span>สถิติ
       </button>
       <button class="mobile-nav-btn" id="mnav-lab" onclick="showPage('lab');setMobileNav('lab')">
         <span class="mn-icon">🧪</span>แลป
@@ -1627,7 +1683,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
     </div>
     <div id="treat-bank-wrap" style="display:none;margin-top:10px;">
-      <div class="pay-label pay-transfer" style="margin-bottom:6px;">🏦 ธนาคารที่โอน <span style="color:var(--text-light);font-weight:400;font-size:11px;">(ไม่บังคับ)</span></div>
+      <div class="pay-label pay-transfer" style="margin-bottom:6px;">🏦 ธนาคารที่โอน <span style="color:#C0392B;">*</span></div>
       <div class="contact-chips" id="treat-bank-chips"></div>
       <input type="hidden" id="treat-bank">
     </div>
@@ -2119,7 +2175,7 @@ const DOCTORS_DATA = [
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', pin:'1234', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
-const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
+const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
 
 const PROC_COLORS = {
   'ขูดหินปูน':    '#2980B9',
@@ -2129,6 +2185,7 @@ const PROC_COLORS = {
   'ผ่าฟันคุด':    '#C0392B',
   'ตรวจฟัน':      '#8E44AD',
   'X-Ray':        '#16A085',
+  'X-Ray BW':     '#117864',
   'TP':           '#D35400',
   'RPD':          '#E67E22',
   'Valplast':     '#F39C12',
@@ -2416,13 +2473,14 @@ function showPage(p){
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
   localStorage.setItem('bl_lastPage', p);
-  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',endo:'🔁 เคสต่อเนื่อง'};
+  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',endo:'🔁 เคสต่อเนื่อง',stats:'📈 สถิติ'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
   if(p==='treatment') renderTreatPage();
   if(p==='income') renderIncome();
   if(p==='lab') renderLabPage();
   if(p==='endo') renderEndoPage();
+  if(p==='stats') renderStatsPage();
   if(p==='settings') buildSettingsPage();
   // เดิม showPage('ortho') ไม่ได้เรียก renderOrthoPage() เลย — หน้าจัดฟันเลยว่างเปล่าจนกว่า
   // background syncAll() รอบถัดไปจะ re-render ให้ (นานสุดเท่าความถี่ auto-sync)
@@ -2725,7 +2783,7 @@ function ensureSaveSummary(modalId, cardId){
 }
 
 // ปุ่มลัดหมายเหตุ (กดเลือกแทนการพิมพ์) — แก้รายการได้ที่ NOTE_QUICK_OPTIONS
-const NOTE_QUICK_OPTIONS = ['ปวดฟัน','เสียวฟัน','เหงือกบวม','ฟันแตก/บิ่น','อุดหลุด','อุดปิดช่องว่าง','ฟันโยก','ปกส','เบิกบริษัท','มาด้วยกัน'];
+const NOTE_QUICK_OPTIONS = ['ปวดฟัน','เสียวฟัน','เหงือกบวม','ฟันแตก/บิ่น','อุดหลุด','อุดปิดช่องว่าง','ฟันโยก','อุดแล้วเสียวฟัน','ปวดแผลถอนฟัน','ปกส','เบิกบริษัท','มาด้วยกัน'];
 const NOTE_CHIP_TARGETS = ['apt-note','treat-note'];
 function _noteTokens(v){ return String(v||'').split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean); }
 function toggleNoteChip(inputId, text){
@@ -3149,6 +3207,14 @@ function saveTreat(){
   // ถ้าเป็นการแก้ไขรายการเดิมและหมอไม่เปลี่ยน ให้คง docShare เดิมไว้ (ไม่ snapshot ซ้ำทับของเก่า)
   const existingTreat = treatments.find(x=>x.id===id);
   if(existingTreat && !canEditTreat(existingTreat)){ warnTreatLocked(); return; }
+  // มียอดโอน → ต้องเลือกธนาคารเสมอ
+  if((+document.getElementById('treat-transfer').value||0) > 0 && !(document.getElementById('treat-bank')?.value)){
+    _treatSaving = false;
+    showToast('กรุณาเลือกธนาคารที่โอน','error');
+    const bw = document.getElementById('treat-bank-wrap');
+    if(bw){ bw.style.display=''; bw.classList.add('bank-missing'); if(bw.scrollIntoView) bw.scrollIntoView({block:'center',behavior:'smooth'}); }
+    return;
+  }
   const doc = doctors.find(d=>d.name===docName);
   // manager พิมพ์ % เจาะจงรายการนี้ไว้ (ช่อง treat-share) ให้ใช้ค่านั้นเสมอ ข้ามการ snapshot อัตโนมัติ
   const shareOverrideEl = document.getElementById('treat-share');
@@ -3575,6 +3641,7 @@ function bankColor(k){ const b=TRANSFER_BANKS.find(x=>x.k===k); return b ? b.c :
 function setTreatBank(v){
   const el = document.getElementById('treat-bank'); if(!el) return;
   el.value = TRANSFER_BANKS.some(b=>b.k===v) ? v : '';
+  const _bw = document.getElementById('treat-bank-wrap'); if(_bw) _bw.classList.remove('bank-missing');
   document.querySelectorAll('#treat-bank-chips .contact-chip').forEach(b=>b.classList.toggle('active', b.dataset.v===el.value));
 }
 function toggleTreatBank(v){
@@ -3641,6 +3708,320 @@ function buildBankStats(rows, period, selYrBE){
       + '</tbody><tfoot><tr><td>รวมทั้งปี</td>'+keys.map(k=>'<td>'+fmt(agg[k].amt)+'</td>').join('')+'<td>'+fmt(total)+'</td></tr></tfoot></table></div>';
   }
   body.innerHTML = html;
+}
+
+// ============================================================
+//  สถิติ — KPI เทียบช่วงก่อนหน้า, กราฟรายได้ + เส้นเฉลี่ยเคลื่อนที่, คาดการณ์สิ้นเดือน,
+//  ฮีทแมปวัน×ชั่วโมง, หัตถการยอดนิยม, ช่องทางชำระ, คนไข้ใหม่/เก่า, อันดับหมอ, นัด/ช่องทางติดต่อ,
+//  เคสรากฟัน, ต้นทุนแลป และ "ข้อสังเกตอัตโนมัติ" (หมอเห็นเฉพาะของตัวเอง)
+// ============================================================
+var statsPeriod = 'month', statsDoc = '';
+var STATS_DOW = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+function setStatsPeriod(p, btn){
+  statsPeriod = p;
+  document.querySelectorAll('#statsPeriodTabs .period-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderStatsPage();
+}
+function _ymd(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function _addDays(ymd, n){ const [y,m,d]=ymd.split('-').map(Number); return _ymd(new Date(y, m-1, d+n, 12)); }
+function _daysBetween(a, b){ return Math.round((new Date(b+'T12:00') - new Date(a+'T12:00'))/86400000); }
+function _statsK(n){
+  n = Math.round(n);
+  if(Math.abs(n)>=1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+  if(Math.abs(n)>=1000) return (n/1000).toFixed(Math.abs(n)>=10000?0:1).replace(/\.0$/,'')+'k';
+  return String(n);
+}
+function _niceMax(v){
+  if(v<=0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v))), f = v/p;
+  return (f<=1?1:f<=2?2:f<=5?5:10)*p;
+}
+function statsRange(){
+  const today = todayStr();
+  if(statsPeriod==='30d')  return { start:_addDays(today,-29), end:today, label:'30 วันล่าสุด' };
+  if(statsPeriod==='month')return { start:today.slice(0,7)+'-01', end:today, label:'เดือนนี้' };
+  if(statsPeriod==='90d')  return { start:_addDays(today,-89), end:today, label:'90 วันล่าสุด' };
+  if(statsPeriod==='year') return { start:today.slice(0,4)+'-01-01', end:today, label:'ปีนี้' };
+  let min = today;
+  treatments.forEach(t=>{ const d=String(t.date||'').slice(0,10); if(/^\d{4}-\d{2}-\d{2}$/.test(d) && d<min) min=d; });
+  return { start:min, end:today, label:'ทั้งหมด' };
+}
+function statsCanSee(docName){
+  if(!isManager) return !!currentUser && docName===currentUser.name;
+  return !statsDoc || docName===statsDoc;
+}
+function statsRows(start, end){
+  return treatments.filter(t=>{ const d=String(t.date||'').slice(0,10); return d>=start && d<=end && statsCanSee(t.docName); });
+}
+function statsAgg(rows, firstSeen, start){
+  const rev = rows.reduce((s,t)=>s+totalPrice(t),0);
+  const pts = new Set(rows.map(endoPatientKey));
+  let newP = 0; pts.forEach(k=>{ const f=firstSeen.get(k); if(f && f>=start) newP++; });
+  return { rev, cases:rows.length, patients:pts.size, avg: rows.length ? rev/rows.length : 0, newP, retPct: pts.size ? (pts.size-newP)/pts.size*100 : 0 };
+}
+function _delta(cur, prev){
+  if(prev===null || prev===undefined || !(prev>0)) return '<span class="st-delta flat">—</span>';
+  const d = (cur-prev)/prev*100;
+  if(Math.abs(d)<0.5) return '<span class="st-delta flat">≈ เท่าเดิม</span>';
+  return '<span class="st-delta '+(d>0?'up':'down')+'">'+(d>0?'▲ ':'▼ ')+Math.abs(d).toFixed(0)+'%</span>';
+}
+function statsSeries(rows, start, end){
+  const L = _daysBetween(start,end)+1;
+  const byDate = new Map();
+  rows.forEach(t=>{ const d=String(t.date).slice(0,10); byDate.set(d,(byDate.get(d)||0)+totalPrice(t)); });
+  const B = [];
+  let win = 3, unit = 'เดือน';
+  if(L<=45){
+    unit='วัน'; win=7;
+    for(let i=0;i<L;i++){ const d=_addDays(start,i); B.push({ label:d.slice(8,10)+'/'+d.slice(5,7), val:byDate.get(d)||0 }); }
+  } else if(L<=200){
+    unit='สัปดาห์'; win=3;
+    const [y,m,d]=start.split('-').map(Number); const dow=(new Date(y,m-1,d,12).getDay()+6)%7;
+    for(let w=_addDays(start,-dow); w<=end; w=_addDays(w,7)){
+      let v=0; for(let i=0;i<7;i++){ const dd=_addDays(w,i); if(dd>=start && dd<=end) v+=byDate.get(dd)||0; }
+      B.push({ label:w.slice(8,10)+'/'+w.slice(5,7), val:v });
+    }
+  } else {
+    unit='เดือน'; win=3;
+    let [y,m]=start.slice(0,7).split('-').map(Number); const [ey,em]=end.slice(0,7).split('-').map(Number);
+    while(y<ey || (y===ey && m<=em)){
+      const key=y+'-'+String(m).padStart(2,'0'); let v=0;
+      byDate.forEach((val,dd)=>{ if(dd.startsWith(key)) v+=val; });
+      B.push({ label:THAI_MONTHS[m-1].slice(0,3)+(L>370?' '+String((y+543)%100):''), val:v });
+      m++; if(m>12){ m=1; y++; }
+    }
+  }
+  const vals = B.map(b=>b.val);
+  const ma = vals.map((_,i)=>{ const a=Math.max(0,i-win+1); const seg=vals.slice(a,i+1); return seg.reduce((s,x)=>s+x,0)/seg.length; });
+  return { B, vals, ma, unit, win };
+}
+function statsBarChart(ser){
+  const { B, vals, ma, unit, win } = ser; const n = B.length;
+  if(!n) return '';
+  const W=620, H=230, pl=42, pr=8, pt=12, pb=26;
+  const mx = _niceMax(Math.max(1, ...vals, ...ma));
+  const iw=W-pl-pr, ih=H-pt-pb, bw=iw/n;
+  let g='';
+  for(let i=0;i<=4;i++){
+    const y = pt+ih-ih*i/4;
+    g += '<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" stroke-opacity=".12"/>'
+       + '<text x="'+(pl-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="currentColor" fill-opacity=".65">'+_statsK(mx*i/4)+'</text>';
+  }
+  const bars = vals.map((v,i)=>{
+    const h = ih*v/mx, x = pl+i*bw+bw*0.15;
+    return '<rect x="'+x.toFixed(1)+'" y="'+(pt+ih-h).toFixed(1)+'" width="'+(bw*0.7).toFixed(1)+'" height="'+Math.max(h,0).toFixed(1)+'" rx="2" fill="#6B2D5E" fill-opacity=".82"><title>'+_escHtml(B[i].label)+': ฿'+fmt(v)+'</title></rect>';
+  }).join('');
+  const pts = ma.map((v,i)=>(pl+i*bw+bw/2).toFixed(1)+','+(pt+ih-ih*v/mx).toFixed(1)).join(' ');
+  const line = n>1 ? '<polyline points="'+pts+'" fill="none" stroke="#D4A843" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' : '';
+  const step = Math.ceil(n/7);
+  const xl = B.map((b,i)=> i%step===0 ? '<text x="'+(pl+i*bw+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10" fill="currentColor" fill-opacity=".7">'+_escHtml(b.label)+'</text>' : '').join('');
+  return '<svg class="st-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="กราฟรายได้">'+g+bars+line+xl+'</svg>'
+    + '<div style="font-size:11px;color:var(--text-light);margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;background:#6B2D5E;border-radius:2px;margin-right:4px;"></span>รายได้ต่อ'+unit
+    + ' &nbsp; <span style="display:inline-block;width:14px;height:3px;background:#D4A843;border-radius:2px;margin:0 4px 2px 8px;"></span>เฉลี่ยเคลื่อนที่ '+win+' '+unit+'</div>';
+}
+function statsDonut(parts, centerTop, centerSub){
+  const total = parts.reduce((s,p)=>s+p.v,0); const R=40, C=2*Math.PI*R;
+  let acc=0;
+  const segs = total>0 ? parts.filter(p=>p.v>0).map(p=>{ const len=C*p.v/total; const el='<circle cx="60" cy="60" r="'+R+'" fill="none" stroke="'+p.c+'" stroke-width="18" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-acc).toFixed(2)+'" transform="rotate(-90 60 60)"><title>'+_escHtml(p.k)+': '+fmt(p.v)+'</title></circle>'; acc+=len; return el; }).join('') : '';
+  const svg = '<svg viewBox="0 0 120 120" width="130" height="130" role="img" aria-label="สัดส่วน"><circle cx="60" cy="60" r="'+R+'" fill="none" stroke="currentColor" stroke-opacity=".1" stroke-width="18"/>'+segs
+    +'<text x="60" y="58" text-anchor="middle" font-size="15" font-weight="800" fill="currentColor">'+_escHtml(centerTop)+'</text><text x="60" y="73" text-anchor="middle" font-size="9" fill="currentColor" fill-opacity=".65">'+_escHtml(centerSub||'')+'</text></svg>';
+  const legend = '<div class="st-legend">'+parts.map(p=>'<div class="st-legend-row"><span><span class="bank-dot" style="background:'+p.c+'"></span>'+_escHtml(p.k)+'</span><b>'+(p.fmtv||fmt(p.v))+' <span style="font-weight:600;color:var(--text-light);">'+(total?Math.round(p.v/total*100):0)+'%</span></b></div>').join('')+'</div>';
+  return '<div class="st-donut-wrap" style="color:var(--text-mid);">'+svg+legend+'</div>';
+}
+function statsRowsBar(items, color){ // [{name,val,label,color,html}]
+  const mx = Math.max(1, ...items.map(i=>i.val));
+  return items.map(i=>'<div class="st-row"><div class="st-row-name">'+(i.html||_escHtml(i.name))+'</div><div class="st-row-bar"><div style="width:'+(i.val/mx*100).toFixed(1)+'%;background:'+(i.color||color||'#6B2D5E')+'"></div></div><div class="st-row-val">'+i.label+'</div></div>').join('');
+}
+function _statsCard(title, inner, sub){
+  return '<div class="card-box st-card"><div class="card-box-hdr" style="padding:14px 18px;"><div class="card-box-title" style="font-size:15px;">'+title+'</div>'+(sub?'<div style="font-size:12px;color:var(--text-light);font-weight:600;">'+sub+'</div>':'')+'</div><div class="st-pad">'+inner+'</div></div>';
+}
+function renderStatsPage(){
+  const body = document.getElementById('statsBody'); if(!body) return;
+  // ตัวกรองหมอ (ผู้จัดการเท่านั้น)
+  const sel = document.getElementById('statsDocFilter');
+  if(sel){
+    if(isManager){
+      if(!sel.options.length){ sel.innerHTML = '<option value="">ทุกหมอ</option>'+doctors.map(d=>'<option value="'+_escHtml(d.name)+'">'+_escHtml(d.name)+'</option>').join(''); }
+      sel.value = statsDoc; sel.style.display='';
+    } else { sel.style.display='none'; }
+  }
+  const R = statsRange();
+  const L = _daysBetween(R.start, R.end)+1;
+  const lbl = document.getElementById('statsRangeLabel');
+  if(lbl) lbl.textContent = R.label+' · '+fmtDate(R.start)+' – '+fmtDate(R.end);
+
+  const firstSeen = new Map();
+  treatments.forEach(t=>{ const d=String(t.date||'').slice(0,10); if(!d) return; const k=endoPatientKey(t); const f=firstSeen.get(k); if(!f||d<f) firstSeen.set(k,d); });
+  const rows = statsRows(R.start, R.end);
+  const cur = statsAgg(rows, firstSeen, R.start);
+  let prev = null, prevRows = [];
+  if(statsPeriod!=='all'){
+    const pe=_addDays(R.start,-1), ps=_addDays(pe,-(L-1));
+    prevRows = statsRows(ps, pe); prev = statsAgg(prevRows, firstSeen, ps);
+  }
+  if(!rows.length){
+    body.innerHTML = '<div class="card-box"><div class="endo-empty">ยังไม่มีข้อมูลการรักษาในช่วงนี้<br>ลองเลือกช่วงเวลาที่กว้างขึ้น</div></div>';
+    return;
+  }
+  const dayRevCount = new Set(rows.map(t=>String(t.date).slice(0,10))).size;
+  const mine = isManager ? '' : ' (ของคุณ)';
+  const kp = (lbl2, val, d) => '<div class="st-kpi"><div class="st-kpi-lbl">'+lbl2+'</div><div class="st-kpi-val">'+val+'</div>'+d+'</div>';
+  const kpis = '<div class="st-kpis">'
+    + kp('💰 รายได้รวม'+mine, '฿'+fmt(cur.rev), _delta(cur.rev, prev&&prev.rev))
+    + kp('🦷 จำนวนเคส', fmt(cur.cases), _delta(cur.cases, prev&&prev.cases))
+    + kp('👥 คนไข้ (ไม่ซ้ำ)', fmt(cur.patients), _delta(cur.patients, prev&&prev.patients))
+    + kp('🧾 เฉลี่ยต่อเคส', '฿'+fmt(Math.round(cur.avg)), _delta(cur.avg, prev&&prev.avg))
+    + (statsPeriod==='all'
+        ? kp('📅 วันที่มีเคส', fmt(dayRevCount), '<span class="st-delta flat">จาก '+fmt(L)+' วัน</span>') + kp('📆 เฉลี่ยเคสต่อวัน', (cur.cases/Math.max(1,dayRevCount)).toFixed(1), '<span class="st-delta flat">เฉพาะวันที่มีเคส</span>')
+        : kp('🌱 คนไข้ใหม่', fmt(cur.newP), _delta(cur.newP, prev&&prev.newP)) + kp('🔁 คนไข้เก่ากลับมา', cur.retPct.toFixed(0)+'%', prev?_delta(cur.retPct, prev.retPct):'<span class="st-delta flat">—</span>'))
+    + '</div>';
+
+  // ----- รายวัน / ฮีทแมป / หัตถการ / ชำระเงิน -----
+  const dayRev = new Map(), dayCnt = new Map();
+  rows.forEach(t=>{ const d=String(t.date).slice(0,10); dayRev.set(d,(dayRev.get(d)||0)+totalPrice(t)); dayCnt.set(d,(dayCnt.get(d)||0)+1); });
+  let bestDay = null; dayRev.forEach((v,d)=>{ if(!bestDay || v>bestDay.v) bestDay={d,v,n:dayCnt.get(d)}; });
+  const activeDays = dayRev.size;
+  const dowRev = Array(7).fill(0), dowDays = Array(7).fill(0);
+  dayRev.forEach((v,d)=>{ const w=new Date(d+'T12:00').getDay(); dowRev[w]+=v; dowDays[w]++; });
+  const dowAvg = dowRev.map((v,i)=>dowDays[i]?v/dowDays[i]:0);
+  let bestDow = -1; dowAvg.forEach((v,i)=>{ if(v>0 && (bestDow<0 || v>dowAvg[bestDow])) bestDow=i; });
+
+  const heat = Array.from({length:7},()=>({})); let hMin=24,hMax=0,hPeak={n:0,w:0,h:0};
+  rows.forEach(t=>{
+    const h = parseInt(String(t.time||'').slice(0,2),10); if(isNaN(h)) return;
+    const w = new Date(String(t.date).slice(0,10)+'T12:00').getDay();
+    heat[w][h]=(heat[w][h]||0)+1; if(h<hMin) hMin=h; if(h>hMax) hMax=h;
+    if(heat[w][h]>hPeak.n) hPeak={n:heat[w][h],w,h};
+  });
+  const hasHeat = hMax>=hMin && hPeak.n>0;
+  let heatHtml = '';
+  if(hasHeat){
+    const h0=Math.max(7,hMin), h1=Math.min(22,hMax); const cols=h1-h0+1;
+    heatHtml = '<div class="st-heat" style="grid-template-columns:34px repeat('+cols+',minmax(0,1fr));"><div></div>'
+      + Array.from({length:cols},(_,i)=>'<div class="st-heat-lbl">'+(h0+i)+'</div>').join('');
+    [1,2,3,4,5,6,0].forEach(w=>{
+      heatHtml += '<div class="st-heat-lbl" style="text-align:right;padding-right:4px;">'+STATS_DOW[w].slice(0,w===4?3:3)+'</div>';
+      for(let h=h0;h<=h1;h++){
+        const n=heat[w][h]||0, a=n?(0.18+0.82*n/hPeak.n):0;
+        heatHtml += '<div class="st-heat-cell" style="'+(n?'background:rgba(107,45,94,'+a.toFixed(2)+');':'')+'" title="'+STATS_DOW[w]+' '+h+':00 — '+n+' เคส">'+(n&&cols<=14?n:'')+'</div>';
+      }
+    });
+    heatHtml += '</div>';
+  }
+
+  const procAgg = {};
+  rows.forEach(t=>{
+    const parts = (Array.isArray(t.proc)?t.proc:String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
+    const list = parts.length?parts:['ไม่ระบุ']; const share = totalPrice(t)/list.length;
+    list.forEach(pn=>{ const o=procAgg[pn]||(procAgg[pn]={rev:0,n:0}); o.rev+=share; o.n++; });
+  });
+  const topProc = Object.entries(procAgg).sort((a,b)=>b[1].rev-a[1].rev).slice(0,8);
+  const procTotal = Object.values(procAgg).reduce((s,o)=>s+o.rev,0);
+
+  let cash=0,trf=0,sso=0; rows.forEach(t=>{ cash+=+t.cash||0; trf+=+t.transfer||0; sso+=+t.sso||0; });
+  const payTotal = cash+trf+sso;
+
+  // ----- ข้อสังเกตอัตโนมัติ -----
+  const ins = [];
+  if(prev && prev.rev>0){
+    const d=(cur.rev-prev.rev)/prev.rev*100;
+    ins.push([d>=0?'📈':'📉','รายได้ช่วงนี้ <b>'+(d>=0?'เพิ่มขึ้น ':'ลดลง ')+Math.abs(d).toFixed(0)+'%</b> เมื่อเทียบกับช่วงก่อนหน้า (฿'+fmt(cur.rev)+' เทียบ ฿'+fmt(prev.rev)+')']);
+  }
+  if(bestDay) ins.push(['🏆','วันที่ทำรายได้สูงสุดคือ <b>'+fmtDate(bestDay.d)+'</b> ฿'+fmt(bestDay.v)+' ('+bestDay.n+' เคส)']);
+  if(bestDow>=0 && activeDays>=7) ins.push(['📅','<b>วัน'+STATS_DOW[bestDow]+'</b> ทำรายได้เฉลี่ยสูงสุด ฿'+fmt(Math.round(dowAvg[bestDow]))+' ต่อวัน']);
+  if(hasHeat) ins.push(['⏰','คนไข้แน่นที่สุด <b>วัน'+STATS_DOW[hPeak.w]+' '+hPeak.h+':00–'+(hPeak.h+1)+':00</b> ('+hPeak.n+' เคสในช่วงนี้) — เหมาะวางนัดสำคัญเลี่ยงช่วงนี้']);
+  if(topProc.length) ins.push(['🦷','<b>'+_escHtml(topProc[0][0])+'</b> เป็นหัตถการที่สร้างรายได้สูงสุด '+(procTotal?Math.round(topProc[0][1].rev/procTotal*100):0)+'% ('+topProc[0][1].n+' ครั้ง)']);
+  if(prev && prev.avg>0 && Math.abs(cur.avg-prev.avg)/prev.avg>=0.1) ins.push([cur.avg>prev.avg?'💎':'🪙','ค่าเฉลี่ยต่อเคส'+(cur.avg>prev.avg?'สูงขึ้น':'ลดลง')+'เป็น ฿'+fmt(Math.round(cur.avg))+' (ก่อนหน้า ฿'+fmt(Math.round(prev.avg))+')']);
+  if(cur.patients>0 && statsPeriod!=='all') ins.push(['🌱','คนไข้ใหม่ <b>'+cur.newP+' คน</b> จาก '+cur.patients+' คน ('+Math.round(cur.newP/cur.patients*100)+'%) · คนไข้เก่ากลับมา '+Math.round(cur.retPct)+'%']);
+  if(payTotal>0 && sso>0) ins.push(['🏛️','ประกันสังคม (ปกส) คิดเป็น <b>'+Math.round(sso/payTotal*100)+'%</b> ของยอดชำระ ฿'+fmt(sso)]);
+  const noBank = rows.filter(t=>(+t.transfer||0)>0 && !TRANSFER_BANKS.some(b=>b.k===t.transferBank)).length;
+  if(noBank) ins.push(['⚠️','มียอดโอน <b>'+noBank+' รายการ</b> ที่ยังไม่ระบุธนาคาร']);
+
+  // ----- คาดการณ์สิ้นเดือน -----
+  let forecastHtml = '';
+  if(statsPeriod==='month' && cur.rev>0){
+    const today = todayStr(); const [y,m] = today.slice(0,7).split('-').map(Number);
+    const dim = new Date(y,m,0).getDate(), el = Number(today.slice(8,10)), remain = dim-el;
+    const ratio = activeDays/el, avgAct = cur.rev/activeDays;
+    const fc = cur.rev + avgAct*ratio*remain;
+    const pmEnd = _addDays(today.slice(0,7)+'-01',-1), pmStart = pmEnd.slice(0,7)+'-01';
+    const pmRev = statsRows(pmStart, pmEnd).reduce((s,t)=>s+totalPrice(t),0);
+    const vs = pmRev>0 ? ' · เดือนก่อน ฿'+fmt(pmRev)+' ('+(fc>=pmRev?'▲ ':'▼ ')+Math.abs((fc-pmRev)/pmRev*100).toFixed(0)+'%)' : '';
+    forecastHtml = '<div class="st-forecast">🔮 <b>คาดการณ์สิ้นเดือน ≈ ฿'+fmt(Math.round(fc))+'</b>'+vs
+      +'<br><span style="font-size:12px;color:var(--text-light);">คิดจากเฉลี่ย ฿'+fmt(Math.round(avgAct))+'/วันที่มีเคส × สัดส่วนวันทำงานที่ผ่านมา ('+activeDays+'/'+el+' วัน) · เหลืออีก '+remain+' วัน</span>'
+      +'<div class="st-pbar"><div style="width:'+Math.min(100,cur.rev/fc*100).toFixed(0)+'%"></div></div></div>';
+  }
+
+  // ----- อันดับหมอ (ผู้จัดการ ไม่ได้กรองหมอ) -----
+  let docHtml = '';
+  if(isManager && !statsDoc){
+    const per = {}; rows.forEach(t=>{ const n=t.docName||'ไม่ระบุ'; const o=per[n]||(per[n]={rev:0,n:0,df:0}); const pr=totalPrice(t); o.rev+=pr; o.n++; const dd=doctors.find(d=>d.name===n)||DOCTORS_DATA.find(d=>d.name===n); o.df+=pr*docSharePct(t,dd||{share:0})/100; });
+    const arr = Object.entries(per).sort((a,b)=>b[1].rev-a[1].rev);
+    docHtml = _statsCard('🏅 อันดับหมอ', statsRowsBar(arr.map(([n,o])=>{ const dd=doctors.find(d=>d.name===n)||DOCTORS_DATA.find(d=>d.name===n); const col=/^#[0-9a-f]{6}$/i.test(dd?.color||'')?dd.color:'#7A6A78';
+      return { name:n, html:(dd?.emoji||'')+' '+_escHtml(n), val:o.rev, color:col, label:'฿'+fmt(o.rev)+'<div style="font-weight:600;color:var(--text-light);font-size:11px;">'+o.n+' เคส · DF ฿'+fmt(Math.round(o.df))+'</div>' }; })), 'รายได้ · จำนวนเคส · ส่วนแบ่งหมอ');
+  }
+
+  // ----- นัด -----
+  const apts = appointments.filter(a=>{ const d=String(a.date||'').slice(0,10); return d>=R.start && d<=R.end && statsCanSee(a.docName); });
+  let aptHtml = '';
+  if(apts.length){
+    const st = {}; apts.forEach(a=>{ const k=a.status||'—'; st[k]=(st[k]||0)+1; });
+    const cancel = st['ยกเลิก']||0, ch = {line:0,phone:0,fb:0,none:0}; apts.forEach(a=>{ ch[CONTACT_CHANNELS[a.contactChannel]?a.contactChannel:'none']++; });
+    const chItems = [{name:'LINE',val:ch.line,c:'#06A94D'},{name:'โทรศัพท์',val:ch.phone,c:'#8E4A86'},{name:'Facebook',val:ch.fb,c:'#1877F2'},{name:'ไม่ระบุ',val:ch.none,c:'#8A8A8A'}].filter(x=>x.val>0);
+    aptHtml = _statsCard('📆 การนัดหมาย',
+      '<div style="margin-bottom:8px;"><b style="font-size:20px;color:var(--wine-dark);">'+apts.length+'</b> นัด · ยกเลิก '+cancel+' ('+Math.round(cancel/apts.length*100)+'%)</div>'
+      + Object.entries(st).sort((a,b)=>b[1]-a[1]).map(([k,v])=>'<span class="st-chip">'+_escHtml(k)+' '+v+'</span>').join('')
+      + '<div style="font-size:12px;font-weight:700;color:var(--text-light);margin:10px 0 2px;">ช่องทางติดต่อ</div>'
+      + statsRowsBar(chItems.map(x=>({name:x.name,val:x.val,color:x.c,label:x.val+' นัด'}))), R.label);
+  }
+
+  // ----- เคสรากฟัน -----
+  let endoHtml = '';
+  try{
+    const cs = buildEndoCases(); const vis = c=>statsCanSee(c.docName);
+    const op = cs.open.filter(vis), cl = cs.closed.filter(vis);
+    if(op.length || cl.length){
+      const stale = op.filter(c=>{ const d=_daysBetween(c.recs[c.recs.length-1].date, todayStr()); return d>=30; }).length;
+      const avgVisits = cl.length ? cl.reduce((s,c)=>s+c.recs.length,0)/cl.length : 0;
+      const avgDur = cl.length ? cl.reduce((s,c)=>s+_daysBetween(c.recs[0].date, c.recs[c.recs.length-1].date),0)/cl.length : 0;
+      endoHtml = _statsCard('🔁 เคสรักษารากฟัน',
+        '<div class="st-row"><div class="st-row-name">กำลังดำเนินการ</div><div class="st-row-val" style="width:auto;margin-left:auto;font-size:15px;">'+op.length+' เคส</div></div>'
+        +'<div class="st-row"><div class="st-row-name">ไม่มาต่อเกิน 30 วัน</div><div class="st-row-val" style="width:auto;margin-left:auto;font-size:15px;color:'+(stale?'#B9770E':'inherit')+';">'+stale+' เคส</div></div>'
+        +'<div class="st-row"><div class="st-row-name">จบเคสแล้ว</div><div class="st-row-val" style="width:auto;margin-left:auto;font-size:15px;">'+cl.length+' เคส</div></div>'
+        +(cl.length?'<div style="font-size:12px;color:var(--text-light);margin-top:6px;">เคสที่จบแล้ว: เฉลี่ย <b>'+avgVisits.toFixed(1)+' ครั้ง</b> ใช้เวลาเฉลี่ย <b>'+Math.round(avgDur)+' วัน</b> จากครั้งแรกถึงครั้งสุดท้าย</div>':''), 'ทั้งหมดที่มีในระบบ');
+      if(stale) ins.push(['🔔','เคสรากฟันที่กำลังดำเนินการ <b>'+stale+' เคส</b> ไม่มาต่อเกิน 30 วัน — ควรโทรตามที่แท็บเคสต่อเนื่อง']);
+    }
+  }catch(e){}
+
+  // ----- แลป -----
+  let labHtml = '';
+  const lbs = labs.filter(l=>{ const d=String(l.date||'').slice(0,10); return d>=R.start && d<=R.end && statsCanSee(l.docName); });
+  if(lbs.length){
+    const cost = lbs.reduce((s,l)=>s+(+l.price||0),0); const by={}; lbs.forEach(l=>{ const k=l.lab||'ไม่ระบุ'; by[k]=(by[k]||0)+(+l.price||0); });
+    labHtml = _statsCard('🧪 ต้นทุนแลป',
+      '<div style="margin-bottom:8px;"><b style="font-size:20px;color:var(--wine-dark);">฿'+fmt(cost)+'</b> · '+lbs.length+' งาน'+(cur.rev>0?' · <b>'+(cost/cur.rev*100).toFixed(1)+'%</b> ของรายได้':'')+'</div>'
+      + statsRowsBar(Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({name:k,val:v,label:'฿'+fmt(v)})), '#8E4A86'), R.label);
+    if(cur.rev>0 && cost/cur.rev>0.3) ins.push(['🧮','ค่าแลปคิดเป็น <b>'+(cost/cur.rev*100).toFixed(0)+'%</b> ของรายได้ ซึ่งค่อนข้างสูง']);
+  }
+
+  const insHtml = ins.length ? _statsCard('💡 ข้อสังเกตอัตโนมัติ', ins.slice(0,10).map(i=>'<div class="st-insight"><span class="st-insight-ico">'+i[0]+'</span><div>'+i[1]+'</div></div>').join(''), 'สรุปจากข้อมูลช่วงนี้') : '';
+
+  const ser = statsSeries(rows, R.start, R.end);
+  const trendHtml = _statsCard('📊 แนวโน้มรายได้', statsBarChart(ser)+forecastHtml, R.label);
+  const heatCard = hasHeat ? _statsCard('🔥 ช่วงเวลายุ่งที่สุด (วัน × ชั่วโมง)', '<div style="overflow-x:auto;">'+heatHtml+'</div><div style="font-size:11px;color:var(--text-light);margin-top:6px;">สีเข้ม = จำนวนเคสมาก · ตัวเลขคือเวลาที่บันทึกรายการ</div>', 'จำนวนเคส') : '';
+  const dowCard = activeDays>=2 ? _statsCard('📅 รายได้เฉลี่ยต่อวัน แยกตามวันในสัปดาห์', statsRowsBar([1,2,3,4,5,6,0].filter(w=>dowDays[w]).map(w=>({name:'วัน'+STATS_DOW[w],val:dowAvg[w],color:w===bestDow?'#D4A843':'#6B2D5E',label:'฿'+fmt(Math.round(dowAvg[w]))}))), 'เฉพาะวันที่มีเคส') : '';
+  const procCard = _statsCard('🦷 หัตถการยอดนิยม', statsRowsBar(topProc.map(([n,o])=>({name:n,html:procBadge(n),val:o.rev,color:(PROC_COLORS&&PROC_COLORS[n])||'#6B2D5E',label:'฿'+fmt(Math.round(o.rev))+'<div style="font-weight:600;color:var(--text-light);font-size:11px;">'+o.n+' ครั้ง · เฉลี่ย ฿'+fmt(Math.round(o.rev/o.n))+'</div>'})))
+      +'<div style="font-size:11px;color:var(--text-light);margin-top:6px;">กรณีคิดเงินรวมหลายหัตถการในครั้งเดียว ระบบแบ่งยอดเท่าๆ กัน (ประมาณการ)</div>', 'เรียงตามรายได้');
+  const payCard = _statsCard('💳 ช่องทางชำระเงิน', statsDonut([{k:'เงินสด',v:cash,c:'#27AE60'},{k:'โอน',v:trf,c:'#2078B4'},{k:'ปกส',v:sso,c:'#D68910'}], '฿'+_statsK(payTotal), 'ยอดชำระรวม'), R.label);
+  const patCard = statsPeriod==='all' ? '' : _statsCard('👥 คนไข้ใหม่ vs คนไข้เก่า', statsDonut([{k:'คนไข้ใหม่',v:cur.newP,c:'#D4A843',fmtv:cur.newP+' คน'},{k:'คนไข้เก่ากลับมา',v:cur.patients-cur.newP,c:'#6B2D5E',fmtv:(cur.patients-cur.newP)+' คน'}], String(cur.patients), 'คนไข้'), 'ใหม่ = มารักษาครั้งแรกในช่วงนี้');
+
+  body.innerHTML = kpis + insHtml + trendHtml
+    + '<div class="st-grid2">'+(heatCard||'')+(dowCard||'')+'</div>'
+    + '<div class="st-grid2">'+procCard+docHtml+'</div>'
+    + '<div class="st-grid2">'+payCard+(patCard||'')+'</div>'
+    + '<div class="st-grid2">'+aptHtml+endoHtml+'</div>'
+    + (labHtml?'<div class="st-grid2">'+labHtml+'</div>':'');
 }
 
 // เลื่อนค่าวันที่ 'YYYY-MM-DD' (kind='day') หรือเดือน 'YYYY-MM' (kind='month') ไปข้างหน้า/ถอยหลัง n หน่วย
@@ -4758,6 +5139,7 @@ async function syncAll(){
     else if(p==='treatment') renderTreatPage();
     else if(p==='lab') renderLabPage();
     else if(p==='endo') renderEndoPage();
+    else if(p==='stats') renderStatsPage();
     else if(p==='followup') renderFollowup();
     else if(p==='ortho') renderOrthoPage();
     else if(p==='income') renderIncome();
@@ -6213,12 +6595,12 @@ function startAutoSync(){
 //  HELPERS
 // ============================================================
 function totalPrice(t){ return (+t.cash||0)+(+t.transfer||0)+(+t.sso||0); }
-// กฎ X-Ray: ตั้งแต่ 1 ต.ค. 2569 (2026-10-01) รายการรักษาที่เป็น X-Ray อย่างเดียว ผูกกับหมอทอยเท่านั้น และส่วนแบ่งหมอ (DF) = 0
+// กฎ X-Ray (รวม X-Ray BW): ตั้งแต่ 1 ต.ค. 2569 (2026-10-01) รายการรักษาที่เป็น X-Ray อย่างเดียว ผูกกับหมอทอยเท่านั้น และส่วนแบ่งหมอ (DF) = 0
 // ถ้าคิดเงินรวมหลายหัตถการในครั้งเดียว (เช่น "ขูดหินปูน, X-Ray") ไม่เข้ากฎ เพราะแยกราคาต่อหัตถการไม่ได้
 function xrayRuleStart(){ return '2026-10-01'; }
 function isXrayOnly(proc){
   const parts = String(proc||'').split(',').map(p=>p.trim()).filter(Boolean);
-  return parts.length>0 && parts.every(p=>/^x[\s-]?ray$/i.test(p));
+  return parts.length>0 && parts.every(p=>/^x[\s-]?ray(?:[\s-]*bw)?$/i.test(p));
 }
 function xrayRuleApplies(t){
   const d = String((t&&t.date)||'').slice(0,10);
