@@ -2047,6 +2047,26 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalScaling">
+  <div class="modal-box">
+    <div class="modal-title">🧼 <span id="scalingModalTitle">ขูดหินปูนล่าสุด</span></div>
+    <button class="modal-close" onclick="closeModal('modalScaling')" aria-label="ปิดหน้าต่าง">×</button>
+    <input type="hidden" id="scaling-hn">
+    <div id="scaling-info" style="font-size:13px;color:var(--text-mid);margin-bottom:12px;line-height:1.6;"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันที่ขูดหินปูนล่าสุด (กรอกเอง)</label>
+        <input type="date" class="form-control" id="scaling-date">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalScaling')">ยกเลิก</button>
+      <button class="btn btn-ghost" onclick="clearScaling()">ล้างค่า</button>
+      <button class="btn btn-primary" onclick="saveScaling()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalRetainer">
   <div class="modal-box">
     <div class="modal-title">🦷 <span id="retainerModalTitle">วันใส่รีเทนเนอร์</span></div>
@@ -7643,7 +7663,7 @@ function orthoApptsByDate_(){
   const map = {};
   orthoData.forEach(r=>{
     if(!r['นัดถัดไป']) return;
-    if((r['สถานะ']||'กำลังจัด') !== 'กำลังจัด') return;
+    if(orthoEffStatus_(r) !== 'กำลังจัด') return;
     (map[r['นัดถัดไป']] = map[r['นัดถัดไป']] || []).push(r);
   });
   return map;
@@ -7752,7 +7772,7 @@ async function renderOrthoPage(){
   const statusFilter = document.getElementById('orthoStatusFilter')?.value || '';
   const overdueOnly = document.getElementById('orthoOverdueFilter')?.checked;
   let rows = orthoData.slice();
-  if(statusFilter) rows = rows.filter(r=> (r['สถานะ']||'กำลังจัด') === statusFilter);
+  if(statusFilter) rows = rows.filter(r=> orthoEffStatus_(r) === statusFilter);
   if(overdueOnly) rows = rows.filter(orthoOverdue_);
   if(q) rows = rows.filter(r=> String(r.hn||'').toLowerCase().includes(q) || String(r['ชื่อ']||'').toLowerCase().includes(q));
   rows.sort((a,b)=>{
@@ -7769,6 +7789,7 @@ async function renderOrthoPage(){
     box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-light);">ยังไม่มีคนไข้จัดฟัน — กด "+ เพิ่มคนไข้จัดฟัน"</div>';
     return;
   }
+  _orthoPsk = null; // สร้างแผนที่ ปกส/ขูดหินปูนใหม่ทุกครั้งที่วาดรายการ
   box.innerHTML = rows.map(orthoCardHtml).join('');
 }
 
@@ -7789,10 +7810,100 @@ function orthoMissedAppt_(r){
   return r['ปรับล่าสุด'] !== r['นัดถัดไป']; // ไม่มีบันทึกการรักษา/เครื่องมือหลุดในวันนัดนั้น
 }
 
+// ใส่รีเทนเนอร์แล้ว (มีวันใส่รีเทนเนอร์ และไม่ใช่วันในอนาคต) → ถือว่าจบการจัดฟัน จัดเข้าหมวด "เสร็จแล้ว" อัตโนมัติ
+function orthoRetainerPlaced_(r){
+  const v = String((r&&r['วันใส่รีเทนเนอร์'])||'').trim();
+  if(!v) return false;
+  const m = v.match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] <= todayStr() : true;
+}
+// สถานะที่ใช้จริง: ถ้าสถานะเป็น กำลังจัด แต่มีวันใส่รีเทนเนอร์แล้ว → เสร็จแล้ว (หยุด/เลิกรักษา คงเดิม)
+function orthoEffStatus_(r){
+  const st = (r&&r['สถานะ']) || 'กำลังจัด';
+  return (st==='กำลังจัด' && orthoRetainerPlaced_(r)) ? 'เสร็จแล้ว' : st;
+}
 function orthoStatusColor_(status){
   if(status==='เสร็จแล้ว') return {bg:'rgba(22,160,133,0.12)', color:'#16A085'};
   if(status==='หยุด/เลิกรักษา') return {bg:'rgba(120,120,120,0.12)', color:'#777777'};
   return {bg:'rgba(107,45,94,0.12)', color:'#6B2D5E'}; // กำลังจัด (default)
+}
+
+// ---------- ปกส + ขูดหินปูนล่าสุด บนการ์ดจัดฟัน ----------
+// ปกส = คนไข้ที่ติ๊ก "มีสิทธิ์ประกันสังคม" ในหน้าคนไข้ หรือเคยมีรายการรักษาที่ชำระด้วยประกันสังคม
+// ขูดหินปูนล่าสุด = วันล่าสุดของรายการรักษาที่มี "ขูดหินปูน" ในโปรแกรม (ตาม HN) · ถ้าไม่มีข้อมูล/ล่าสุดกว่านั้น กรอกเองได้ (เก็บที่คอลัมน์ "ขูดหินปูนล่าสุด" ในชีต ortho)
+function orthoHnKey_(v){ return String(v==null?'':v).trim().replace(/\s+/g,'').toUpperCase(); }
+var _orthoPsk = null;
+function orthoBuildPsk_(){
+  const psk = new Set(), scale = new Map();
+  (typeof patients!=='undefined' ? patients : []).forEach(p=>{ if(p && (p.sso===true || String(p.sso).toUpperCase()==='TRUE')) psk.add(orthoHnKey_(p.hn)); });
+  treatments.forEach(t=>{
+    const k = orthoHnKey_(t.hn); if(!k) return;
+    if((+t.sso||0) > 0) psk.add(k);
+    const pr = Array.isArray(t.proc) ? t.proc.join(',') : String(t.proc||'');
+    if(/ขูดหินปูน/.test(pr)){ const d = String(t.date||'').slice(0,10); if(d && (!scale.has(k) || d>scale.get(k))) scale.set(k,d); }
+  });
+  _orthoPsk = { psk, scale };
+}
+function orthoManualScale_(r){
+  const v = String((r&&r['ขูดหินปูนล่าสุด'])||'').slice(0,10);
+  if(v) return v;
+  try{ const m = JSON.parse(localStorage.getItem('bl_ortho_scale_manual')||'{}'); return m[orthoHnKey_(r&&r.hn)] || ''; }catch(e){ return ''; }
+}
+function orthoLastScale_(r){
+  if(!_orthoPsk) orthoBuildPsk_();
+  const prog = _orthoPsk.scale.get(orthoHnKey_(r.hn)) || '', man = orthoManualScale_(r);
+  if(!prog && !man) return null;
+  return (man && man>prog) ? { date:man, src:'กรอกเอง' } : { date:prog, src:'จากโปรแกรม' };
+}
+function orthoHasPsk_(r){ if(!_orthoPsk) orthoBuildPsk_(); return _orthoPsk.psk.has(orthoHnKey_(r.hn)); }
+function orthoAgoText_(d){
+  const n = _daysBetween(String(d).slice(0,10), todayStr());
+  if(isNaN(n)) return '';
+  if(n<0) return 'ในอนาคต'; if(n===0) return 'วันนี้'; if(n<45) return n+' วันที่แล้ว';
+  const m = Math.floor(n/30.44); if(m<24) return m+' เดือนที่แล้ว';
+  return (n/365.25).toFixed(1).replace(/\.0$/,'')+' ปีที่แล้ว';
+}
+function openScalingEdit(hn){
+  const r = orthoData.find(x=> String(x.hn)===String(hn)); if(!r) return;
+  if(!_orthoPsk) orthoBuildPsk_();
+  const prog = _orthoPsk.scale.get(orthoHnKey_(r.hn)) || '';
+  document.getElementById('scalingModalTitle').textContent = 'ขูดหินปูนล่าสุด — '+(r['ชื่อ']||hn);
+  document.getElementById('scaling-hn').value = hn;
+  document.getElementById('scaling-info').innerHTML = prog
+    ? 'ข้อมูลจากโปรแกรม: <b>'+fmtDate(prog)+'</b> ('+orthoAgoText_(prog)+')<br>ถ้าขูดหินปูนที่อื่น หรือมีครั้งล่าสุดกว่านี้ กรอกวันที่เองได้ (ระบบจะแสดงวันที่ล่าสุดกว่า)'
+    : 'ไม่พบรายการขูดหินปูนของคนไข้รายนี้ในโปรแกรม — กรอกวันที่เองได้';
+  document.getElementById('scaling-date').value = orthoManualScale_(r) || '';
+  document.getElementById('modalScaling').classList.add('open');
+}
+function clearScaling(){ document.getElementById('scaling-date').value = ''; saveScaling(); }
+var _scalingSaving = false;
+async function saveScaling(){
+  if(_scalingSaving) return;
+  const hn = document.getElementById('scaling-hn').value; if(!hn) return;
+  const date = document.getElementById('scaling-date').value || '';
+  const idx = orthoData.findIndex(x=> String(x.hn)===String(hn)); if(idx<0) return;
+  _scalingSaving = true;
+  try{
+    const row = Object.assign({}, orthoData[idx], { 'ขูดหินปูนล่าสุด': date });
+    // เก็บสำรองในเครื่อง กันค่าหายถ้าชีตยังไม่มีคอลัมน์นี้
+    try{ const m = JSON.parse(localStorage.getItem('bl_ortho_scale_manual')||'{}'); const k = orthoHnKey_(hn); if(date) m[k]=date; else delete m[k]; localStorage.setItem('bl_ortho_scale_manual', JSON.stringify(m)); }catch(e){}
+    await orthoPost({action:'orthoSave', row});
+    orthoData[idx] = row;
+    closeModal('modalScaling');
+    showToast(date ? 'บันทึกวันขูดหินปูนล่าสุดแล้ว' : 'ล้างวันขูดหินปูนที่กรอกเองแล้ว');
+    renderOrthoPage();
+    // ตรวจว่าขึ้นชีตจริงไหม (ต้องมีคอลัมน์ "ขูดหินปูนล่าสุด" ในชีต ortho)
+    setTimeout(async()=>{
+      try{
+        await loadOrthoData(true);
+        const rr = orthoData.find(x=> String(x.hn)===String(hn));
+        if(date && String((rr&&rr['ขูดหินปูนล่าสุด'])||'').slice(0,10) !== date){
+          showToast('⚠️ เก็บวันที่ไว้ในเครื่องนี้แล้ว แต่ยังไม่ขึ้นชีต — เพิ่มคอลัมน์ชื่อ "ขูดหินปูนล่าสุด" ในชีต ortho (หรืออัปเดต Apps Script)','error');
+        }
+        renderOrthoPage();
+      }catch(e){}
+    }, 1800);
+  } finally { _scalingSaving = false; }
 }
 
 function orthoCardHtml(r){
@@ -7800,12 +7911,19 @@ function orthoCardHtml(r){
   const bound = r.lineUserId
     ? '<span style="color:var(--green);">🟢 ผูก LINE แล้ว</span>'
     : '<span style="color:var(--text-light);">⚪ ยังไม่ผูก LINE</span>';
-  const status = r['สถานะ'] || 'กำลังจัด';
+  const status = orthoEffStatus_(r);
   const isActive = status === 'กำลังจัด';
   const overdue = isActive && orthoOverdue_(r);
   const sc = orthoStatusColor_(status);
   const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
   const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 60 วัน</span>` : '';
+  const hasPsk = orthoHasPsk_(r);
+  const pskPill = hasPsk ? `<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.38);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">🏛️ ปกส</span>` : '';
+  let scaleLine = '';
+  if(hasPsk){
+    const ls = orthoLastScale_(r);
+    scaleLine = `<div style="font-size:12px;margin-top:4px;color:var(--text-mid);" onclick="event.stopPropagation()">🧼 ขูดหินปูนล่าสุด: ${ls ? `<b style="color:var(--wine-dark);">${fmtDate(ls.date)}</b> <span style="color:var(--text-light);">(${orthoAgoText_(ls.date)} · ${ls.src})</span>` : '<span style="color:var(--text-light);">ยังไม่มีข้อมูล</span>'} <button class="btn btn-ghost btn-sm" style="padding:1px 8px;font-size:11px;" onclick="openScalingEdit('${hnEsc}')">${ls ? '✏️ แก้' : '＋ กรอกวันที่'}</button></div>`;
+  }
   const missedPill = (isActive && orthoMissedAppt_(r)) ? `<span style="background:#E67E22;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">⏰ ขาดนัด</span>` : '';
   return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
@@ -7814,9 +7932,10 @@ function orthoCardHtml(r){
           ${r['รหัสประจำตัว']?`<span style="color:var(--wine);font-weight:700;font-size:13px;">${r['รหัสประจำตัว']}</span>`:''}
           <span style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'}</span>
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
-          ${statusPill}${overduePill}${missedPill}
+          ${statusPill}${pskPill}${overduePill}${missedPill}
         </div>
         <div style="font-size:12px;color:var(--text-mid);margin-top:4px;">${r['แบบจัด']||'—'} · ${r['หมอ']||'—'}${r['phase']?' · phase: '+r['phase']:''}</div>
+        ${scaleLine}
         <div style="font-size:11px;margin-top:3px;">${bound}</div>
       </div>
       <div style="text-align:right;font-size:12px;">
@@ -7846,7 +7965,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '28 ครั้ง';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
-  document.getElementById('ortho-status').value = r?.['สถานะ'] || 'กำลังจัด';
+  document.getElementById('ortho-status').value = r ? orthoEffStatus_(r) : 'กำลังจัด';
   document.getElementById('ortho-start').value = r?.['วันเริ่ม'] || '';
   document.getElementById('ortho-screw').value = r?.['ปักหมุด'] || 'ไม่ปัก';
   document.getElementById('ortho-note').value = r?.['note'] || '';
@@ -7861,6 +7980,16 @@ async function saveOrthoProfile(){
   if(idcode && idcode!=='A-' && !/^A-\d{3,}$/.test(idcode)){
     showToast('รูปแบบรหัสประจำตัวไม่ถูกต้อง (ตัวอย่าง A-123)','error');
     return;
+  }
+  {
+    const ex0 = orthoData.find(x=> String(x.hn)===String(hn));
+    if(ex0 && document.getElementById('ortho-status').value==='กำลังจัด' && orthoRetainerPlaced_(ex0)){
+      if(confirm('คนไข้รายนี้ใส่รีเทนเนอร์แล้ว (วันที่ '+ex0['วันใส่รีเทนเนอร์']+')\nต้องการล้างวันใส่รีเทนเนอร์ เพื่อกลับไปเป็น "กำลังจัด" หรือไม่?\n\nกด ยกเลิก = คงสถานะ "เสร็จแล้ว"')){
+        ex0['วันใส่รีเทนเนอร์'] = '';
+      } else {
+        document.getElementById('ortho-status').value = 'เสร็จแล้ว';
+      }
+    }
   }
   _orthoSaving = true;
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
@@ -7921,6 +8050,12 @@ async function saveOrthoLog(){
     'ปรับล่าสุด': log['วันที่'],
     'ครั้งที่มาแล้ว': visits
   });
+  // ถ้าครั้งนี้ "ใส่รีเทนเนอร์" → บันทึกวันใส่รีเทนเนอร์และย้ายไปหมวด "เสร็จแล้ว" อัตโนมัติ
+  let retainerDone = false;
+  if(treatments.split(',').map(x=>x.trim()).includes('ใส่รีเทนเนอร์')){
+    if(!String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์'] = log['วันที่'];
+    if((row['สถานะ']||'กำลังจัด')==='กำลังจัด' && orthoRetainerPlaced_(row)){ row['สถานะ']='เสร็จแล้ว'; retainerDone = true; }
+  }
   row._visitCount = visits; // กัน badge/การ์ดแสดงเลขเก่าค้างจนกว่าจะโหลดใหม่
   await Promise.all([
     orthoPost({action:'orthoLogAdd', log}),
@@ -7928,7 +8063,7 @@ async function saveOrthoLog(){
   ]);
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalOrthoLog');
-  showToast('บันทึกการรักษาสำเร็จ');
+  showToast(retainerDone ? 'บันทึกการรักษาสำเร็จ — ใส่รีเทนเนอร์แล้ว ย้ายไปหมวด "เสร็จแล้ว"' : 'บันทึกการรักษาสำเร็จ');
   renderOrthoPage();
   if(document.getElementById('orthoCalendarBox').style.display !== 'none') renderOrthoCalendar();
   _ologSaving = false;
@@ -8049,10 +8184,13 @@ async function saveRetainer(){
   const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
     'วันใส่รีเทนเนอร์': document.getElementById('retainer-date').value
   });
+  // ใส่รีเทนเนอร์แล้ว → ย้ายไปหมวด "เสร็จแล้ว" อัตโนมัติ (ไม่แตะเคสที่ตั้งเป็นหยุด/เลิกรักษา)
+  let movedDone = false;
+  if(orthoRetainerPlaced_(row) && (row['สถานะ']||'กำลังจัด')==='กำลังจัด'){ row['สถานะ']='เสร็จแล้ว'; movedDone = true; }
   await orthoPost({action:'orthoSave', row});
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalRetainer');
-  showToast('บันทึกวันใส่รีเทนเนอร์สำเร็จ');
+  showToast(movedDone ? 'บันทึกแล้ว — ย้ายไปหมวด "เสร็จแล้ว" อัตโนมัติ' : 'บันทึกวันใส่รีเทนเนอร์สำเร็จ');
   renderOrthoPage();
   _retainerSaving = false;
 }
