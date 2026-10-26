@@ -564,6 +564,14 @@ select.form-control { cursor: pointer; }
 .ortho-chip.active { background: #F39C12; border-color: #F39C12; color: #fff; }
 .ortho-chip #orthoPskChipN { display: inline-block; min-width: 18px; text-align: center; margin-left: 4px; padding: 0 5px; border-radius: 999px; background: rgba(243,156,18,0.22); }
 .ortho-chip.active #orthoPskChipN { background: rgba(255,255,255,0.3); }
+.rlog-opts { display: flex; flex-direction: column; gap: 6px; }
+.rlog-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 14px; background: #fff; }
+.rlog-opt:has(input:checked) { border-color: var(--wine); background: var(--wine-pale); }
+.rlog-opt input { width: 18px; height: 18px; accent-color: var(--wine); flex: none; }
+.rc-timeline { margin-top: 8px; border-left: 3px solid rgba(107,45,94,0.2); padding-left: 10px; }
+.rc-log { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 2px 0; line-height: 1.5; }
+.rc-log-d { font-weight: 800; color: var(--wine); min-width: 38px; }
+.rc-note { color: var(--text-light); font-style: italic; }
 .psk-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); color: #B26A00; white-space: nowrap; vertical-align: middle; }
 .rc-bar { height: 8px; border-radius: 4px; background: var(--wine-pale); overflow: hidden; margin-top: 8px; }
 .rc-bar > div { height: 100%; background: #16A085; border-radius: 4px; }
@@ -2057,6 +2065,43 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="btn btn-ghost" onclick="closeModal('modalReschedule')">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveReschedule()">💾 บันทึก</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalRecallLog" onclick="if(event.target===this)closeModal('modalRecallLog')">
+  <div class="modal-box">
+    <div class="modal-title">📝 บันทึกผลการติดตาม</div>
+    <button class="modal-close" onclick="closeModal('modalRecallLog')" aria-label="ปิดหน้าต่าง">×</button>
+    <input type="hidden" id="rlog-hn">
+    <div id="rlog-info" style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:8px;"></div>
+    <div style="font-size:12px;font-weight:700;color:#9A5B00;background:#FFF4E5;border:1px solid #F0B25E;border-radius:8px;padding:6px 10px;margin-bottom:12px;">📖 ก่อนโทร อ่านบัตรก่อนทุกครั้ง</div>
+    <div class="form-group">
+      <label>ผลการติดตาม <span style="color:#C0392B;">*</span></label>
+      <div class="rlog-opts">
+        <label class="rlog-opt"><input type="radio" name="rlog-result" value="noanswer" onchange="rlogResultChanged()"><span>📵 <b>โทรแล้วไม่รับ</b></span></label>
+        <label class="rlog-opt"><input type="radio" name="rlog-result" value="booked" onchange="rlogResultChanged()"><span>✅ <b>โทรแล้วรับ — นัดแล้ว</b></span></label>
+        <div id="rlog-booked-box" style="display:none;margin:0 0 6px 30px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text-mid);">นัดวันที่ <span style="color:#C0392B;">*</span></label>
+          <input type="date" class="form-control" id="rlog-appt-date" style="height:38px;">
+          <label id="rlog-mkapt-wrap" style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:6px;cursor:pointer;"><input type="checkbox" id="rlog-mkapt" checked> เปิดฟอร์มเพิ่มนัดในตารางนัดต่อ</label>
+        </div>
+        <label class="rlog-opt"><input type="radio" name="rlog-result" value="declined" onchange="rlogResultChanged()"><span>🙅 <b>ปฏิเสธ</b></span></label>
+        <label class="rlog-opt"><input type="radio" name="rlog-result" value="self" onchange="rlogResultChanged()"><span>🕐 <b>จะติดต่อมาเอง</b></span></label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>หมายเหตุ</label>
+      <input type="text" class="form-control" id="rlog-note" placeholder="เช่น ญาติรับสาย / ขอโทรกลับตอนเย็น / ย้ายที่ทำงาน" maxlength="200">
+    </div>
+    <div class="form-group">
+      <label>วันที่โทร</label>
+      <input type="date" class="form-control" id="rlog-date" style="height:38px;">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalRecallLog')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveRecallLog()">💾 บันทึกผล</button>
+    </div>
+    <div id="rlog-history" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -7519,25 +7564,49 @@ function recallPeople_(){
   });
   return [...out.values()];
 }
+// เก็บบันทึกการติดตามรายปีต่อคนไข้ ในชีต recall เดิม (คีย์ "ปี:HN") เป็น JSON array ในคอลัมน์ status
+// แต่ละรายการ: { d:วันที่โทร, t:เวลา, r:ผล(noanswer|booked|declined|self|contacted), a:วันนัด, n:หมายเหตุ, by:ผู้บันทึก }
+var RECALL_RESULTS = {
+  noanswer: { icon:'📵', label:'โทรแล้วไม่รับ' },
+  booked:   { icon:'✅', label:'โทรแล้วรับ — นัดแล้ว' },
+  declined: { icon:'🙅', label:'ปฏิเสธ' },
+  self:     { icon:'🕐', label:'จะติดต่อมาเอง' },
+  contacted:{ icon:'📞', label:'ติดต่อแล้ว' } // ค่าเดิมจากเวอร์ชันก่อน
+};
+var RECALL_YEAR_STATUSES = ['รอติดตาม','โทรไม่รับ','นัดแล้ว','ปฏิเสธ','จะติดต่อมาเอง'];
 function recallYearKey_(hn, year){ return year+':'+String(hn); }
-function getRecallYearStatus(hn, year){
-  let raw = 'รอติดตาม';
-  try{ raw = JSON.parse(localStorage.getItem('bl_recall')||'{}')[recallYearKey_(hn,year)] || 'รอติดตาม'; }catch(e){}
-  const parts = String(raw).split('|');
-  return { status: RECALL_YEAR_STATUSES.includes(parts[0]) ? parts[0] : 'รอติดตาม', date: parts[1]||'' };
+function recallLogParse_(raw){
+  if(!raw) return [];
+  const str = String(raw);
+  if(str.charAt(0)==='['){ try{ const a=JSON.parse(str); return Array.isArray(a) ? a.filter(x=>x&&x.r&&x.d) : []; }catch(e){ return []; } }
+  // รูปแบบเดิม "สถานะ|วันที่"
+  const [st,d] = str.split('|');
+  const map = { 'ติดต่อแล้ว':'contacted', 'นัดแล้ว':'booked', 'ไม่สะดวก/ปฏิเสธ':'declined' };
+  return map[st] ? [{ d:d||todayStr(), t:'', r:map[st], a:'', n:'' }] : [];
 }
-function setRecallYearStatus(hn, status){
-  const year = todayStr().slice(0,4);
-  const val = status==='รอติดตาม' ? 'รอติดตาม' : status+'|'+todayStr();
+function getRecallLog(hn, year){
+  let raw = '';
+  try{ raw = JSON.parse(localStorage.getItem('bl_recall')||'{}')[recallYearKey_(hn,year)] || ''; }catch(e){}
+  return recallLogParse_(raw).sort((x,y)=>(String(x.d)+String(x.t||'')).localeCompare(String(y.d)+String(y.t||'')));
+}
+function saveRecallLogArr_(hn, year, arr){
+  const val = arr.length ? JSON.stringify(arr) : 'รอติดตาม';
   try{
     const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
     data[recallYearKey_(hn,year)] = val;
     localStorage.setItem('bl_recall', JSON.stringify(data));
   }catch(e){}
-  syncToSheet('recall', { hn: recallYearKey_(hn,year), status: val, updatedAt: todayStr() })
-    .then(()=>showToast(status==='รอติดตาม' ? 'รีเซ็ตสถานะแล้ว' : 'บันทึก "'+status+'" แล้ว ✅'))
-    .catch(()=>showToast('บันทึก local แล้ว (sync ไม่สำเร็จ)','error'));
-  renderRecall();
+  return syncToSheet('recall', { hn: recallYearKey_(hn,year), status: val, updatedAt: todayStr() })
+    .catch(()=>showToast('บันทึกในเครื่องแล้ว (sync ขึ้นชีตไม่สำเร็จ)','error'));
+}
+// สถานะปัจจุบันจากผลล่าสุด (ถ้ามีนัดล่วงหน้าในระบบ ถือว่านัดแล้ว)
+function recallStateOf_(log, nextApt){
+  const last = log[log.length-1];
+  let key = 'wait';
+  if(last) key = ({noanswer:'noanswer', booked:'booked', declined:'declined', self:'self', contacted:'booked'})[last.r] || 'wait';
+  if(nextApt && key!=='declined') key = 'booked';
+  const labels = { wait:'รอติดตาม', noanswer:'โทรไม่รับ', booked:'นัดแล้ว', declined:'ปฏิเสธ', self:'จะติดต่อมาเอง' };
+  return { key, label: labels[key] };
 }
 function setRecallMode(m, btn){
   recallMode = m;
@@ -7568,58 +7637,127 @@ function recallYearData_(){
     if(d>=today && a.status!=='ยกเลิก' && (!nextApt.has(k) || d<nextApt.get(k))) nextApt.set(k,d);
   });
   const rows = recallPeople_().map(p=>{
-    const k=normHN(p.hn); const tr=getPatientTreatments(p.hn); const st=getRecallYearStatus(p.hn,year);
-    return { ...p, k, used:used.has(k), lastSso:lastSso.get(k)||'', lastVisit:tr.length?tr[0].date:null, nextApt:nextApt.get(k)||'', status:st.status, statusDate:st.date };
+    const k=normHN(p.hn); const tr=getPatientTreatments(p.hn); const log=getRecallLog(p.hn,year);
+    const na = nextApt.get(k)||'';
+    return { ...p, k, used:used.has(k), lastSso:lastSso.get(k)||'', lastVisit:tr.length?tr[0].date:null, nextApt:na, log, state:recallStateOf_(log, na) };
   });
   return { year, rows };
+}
+var _recallRows = [];
+function _recallLogLine(e){
+  const R = RECALL_RESULTS[e.r] || { icon:'•', label:e.r };
+  const ap = (e.r==='booked' && e.a) ? ' · นัด <b>'+fmtDate(e.a)+'</b>' : '';
+  return '<div class="rc-log"><span class="rc-log-d">'+fmtDate(e.d).slice(0,5)+'</span><span>'+R.icon+' '+R.label+ap+(e.n?' <span class="rc-note">“'+_escHtml(e.n)+'”</span>':'')+'</span></div>';
 }
 function renderRecallYear_(){
   const el = document.getElementById('recallList'); if(!el) return;
   const q = (document.getElementById('recallSearch')?.value||'').toLowerCase().trim();
   const statusFilter = document.getElementById('recallStatusFilter')?.value||'';
   const { year, rows } = recallYearData_();
+  _recallRows = rows;
   const total = rows.length, usedN = rows.filter(r=>r.used).length;
   const todo = rows.filter(r=>!r.used);
-  const waitN = todo.filter(r=>r.status==='รอติดตาม').length;
-  const contactedN = todo.filter(r=>r.status==='ติดต่อแล้ว'||r.status==='นัดแล้ว').length;
-  const declinedN = todo.filter(r=>r.status==='ไม่สะดวก/ปฏิเสธ').length;
-  const aptN = todo.filter(r=>r.nextApt).length;
+  const cnt = key => todo.filter(r=>r.state.key===key).length;
   const today = new Date(todayStr()+'T12:00'); const daysLeft = Math.max(0, Math.round((new Date(year+'-12-31T12:00')-today)/86400000));
   const pct = total ? Math.round(usedN/total*100) : 0;
-  const card = (n,l,c)=>'<div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);"><div style="font-size:26px;font-weight:800;color:'+c+';font-family:\'Prompt\',sans-serif;">'+n+'</div><div class="text-caption">'+l+'</div></div>';
+  const card = (n,l,c)=>'<div style="background:#fff;border-radius:12px;padding:12px 8px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);"><div style="font-size:24px;font-weight:800;color:'+c+';font-family:\'Prompt\',sans-serif;">'+n+'</div><div class="text-caption" style="line-height:1.3;">'+l+'</div></div>';
   const summary =
     '<div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border);">'
     +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;"><b style="color:var(--wine-dark);">ใช้สิทธิประกันสังคมปี '+(Number(year)+543)+' แล้ว '+usedN+' จาก '+total+' คน ('+pct+'%)</b><span style="color:'+(daysLeft<=60?'#C0392B':'var(--text-light)')+';font-weight:700;">'+(daysLeft<=60?'🚨 ':'')+'เหลือ '+daysLeft+' วันสิ้นปี</span></div>'
     +'<div class="rc-bar"><div style="width:'+pct+'%"></div></div></div>'
-    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">'
-    + card(waitN,'รอติดตาม','#E74C3C') + card(contactedN,'ติดต่อ/นัดแล้ว','#16A085') + card(aptN,'📆 มีนัดล่วงหน้า','#2078B4') + card(declinedN,'ไม่สะดวก','#7F8C8D')
-    +'</div>';
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">'
+    + card(cnt('wait'),'รอติดตาม','#E74C3C') + card(cnt('noanswer'),'📵 โทรไม่รับ<br>(ต้องโทรซ้ำ)','#E67E22') + card(cnt('booked'),'✅ นัดแล้ว','#16A085') + card(cnt('declined')+cnt('self'),'ปฏิเสธ /<br>ติดต่อเอง','#7F8C8D')
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--text-light);margin:0 2px 12px;">📖 ก่อนโทร อ่านบัตรก่อนทุกครั้ง</div>';
   let list = todo;
   if(q) list = list.filter(r=>String(r.hn||'').toLowerCase().includes(q)||String(r.name||'').toLowerCase().includes(q)||String(r.phone||'').toLowerCase().includes(q));
-  if(statusFilter) list = list.filter(r=>r.status===statusFilter);
-  const ord = s=>RECALL_YEAR_STATUSES.indexOf(s);
-  list = [...list].sort((a,b)=> (a.status==='รอติดตาม'?0:1)-(b.status==='รอติดตาม'?0:1) || ord(a.status)-ord(b.status) || (a.nextApt?1:0)-(b.nextApt?1:0) || String(a.lastSso).localeCompare(String(b.lastSso)));
+  if(statusFilter) list = list.filter(r=>r.state.label===statusFilter);
+  const ord = {wait:0, noanswer:1, self:2, booked:3, declined:4};
+  const lastTry = r=>r.log.length ? String(r.log[r.log.length-1].d) : '';
+  list = [...list].sort((a,b)=> (ord[a.state.key]-ord[b.state.key]) || (a.state.key==='noanswer' ? lastTry(a).localeCompare(lastTry(b)) : String(a.lastSso).localeCompare(String(b.lastSso))));
   if(!list.length){
     el.innerHTML = summary+'<div style="text-align:center;padding:40px;color:var(--text-light);">'+(todo.length===0?'🎉 ปกส ทุกคนมาใช้สิทธิปีนี้ครบแล้ว':'ไม่พบข้อมูลที่ค้นหา')+'</div>';
     return;
   }
-  const col = {'รอติดตาม':'#E74C3C','ติดต่อแล้ว':'#16A085','นัดแล้ว':'#2078B4','ไม่สะดวก/ปฏิเสธ':'#7F8C8D'};
-  const bAct = (hn,label,st,c)=>'<button class="rc-btn" style="border-color:'+c+';color:'+c+';" onclick="setRecallYearStatus(\''+String(hn).replace(/'/g,"\\'")+'\',\''+st+'\')">'+label+'</button>';
+  const col = { wait:'#E74C3C', noanswer:'#E67E22', booked:'#16A085', declined:'#7F8C8D', self:'#2078B4' };
   el.innerHTML = summary + list.map(r=>{
-    const c = col[r.status]||'#E74C3C'; const hnEsc = String(r.hn);
-    const actions = r.status==='รอติดตาม'
-      ? bAct(hnEsc,'📞 ติดต่อแล้ว','ติดต่อแล้ว','#16A085')+bAct(hnEsc,'📅 นัดแล้ว','นัดแล้ว','#2078B4')+bAct(hnEsc,'🙅 ไม่สะดวก','ไม่สะดวก/ปฏิเสธ','#7F8C8D')
-      : bAct(hnEsc,'↩️ รีเซ็ต','รอติดตาม','#7F8C8D');
-    return '<div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);border-left:4px solid '+c+';display:flex;align-items:center;gap:12px;flex-wrap:wrap;'+(r.status==='รอติดตาม'?'':'opacity:0.85;')+'">'
-      +'<div style="flex:1;min-width:200px;">'
-      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;"><span style="font-size:15px;font-weight:800;color:var(--text-dark);">'+_escHtml(r.name||'—')+'</span><span class="psk-badge" style="margin-left:0;">🏛️ ปกส</span>'
-      +(r.nextApt?'<span style="background:rgba(32,120,180,0.12);color:#1A5F8E;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;">📆 มีนัด '+fmtDate(r.nextApt)+'</span>':'')+'</div>'
-      +'<div style="font-size:12px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;"><span>HN '+_escHtml(r.hn||'—')+'</span>'+(r.phone?'<span>📞 '+_escHtml(r.phone)+'</span>':'')
-      +'<span style="font-weight:700;color:var(--text-mid);">'+(r.lastSso?'ใช้สิทธิล่าสุด '+fmtDate(r.lastSso):'ยังไม่เคยใช้สิทธิกับคลินิก')+'</span>'+(r.lastVisit?'<span>มาล่าสุด '+fmtDate(r.lastVisit)+'</span>':'')+'</div></div>'
-      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-      +'<span style="background:'+c+'1A;color:'+c+';border:1.5px solid '+c+'44;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">'+r.status+(r.statusDate?' · '+fmtDate(r.statusDate).slice(0,5):'')+'</span>'+actions+'</div></div>';
+    const c = col[r.state.key]; const hnA = String(r.hn).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const tl = r.log.slice(-3).reverse().map(_recallLogLine).join('');
+    const more = r.log.length>3 ? '<div class="rc-log" style="color:var(--text-light);">… และอีก '+(r.log.length-3)+' ครั้ง (ดูทั้งหมดในหน้าต่างบันทึก)</div>' : '';
+    return '<div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);border-left:4px solid '+c+';margin-bottom:10px;'+(r.state.key==='declined'?'opacity:.8;':'')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">'
+      +'<div style="min-width:0;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:15px;font-weight:800;color:var(--text-dark);">'+_escHtml(r.name||'—')+'</span><span class="psk-badge" style="margin-left:0;">🏛️ ปกส</span></div>'
+      +'<div style="font-size:12px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;"><span>HN '+_escHtml(r.hn||'—')+'</span>'+(r.phone?'<span>📞 '+_escHtml(r.phone)+'</span>':'')+'</div></div>'
+      +'<span style="background:'+c+'1A;color:'+c+';border:1.5px solid '+c+'44;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:800;white-space:nowrap;">'+r.state.label+'</span></div>'
+      +'<div style="font-size:12px;color:var(--text-mid);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;"><span style="font-weight:700;">'+(r.lastSso?'ใช้สิทธิล่าสุด '+fmtDate(r.lastSso):'ยังไม่เคยใช้สิทธิกับคลินิก')+'</span>'+(r.lastVisit?'<span>มาล่าสุด '+fmtDate(r.lastVisit)+'</span>':'')+'</div>'
+      +(r.nextApt?'<div style="margin-top:6px;"><span style="background:rgba(22,160,133,0.12);color:#0E6655;border-radius:20px;font-size:12px;font-weight:800;padding:3px 10px;">📆 มีนัดในตารางนัด '+fmtDate(r.nextApt)+'</span></div>':'')
+      +'<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text-light);">ผลการติดตามปีนี้ '+(r.log.length?'('+r.log.length+' ครั้ง)':'')+'</div>'
+      +(r.log.length ? '<div class="rc-timeline">'+tl+more+'</div>' : '<div style="font-size:12px;color:var(--text-light);margin-top:2px;">ยังไม่เคยติดตามปีนี้</div>')
+      +'<div style="margin-top:10px;"><button class="btn btn-primary btn-sm" onclick="openRecallLog(\''+hnA+'\')">📝 บันทึกผลการติดตาม</button></div></div>';
   }).join('')
   +'<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">แสดง '+list.length+' ราย จากคนไข้ ปกส. ที่ปีนี้ยังไม่ได้ใช้สิทธิ ทั้งหมด '+todo.length+' ราย</div>';
+}
+// ----- หน้าต่างบันทึกผลการติดตาม -----
+function rlogResultChanged(){
+  const v = (document.querySelector('input[name="rlog-result"]:checked')||{}).value;
+  document.getElementById('rlog-booked-box').style.display = v==='booked' ? '' : 'none';
+  if(v==='booked'){
+    const hn = document.getElementById('rlog-hn').value; const r = _recallRows.find(x=>String(x.hn)===String(hn));
+    const wrap = document.getElementById('rlog-mkapt-wrap'); const has = r && r.nextApt;
+    wrap.style.display = has ? 'none' : 'flex'; document.getElementById('rlog-mkapt').checked = !has;
+    if(has && !document.getElementById('rlog-appt-date').value) document.getElementById('rlog-appt-date').value = r.nextApt;
+  }
+}
+function openRecallLog(hn){
+  const r = _recallRows.find(x=>String(x.hn)===String(hn)); if(!r) return;
+  document.getElementById('rlog-hn').value = hn;
+  document.getElementById('rlog-info').innerHTML = '<b>'+_escHtml(r.name||'—')+'</b> · HN '+_escHtml(r.hn||'—')+(r.phone?' · 📞 '+_escHtml(r.phone):'')+'<br>'+(r.lastSso?'ใช้สิทธิล่าสุด '+fmtDate(r.lastSso):'ยังไม่เคยใช้สิทธิกับคลินิก')+(r.nextApt?' · 📆 มีนัดในตาราง '+fmtDate(r.nextApt):'');
+  document.querySelectorAll('input[name="rlog-result"]').forEach(x=>{ x.checked=false; });
+  document.getElementById('rlog-note').value = '';
+  document.getElementById('rlog-appt-date').value = '';
+  document.getElementById('rlog-date').value = todayStr();
+  rlogResultChanged();
+  renderRecallLogHistory_(r);
+  document.getElementById('modalRecallLog').classList.add('open');
+}
+function renderRecallLogHistory_(r){
+  const box = document.getElementById('rlog-history');
+  const log = r.log;
+  box.innerHTML = log.length
+    ? '<div style="font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:4px;">ประวัติการติดตามปีนี้ ('+log.length+' ครั้ง)</div><div class="rc-timeline">'+log.map((e,i)=>'<div style="display:flex;align-items:flex-start;gap:6px;">'+_recallLogLine(e).replace('<div class="rc-log">','<div class="rc-log" style="flex:1;">')+'<button class="rc-btn" style="padding:0 8px;font-size:11px;line-height:22px;" title="ลบรายการนี้" onclick="deleteRecallLogEntry('+i+')">✕</button></div>').join('')+'</div>'
+    : '';
+}
+async function saveRecallLog(){
+  const hn = document.getElementById('rlog-hn').value;
+  const r = _recallRows.find(x=>String(x.hn)===String(hn)); if(!r) return;
+  const res = (document.querySelector('input[name="rlog-result"]:checked')||{}).value;
+  if(!res){ showToast('กรุณาเลือกผลการติดตาม','error'); return; }
+  const aDate = document.getElementById('rlog-appt-date').value||'';
+  if(res==='booked' && !aDate){ showToast('กรุณาเลือกวันที่นัด','error'); return; }
+  const now = new Date(); const q=n=>String(n).padStart(2,'0');
+  const entry = { d: document.getElementById('rlog-date').value || todayStr(), t: q(now.getHours())+':'+q(now.getMinutes()), r:res, a: res==='booked'?aDate:'', n:(document.getElementById('rlog-note').value||'').trim(), by:(currentUser&&currentUser.name)||'' };
+  const mk = res==='booked' && document.getElementById('rlog-mkapt').checked && document.getElementById('rlog-mkapt-wrap').style.display!=='none';
+  const year = todayStr().slice(0,4);
+  const arr = getRecallLog(hn, year); arr.push(entry);
+  arr.sort((x,y)=>(String(x.d)+String(x.t||'')).localeCompare(String(y.d)+String(y.t||'')));
+  closeModal('modalRecallLog');
+  showToast('บันทึกผลการติดตามแล้ว ✅');
+  await saveRecallLogArr_(hn, year, arr);
+  renderRecall();
+  if(mk){ // เปิดฟอร์มเพิ่มนัดให้ต่อ พร้อมข้อมูลคนไข้
+    openAddApt(null, aDate);
+    const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=v||''; };
+    set('apt-hn', r.hn); set('apt-name', r.name); set('apt-phone', r.phone);
+  }
+}
+async function deleteRecallLogEntry(i){
+  const hn = document.getElementById('rlog-hn').value; const year = todayStr().slice(0,4);
+  const arr = getRecallLog(hn, year); if(i<0 || i>=arr.length) return;
+  if(!confirm('ลบบันทึกการติดตามรายการนี้?')) return;
+  arr.splice(i,1);
+  await saveRecallLogArr_(hn, year, arr);
+  renderRecall();
+  const r = _recallRows.find(x=>String(x.hn)===String(hn)); if(r) renderRecallLogHistory_(r);
 }
 
 function renderRecallLong_(){
