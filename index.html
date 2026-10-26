@@ -560,6 +560,10 @@ select.form-control { cursor: pointer; }
 .st-note { font-size: 11px; color: var(--text-light); margin-top: 8px; line-height: 1.5; }
 .st-chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--wine-pale); color: var(--wine); margin: 0 6px 6px 0; }
 @media (max-width: 768px) { .st-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-grid2 { grid-template-columns: 1fr; } .st-kpi-val { font-size: 21px; } .st-row-name { width: 96px; } }
+.psk-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); color: #B26A00; white-space: nowrap; vertical-align: middle; }
+.rc-bar { height: 8px; border-radius: 4px; background: var(--wine-pale); overflow: hidden; margin-top: 8px; }
+.rc-bar > div { height: 100%; background: #16A085; border-radius: 4px; }
+.rc-btn { padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-size: 12px; font-weight: 700; font-family: inherit; }
 .endo-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(17,122,101,0.13); border: 1px solid rgba(17,122,101,0.4); color: #0E6655; white-space: nowrap; vertical-align: middle; }
 .endo-grp-hdr { margin: 14px 0 8px; padding: 8px 12px; font-weight: 800; font-size: 14px; border-left: 6px solid; }
 .endo-grp-hdr:first-child { margin-top: 0; }
@@ -1468,7 +1472,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="page" id="page-recall">
       <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="section-title"><span>🔔</span>Recall ประกันสังคม</div>
-        <div style="font-size:13px;color:var(--text-light);align-self:center;">ติดตามคนไข้ ปกส. ที่ไม่ได้มารักษานาน 11 เดือนขึ้นไป</div>
+        <div id="recallSubtitle" style="font-size:13px;color:var(--text-light);align-self:center;">ติดตามคนไข้ ปกส. ที่ไม่ได้มารักษานาน 11 เดือนขึ้นไป</div>
+      </div>
+      <div class="period-tabs" id="recallModeTabs" style="background:var(--wine-pale);margin-bottom:12px;">
+        <button class="period-tab active" onclick="setRecallMode('long',this)">⏰ ไม่ได้มานาน (11 เดือน)</button>
+        <button class="period-tab" onclick="setRecallMode('year',this)">📅 ปีนี้ยังไม่ใช้สิทธิ</button>
       </div>
       <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
         <input type="text" class="form-control" id="recallSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="renderRecall()" style="height:38px;flex:1;min-width:200px;">
@@ -2614,7 +2622,7 @@ function renderAptList(today){
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${a.hn||'—'}</div>
-      <div><div style="font-weight:600">${a.patName}${endoBadge(a)}</div></div>
+      <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
@@ -2761,7 +2769,7 @@ function treatRow(t){
   return `<tr style="${docRowStyle(t.docName)}">
     <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
     <td class="text-caption hn-cell">${t.hn||'—'}</td>
-    <td style="font-weight:600">${t.patName}${endoBadge(t)}</td>
+    <td style="font-weight:600">${t.patName}${pskBadge(t)}${endoBadge(t)}</td>
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
     <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -3290,6 +3298,11 @@ function saveTreat(){
   });
   completedAppointments.forEach(a=>{ a.status='เสร็จสิ้น'; });
 
+  // จ่ายด้วยประกันสังคม → ติ๊กสิทธิ์ ปกส ให้คนไข้ในรายชื่ออัตโนมัติ (ใช้ติดตามใน Recall)
+  if((+t.sso||0) > 0){
+    const pp = patients.find(x=>normHN(x.hn)===normHN(t.hn));
+    if(pp && !(pp.sso===true || String(pp.sso).toUpperCase()==='TRUE')){ pp.sso = true; cachePatients(); pushPatientToSheet(pp).catch(()=>{}); }
+  }
   saveLocal();
   closeModal('modalTreat');
   renderHome(); renderTreatPage();
@@ -3519,8 +3532,24 @@ function buildEndoCases(){
   all.forEach(c=>c.recs.sort((a,b)=>(String(a.date||'')+String(a.time||'')).localeCompare(String(b.date||'')+String(b.time||''))));
   return { open: all.filter(c=>!c.closed), closed: all.filter(c=>c.closed) };
 }
+// ---------- ปกส อัตโนมัติ ----------
+// ถือว่ามี ปกส เมื่อ (1) ติ๊กสิทธิ์ประกันสังคมในหน้าคนไข้ หรือ (2) เคยมีรายการรักษาที่จ่ายด้วยประกันสังคม (ช่อง ปกส > 0)
+var _pskKeys = null;
+function refreshPskSet_(){
+  const set = new Set();
+  try{
+    patients.forEach(p=>{ if(p && (p.sso===true || String(p.sso).toUpperCase()==='TRUE')){ const k=normHN(p.hn); if(k) set.add(k); } });
+    treatments.forEach(t=>{ if((+t.sso||0)>0){ const k=normHN(t.hn); if(k) set.add(k); } });
+  }catch(e){}
+  _pskKeys = set;
+}
+function pskHas_(hn){ if(!_pskKeys) refreshPskSet_(); const k=normHN(hn); return !!k && _pskKeys.has(k); }
+function pskBadge(o){
+  return (o && pskHas_(o.hn)) ? '<span class="psk-badge" title="ใช้/มีสิทธิ์ประกันสังคม">🏛️ ปกส</span>' : '';
+}
 var _endoSet = null;
 function refreshEndoSet(){
+  refreshPskSet_();
   try { _endoSet = new Set(buildEndoCases().open.filter(c=>endoCanSee(c.docName)).map(c=>c.key)); }
   catch(e){ _endoSet = new Set(); }
 }
@@ -4338,7 +4367,7 @@ function renderTreatPage(){
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
       <td class="text-caption hn-cell">${t.hn||'—'}</td>
-      <td style="font-weight:600">${t.patName}${endoBadge(t)}</td>
+      <td style="font-weight:600">${t.patName}${pskBadge(t)}${endoBadge(t)}</td>
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
       <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -5744,7 +5773,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -6232,7 +6261,7 @@ function renderSchedulePage(){
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
           <td class="text-caption hn-cell">${a.hn||'—'}</td>
-          <td style="font-weight:600;">${a.patName||'—'}${endoBadge(a)}</td>
+          <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
           <td>${docBadge(a.docName)}</td>
@@ -7071,6 +7100,7 @@ function debounceTreatSearch(){
 }
 
 function renderPatients(){
+  refreshPskSet_();
   const q = (document.getElementById('patientSearch')?.value||'').toLowerCase().trim();
   const grid = document.getElementById('patientGrid');
   if(!grid) return;
@@ -7094,7 +7124,7 @@ function renderPatients(){
     const last = getLastVisit(hn);
     const phone = String(p.phone||'');
     const lineId = String(p.lineId||'');
-    const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
+    const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE' || pskHas_(p.hn);
     const nameSafe = (p.name||'').replace(/'/g,"\\'");
     return `<div style="background:#fff;border-radius:12px;padding:14px 16px;
       box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);
@@ -7233,7 +7263,8 @@ function openPatientDetail(hn){
   setTimeout(()=>{
   const visits = getPatientVisitCount(hn);
   const treats = getPatientTreatments(hn);
-  const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
+  refreshPskSet_();
+  const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE' || pskHas_(p.hn);
   const rows = treats.length ? treats.map(t=>`
     <tr>
       <td style="font-size:12px;">${fmtDate(t.date)}</td>
@@ -7467,7 +7498,126 @@ function setRecallStatus(hn, status){
   renderRecall();
 }
 
-function renderRecall(){
+// ---------- Recall: โหมด "ปีนี้ยังไม่ใช้สิทธิประกันสังคม" ----------
+// รายชื่อ ปกส = ติ๊กสิทธิ์ในหน้าคนไข้ หรือเคยจ่ายด้วยประกันสังคม · ใช้สิทธิปีนี้ = มีรายการรักษาที่ ปกส > 0 ลงวันที่ในปีปัจจุบัน (ค.ศ.)
+// สถานะติดตามเก็บเป็นรายปี ในที่เดียวกับ Recall เดิม (ชีต recall) ด้วยคีย์ "ปี:HN" เช่น 2026:62-2891 และค่า "ติดต่อแล้ว|2026-10-25"
+var recallMode = 'long';
+var RECALL_YEAR_STATUSES = ['รอติดตาม','ติดต่อแล้ว','นัดแล้ว','ไม่สะดวก/ปฏิเสธ'];
+function recallPeople_(){
+  const byKey = new Map(); patients.forEach(p=>{ const k=normHN(p.hn); if(k && !byKey.has(k)) byKey.set(k,p); });
+  const out = new Map();
+  patients.forEach(p=>{ const k=normHN(p.hn); if(k && (p.sso===true || String(p.sso).toUpperCase()==='TRUE')) out.set(k, p); });
+  [...treatments].filter(t=>(+t.sso||0)>0 && normHN(t.hn)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).forEach(t=>{
+    const k=normHN(t.hn); if(out.has(k)) return;
+    const pat = byKey.get(k);
+    out.set(k, { hn:(pat&&pat.hn)||t.hn, name:(pat&&pat.name)||t.patName||'', phone:(pat&&pat.phone)||t.phone||'', sso:true, derived:true });
+  });
+  return [...out.values()];
+}
+function recallYearKey_(hn, year){ return year+':'+String(hn); }
+function getRecallYearStatus(hn, year){
+  let raw = 'รอติดตาม';
+  try{ raw = JSON.parse(localStorage.getItem('bl_recall')||'{}')[recallYearKey_(hn,year)] || 'รอติดตาม'; }catch(e){}
+  const parts = String(raw).split('|');
+  return { status: RECALL_YEAR_STATUSES.includes(parts[0]) ? parts[0] : 'รอติดตาม', date: parts[1]||'' };
+}
+function setRecallYearStatus(hn, status){
+  const year = todayStr().slice(0,4);
+  const val = status==='รอติดตาม' ? 'รอติดตาม' : status+'|'+todayStr();
+  try{
+    const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
+    data[recallYearKey_(hn,year)] = val;
+    localStorage.setItem('bl_recall', JSON.stringify(data));
+  }catch(e){}
+  syncToSheet('recall', { hn: recallYearKey_(hn,year), status: val, updatedAt: todayStr() })
+    .then(()=>showToast(status==='รอติดตาม' ? 'รีเซ็ตสถานะแล้ว' : 'บันทึก "'+status+'" แล้ว ✅'))
+    .catch(()=>showToast('บันทึก local แล้ว (sync ไม่สำเร็จ)','error'));
+  renderRecall();
+}
+function setRecallMode(m, btn){
+  recallMode = m;
+  document.querySelectorAll('#recallModeTabs .period-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const sel = document.getElementById('recallStatusFilter');
+  if(sel){
+    const opts = m==='year' ? RECALL_YEAR_STATUSES : ['รอติดตาม','ติดตามแล้ว'];
+    sel.innerHTML = '<option value="">ทุกสถานะ</option>'+opts.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+    sel.value = '';
+  }
+  const sub = document.getElementById('recallSubtitle');
+  if(sub) sub.textContent = m==='year' ? 'ติดตามคนไข้ ปกส. ที่ปีนี้ยังไม่ได้มาใช้สิทธิประกันสังคม' : 'ติดตามคนไข้ ปกส. ที่ไม่ได้มารักษานาน 11 เดือนขึ้นไป';
+  renderRecall();
+}
+function renderRecall(){ return recallMode==='year' ? renderRecallYear_() : renderRecallLong_(); }
+function recallYearData_(){
+  const today = todayStr(), year = today.slice(0,4);
+  const used = new Set(), lastSso = new Map(), nextApt = new Map();
+  treatments.forEach(t=>{
+    if((+t.sso||0)<=0) return; const k=normHN(t.hn); if(!k) return;
+    const d=String(t.date||'').slice(0,10);
+    if(d.slice(0,4)===year) used.add(k);
+    if(!lastSso.has(k) || d>lastSso.get(k)) lastSso.set(k,d);
+  });
+  appointments.forEach(a=>{
+    const k=normHN(a.hn); if(!k) return; const d=String(a.date||'').slice(0,10);
+    if(d>=today && a.status!=='ยกเลิก' && (!nextApt.has(k) || d<nextApt.get(k))) nextApt.set(k,d);
+  });
+  const rows = recallPeople_().map(p=>{
+    const k=normHN(p.hn); const tr=getPatientTreatments(p.hn); const st=getRecallYearStatus(p.hn,year);
+    return { ...p, k, used:used.has(k), lastSso:lastSso.get(k)||'', lastVisit:tr.length?tr[0].date:null, nextApt:nextApt.get(k)||'', status:st.status, statusDate:st.date };
+  });
+  return { year, rows };
+}
+function renderRecallYear_(){
+  const el = document.getElementById('recallList'); if(!el) return;
+  const q = (document.getElementById('recallSearch')?.value||'').toLowerCase().trim();
+  const statusFilter = document.getElementById('recallStatusFilter')?.value||'';
+  const { year, rows } = recallYearData_();
+  const total = rows.length, usedN = rows.filter(r=>r.used).length;
+  const todo = rows.filter(r=>!r.used);
+  const waitN = todo.filter(r=>r.status==='รอติดตาม').length;
+  const contactedN = todo.filter(r=>r.status==='ติดต่อแล้ว'||r.status==='นัดแล้ว').length;
+  const declinedN = todo.filter(r=>r.status==='ไม่สะดวก/ปฏิเสธ').length;
+  const aptN = todo.filter(r=>r.nextApt).length;
+  const today = new Date(todayStr()+'T12:00'); const daysLeft = Math.max(0, Math.round((new Date(year+'-12-31T12:00')-today)/86400000));
+  const pct = total ? Math.round(usedN/total*100) : 0;
+  const card = (n,l,c)=>'<div style="background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);"><div style="font-size:26px;font-weight:800;color:'+c+';font-family:\'Prompt\',sans-serif;">'+n+'</div><div class="text-caption">'+l+'</div></div>';
+  const summary =
+    '<div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border);">'
+    +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;"><b style="color:var(--wine-dark);">ใช้สิทธิประกันสังคมปี '+(Number(year)+543)+' แล้ว '+usedN+' จาก '+total+' คน ('+pct+'%)</b><span style="color:'+(daysLeft<=60?'#C0392B':'var(--text-light)')+';font-weight:700;">'+(daysLeft<=60?'🚨 ':'')+'เหลือ '+daysLeft+' วันสิ้นปี</span></div>'
+    +'<div class="rc-bar"><div style="width:'+pct+'%"></div></div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">'
+    + card(waitN,'รอติดตาม','#E74C3C') + card(contactedN,'ติดต่อ/นัดแล้ว','#16A085') + card(aptN,'📆 มีนัดล่วงหน้า','#2078B4') + card(declinedN,'ไม่สะดวก','#7F8C8D')
+    +'</div>';
+  let list = todo;
+  if(q) list = list.filter(r=>String(r.hn||'').toLowerCase().includes(q)||String(r.name||'').toLowerCase().includes(q)||String(r.phone||'').toLowerCase().includes(q));
+  if(statusFilter) list = list.filter(r=>r.status===statusFilter);
+  const ord = s=>RECALL_YEAR_STATUSES.indexOf(s);
+  list = [...list].sort((a,b)=> (a.status==='รอติดตาม'?0:1)-(b.status==='รอติดตาม'?0:1) || ord(a.status)-ord(b.status) || (a.nextApt?1:0)-(b.nextApt?1:0) || String(a.lastSso).localeCompare(String(b.lastSso)));
+  if(!list.length){
+    el.innerHTML = summary+'<div style="text-align:center;padding:40px;color:var(--text-light);">'+(todo.length===0?'🎉 ปกส ทุกคนมาใช้สิทธิปีนี้ครบแล้ว':'ไม่พบข้อมูลที่ค้นหา')+'</div>';
+    return;
+  }
+  const col = {'รอติดตาม':'#E74C3C','ติดต่อแล้ว':'#16A085','นัดแล้ว':'#2078B4','ไม่สะดวก/ปฏิเสธ':'#7F8C8D'};
+  const bAct = (hn,label,st,c)=>'<button class="rc-btn" style="border-color:'+c+';color:'+c+';" onclick="setRecallYearStatus(\''+String(hn).replace(/'/g,"\\'")+'\',\''+st+'\')">'+label+'</button>';
+  el.innerHTML = summary + list.map(r=>{
+    const c = col[r.status]||'#E74C3C'; const hnEsc = String(r.hn);
+    const actions = r.status==='รอติดตาม'
+      ? bAct(hnEsc,'📞 ติดต่อแล้ว','ติดต่อแล้ว','#16A085')+bAct(hnEsc,'📅 นัดแล้ว','นัดแล้ว','#2078B4')+bAct(hnEsc,'🙅 ไม่สะดวก','ไม่สะดวก/ปฏิเสธ','#7F8C8D')
+      : bAct(hnEsc,'↩️ รีเซ็ต','รอติดตาม','#7F8C8D');
+    return '<div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 10px rgba(107,45,94,0.08);border:1px solid var(--border);border-left:4px solid '+c+';display:flex;align-items:center;gap:12px;flex-wrap:wrap;'+(r.status==='รอติดตาม'?'':'opacity:0.85;')+'">'
+      +'<div style="flex:1;min-width:200px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;"><span style="font-size:15px;font-weight:800;color:var(--text-dark);">'+_escHtml(r.name||'—')+'</span><span class="psk-badge" style="margin-left:0;">🏛️ ปกส</span>'
+      +(r.nextApt?'<span style="background:rgba(32,120,180,0.12);color:#1A5F8E;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;">📆 มีนัด '+fmtDate(r.nextApt)+'</span>':'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;"><span>HN '+_escHtml(r.hn||'—')+'</span>'+(r.phone?'<span>📞 '+_escHtml(r.phone)+'</span>':'')
+      +'<span style="font-weight:700;color:var(--text-mid);">'+(r.lastSso?'ใช้สิทธิล่าสุด '+fmtDate(r.lastSso):'ยังไม่เคยใช้สิทธิกับคลินิก')+'</span>'+(r.lastVisit?'<span>มาล่าสุด '+fmtDate(r.lastVisit)+'</span>':'')+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      +'<span style="background:'+c+'1A;color:'+c+';border:1.5px solid '+c+'44;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">'+r.status+(r.statusDate?' · '+fmtDate(r.statusDate).slice(0,5):'')+'</span>'+actions+'</div></div>';
+  }).join('')
+  +'<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">แสดง '+list.length+' ราย จากคนไข้ ปกส. ที่ปีนี้ยังไม่ได้ใช้สิทธิ ทั้งหมด '+todo.length+' ราย</div>';
+}
+
+function renderRecallLong_(){
   const el = document.getElementById('recallList');
   if(!el) return;
 
@@ -7477,7 +7627,7 @@ function renderRecall(){
   const URGENT_DAYS = 610;    // ~20 เดือน
   const now = new Date();
 
-  const ssoPatients = patients.filter(p=>p.sso===true || String(p.sso).toUpperCase()==='TRUE');
+  const ssoPatients = recallPeople_();
 
   const list = ssoPatients.map(p=>{
     const treats = getPatientTreatments(p.hn);
@@ -7831,7 +7981,7 @@ function orthoStatusColor_(status){
 // ---------- ปกส + ขูดหินปูนล่าสุด บนการ์ดจัดฟัน ----------
 // ปกส = คนไข้ที่ติ๊ก "มีสิทธิ์ประกันสังคม" ในหน้าคนไข้ หรือเคยมีรายการรักษาที่ชำระด้วยประกันสังคม
 // ขูดหินปูนล่าสุด = วันล่าสุดของรายการรักษาที่มี "ขูดหินปูน" ในโปรแกรม (ตาม HN) · ถ้าไม่มีข้อมูล/ล่าสุดกว่านั้น กรอกเองได้ (เก็บที่คอลัมน์ "ขูดหินปูนล่าสุด" ในชีต ortho)
-function orthoHnKey_(v){ return String(v==null?'':v).trim().replace(/\s+/g,'').toUpperCase(); }
+function orthoHnKey_(v){ return normHN(v); }
 var _orthoPsk = null;
 function orthoBuildPsk_(){
   const psk = new Set(), scale = new Map();
