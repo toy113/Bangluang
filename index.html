@@ -8428,13 +8428,38 @@ async function openOrthoHistory(hn){
       box.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:20px;">ยังไม่มีบันทึก</p>';
       return;
     }
-    box.innerHTML = logs.map(l=>`
+    // ใส่เลข "ครั้งที่" ตามลำดับเวลา (เก่าสุด = ครั้งที่ 1) นับเหมือนที่การ์ดนับ "มาแล้ว N ครั้ง": เครื่องมือหลุดไม่นับเป็นครั้งปรับ แต่นับแยกเป็น "หลุดครั้งที่ N"
+    const isLoose = l => String(l['ทำอะไร']||'').trim()==='เครื่องมือหลุด';
+    const chrono = logs.map((l,i)=>({l,i})).sort((x,y)=>String(x.l['วันที่']||'').slice(0,10).localeCompare(String(y.l['วันที่']||'').slice(0,10)) || x.i-y.i);
+    let visitNo = 0, looseNo = 0, prevVisitDate = null;
+    const meta = new Map();
+    chrono.forEach(({l})=>{
+      const d = String(l['วันที่']||'').slice(0,10);
+      if(isLoose(l)){ looseNo++; meta.set(l,{loose:true,no:looseNo}); }
+      else{
+        visitNo++;
+        let gapDays = null;
+        if(prevVisitDate && d){ const g = Math.round((new Date(d+'T12:00')-new Date(prevVisitDate+'T12:00'))/86400000); if(!isNaN(g) && g>=0) gapDays = g; }
+        meta.set(l,{loose:false,no:visitNo,gapDays});
+        if(d) prevVisitDate = d;
+      }
+    });
+    const gapText = g => g==null ? '' : (g<14 ? g+' วัน' : Math.round(g/7)+' สัปดาห์');
+    const summary = '<div style="font-size:13px;font-weight:700;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:8px 12px;margin-bottom:6px;">มาแล้ว '+visitNo+' ครั้ง'+(looseNo?' · เครื่องมือหลุด '+looseNo+' ครั้ง':'')+'</div>';
+    box.innerHTML = summary + logs.map(l=>{
+      const m = meta.get(l)||{};
+      const badge = m.loose
+        ? '<span style="background:#FDEDEC;color:#922B21;border-radius:20px;padding:1px 9px;font-size:11px;font-weight:800;">🔧 หลุดครั้งที่ '+m.no+'</span>'
+        : '<span style="background:var(--wine);color:#fff;border-radius:20px;padding:1px 10px;font-size:11px;font-weight:800;">ครั้งที่ '+m.no+'</span>';
+      const gap = (!m.loose && m.gapDays!=null && m.gapDays>0) ? '<span style="font-size:11px;color:var(--text-light);">ห่างครั้งก่อน '+gapText(m.gapDays)+'</span>' : '';
+      return `
       <div style="border-bottom:1px dashed var(--border);padding:10px 0;">
-        <div style="font-size:12px;color:var(--gold);font-weight:700;">${l['วันที่']||''}</div>
-        <div style="font-size:14px;font-weight:700;margin-top:2px;">${l['ทำอะไร']||'—'}</div>
-        ${l['หมอ']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${l['หมอ']}</div>`:''}
-        ${l['note']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${l['note']}</div>`:''}
-      </div>`).join('');
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:12px;color:var(--gold);font-weight:700;">${_escHtml(l['วันที่']||'')}</span>${badge}${gap}</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px;">${_escHtml(l['ทำอะไร']||'—')}</div>
+        ${l['หมอ']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${_escHtml(l['หมอ'])}</div>`:''}
+        ${l['note']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${_escHtml(l['note'])}</div>`:''}
+      </div>`;
+    }).join('');
   }catch(e){
     console.warn('loadOrthoHistory error', e);
     box.innerHTML = '<p style="text-align:center;color:var(--red);padding:20px;">โหลดไม่สำเร็จ ลองใหม่อีกครั้ง</p>';
