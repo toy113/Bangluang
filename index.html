@@ -1485,18 +1485,18 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="page" id="page-recall">
       <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div class="section-title"><span>🔔</span>Recall ประกันสังคม</div>
-        <div id="recallSubtitle" style="font-size:13px;color:var(--text-light);align-self:center;">ติดตามคนไข้ ปกส. ที่ไม่ได้มารักษานาน 11 เดือนขึ้นไป</div>
+        <div id="recallSubtitle" style="font-size:13px;color:var(--text-light);align-self:center;">ติดตามคนไข้ ปกส. ที่ปีนี้ยังไม่ได้มาใช้สิทธิประกันสังคม</div>
       </div>
-      <div class="period-tabs" id="recallModeTabs" style="background:var(--wine-pale);margin-bottom:12px;">
-        <button class="period-tab active" onclick="setRecallMode('long',this)">⏰ ไม่ได้มานาน (11 เดือน)</button>
-        <button class="period-tab" onclick="setRecallMode('year',this)">📅 ปีนี้ยังไม่ใช้สิทธิ</button>
-      </div>
+      <!-- โหมด "ไม่ได้มานาน (11 เดือน)" ซ่อนไว้ — โค้ดยังอยู่ (setRecallMode('long')) ถ้าจะเปิดกลับให้คืนปุ่มสลับโหมดตรงนี้ -->
       <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
         <input type="text" class="form-control" id="recallSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="renderRecall()" style="height:38px;flex:1;min-width:200px;">
         <select id="recallStatusFilter" onchange="renderRecall()" class="form-control" style="height:38px;width:160px;">
           <option value="">ทุกสถานะ</option>
           <option value="รอติดตาม">รอติดตาม</option>
-          <option value="ติดตามแล้ว">ติดตามแล้ว</option>
+          <option value="โทรไม่รับ">โทรไม่รับ</option>
+          <option value="นัดแล้ว">นัดแล้ว</option>
+          <option value="ปฏิเสธ">ปฏิเสธ</option>
+          <option value="จะติดต่อมาเอง">จะติดต่อมาเอง</option>
         </select>
       </div>
       <div id="recallList" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -7551,7 +7551,7 @@ function setRecallStatus(hn, status){
 // ---------- Recall: โหมด "ปีนี้ยังไม่ใช้สิทธิประกันสังคม" ----------
 // รายชื่อ ปกส = ติ๊กสิทธิ์ในหน้าคนไข้ หรือเคยจ่ายด้วยประกันสังคม · ใช้สิทธิปีนี้ = มีรายการรักษาที่ ปกส > 0 ลงวันที่ในปีปัจจุบัน (ค.ศ.)
 // สถานะติดตามเก็บเป็นรายปี ในที่เดียวกับ Recall เดิม (ชีต recall) ด้วยคีย์ "ปี:HN" เช่น 2026:62-2891 และค่า "ติดต่อแล้ว|2026-10-25"
-var recallMode = 'long';
+var recallMode = 'year';
 var RECALL_YEAR_STATUSES = ['รอติดตาม','ติดต่อแล้ว','นัดแล้ว','ไม่สะดวก/ปฏิเสธ'];
 function recallPeople_(){
   const byKey = new Map(); patients.forEach(p=>{ const k=normHN(p.hn); if(k && !byKey.has(k)) byKey.set(k,p); });
@@ -8251,9 +8251,10 @@ async function saveScaling(){
 
 function orthoCardHtml(r){
   const hnEsc = String(r.hn||'').replace(/'/g,"\\'");
+  // ซ่อนบรรทัด "ยังไม่ผูก LINE" (แสดงเฉพาะคนที่ผูกแล้ว)
   const bound = r.lineUserId
-    ? '<span style="color:var(--green);">🟢 ผูก LINE แล้ว</span>'
-    : '<span style="color:var(--text-light);">⚪ ยังไม่ผูก LINE</span>';
+    ? '<div style="font-size:11px;margin-top:3px;"><span style="color:var(--green);">🟢 ผูก LINE แล้ว</span></div>'
+    : '';
   const status = orthoEffStatus_(r);
   const isActive = status === 'กำลังจัด';
   const overdue = isActive && orthoOverdue_(r);
@@ -8277,9 +8278,8 @@ function orthoCardHtml(r){
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
           ${statusPill}${pskPill}${overduePill}${missedPill}
         </div>
-        <div style="font-size:12px;color:var(--text-mid);margin-top:4px;">${r['แบบจัด']||'—'} · ${r['หมอ']||'—'}${r['phase']?' · phase: '+r['phase']:''}</div>
         ${scaleLine}
-        <div style="font-size:11px;margin-top:3px;">${bound}</div>
+        ${bound}
       </div>
       <div style="text-align:right;font-size:12px;">
         <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r)}</strong> ครั้ง</div>
