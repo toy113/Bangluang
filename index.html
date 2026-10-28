@@ -608,6 +608,25 @@ select.form-control { cursor: pointer; }
 .bank-table th:first-child, .bank-table td:first-child { text-align: left; font-weight: 700; }
 .bank-table tfoot td { font-weight: 800; color: var(--wine-dark); border-bottom: none; border-top: 1.5px solid var(--border); }
 .bank-tag { font-size: 10px; font-weight: 700; color: var(--text-light); line-height: 1.3; }
+.inc-filter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.inc-nav { display: flex; align-items: center; gap: 8px; }
+.inc-inputs { display: flex; align-items: center; gap: 6px; }
+.inc-actions { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 768px) {
+  .inc-hdr { flex-direction: column; align-items: stretch !important; }
+  .inc-filter { flex-direction: column; align-items: stretch; gap: 10px; width: 100%; }
+  .inc-filter .period-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; width: 100%; box-sizing: border-box; }
+  .inc-filter .period-tab { padding: 10px 2px; font-size: 13px; text-align: center; white-space: nowrap; }
+  .inc-nav { width: 100%; }
+  .inc-nav .date-nav-btn { height: 46px; min-width: 46px; flex: none; font-size: 22px; }
+  .inc-inputs { flex: 1; min-width: 0; }
+  .inc-inputs .form-control { flex: 1 1 0; min-width: 0; width: 100% !important; height: 46px !important; font-size: 15px; }
+  .inc-inputs #income-filter-range { flex: 1 1 0; min-width: 0; flex-wrap: nowrap !important; gap: 4px !important; }
+  .inc-inputs #income-range-start, .inc-inputs #income-range-end { font-size: 12.5px; padding-left: 6px; padding-right: 6px; }
+  .inc-actions { width: 100%; gap: 10px; }
+  .inc-actions .date-nav-btn { height: 46px; flex: none; padding: 0 20px; font-size: 14px; }
+  .inc-actions .btn { flex: 1; height: 46px !important; font-size: 14px !important; }
+}
 .date-nav { display: flex; align-items: center; gap: 6px; }
 .date-nav-btn { height: 36px; min-width: 36px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 10px; background: #fff; color: var(--wine); font-family: inherit; font-size: 20px; font-weight: 800; line-height: 1; cursor: pointer; }
 .date-nav-btn:hover { background: var(--wine-pale); }
@@ -1262,27 +1281,33 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
     <!-- ===== INCOME PAGE ===== -->
     <div class="page" id="page-income">
-      <div class="section-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+      <div class="section-hdr inc-hdr" style="margin-bottom:16px;flex-wrap:wrap;gap:12px;">
         <div class="section-title"><span>📊</span>สรุปรายได้</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div class="period-tabs">
+        <div class="inc-filter">
+          <div class="period-tabs inc-tabs">
             <button class="period-tab active" id="iperiod-day" onclick="setPeriod('day',this)">รายวัน</button>
             <button class="period-tab" id="iperiod-month" onclick="setPeriod('month',this)">รายเดือน</button>
             <button class="period-tab" id="iperiod-year" onclick="setPeriod('year',this)">รายปี</button>
             <button class="period-tab" id="iperiod-range" onclick="setPeriod('range',this)">ช่วงวันที่</button>
           </div>
-          <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(-1)" aria-label="ก่อนหน้า" title="ก่อนหน้า">‹</button>
-          <input type="date" id="income-filter-day" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
-          <input type="month" id="income-filter-month" class="form-control" style="height:36px;width:150px;display:none;" onchange="renderIncome()">
-          <input type="number" id="income-filter-year" class="form-control" style="height:36px;width:100px;display:none;" placeholder="ปี พ.ศ." min="2560" max="2600" onchange="renderIncome()">
-          <div id="income-filter-range" style="display:none;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input type="date" id="income-range-start" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
-            <span style="color:var(--text-light);font-size:13px;">ถึง</span>
-            <input type="date" id="income-range-end" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
+          <div class="inc-nav">
+            <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(-1)" aria-label="ก่อนหน้า" title="ก่อนหน้า">‹</button>
+            <div class="inc-inputs">
+              <input type="date" id="income-filter-day" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
+              <input type="month" id="income-filter-month" class="form-control" style="height:36px;width:150px;display:none;" onchange="renderIncome()">
+              <input type="number" id="income-filter-year" class="form-control" style="height:36px;width:100px;display:none;" placeholder="ปี พ.ศ." min="2560" max="2600" onchange="renderIncome()">
+              <div id="income-filter-range" style="display:none;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <input type="date" id="income-range-start" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
+                <span style="color:var(--text-light);font-size:13px;">ถึง</span>
+                <input type="date" id="income-range-end" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
+              </div>
+            </div>
+            <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(1)" aria-label="ถัดไป" title="ถัดไป">›</button>
           </div>
-          <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(1)" aria-label="ถัดไป" title="ถัดไป">›</button>
-          <button type="button" class="date-nav-btn date-nav-today" id="incomeTodayBtn" onclick="incomeGoToday()">วันนี้</button>
-          <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
+          <div class="inc-actions">
+            <button type="button" class="date-nav-btn date-nav-today" id="incomeTodayBtn" onclick="incomeGoToday()">วันนี้</button>
+            <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
+          </div>
         </div>
       </div>
       <div class="card-box" style="margin-bottom:20px;">
@@ -7639,7 +7664,15 @@ function recallYearData_(){
   const rows = recallPeople_().map(p=>{
     const k=normHN(p.hn); const tr=getPatientTreatments(p.hn); const log=getRecallLog(p.hn,year);
     const na = nextApt.get(k)||'';
-    return { ...p, k, used:used.has(k), lastSso:lastSso.get(k)||'', lastVisit:tr.length?tr[0].date:null, nextApt:na, log, state:recallStateOf_(log, na) };
+    const procsOf = list => { const set=new Set(); list.forEach(t=>(Array.isArray(t.proc)?t.proc:String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean).forEach(x=>set.add(x))); return [...set]; };
+    const lastD = tr.length ? String(tr[0].date||'').slice(0,10) : '';
+    const lastDay = lastD ? tr.filter(t=>String(t.date||'').slice(0,10)===lastD) : [];
+    const ssoTr = tr.filter(t=>(+t.sso||0)>0);
+    const ssoD = ssoTr.length ? String(ssoTr[0].date||'').slice(0,10) : '';
+    const ssoDay = ssoD ? ssoTr.filter(t=>String(t.date||'').slice(0,10)===ssoD) : [];
+    return { ...p, k, used:used.has(k), lastSso:lastSso.get(k)||'', lastVisit:tr.length?tr[0].date:null,
+      lastVisitProcs:procsOf(lastDay), lastVisitDocs:[...new Set(lastDay.map(t=>t.docName).filter(Boolean))], lastSsoProcs:procsOf(ssoDay),
+      nextApt:na, log, state:recallStateOf_(log, na) };
   });
   return { year, rows };
 }
@@ -7689,7 +7722,9 @@ function renderRecallYear_(){
       +'<div style="min-width:0;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:15px;font-weight:800;color:var(--text-dark);">'+_escHtml(r.name||'—')+'</span><span class="psk-badge" style="margin-left:0;">🏛️ ปกส</span></div>'
       +'<div style="font-size:12px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;"><span>HN '+_escHtml(r.hn||'—')+'</span>'+(r.phone?'<span>📞 '+_escHtml(r.phone)+'</span>':'')+'</div></div>'
       +'<span style="background:'+c+'1A;color:'+c+';border:1.5px solid '+c+'44;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:800;white-space:nowrap;">'+r.state.label+'</span></div>'
-      +'<div style="font-size:12px;color:var(--text-mid);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;"><span style="font-weight:700;">'+(r.lastSso?'ใช้สิทธิล่าสุด '+fmtDate(r.lastSso):'ยังไม่เคยใช้สิทธิกับคลินิก')+'</span>'+(r.lastVisit?'<span>มาล่าสุด '+fmtDate(r.lastVisit)+'</span>':'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text-mid);margin-top:8px;line-height:1.7;">'
+      +'<div>🦷 <b>มาล่าสุด</b> '+(r.lastVisit ? '<b style="color:var(--wine-dark);">'+fmtDate(r.lastVisit)+'</b> <span style="color:var(--text-light);">('+orthoAgoText_(r.lastVisit)+')</span>'+(r.lastVisitProcs.length?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin:2px 0 2px 22px;">'+r.lastVisitProcs.map(procBadge).join('')+(r.lastVisitDocs.length?'<span style="font-size:11px;color:var(--text-light);align-self:center;">· '+_escHtml(r.lastVisitDocs.join(', '))+'</span>':'')+'</div>':'') : '<span style="color:var(--text-light);">ยังไม่มีประวัติรักษาในโปรแกรม</span>')+'</div>'
+      +'<div>🏛️ <b>ใช้สิทธิ ปกส ล่าสุด</b> '+(r.lastSso ? '<b style="color:var(--wine-dark);">'+fmtDate(r.lastSso)+'</b>'+(r.lastSsoProcs.length?' <span style="color:var(--text-light);">· '+_escHtml(r.lastSsoProcs.join(', '))+'</span>':'') : '<span style="color:var(--text-light);">ยังไม่เคยใช้สิทธิกับคลินิก</span>')+'</div></div>'
       +(r.nextApt?'<div style="margin-top:6px;"><span style="background:rgba(22,160,133,0.12);color:#0E6655;border-radius:20px;font-size:12px;font-weight:800;padding:3px 10px;">📆 มีนัดในตารางนัด '+fmtDate(r.nextApt)+'</span></div>':'')
       +'<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text-light);">ผลการติดตามปีนี้ '+(r.log.length?'('+r.log.length+' ครั้ง)':'')+'</div>'
       +(r.log.length ? '<div class="rc-timeline">'+tl+more+'</div>' : '<div style="font-size:12px;color:var(--text-light);margin-top:2px;">ยังไม่เคยติดตามปีนี้</div>')
@@ -7711,7 +7746,7 @@ function rlogResultChanged(){
 function openRecallLog(hn){
   const r = _recallRows.find(x=>String(x.hn)===String(hn)); if(!r) return;
   document.getElementById('rlog-hn').value = hn;
-  document.getElementById('rlog-info').innerHTML = '<b>'+_escHtml(r.name||'—')+'</b> · HN '+_escHtml(r.hn||'—')+(r.phone?' · 📞 '+_escHtml(r.phone):'')+'<br>'+(r.lastSso?'ใช้สิทธิล่าสุด '+fmtDate(r.lastSso):'ยังไม่เคยใช้สิทธิกับคลินิก')+(r.nextApt?' · 📆 มีนัดในตาราง '+fmtDate(r.nextApt):'');
+  document.getElementById('rlog-info').innerHTML = '<b>'+_escHtml(r.name||'—')+'</b> · HN '+_escHtml(r.hn||'—')+(r.phone?' · 📞 '+_escHtml(r.phone):'')+'<br>'+(r.lastVisit?'มาล่าสุด '+fmtDate(r.lastVisit)+(r.lastVisitProcs.length?' — '+_escHtml(r.lastVisitProcs.join(', ')):''):'ยังไม่มีประวัติรักษาในโปรแกรม')+'<br>'+(r.lastSso?'ใช้สิทธิล่าสุด '+fmtDate(r.lastSso):'ยังไม่เคยใช้สิทธิกับคลินิก')+(r.nextApt?' · 📆 มีนัดในตาราง '+fmtDate(r.nextApt):'');
   document.querySelectorAll('input[name="rlog-result"]').forEach(x=>{ x.checked=false; });
   document.getElementById('rlog-note').value = '';
   document.getElementById('rlog-appt-date').value = '';
