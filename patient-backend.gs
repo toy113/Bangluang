@@ -127,9 +127,12 @@ function patientGet_(userId) {
 // Run setupPatientPortal once from Apps Script. No new public admin endpoint is added.
 function setupPatientPortal() {
   patientLinks_();
+  try {patientAddMenu_();} catch (_) {Logger.log('สร้างชีตผูกบัญชีแล้ว กรุณาเปิดชีตใหม่เพื่อแสดงเมนู LINE คนไข้');}
+}
+function patientAddMenu_() {
   SpreadsheetApp.getUi().createMenu('LINE คนไข้').addItem('ออกรหัสผูกบัญชี (30 นาที)','issuePatientLinkCode').addItem('ยกเลิกการผูก LINE','revokePatientLink').addToUi();
 }
-function onOpen() { setupPatientPortal(); }
+function onOpen() { patientAddMenu_(); }
 function issuePatientLinkCode() {
   var ui=SpreadsheetApp.getUi(), result=ui.prompt('ออกรหัสผูก LINE','กรอก HN ของคนไข้ที่ตรวจสอบตัวตนแล้ว',ui.ButtonSet.OK_CANCEL);
   if (result.getSelectedButton()!==ui.Button.OK) return;

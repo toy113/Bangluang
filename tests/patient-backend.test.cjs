@@ -82,3 +82,7 @@ test('spreadsheet time cells keep HH:mm for both general and ortho appointments'
  vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('function orthoSheetToObjects_('),source.indexOf('/* ===================== SETUP')),ctx);
  const row=ctx.orthoSheetToObjects_('ตารางนัด')[0];assert.equal(row.date,'2026-11-05');assert.equal(row.time,'14:30');assert.equal(row['นัดถัดไปเวลา'],'14:30');
 });
+test('setup from the Apps Script editor tolerates an unavailable spreadsheet UI',()=>{
+ const {c}=fixture();let note='';c.Logger={log:message=>note=message};
+ assert.doesNotThrow(()=>c.setupPatientPortal());assert.ok(note.includes('กรุณาเปิดชีตใหม่'));
+});
