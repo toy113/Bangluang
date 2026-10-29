@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
+<title>ข้อมูลคนไข้ | Bangluang Dental</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="patient.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+<script src="patient-config.js" defer></script><script src="patient.js" defer></script>
+</head>
+<body>
+<header class="hero"><div class="brand"><span class="brand-mark" aria-hidden="true">B</span><div><strong>Bangluang Dental</strong><span>คลินิกทันตกรรมบางหลวง</span></div><span class="patient-label">สำหรับคนไข้</span></div><div class="hero-copy"><p>ดูแลรอยยิ้มของคุณ</p><h1 id="patientName">ข้อมูลของคุณ ในที่เดียว</h1><p id="patientMeta">นัดหมาย · ประวัติรักษา · การจัดฟัน</p></div></header>
+<main class="wrap">
+<div id="status" class="status" role="status" aria-live="polite">กำลังเชื่อมต่อ LINE…</div>
+<section id="errorView" class="card hidden"><h2>ยังเปิดข้อมูลไม่ได้</h2><p id="errorText"></p><button id="retryButton" class="primary">ลองอีกครั้ง</button></section>
+<section id="bindView" class="card hidden"><span class="eyebrow">เริ่มต้นใช้งาน</span><h2>เชื่อมบัญชีคนไข้กับ LINE</h2><p class="muted">ใช้ข้อมูลที่ให้ไว้กับคลินิก พร้อมรหัสยืนยันที่ได้รับจากเจ้าหน้าที่</p><form id="bindForm">
+<label for="bindHn">HN / เลขประจำตัวคนไข้</label><input id="bindHn" name="hn" required maxlength="30" autocomplete="off" placeholder="เช่น 62-2891">
+<label for="bindPhone">เบอร์โทรที่ลงทะเบียนกับคลินิก</label><input id="bindPhone" name="phone" type="tel" required maxlength="16" autocomplete="tel" placeholder="08x-xxx-xxxx">
+<label for="bindCode">รหัสยืนยันจากคลินิก</label><input id="bindCode" name="code" required maxlength="12" autocomplete="one-time-code" autocapitalize="characters" placeholder="รหัส 12 ตัวอักษร">
+<p class="field-help">รหัสใช้ได้ครั้งเดียว ภายใน 30 นาที หากยังไม่มีรหัส กรุณาติดต่อคลินิก</p><p id="bindError" class="error hidden" role="alert"></p><button class="primary" id="bindButton" type="submit">เชื่อมบัญชีและดูข้อมูล</button>
+</form><p class="privacy">ข้อมูลการรักษาจะแสดงหลังยืนยันตัวตนแล้วเท่านั้น หากใช้ LINE ร่วมกับผู้อื่น กรุณาติดต่อคลินิกก่อนผูกบัญชี</p></section>
+<div id="dataView" class="hidden">
+<nav class="tabs" aria-label="เมนูข้อมูลคนไข้"><button data-view="appt" aria-current="page">นัดครั้งต่อไป</button><button data-view="history">ประวัติรักษา</button><button data-view="ortho">ข้อมูลจัดฟัน</button></nav>
+<section id="panel-appt" class="panel"><div class="section-title"><div><span class="eyebrow">นัดหมายของคุณ</span><h2>นัดครั้งต่อไป</h2></div><span class="section-icon" aria-hidden="true">◷</span></div><div id="nextAppointment"></div><div id="otherAppointments"></div></section>
+<section id="panel-history" class="panel hidden"><div class="section-title"><div><span class="eyebrow">ทุกครั้งที่ดูแลรอยยิ้ม</span><h2>ประวัติรายการรักษา</h2></div></div><p class="muted">รายการที่คลินิกบันทึกไว้ เรียงจากครั้งล่าสุด</p><div id="historyList" class="timeline"></div></section>
+<section id="panel-ortho" class="panel hidden"><div class="section-title"><div><span class="eyebrow">ติดตามการดูแลของคุณ</span><h2>ข้อมูลจัดฟัน</h2></div></div><div id="orthoContent"></div></section>
+<footer><button id="refreshButton" class="text-button">↻ อัปเดตข้อมูล</button><p id="updatedAt"></p><p>หากข้อมูลคลาดเคลื่อน กรุณาติดต่อคลินิกทันตกรรมบางหลวง</p></footer>
+</div></main>
+</body></html>

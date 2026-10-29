@@ -27,7 +27,7 @@
  **********************************************************************/
 
 /* ============================ CONFIG ============================ */
-var ORTHO_LINE_TOKEN  = 'cwTKCta3n3WjIO/ZZ1a6iEwGDMtWQcKuCc6Fd7snhB1Zq734zwa9JL+29IpHM1vBQt/RUv7SYcXDSRvubK4v1GN1i43OyMdZ8pXfA36deWzB4R50NyGAsW+ingrPXMe911z9AIckrrznm98mM95iYQdB04t89/1O/w1cDnyilFU=';
+var ORTHO_LINE_TOKEN = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN') || '';
 var SHEET_ORTHO          = 'ortho';
 var SHEET_ORTHO_LOG      = 'ortho_log';
 var ORTHO_SHEET_PATIENTS = 'คนไข้';
@@ -382,7 +382,7 @@ function orthoSheetToObjects_(name) {
       var val = data[r][c];
       // แปลง Date -> string เพื่อส่ง JSON (คอลัมน์เวลาล้วน เช่นเผลอถูก Sheets แปลงเป็น serial time ฟอร์แมตแบบ HH:mm ไม่ใช่วันที่)
       if (val instanceof Date) {
-        val = Utilities.formatDate(val, ORTHO_TZ, key === 'นัดถัดไปเวลา' ? 'HH:mm' : 'yyyy-MM-dd');
+        val = Utilities.formatDate(val, ORTHO_TZ, (key === 'นัดถัดไปเวลา' || key === 'time') ? 'HH:mm' : 'yyyy-MM-dd');
       }
       o[key] = val;
     }
