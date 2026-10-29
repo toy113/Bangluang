@@ -177,6 +177,9 @@ function callClaudeForInsight_(prompt) {
 
 function doPost(e) {
   try {
+    if (typeof patientRoutePost_ === 'function') {
+      var _patient = patientRoutePost_(e); if (_patient) return _patient;
+    }
     // ---- ORTHO + LINE webhook (อยู่ในไฟล์ ortho-backend.gs) ----
     var _ortho = orthoRoutePost_(e);
     if (_ortho) return _ortho;
@@ -384,6 +387,9 @@ function doPost(e) {
 
 function doGet(e) {
   try {
+    if (typeof patientRouteGet_ === 'function') {
+      var _patient = patientRouteGet_(e); if (_patient) return _patient;
+    }
     // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
     var _ortho = orthoRouteGet_(e);
     if (_ortho) return _ortho;
