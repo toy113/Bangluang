@@ -575,6 +575,10 @@ select.form-control { cursor: pointer; }
 .psk-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); color: #B26A00; white-space: nowrap; vertical-align: middle; }
 .rc-bar { height: 8px; border-radius: 4px; background: var(--wine-pale); overflow: hidden; margin-top: 8px; }
 .rc-bar > div { height: 100%; background: #16A085; border-radius: 4px; }
+.rc-stat { background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 8px; text-align:center; box-shadow:var(--shadow); font:inherit; cursor:pointer; min-width:0; transition:background .15s, border-color .15s; }
+.rc-stat:hover, .rc-stat[aria-pressed="true"] { background:var(--wine-pale); border-color:var(--wine); }
+.rc-stat[aria-pressed="true"] { box-shadow:inset 0 0 0 1px var(--wine); }
+.rc-stat:focus-visible { outline:3px solid var(--wine); outline-offset:3px; }
 .rc-btn { padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-size: 12px; font-weight: 700; font-family: inherit; }
 .endo-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(17,122,101,0.13); border: 1px solid rgba(17,122,101,0.4); color: #0E6655; white-space: nowrap; vertical-align: middle; }
 .endo-grp-hdr { margin: 14px 0 8px; padding: 8px 12px; font-weight: 800; font-size: 14px; border-left: 6px solid; }
@@ -1522,6 +1526,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <option value="นัดแล้ว">นัดแล้ว</option>
           <option value="ปฏิเสธ">ปฏิเสธ</option>
           <option value="จะติดต่อมาเอง">จะติดต่อมาเอง</option>
+          <option value="declined-self">ปฏิเสธ / ติดต่อเอง</option>
         </select>
       </div>
       <div id="recallList" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -7640,7 +7645,7 @@ function setRecallMode(m, btn){
   const sel = document.getElementById('recallStatusFilter');
   if(sel){
     const opts = m==='year' ? RECALL_YEAR_STATUSES : ['รอติดตาม','ติดตามแล้ว'];
-    sel.innerHTML = '<option value="">ทุกสถานะ</option>'+opts.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+    sel.innerHTML = '<option value="">ทุกสถานะ</option>'+opts.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+(m==='year' ? '<option value="declined-self">ปฏิเสธ / ติดต่อเอง</option>' : '');
     sel.value = '';
   }
   const sub = document.getElementById('recallSubtitle');
@@ -7648,6 +7653,14 @@ function setRecallMode(m, btn){
   renderRecall();
 }
 function renderRecall(){ return recallMode==='year' ? renderRecallYear_() : renderRecallLong_(); }
+function toggleRecallStat(status){
+  const sel = document.getElementById('recallStatusFilter');
+  if(!sel) return;
+  sel.value = sel.value===status ? '' : status;
+  renderRecall();
+  const card = Array.from(document.querySelectorAll('#recallList .rc-stat')).find(b=>b.dataset.status===status);
+  if(card) card.focus({preventScroll:true});
+}
 function recallYearData_(){
   const today = todayStr(), year = today.slice(0,4);
   const used = new Set(), lastSso = new Map(), nextApt = new Map();
@@ -7693,18 +7706,18 @@ function renderRecallYear_(){
   const cnt = key => todo.filter(r=>r.state.key===key).length;
   const today = new Date(todayStr()+'T12:00'); const daysLeft = Math.max(0, Math.round((new Date(year+'-12-31T12:00')-today)/86400000));
   const pct = total ? Math.round(usedN/total*100) : 0;
-  const card = (n,l,c)=>'<div style="background:#fff;border-radius:12px;padding:12px 8px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);"><div style="font-size:24px;font-weight:800;color:'+c+';font-family:\'Prompt\',sans-serif;">'+n+'</div><div class="text-caption" style="line-height:1.3;">'+l+'</div></div>';
+  const card = (n,l,c,status)=>'<button type="button" class="rc-stat" data-status="'+status+'" aria-pressed="'+(statusFilter===status)+'" onclick="toggleRecallStat(\''+status+'\')" title="คลิกเพื่อกรองสถานะ คลิกซ้ำเพื่อแสดงทุกสถานะ"><span style="display:block;font-size:24px;font-weight:800;color:'+c+';font-family:\'Prompt\',sans-serif;">'+n+'</span><span class="text-caption" style="display:block;line-height:1.3;">'+l+'</span></button>';
   const summary =
     '<div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border);">'
     +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;"><b style="color:var(--wine-dark);">ใช้สิทธิประกันสังคมปี '+(Number(year)+543)+' แล้ว '+usedN+' จาก '+total+' คน ('+pct+'%)</b><span style="color:'+(daysLeft<=60?'#C0392B':'var(--text-light)')+';font-weight:700;">'+(daysLeft<=60?'🚨 ':'')+'เหลือ '+daysLeft+' วันสิ้นปี</span></div>'
     +'<div class="rc-bar"><div style="width:'+pct+'%"></div></div></div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">'
-    + card(cnt('wait'),'รอติดตาม','#E74C3C') + card(cnt('noanswer'),'📵 โทรไม่รับ<br>(ต้องโทรซ้ำ)','#E67E22') + card(cnt('booked'),'✅ นัดแล้ว','#16A085') + card(cnt('declined')+cnt('self'),'ปฏิเสธ /<br>ติดต่อเอง','#7F8C8D')
+    + card(cnt('wait'),'รอติดตาม','#E74C3C','รอติดตาม') + card(cnt('noanswer'),'📵 โทรไม่รับ<br>(ต้องโทรซ้ำ)','#E67E22','โทรไม่รับ') + card(cnt('booked'),'✅ นัดแล้ว','#16A085','นัดแล้ว') + card(cnt('declined')+cnt('self'),'ปฏิเสธ /<br>ติดต่อเอง','#7F8C8D','declined-self')
     +'</div>'
     +'<div style="font-size:12px;color:var(--text-light);margin:0 2px 12px;">📖 ก่อนโทร อ่านบัตรก่อนทุกครั้ง</div>';
   let list = todo;
   if(q) list = list.filter(r=>String(r.hn||'').toLowerCase().includes(q)||String(r.name||'').toLowerCase().includes(q)||String(r.phone||'').toLowerCase().includes(q));
-  if(statusFilter) list = list.filter(r=>r.state.label===statusFilter);
+  if(statusFilter) list = list.filter(r=>statusFilter==='declined-self' ? ['declined','self'].includes(r.state.key) : r.state.label===statusFilter);
   const ord = {wait:0, noanswer:1, self:2, booked:3, declined:4};
   const lastTry = r=>r.log.length ? String(r.log[r.log.length-1].d) : '';
   list = [...list].sort((a,b)=> (ord[a.state.key]-ord[b.state.key]) || (a.state.key==='noanswer' ? lastTry(a).localeCompare(lastTry(b)) : String(a.lastSso).localeCompare(String(b.lastSso))));
