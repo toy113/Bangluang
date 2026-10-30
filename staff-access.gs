@@ -1,9 +1,10 @@
 // Staff API gate. The clinic owner runs setupStaffAccess() from the Sheet editor.
 // The generated key is shown once and must never be committed to this repository.
 function setupStaffAccess() {
+  var ui = SpreadsheetApp.getUi();
   var key = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').toUpperCase();
   PropertiesService.getScriptProperties().setProperty('STAFF_API_KEY_HASH', patientHash_(key));
-  SpreadsheetApp.getUi().alert('รหัสเจ้าหน้าที่ใหม่ (คัดลอกเก็บไว้):\n' + key + '\n\nรหัสนี้ใช้เข้าหน้าโปรแกรมและไม่แสดงอีก');
+  ui.alert('รหัสเจ้าหน้าที่ใหม่ (คัดลอกเก็บไว้):\n' + key + '\n\nรหัสนี้ใช้เข้าหน้าโปรแกรมและไม่แสดงอีก');
 }
 function staffAuthorized_(body) {
   var stored = PropertiesService.getScriptProperties().getProperty('STAFF_API_KEY_HASH');
