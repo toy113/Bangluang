@@ -14,11 +14,10 @@
 <main class="wrap">
 <div id="status" class="status" role="status" aria-live="polite">กำลังเชื่อมต่อ LINE…</div>
 <section id="errorView" class="card hidden"><h2>ยังเปิดข้อมูลไม่ได้</h2><p id="errorText"></p><button id="retryButton" class="primary">ลองอีกครั้ง</button></section>
-<section id="bindView" class="card hidden"><span class="eyebrow">เริ่มต้นใช้งาน</span><h2>เชื่อมบัญชีคนไข้กับ LINE</h2><p class="muted">ใช้ข้อมูลที่ให้ไว้กับคลินิก พร้อมรหัสยืนยันที่ได้รับจากเจ้าหน้าที่</p><form id="bindForm">
+<section id="bindView" class="card hidden"><span class="eyebrow">เริ่มต้นใช้งาน</span><h2>เชื่อมบัญชีคนไข้กับ LINE</h2><p class="muted">กรอก HN และเบอร์โทรที่ลงทะเบียนกับคลินิก</p><form id="bindForm">
 <label for="bindHn">HN / เลขประจำตัวคนไข้</label><input id="bindHn" name="hn" required maxlength="30" autocomplete="off" placeholder="เช่น 62-2891">
 <label for="bindPhone">เบอร์โทรที่ลงทะเบียนกับคลินิก</label><input id="bindPhone" name="phone" type="tel" required maxlength="16" autocomplete="tel" placeholder="08x-xxx-xxxx">
-<label for="bindCode">รหัสยืนยันจากคลินิก</label><input id="bindCode" name="code" required maxlength="12" autocomplete="one-time-code" autocapitalize="characters" placeholder="รหัส 12 ตัวอักษร">
-<p class="field-help">รหัสใช้ได้ครั้งเดียว ภายใน 30 นาที หากยังไม่มีรหัส กรุณาติดต่อคลินิก</p><p id="bindError" class="error hidden" role="alert"></p><button class="primary" id="bindButton" type="submit">เชื่อมบัญชีและดูข้อมูล</button>
+<p id="bindError" class="error hidden" role="alert"></p><button class="primary" id="bindButton" type="submit">เชื่อมบัญชีและดูข้อมูล</button>
 </form><p class="privacy">ข้อมูลการรักษาจะแสดงหลังยืนยันตัวตนแล้วเท่านั้น หากใช้ LINE ร่วมกับผู้อื่น กรุณาติดต่อคลินิกก่อนผูกบัญชี</p></section>
 <div id="dataView" class="hidden">
 <nav class="tabs" aria-label="เมนูข้อมูลคนไข้"><button data-view="appt" aria-current="page">นัดครั้งต่อไป</button><button data-view="history">ประวัติรักษา</button><button data-view="ortho">ข้อมูลจัดฟัน</button></nav>

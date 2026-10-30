@@ -53,30 +53,27 @@ function patientLinkOf_(userId) {
   return orthoSheetToObjects_('line_patient_links').filter(function(l){return String(l.lineUserId) === userId;})[0] || null;
 }
 function patientBind_(userId, body) {
-  var hn = orthoNormHN_(body.hn), phone = patientPhone_(body.phone), code = String(body.code || '').trim().toUpperCase();
-  if (!hn || hn.length > 30 || !phone || !/^[A-F0-9]{12}$/.test(code)) return {ok:false,error:'bind_failed'};
+  var hn = orthoNormHN_(body.hn), phone = patientPhone_(body.phone);
+  if (!hn || hn.length > 30 || !phone) return {ok:false,error:'bind_failed'};
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    var props = PropertiesService.getScriptProperties(), cache = CacheService.getScriptCache();
-    var now = Date.now(), rateKey = 'patient-attempt:' + patientHash_(userId);
-    var attempts = Number(cache.get(rateKey) || 0);
-    if (attempts >= 5) return {ok:false,error:'too_many_attempts'};
+    var cache = CacheService.getScriptCache();
+    var rateKey = 'patient-attempt:' + patientHash_(userId);
+    var hnRateKey = 'patient-hn-attempt:' + patientHash_(hn);
+    var attempts = Number(cache.get(rateKey) || 0), hnAttempts = Number(cache.get(hnRateKey) || 0);
+    if (attempts >= 5 || hnAttempts >= 5) return {ok:false,error:'too_many_attempts'};
     cache.put(rateKey, String(attempts+1), 900);
-    var key = 'patient-code:' + patientHash_(hn);
-    var issued = JSON.parse(props.getProperty(key) || '{}');
+    cache.put(hnRateKey, String(hnAttempts+1), 900);
     var p = patientFind_(hn);
-    if (!p || !issued.hash || issued.expires <= now || Number(issued.attempts || 0) >= 5) return {ok:false,error:'bind_failed'};
-    issued.attempts = Number(issued.attempts || 0)+1;
-    props.setProperty(key, JSON.stringify(issued));
-    if (patientHash_(code) !== issued.hash || patientPhone_(p.phone || p['เบอร์โทร']) !== phone) return {ok:false,error:'bind_failed'};
+    if (!p || patientPhone_(p.phone || p['เบอร์โทร']) !== phone) return {ok:false,error:'bind_failed'};
     var links = orthoSheetToObjects_('line_patient_links');
     // Rebinding another patient/LINE requires clinic staff to revoke the old binding first.
     if (links.some(function(l){return (String(l.lineUserId)===userId && orthoNormHN_(l.hn)!==hn) || (orthoNormHN_(l.hn)===hn && String(l.lineUserId)!==userId);})) return {ok:false,error:'already_linked'};
     if (!links.some(function(l){return String(l.lineUserId)===userId && orthoNormHN_(l.hn)===hn;})) {
       patientLinks_().appendRow([userId, hn, new Date().toISOString()]);
     }
-    props.deleteProperty(key); cache.remove(rateKey);
+    cache.remove(rateKey); cache.remove(hnRateKey);
     return {ok:true};
   } finally { lock.releaseLock(); }
 }
@@ -130,21 +127,9 @@ function setupPatientPortal() {
   try {patientAddMenu_();} catch (_) {Logger.log('สร้างชีตผูกบัญชีแล้ว กรุณาเปิดชีตใหม่เพื่อแสดงเมนู LINE คนไข้');}
 }
 function patientAddMenu_() {
-  SpreadsheetApp.getUi().createMenu('LINE คนไข้').addItem('ออกรหัสผูกบัญชี (30 นาที)','issuePatientLinkCode').addItem('ยกเลิกการผูก LINE','revokePatientLink').addSeparator().addItem('สร้างรหัสเจ้าหน้าที่ใหม่','setupStaffAccess').addToUi();
+  SpreadsheetApp.getUi().createMenu('LINE คนไข้').addItem('ยกเลิกการผูก LINE','revokePatientLink').addSeparator().addItem('สร้างรหัสเจ้าหน้าที่ใหม่','setupStaffAccess').addToUi();
 }
 function onOpen() { patientAddMenu_(); }
-function issuePatientLinkCode() {
-  var ui=SpreadsheetApp.getUi(), result=ui.prompt('ออกรหัสผูก LINE','กรอก HN ของคนไข้ที่ตรวจสอบตัวตนแล้ว',ui.ButtonSet.OK_CANCEL);
-  if (result.getSelectedButton()!==ui.Button.OK) return;
-  var hn=orthoNormHN_(result.getResponseText());
-  if (!patientFind_(hn)) {ui.alert('ไม่พบ HN'); return;}
-  var lock=LockService.getScriptLock(); lock.waitLock(10000);
-  try {
-    var code=Utilities.getUuid().replace(/-/g,'').slice(0,12).toUpperCase();
-    PropertiesService.getScriptProperties().setProperty('patient-code:'+patientHash_(hn),JSON.stringify({hash:patientHash_(code),expires:Date.now()+30*60000,attempts:0}));
-    ui.alert('รหัสสำหรับ HN '+hn+' (ใช้ครั้งเดียว ภายใน 30 นาที)',code+'\nแจ้งรหัสนี้ให้คนไข้ที่ตรวจสอบตัวตนแล้วเท่านั้น',ui.ButtonSet.OK);
-  } finally {lock.releaseLock();}
-}
 function revokePatientLink() {
   var ui=SpreadsheetApp.getUi(), result=ui.prompt('ยกเลิกการผูก LINE','กรอก HN ที่ต้องการยกเลิก',ui.ButtonSet.OK_CANCEL);
   if(result.getSelectedButton()!==ui.Button.OK) return;
@@ -154,7 +139,6 @@ function revokePatientLink() {
   try {
     var sh=patientLinks_(), data=sh.getDataRange().getValues();
     for(var r=data.length-1;r>0;r--) if(orthoNormHN_(data[r][1])===hn) sh.deleteRow(r+1);
-    PropertiesService.getScriptProperties().deleteProperty('patient-code:'+patientHash_(hn));
     ui.alert('ยกเลิกการผูกเรียบร้อย');
   } finally {lock.releaseLock();}
 }

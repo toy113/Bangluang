@@ -12,8 +12,7 @@ function fixture(){
  let verified={client_id:'test-channel',scope:'profile',expires_in:3600};
  context.UrlFetchApp={fetch:(url,options)=>({getResponseCode:()=>200,getContentText:()=>JSON.stringify(url.includes('/verify?')?verified:{userId:user})})};
  vm.createContext(context);vm.runInContext(fs.readFileSync(root+'/patient-backend.gs','utf8'),context);
- const issue=(hn='62-0001',code='ABCDEF123456',expires=Date.now()+10000)=>props.set('patient-code:'+context.patientHash_(hn),JSON.stringify({hash:context.patientHash_(code),expires,attempts:0}));
- return {c:context,sheets,props,cache,issue,setVerified:v=>verified=v};
+ return {c:context,sheets,props,cache,setVerified:v=>verified=v};
 }
 test('all Apps Script and frontend scripts parse',()=>{
  for(const file of fs.readdirSync(root).filter(f=>/\.(gs|js)$/.test(f))) new vm.Script(fs.readFileSync(root+'/'+file,'utf8'),{filename:file});
@@ -25,24 +24,24 @@ test('verify LINE channel, expiry and profile scope; fail closed without configu
  }
  assert.throws(()=>c.patientVerifyLine_(''),/unauthorized/);props.clear();assert.throws(()=>c.patientVerifyLine_('valid'),/config_missing/);
 });
-test('binding requires matching HN, phone and single-use code',()=>{
- const {c,issue,sheets}=fixture();issue();
- assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'0899999999',code:'ABCDEF123456'}).ok,false);
- assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'+66812345678',code:'ABCDEF123456'}).ok,true);
+test('binding requires matching HN and registered phone',()=>{
+ const {c,sheets}=fixture();
+ assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'0899999999'}).ok,false);
+ assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'+66812345678'}).ok,true);
  assert.equal(sheets.line_patient_links.length,1);
- assert.equal(c.patientBind_(otherUser,{hn:'62-0001',phone:'0812345678',code:'ABCDEF123456'}).ok,false);
+ assert.equal(c.patientBind_(otherUser,{hn:'62-0001',phone:'0812345678'}).ok,false);
 });
-test('expired code and excessive attempts cannot bind',()=>{
- const {c,issue}=fixture();issue('62-0001','ABCDEF123456',Date.now()-1);
- assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'0812345678',code:'ABCDEF123456'}).ok,false);
- issue();for(let i=0;i<4;i++) c.patientBind_(user,{hn:'62-0001',phone:'0812345678',code:'000000000000'});
- assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'0812345678',code:'ABCDEF123456'}).error,'too_many_attempts');
+test('excessive guesses are limited by LINE user and HN',()=>{
+ const {c}=fixture();
+ for(let i=0;i<5;i++) c.patientBind_(user,{hn:'62-0001',phone:'0899999999'});
+ assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'0812345678'}).error,'too_many_attempts');
+ assert.equal(c.patientBind_(otherUser,{hn:'62-0001',phone:'0812345678'}).error,'too_many_attempts');
 });
 test('cannot replace another LINE binding or link a second HN',()=>{
- const {c,issue,sheets}=fixture();sheets.line_patient_links.push({lineUserId:otherUser,hn:'62-0001'});issue();
- assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'0812345678',code:'ABCDEF123456'}).error,'already_linked');
- sheets.line_patient_links[0].lineUserId=user;issue('62-0002');
- assert.equal(c.patientBind_(user,{hn:'62-0002',phone:'0899999999',code:'ABCDEF123456'}).error,'already_linked');
+ const {c,sheets}=fixture();sheets.line_patient_links.push({lineUserId:otherUser,hn:'62-0001'});
+ assert.equal(c.patientBind_(user,{hn:'62-0001',phone:'0812345678'}).error,'already_linked');
+ sheets.line_patient_links[0].lineUserId=user;
+ assert.equal(c.patientBind_(user,{hn:'62-0002',phone:'0899999999'}).error,'already_linked');
 });
 test('patientGet ignores a forged HN/userId and returns an allowlist for the verified binding',()=>{
  const {c,sheets}=fixture();sheets.line_patient_links.push({lineUserId:user,hn:'62-0001'});
