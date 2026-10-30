@@ -180,11 +180,16 @@ function doPost(e) {
     if (typeof patientRoutePost_ === 'function') {
       var _patient = patientRoutePost_(e); if (_patient) return _patient;
     }
-    // ---- ORTHO + LINE webhook (อยู่ในไฟล์ ortho-backend.gs) ----
+    var data = JSON.parse(e.postData.contents);
+    // LINE webhook has no staff key. Keep its existing route independent of staff requests.
+    if (data && Array.isArray(data.events)) return orthoRoutePost_(e);
+    if (!staffAuthorized_(data)) return staffDenied_();
+    if (data.action === 'staffPing') return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+    var orthoRead = orthoRouteGet_({parameter:data});
+    if (orthoRead) return orthoRead;
+    if (['getAll','getCertificate','issueCertificate','getDailyInsight','generateDailyInsight'].indexOf(data.action) >= 0) return staffLegacyGet_(data);
     var _ortho = orthoRoutePost_(e);
     if (_ortho) return _ortho;
-
-    var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // DELETE appointments/treatments/labs
@@ -386,15 +391,14 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  try {
-    if (typeof patientRouteGet_ === 'function') {
-      var _patient = patientRouteGet_(e); if (_patient) return _patient;
-    }
-    // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
-    var _ortho = orthoRouteGet_(e);
-    if (_ortho) return _ortho;
+  if (typeof patientRouteGet_ === 'function') {
+    var _patient = patientRouteGet_(e); if (_patient) return _patient;
+  }
+  return staffDenied_();
+}
 
-    var p = (e && e.parameter) || {};
+function staffLegacyGet_(p) {
+  try {
     if (p.action === 'getAll') {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var out = {};

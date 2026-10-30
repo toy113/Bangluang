@@ -130,7 +130,7 @@ function setupPatientPortal() {
   try {patientAddMenu_();} catch (_) {Logger.log('สร้างชีตผูกบัญชีแล้ว กรุณาเปิดชีตใหม่เพื่อแสดงเมนู LINE คนไข้');}
 }
 function patientAddMenu_() {
-  SpreadsheetApp.getUi().createMenu('LINE คนไข้').addItem('ออกรหัสผูกบัญชี (30 นาที)','issuePatientLinkCode').addItem('ยกเลิกการผูก LINE','revokePatientLink').addToUi();
+  SpreadsheetApp.getUi().createMenu('LINE คนไข้').addItem('ออกรหัสผูกบัญชี (30 นาที)','issuePatientLinkCode').addItem('ยกเลิกการผูก LINE','revokePatientLink').addSeparator().addItem('สร้างรหัสเจ้าหน้าที่ใหม่','setupStaffAccess').addToUi();
 }
 function onOpen() { patientAddMenu_(); }
 function issuePatientLinkCode() {
