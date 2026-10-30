@@ -48,9 +48,9 @@ const server=http.createServer((req,res)=>{
   assert.ok((await page.locator('#orthoContent').innerText()).includes('ยังไม่มีข้อมูลจัดฟัน'));
   response={ok:true,bound:false};await page.getByRole('button',{name:'อัปเดตข้อมูล'}).click();
   await page.locator('#bindView:not(.hidden)').waitFor();
-  await page.getByLabel('HN / เลขประจำตัวคนไข้').fill('DEMO-001');await page.getByLabel('เบอร์โทรที่ลงทะเบียนกับคลินิก').fill('0812345678');await page.getByLabel('รหัสยืนยันจากคลินิก').fill('ABCDEF123456');
+  await page.getByLabel('HN / เลขประจำตัวคนไข้').fill('DEMO-001');await page.getByLabel('เบอร์โทรที่ลงทะเบียนกับคลินิก').fill('0812345678');
   response=fixture;await page.getByRole('button',{name:'เชื่อมบัญชีและดูข้อมูล',exact:true}).click();await page.locator('#dataView:not(.hidden)').waitFor();
-  assert.ok(requests.some(r=>r.action==='patientBind'&&r.hn==='DEMO-001'));
+  assert.ok(requests.some(r=>r.action==='patientBind'&&r.hn==='DEMO-001'&&!('code' in r)));
   assert.equal(await page.evaluate(()=>localStorage.length),0);
   response={ok:false,error:'unauthorized'};await page.getByRole('button',{name:'อัปเดตข้อมูล'}).click();await page.locator('#errorView:not(.hidden)').waitFor();
   assert.ok((await page.locator('#errorText').innerText()).includes('หมดอายุ'));

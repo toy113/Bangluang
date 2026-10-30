@@ -65,19 +65,19 @@ async function loadPatient() {
 }
 async function bindPatient(event) {
   event.preventDefault();if(patientBusy) return;
-  const hn=el('bindHn').value.trim(),phone=el('bindPhone').value.replace(/[^\d+]/g,''),code=el('bindCode').value.trim().toUpperCase();
+  const hn=el('bindHn').value.trim(),phone=el('bindPhone').value.replace(/[^\d+]/g,'');
   el('bindError').classList.add('hidden');
-  if(!hn || !/^(?:0\d{8,9}|\+?66\d{9})$/.test(phone) || !/^[A-F0-9]{12}$/.test(code)) {
-    el('bindError').textContent='กรุณาตรวจสอบ HN เบอร์โทร และรหัสยืนยัน 12 ตัวอักษร';el('bindError').classList.remove('hidden');return;
+  if(!hn || !/^(?:0\d{8,9}|\+?66\d{9})$/.test(phone)) {
+    el('bindError').textContent='กรุณาตรวจสอบ HN และเบอร์โทร';el('bindError').classList.remove('hidden');return;
   }
   patientBusy=true;el('bindButton').disabled=true;el('bindButton').textContent='กำลังยืนยันตัวตน…';
   let bound=false;
   try {
-    const data=await patientRequest('patientBind',{hn,phone,code});
+    const data=await patientRequest('patientBind',{hn,phone});
     if(!data.ok) throw new Error(data.error);
     bound=true;el('bindForm').reset();
   } catch(err) {
-    el('bindError').textContent=err.message==='too_many_attempts'?'ลองหลายครั้งเกินไป กรุณารอ 15 นาที หรือติดต่อคลินิก':err.message==='already_linked'?'บัญชีนี้มีการผูกข้อมูลอยู่แล้ว กรุณาให้คลินิกตรวจสอบก่อนเปลี่ยนบัญชี':'ยืนยันไม่สำเร็จ กรุณาตรวจสอบข้อมูลและรหัสที่ยังไม่หมดอายุ หรือติดต่อคลินิก';el('bindError').classList.remove('hidden');
+    el('bindError').textContent=err.message==='too_many_attempts'?'ลองหลายครั้งเกินไป กรุณารอ 15 นาที หรือติดต่อคลินิก':err.message==='already_linked'?'บัญชีนี้มีการผูกข้อมูลอยู่แล้ว กรุณาให้คลินิกตรวจสอบก่อนเปลี่ยนบัญชี':'ยืนยันไม่สำเร็จ กรุณาตรวจสอบ HN และเบอร์โทรที่ลงทะเบียนกับคลินิก';el('bindError').classList.remove('hidden');
   } finally {patientBusy=false;el('bindButton').disabled=false;el('bindButton').textContent='เชื่อมบัญชีและดูข้อมูล';}
   if(bound) await loadPatient();
 }
