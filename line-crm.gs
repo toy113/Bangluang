@@ -24,7 +24,7 @@
  **********************************************************************/
 
 var CRM_TZ = 'Asia/Bangkok';
-var CRM_DEFAULT_LIFF_ID = '2010461984-kt5dSgin';
+var CRM_DEFAULT_LIFF_ID = '2012312037-ZWyIL0I7';
 var CRM_DEFAULT_RICHMENU_IMG = 'https://toy113.github.io/Bangluang/richmenu-crm.png';
 
 var CRM_SHEETS = {

@@ -32,7 +32,7 @@ var SHEET_ORTHO          = 'ortho';
 var SHEET_ORTHO_LOG      = 'ortho_log';
 var ORTHO_SHEET_PATIENTS = 'คนไข้';
 // LIFF หน้าผูกบัญชี — ใช้ตอบกลับคน follow ใหม่
-var LIFF_BIND_URL   = 'https://liff.line.me/2010461984-kt5dSgin';
+var LIFF_BIND_URL   = 'https://liff.line.me/2012312037-ZWyIL0I7';
 
 var ORTHO_HEADERS = ['hn','ชื่อ','lineUserId','แบบจัด','หมอ','วันเริ่ม','แผนเดือน',
   'phase','ค่ารักษารวม','จ่ายแล้ว','คงเหลือ','งวดถัดไปวันที่','งวดถัดไปจำนวน',

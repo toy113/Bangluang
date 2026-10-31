@@ -2,7 +2,7 @@
 
 ระบบนี้มี 3 ส่วน
 - `line-crm.gs` (ไฟล์ใหม่ใน Apps Script) เป็นหลังบ้าน ส่งข้อความ รับปุ่มที่คนไข้กด และถามอาการ
-- `liff-ortho.html` คือหน้าคนไข้ใน LINE ใช้ LIFF ID เดิม จึงไม่ต้องสร้าง LIFF ใหม่
+- `liff-ortho.html` คือหน้าคนไข้ใน LINE ใช้ LIFF ID `2012312037-ZWyIL0I7` (ต้องอยู่ Provider เดียวกับ LINE OA เพื่อให้ userId ตรงกัน)
 - `index.html` มีแท็บใหม่ชื่อ **💬 LINE CRM** ซึ่งมี 11 เมนู
 
 ## 1. Apps Script (ทำครั้งเดียว)
@@ -21,7 +21,7 @@
 
 ## 2. LINE Developers
 - Messaging API → Webhook URL = URL `/exec` เดิม และเปิด **Use webhook**
-- LIFF app (`2010461984-kt5dSgin`) → Scopes ควรติ๊ก `openid` และ `profile`
+- LIFF app (`2012312037-ZWyIL0I7`) → Scopes ควรติ๊ก `openid` และ `profile`
 - LINE OA Manager → ข้อความทักทาย (Greeting) ควรปิด เพราะระบบส่งข้อความต้อนรับพร้อมปุ่มผูกบัญชีให้แล้ว
 
 ## 3. ก่อนเปิดใช้จริง (ในแท็บ LINE CRM)
