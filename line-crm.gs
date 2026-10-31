@@ -451,9 +451,11 @@ function crmAptMessage_(s, apt, kind) {
   var rows = [crmRow_('วัน', crmThaiDate_(apt.date)), crmRow_('เวลา', (apt.time || '-') + ' น.')];
   if (apt.docName) rows.push(crmRow_('ทันตแพทย์', apt.docName));
   if (apt.proc) rows.push(crmRow_('รายการ', apt.proc));
-  var buttons = [
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '📅 ขอเลื่อนนัด', data: 'apt|resched|' + apt.id, displayText: 'ขอเลื่อนนัด' } },
-    { type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } }];
+  var buttons = [];
+  // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
+  if (kind === 'remind') buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + apt.id, displayText: 'ยืนยันนัด' } });
+  buttons.push({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '📅 ขอเลื่อนนัด', data: 'apt|resched|' + apt.id, displayText: 'ขอเลื่อนนัด' } });
+  buttons.push({ type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } });
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
 }
