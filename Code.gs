@@ -177,19 +177,11 @@ function callClaudeForInsight_(prompt) {
 
 function doPost(e) {
   try {
-    if (typeof patientRoutePost_ === 'function') {
-      var _patient = patientRoutePost_(e); if (_patient) return _patient;
-    }
-    var data = JSON.parse(e.postData.contents);
-    // LINE webhook has no staff key. Keep its existing route independent of staff requests.
-    if (data && Array.isArray(data.events)) return orthoRoutePost_(e);
-    if (!staffAuthorized_(data)) return staffDenied_();
-    if (data.action === 'staffPing') return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
-    var orthoRead = orthoRouteGet_({parameter:data});
-    if (orthoRead) return orthoRead;
-    if (['getAll','getCertificate','issueCertificate','getDailyInsight','generateDailyInsight'].indexOf(data.action) >= 0) return staffLegacyGet_(data);
+    // ---- ORTHO + LINE webhook (อยู่ในไฟล์ ortho-backend.gs) ----
     var _ortho = orthoRoutePost_(e);
     if (_ortho) return _ortho;
+
+    var data = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // DELETE appointments/treatments/labs
@@ -391,14 +383,12 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  if (typeof patientRouteGet_ === 'function') {
-    var _patient = patientRouteGet_(e); if (_patient) return _patient;
-  }
-  return staffDenied_();
-}
-
-function staffLegacyGet_(p) {
   try {
+    // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
+    var _ortho = orthoRouteGet_(e);
+    if (_ortho) return _ortho;
+
+    var p = (e && e.parameter) || {};
     if (p.action === 'getAll') {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var out = {};
