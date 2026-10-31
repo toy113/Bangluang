@@ -452,7 +452,6 @@ function crmAptMessage_(s, apt, kind) {
   if (apt.docName) rows.push(crmRow_('ทันตแพทย์', apt.docName));
   if (apt.proc) rows.push(crmRow_('รายการ', apt.proc));
   var buttons = [
-    { type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + apt.id, displayText: 'ยืนยันนัด' } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '📅 ขอเลื่อนนัด', data: 'apt|resched|' + apt.id, displayText: 'ขอเลื่อนนัด' } },
     { type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } }];
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
