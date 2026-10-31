@@ -273,7 +273,7 @@ function gaFastGetAll_(p) {
 function doPost(e) {
   try {
     // ---- LINE CRM: webhook + งานหลังบ้าน CRM (อยู่ในไฟล์ line-crm.gs) — ต้องอยู่ก่อน ortho ----
-    var _crm = crmRoutePost_(e);
+    var _crm = (typeof crmRoutePost_ === 'function') ? crmRoutePost_(e) : null; // ไม่มีไฟล์ line-crm.gs ก็ยังทำงานได้
     if (_crm) return _crm;
 
     // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
@@ -484,7 +484,7 @@ function doPost(e) {
 function doGet(e) {
   try {
     // ---- LINE CRM (อยู่ในไฟล์ line-crm.gs) ----
-    var _crm = crmRouteGet_(e);
+    var _crm = (typeof crmRouteGet_ === 'function') ? crmRouteGet_(e) : null;
     if (_crm) return _crm;
 
     // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
