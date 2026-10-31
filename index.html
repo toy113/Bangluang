@@ -1376,7 +1376,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <option value="หยุด/เลิกรักษา">หยุด/เลิกรักษา</option>
             </select>
             <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--red);cursor:pointer;">
-              <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน 60 วัน
+              <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน <span id="orthoOverdueDays">50</span> วัน
             </label>
             <button type="button" class="ortho-chip" id="orthoPskChip" onclick="toggleOrthoPskFilter()" aria-pressed="false" title="คนไข้ที่มี ปกส แต่ปีนี้ยังไม่ได้ใช้สิทธิประกันสังคม">🏛️ ปกส ปีนี้ยังไม่ใช้สิทธิ <span id="orthoPskChipN">0</span></button>
             <select class="form-control" id="orthoSortSel" onchange="setOrthoSort(this.value)" aria-label="เรียงลำดับ" style="height:36px;width:200px;"></select>
@@ -7723,7 +7723,6 @@ function renderRecallYear_(){
       +'<div style="font-size:12px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;"><span>HN '+_escHtml(r.hn||'—')+'</span>'+(r.phone?'<span>📞 '+_escHtml(r.phone)+'</span>':'')+'</div></div>'
       +'<span style="background:'+c+'1A;color:'+c+';border:1.5px solid '+c+'44;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:800;white-space:nowrap;">'+r.state.label+'</span></div>'
       +'<div style="font-size:12px;color:var(--text-mid);margin-top:8px;line-height:1.7;">'
-      +'<div>🦷 <b>มาล่าสุด</b> '+(r.lastVisit ? '<b style="color:var(--wine-dark);">'+fmtDate(r.lastVisit)+'</b> <span style="color:var(--text-light);">('+orthoAgoText_(r.lastVisit)+')</span>'+(r.lastVisitProcs.length?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin:2px 0 2px 22px;">'+r.lastVisitProcs.map(procBadge).join('')+(r.lastVisitDocs.length?'<span style="font-size:11px;color:var(--text-light);align-self:center;">· '+_escHtml(r.lastVisitDocs.join(', '))+'</span>':'')+'</div>':'') : '<span style="color:var(--text-light);">ยังไม่มีประวัติรักษาในโปรแกรม</span>')+'</div>'
       +'<div>🏛️ <b>ใช้สิทธิ ปกส ล่าสุด</b> '+(r.lastSso ? '<b style="color:var(--wine-dark);">'+fmtDate(r.lastSso)+'</b>'+(r.lastSsoProcs.length?' <span style="color:var(--text-light);">· '+_escHtml(r.lastSsoProcs.join(', '))+'</span>':'') : '<span style="color:var(--text-light);">ยังไม่เคยใช้สิทธิกับคลินิก</span>')+'</div></div>'
       +(r.nextApt?'<div style="margin-top:6px;"><span style="background:rgba(22,160,133,0.12);color:#0E6655;border-radius:20px;font-size:12px;font-weight:800;padding:3px 10px;">📆 มีนัดในตารางนัด '+fmtDate(r.nextApt)+'</span></div>':'')
       +'<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text-light);">ผลการติดตามปีนี้ '+(r.log.length?'('+r.log.length+' ครั้ง)':'')+'</div>'
@@ -7957,6 +7956,7 @@ function setOrthoSort(k){
   renderOrthoPage();
 }
 function orthoSyncSortSel_(){
+  const od = document.getElementById('orthoOverdueDays'); if(od) od.textContent = ORTHO_OVERDUE_DAYS;
   const sel = document.getElementById('orthoSortSel'); if(!sel) return;
   if(!sel.options.length) sel.innerHTML = ORTHO_SORTS.map(x=>'<option value="'+x.k+'">'+x.label+'</option>').join('');
   sel.value = orthoSortKey;
@@ -8167,12 +8167,27 @@ async function renderOrthoPage(){
   box.innerHTML = rows.map(orthoCardHtml).join('');
 }
 
+// เกณฑ์ "ค้างนาน" ของแท็บจัดฟัน (วัน) — ใช้กับป้ายแดง ตัวกรอง และสีบรรทัด "ไม่ได้มา N วัน"
+var ORTHO_OVERDUE_DAYS = 50;
+// วันที่แบบไทย: '2026-11-19' → '19 พฤศจิกายน' (ปีนี้) หรือ '19 พฤศจิกายน 2568' (ปีอื่น แสดง พ.ศ.)
+function thaiDate_(v){
+  const m = String(v==null?'':v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return String(v==null?'':v);
+  const y=+m[1], mo=+m[2], d=+m[3];
+  if(mo<1 || mo>12) return String(v);
+  return d+' '+THAI_MONTHS[mo-1]+(y===Number(todayStr().slice(0,4)) ? '' : ' '+(y+543));
+}
+// มีนัดล่วงหน้า (วันนัด >= วันนี้) ไหม — ถ้าไม่มีวันนัด หรือวันนัดผ่านไปแล้ว ถือว่ายังไม่นัด
+function orthoHasUpcomingAppt_(r){
+  const v = String((r&&r['นัดถัดไป'])||'').slice(0,10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= todayStr();
+}
 function orthoOverdue_(r){
   const last = r['ปรับล่าสุด'] || r['วันเริ่ม'];
   if(!last) return false;
   const d = new Date(last);
   if(isNaN(d)) return false;
-  return Math.round((Date.now()-d.getTime())/86400000) > 60;
+  return Math.round((Date.now()-d.getTime())/86400000) > ORTHO_OVERDUE_DAYS;
 }
 
 function orthoMissedAppt_(r){
@@ -8295,13 +8310,14 @@ function orthoCardHtml(r){
   const overdue = isActive && orthoOverdue_(r);
   const sc = orthoStatusColor_(status);
   const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
-  const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 60 วัน</span>` : '';
+  const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน ${ORTHO_OVERDUE_DAYS} วัน</span>` : '';
+  const noApptPill = (isActive && orthoOverdue_(r) && !orthoHasUpcomingAppt_(r)) ? `<span title="ไม่มาเกิน ${ORTHO_OVERDUE_DAYS} วัน และยังไม่มีนัดล่วงหน้า" style="background:#FFF4E5;color:#9A5B00;border:1.5px solid #F0A030;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">📵 ยังไม่นัด</span>` : '';
   const hasPsk = orthoHasPsk_(r);
   const pskPill = hasPsk ? `<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.38);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">🏛️ ปกส</span>` + (orthoPskPending_(r) ? `<span title="ปีนี้ยังไม่มีรายการรักษาที่จ่ายด้วยประกันสังคม" style="background:#FFF4E5;color:#9A5B00;border:1px solid #F0B25E;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">⏳ ปีนี้ยังไม่ใช้สิทธิ</span>` : '') : '';
   let scaleLine = '';
   if(hasPsk){
     const ls = orthoLastScale_(r);
-    scaleLine = `<div style="font-size:12px;margin-top:4px;color:var(--text-mid);" onclick="event.stopPropagation()">🧼 ขูดหินปูนล่าสุด: ${ls ? `<b style="color:var(--wine-dark);">${fmtDate(ls.date)}</b> <span style="color:var(--text-light);">(${orthoAgoText_(ls.date)} · ${ls.src})</span>` : '<span style="color:var(--text-light);">ยังไม่มีข้อมูล</span>'} <button class="btn btn-ghost btn-sm" style="padding:1px 8px;font-size:11px;" onclick="openScalingEdit('${hnEsc}')">${ls ? '✏️ แก้' : '＋ กรอกวันที่'}</button></div>`;
+    scaleLine = `<div style="font-size:12px;margin-top:4px;color:var(--text-mid);" onclick="event.stopPropagation()">🧼 ขูดหินปูนล่าสุด: ${ls ? `<b style="color:var(--wine-dark);">${thaiDate_(ls.date)}</b> <span style="color:var(--text-light);">(${orthoAgoText_(ls.date)} · ${ls.src})</span>` : '<span style="color:var(--text-light);">ยังไม่มีข้อมูล</span>'} <button class="btn btn-ghost btn-sm" style="padding:1px 8px;font-size:11px;" onclick="openScalingEdit('${hnEsc}')">${ls ? '✏️ แก้' : '＋ กรอกวันที่'}</button></div>`;
   }
   const missedPill = (isActive && orthoMissedAppt_(r)) ? `<span style="background:#E67E22;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">⏰ ขาดนัด</span>` : '';
   return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
@@ -8311,15 +8327,15 @@ function orthoCardHtml(r){
           ${r['รหัสประจำตัว']?`<span style="color:var(--wine);font-weight:700;font-size:13px;">${r['รหัสประจำตัว']}</span>`:''}
           <span style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'}</span>
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
-          ${statusPill}${pskPill}${overduePill}${missedPill}
+          ${statusPill}${pskPill}${overduePill}${noApptPill}${missedPill}
         </div>
         ${scaleLine}
         ${bound}
       </div>
       <div style="text-align:right;font-size:12px;">
         <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r)}</strong> ครั้ง</div>
-        ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>60?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>60?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
-        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${r['นัดถัดไป']}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']:''}</div>`:''}
+        ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
+        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>`:''}
         ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
       </div>
     </div>
@@ -8489,7 +8505,7 @@ async function openOrthoHistory(hn){
       const gap = (!m.loose && m.gapDays!=null && m.gapDays>0) ? '<span style="font-size:11px;color:var(--text-light);">ห่างครั้งก่อน '+gapText(m.gapDays)+'</span>' : '';
       return `
       <div style="border-bottom:1px dashed var(--border);padding:10px 0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:12px;color:var(--gold);font-weight:700;">${_escHtml(l['วันที่']||'')}</span>${badge}${gap}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:12px;color:var(--gold);font-weight:700;">${_escHtml(thaiDate_(l['วันที่']||''))}</span>${badge}${gap}</div>
         <div style="font-size:14px;font-weight:700;margin-top:2px;">${_escHtml(l['ทำอะไร']||'—')}</div>
         ${l['หมอ']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${_escHtml(l['หมอ'])}</div>`:''}
         ${l['note']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${_escHtml(l['note'])}</div>`:''}
