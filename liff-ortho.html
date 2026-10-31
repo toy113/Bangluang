@@ -187,6 +187,8 @@ function show(id){ ['loading','errorView','bindView','pendingView','mainView'].f
 function fail(msg){ $('errorMsg').textContent = msg; show('errorView'); }
 
 let TOKEN = null, DATA = null, CUR = 0, TAB = 'next';
+// LEGACY = เซิร์ฟเวอร์ยังเป็นรุ่นเก่า (ยังไม่ได้ติดตั้ง line-crm.gs) → ใช้ระบบจัดฟันเดิมไปก่อน หน้าไม่พัง
+let LEGACY = false, USER_ID = null;
 
 function initialTab(){
   const q = new URLSearchParams(location.search);
@@ -196,10 +198,11 @@ function initialTab(){
   if(!t && h) t = ({appt:'next', progress:'ortho', log:'ortho'})[h] || h;
   return ['next','history','ortho'].includes(t) ? t : 'next';
 }
-async function api(params){
-  const qs = new URLSearchParams(Object.assign({}, params, TOKEN));
+async function api(params, noToken){
+  const qs = new URLSearchParams(Object.assign({}, params, noToken ? {} : TOKEN));
   const res = await fetch(API + '?' + qs.toString(), {cache:'no-store'});
-  return res.json();
+  const txt = await res.text();
+  try { return JSON.parse(txt); } catch(e){ return { __notJson:true }; }
 }
 async function boot(){
   TAB = initialTab();
@@ -215,6 +218,7 @@ async function load(){
   show('loading');
   try{
     const d = await api({ action:'crmPortal' });
+    if(d && d.__notJson){ LEGACY = true; return loadLegacy(); }
     if(!d || !d.ok){
       if(d && d.error==='auth') return fail('ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดเมนูใหม่อีกครั้ง');
       return fail('โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง');
@@ -224,6 +228,19 @@ async function load(){
     ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tel; });
     $('bindPhone').textContent = phone;
     render();
+  }catch(e){ console.error(e); fail('เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
+}
+async function loadLegacy(){
+  show('loading');
+  try{
+    if(!USER_ID) USER_ID = (await liff.getProfile()).userId;
+    const d = await api({ action:'orthoGet', lineUserId: USER_ID }, true);
+    if(d && d.ok && d.bound){
+      const p = d.profile || {};
+      const nx = p['นัดถัดไป'] ? [{ date:String(p['นัดถัดไป']).slice(0,10), time:p['นัดถัดไปเวลา']||'', proc:p['รายการนัดถัดไป']||'', docName:'' }] : [];
+      DATA = { patients:[{ hn:p.hn, name:p['ชื่อ']||'', consent:true, next:nx, history:null, ortho:{ profile:p, logs:d.logs||[] } }], pending:[] };
+      render();
+    } else { DATA = { patients:[], pending:[] }; openBind(false, true); }
   }catch(e){ console.error(e); fail('เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
 }
 function render(){
@@ -240,6 +257,9 @@ function render(){
   $('consentToggle').checked = d.patients.every(x=>x.consent);
   $('pendingNote').style.display = d.pending.length ? '' : 'none';
   $('pendingNote').textContent = d.pending.length ? ('มีคำขอผูกบัญชีเพิ่มรอคลินิกยืนยัน ' + d.pending.length + ' รายการ') : '';
+  // โหมดระบบเดิม: ยังตั้งค่าการรับข้อความ/ผูกครอบครัวไม่ได้
+  const consentCard = $('consentToggle').closest('.card'); if(consentCard) consentCard.classList.toggle('hide', LEGACY);
+  const famBtn = [...document.querySelectorAll('#mainView .foot-links button')].find(b=>/ครอบครัว/.test(b.textContent)); if(famBtn) famBtn.classList.toggle('hide', LEGACY);
   renderNext(p); renderHistory(p); renderOrtho(p);
   setTab(TAB);
   show('mainView');
@@ -267,6 +287,7 @@ function renderNext(p){
   }).join('') + `<p class="muted center" style="margin:4px 0 12px;">ต้องการเลื่อนนัด กดปุ่ม "ขอเลื่อนนัด" ในข้อความเตือนนัด หรือโทรหาคลินิก</p>`;
 }
 function renderHistory(p){
+  if(!p.history){ $('panel-history').innerHTML = '<div class="card"><div class="empty">ประวัติการรักษาจะเปิดให้ดูได้เร็ว ๆ นี้</div></div>'; return; }
   if(!p.history.length){ $('panel-history').innerHTML = '<div class="card"><div class="empty">ยังไม่มีประวัติการรักษา</div></div>'; return; }
   const byDate = {};
   p.history.forEach(h=>{ (byDate[h.date] = byDate[h.date] || []).push(h); });
@@ -329,7 +350,8 @@ function renderOrtho(p){
     </ul></div>`;
 }
 function openBind(isAdd, orthoOpen){
-  $('bindTitle').textContent = isAdd ? 'ผูกบัญชีคนไข้เพิ่ม' : 'ผูกบัญชีคนไข้';
+  $('bindTitle').textContent = LEGACY ? 'ผูกบัญชีคนไข้จัดฟัน' : (isAdd ? 'ผูกบัญชีคนไข้เพิ่ม' : 'ผูกบัญชีคนไข้');
+  if(LEGACY) orthoOpen = true;
   $('bindCancel').classList.toggle('hide', !isAdd);
   $('codeBox').open = !!orthoOpen;
   $('bindErr').style.display = 'none';
@@ -339,6 +361,18 @@ async function doBind(){
   const name = $('b-name').value.trim(), phone = $('b-phone').value.trim(), code = $('b-code').value.trim(), consent = $('b-consent').checked;
   const err = m=>{ $('bindErr').textContent = m; $('bindErr').style.display = 'block'; };
   $('bindErr').style.display = 'none';
+  if(LEGACY){
+    if(!/^A-\d{2,}$/.test(code)) return err('ตอนนี้ผูกบัญชีได้เฉพาะคนไข้จัดฟัน กรุณากรอกรหัสจัดฟัน (ตัวอย่าง A-123)');
+    if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)) return err('กรุณากรอกเบอร์โทร 10 หลัก (ตัวอย่าง 081-234-5678)');
+    $('bindBtn').disabled = true; $('bindBtn').textContent = 'กำลังผูกบัญชี...';
+    try{
+      const d = await api({ action:'orthoBind', lineUserId: USER_ID, idcode: code, phone }, true);
+      if(d && d.ok) await loadLegacy();
+      else err('ไม่พบข้อมูล — รหัสจัดฟันกับเบอร์โทรไม่ตรงกัน กรุณาตรวจสอบ หรือติดต่อคลินิก');
+    }catch(e){ err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }
+    $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';
+    return;
+  }
   if(!name) return err('กรุณากรอกชื่อจริงของคนไข้');
   if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)) return err('กรุณากรอกเบอร์โทร 10 หลัก (ตัวอย่าง 081-234-5678)');
   if(code && !/^A-\d{2,}$/.test(code)) return err('รูปแบบรหัสจัดฟันไม่ถูกต้อง (ตัวอย่าง A-123)');
