@@ -3246,6 +3246,15 @@ function crmViewLinks(){
   Object.values(d.linked||{}).forEach(arr=>arr.forEach(x=>linkedUids.add(x.lineUserId)));
   const unlinked=(d.followers||[]).filter(f=>f.status!=='unfollow' && !linkedUids.has(f.lineUserId));
   const src={ self:'คนไข้ผูกเอง', 'ortho-code':'รหัสจัดฟัน', staff:'พนักงานผูก' };
+  // คนไข้จัดฟันที่ผูกผ่านระบบเดิม (ชีต ortho) — อยู่ใน d.linked แต่ไม่มีแถวใน crm_links
+  const newHn=new Set(links.filter(l=>l.status==='active').map(l=>crmHN(l.hn)));
+  const fById={}; (d.followers||[]).forEach(f=>{ fById[f.lineUserId]=f; });
+  const oAct=new Set((d.orthoActive||[]).map(x=>crmHN(x)));
+  const legacy=[]; Object.keys(d.linked||{}).forEach(hn=>{ if(newHn.has(crmHN(hn))) return; (d.linked[hn]||[]).forEach(x=>{ const f=fById[x.lineUserId]||{}; legacy.push({hn, name:x.patName||((patients||[]).find(p=>crmHN(p.hn)===crmHN(hn))||{}).name||'', line:f.displayName||'', consent:x.consent!==false, active:oAct.has(crmHN(hn))}); }); });
+  legacy.sort((x,y)=>(y.active-x.active)||String(x.hn).localeCompare(String(y.hn),undefined,{numeric:true}));
+  const legacyCard=`<div class="crm-card"><h4>🦷 คนไข้จัดฟันที่ผูกแล้ว (ระบบเดิม) (${legacy.length})</h4>
+    <p class="crm-muted" style="margin-bottom:8px;">ผูกผ่านหน้าจัดฟันเดิม ใช้งานได้ทันที · ถ้าผูกผิดคน ให้ลบ lineUserId ของ HN นั้นในชีต "ortho"</p>
+    <div class="crm-tablewrap"><table class="crm-table"><tr><th>คนไข้</th><th>LINE</th><th>สถานะจัดฟัน</th><th>รับข้อความ</th></tr>${legacy.map(x=>`<tr><td><b>${crmEsc(x.name||'-')}</b><div class="crm-muted">HN ${crmEsc(x.hn)}</div></td><td>${crmEsc(x.line||'-')}</td><td>${x.active?'<span class="crm-chip g">กำลังจัด</span>':'<span class="crm-chip x">ไม่ได้กำลังจัด</span>'}</td><td>${x.consent?'<span class="crm-chip g">เปิด</span>':'<span class="crm-chip x">ปิด</span>'}</td></tr>`).join('')||'<tr><td colspan="4" class="crm-empty">ไม่มี</td></tr>'}</table></div></div>`;
   return `<datalist id="crmPatList">${crmPatOptions()}</datalist>
   <div class="crm-card"><h4>🔗 ลิงก์ให้คนไข้ผูกบัญชี</h4>
     <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;"><div id="crmQr" style="width:132px;height:132px;"></div>
@@ -3267,7 +3276,7 @@ function crmViewLinks(){
     <div class="crm-tablewrap"><table class="crm-table"><tr><th>คนไข้</th><th>LINE</th><th>ที่มา</th><th>รับข้อความ</th><th></th></tr>${active.map(l=>`<tr><td><b>${crmEsc(l.patName)}</b><div class="crm-muted">HN ${crmEsc(l.hn)}</div></td>
       <td>${crmEsc(l.displayName||'-')}</td><td>${crmEsc(src[l.source]||l.source)}<div class="crm-muted">${crmEsc(crmTs(l.approvedAt||l.createdAt))} ${crmEsc(l.approvedBy||'')}</div></td>
       <td>${String(l.consent).toUpperCase()==='FALSE'?'<span class="crm-chip x">ปิด</span>':'<span class="crm-chip g">เปิด</span>'}</td>
-      <td><button class="crm-btn r" onclick="if(confirm('ยกเลิกการผูก ${crmEsc(l.patName)}?'))crmDo({crm:'linkRevoke',id:'${l.id}'},'ยกเลิกการผูกแล้ว')">ยกเลิก</button></td></tr>`).join('')}</table></div></div>`;
+      <td><button class="crm-btn r" onclick="if(confirm('ยกเลิกการผูก ${crmEsc(l.patName)}?'))crmDo({crm:'linkRevoke',id:'${l.id}'},'ยกเลิกการผูกแล้ว')">ยกเลิก</button></td></tr>`).join('')}</table></div></div>${legacyCard}`;
 }
 function crmApproveLink(id, hasHn){
   let hn='', name='';
