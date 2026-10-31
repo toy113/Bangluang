@@ -6,8 +6,26 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bangluang Dental | คลินิกทันตกรรมบางหลวง</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// Chart.js (~200KB) โหลดเมื่อจำเป็นเท่านั้น (กราฟหน้ารายได้) — ไม่บล็อกการเปิดแอปอีกต่อไป
+window.loadChartJs = function(){
+  if (window.Chart) return Promise.resolve();
+  if (!window.__chartP) window.__chartP = new Promise(function(res, rej){
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js';
+    s.async = true;
+    s.onload = function(){ res(); };
+    s.onerror = function(){ window.__chartP = null; rej(new Error('chart.js load failed')); };
+    document.head.appendChild(s);
+  });
+  return window.__chartP;
+};
+</script>
 <style>
 :root {
   --wine: #6B2D5E;
@@ -2341,9 +2359,41 @@ for(let h=10;h<=18;h++) for(let m=0;m<60;m+=30){
 let currentUser = null;
 let isManager = false;
 let doctors = JSON.parse(JSON.stringify(DOCTORS_DATA)); // editable copy
-let appointments = JSON.parse(localStorage.getItem('bl_apt')||'[]');
-let treatments = JSON.parse(localStorage.getItem('bl_treat')||'[]');
-let labs = JSON.parse(localStorage.getItem('bl_lab')||'[]');
+// ---- local cache แบบกะทัดรัด: ชื่อคอลัมน์เก็บครั้งเดียว (เล็กลง ~40%) + hash ของข้อมูลฝั่งเซิร์ฟเวอร์ ----
+var _gaH = {};       // hash ต่อตารางของข้อมูลที่อยู่ในเครื่อง (ใช้ถามเซิร์ฟเวอร์ว่า "มีอะไรเปลี่ยนไหม")
+var _gaLastFull = Date.now(); // เวลาที่ดึงข้อมูลเต็มครั้งล่าสุด (ดึงเต็มทุก 5 นาทีกันข้อมูลในเครื่องเพี้ยน; ตอนเปิดแอปเชื่อ cache ที่มี hash)
+var _dataVer = 0;    // เพิ่มทุกครั้งที่ข้อมูลเปลี่ยน → index ที่คำนวณไว้จะสร้างใหม่
+function lsGetTable_(key, hkey){
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return [];
+    const d = JSON.parse(raw);
+    if(Array.isArray(d)) return d; // รูปแบบเดิม (array ของ object)
+    if(d && d.c===2 && Array.isArray(d.k) && Array.isArray(d.r)){
+      if(hkey && d.h) _gaH[hkey] = d.h;
+      const k = d.k, n = k.length;
+      return d.r.map(a=>{ const o = {}; for(let i=0;i<n;i++){ const v = a[i]; if(v!==null && v!==undefined) o[k[i]] = v; } return o; });
+    }
+  }catch(e){}
+  return [];
+}
+function lsPutTable_(key, rows, h){
+  try{
+    const keys = [], pos = new Map();
+    for(const r of rows){ for(const f in r){ if(!pos.has(f)){ pos.set(f, keys.length); keys.push(f); } } }
+    const packed = rows.map(r=>{ const a = new Array(keys.length).fill(null); for(const f in r){ const v = r[f]; if(v!==undefined) a[pos.get(f)] = v; } return a; });
+    localStorage.setItem(key, JSON.stringify({ c:2, h:h||'', k:keys, r:packed }));
+    return true;
+  }catch(e){
+    // เต็มโควตา: ลบทิ้งดีกว่าเก็บข้อมูลเก่าคู่กับ hash ที่ไม่ตรง (เปิดครั้งหน้าจะโหลดเต็มจากเซิร์ฟเวอร์)
+    try{ localStorage.removeItem(key); }catch(e2){}
+    return false;
+  }
+}
+function gaPending_(type){ try{ return !!(pendingSync[type] && pendingSync[type].size); }catch(e){ return false; } }
+let appointments = lsGetTable_('bl_apt','appointments');
+let treatments = lsGetTable_('bl_treat','treatments');
+let labs = lsGetTable_('bl_lab','labs');
 
 let selectedLoginDoc = null;
 let currentPin = '';
@@ -2358,13 +2408,13 @@ const _treatCollapsed = new Set(); // ชื่อหมอที่พับก
 //  SAVE HELPERS
 // ============================================================
 // ---- Sheet-only mode: saveLocal is no-op, data lives in Sheet ----
-function saveLocal(){
-  // cache-first: เก็บลง localStorage เพื่อให้เปิดครั้งหน้าแสดงข้อมูลทันที แล้วค่อย sync ทับ
-  try {
-    localStorage.setItem('bl_apt', JSON.stringify(appointments));
-    localStorage.setItem('bl_treat', JSON.stringify(treatments));
-    localStorage.setItem('bl_lab', JSON.stringify(labs));
-  } catch(e){}
+function saveLocal(only){
+  _dataVer++;
+  // เขียนเฉพาะตารางที่เปลี่ยน (ตอน sync) — เก็บ hash ไว้คู่ข้อมูล ยกเว้นตารางที่ยังมีรายการรอขึ้นชีต
+  const want = t => !only || only.indexOf(t) !== -1;
+  if(want('appointments')) lsPutTable_('bl_apt', appointments, gaPending_('appointments') ? '' : _gaH.appointments);
+  if(want('treatments'))   lsPutTable_('bl_treat', treatments, gaPending_('treatments') ? '' : _gaH.treatments);
+  if(want('labs'))         lsPutTable_('bl_lab', labs, gaPending_('labs') ? '' : _gaH.labs);
 }
 function loadLocal(){ /* arrays โหลดจาก localStorage ตอนประกาศตัวแปรแล้ว (bl_apt/bl_treat/bl_lab) */ }
 
@@ -2510,6 +2560,7 @@ function startApp(){
   const isFirstEverLoad = treatments.length===0 && appointments.length===0;
   const loadOverlay = document.getElementById('initialLoadOverlay');
   if(isFirstEverLoad && loadOverlay) loadOverlay.style.display = 'flex';
+  setTimeout(()=>{ try{ loadChartJs().catch(()=>{}); }catch(e){} }, 4000); // โหลดกราฟไว้ล่วงหน้าตอนว่าง
   syncAll().finally(()=>{
     if(loadOverlay){ loadOverlay.classList.add('hide'); setTimeout(()=>loadOverlay.style.display='none', 300); }
   });
@@ -4546,6 +4597,10 @@ function renderIncome(){
   buildBankStats(rows, currentPeriod, selYrBE);
 }
 function buildCharts(rows, period, today, month, year){
+  if(typeof Chart==='undefined'){
+    loadChartJs().then(()=>{ if(document.getElementById('page-income')?.classList.contains('active')) buildCharts(rows, period, today, month, year); }).catch(()=>{});
+    return;
+  }
   const THMONTHS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   // ---- Build comparison bar chart ----
   // day mode: compare last 7 days
@@ -4857,6 +4912,8 @@ function buildShareGrid(rows){
         }
       }
     });
+  } else if(chartCanvas){
+    loadChartJs().then(()=>{ if(document.getElementById('page-income')?.classList.contains('active')) buildShareGrid(rows); }).catch(()=>{});
   }
 }
 
@@ -5292,14 +5349,37 @@ async function syncToSheet(type, data){
     return Promise.reject(e);
   }
 }
-async function syncAll(){
+// sync ซ้อนกันไม่ได้: ถ้ากำลังดึงอยู่ ใช้ผลรอบเดียวกัน (กันมือถือยิงซ้ำทุก 5 วิตอนเน็ตช้า)
+let _syncP = null;
+function syncAll(opts){
+  opts = opts || {};
+  if(_syncP){ return opts.force ? _syncP.then(()=>syncAll(opts)) : _syncP; }
+  _syncP = syncAllInner_(opts).finally(()=>{ _syncP = null; });
+  return _syncP;
+}
+async function syncAllInner_(opts){
   if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) return;
   const dot=document.getElementById('syncDot');
   const txt=document.getElementById('syncText');
   try {
-    const res=await fetch(APPS_SCRIPT_URL+'?action=getAll',{cache:'no-store'});
+    // บอกเซิร์ฟเวอร์ว่าในเครื่องมีข้อมูลรุ่นไหน → ส่งกลับเฉพาะตารางที่เปลี่ยน (ไม่เปลี่ยน = ไม่ต้องดาวน์โหลดเลย)
+    // ตารางที่มีรายการรอขึ้นชีตจะขอเต็มเสมอ เพื่อให้ reconcilePendingSync ตรวจ/ส่งซ้ำได้เหมือนเดิม
+    const full = !!opts.force || !!opts.full || (Date.now() - _gaLastFull > 300000);
+    let hq = '';
+    if(!full){
+      hq = Object.keys(_gaH).filter(k=>_gaH[k] && !gaPending_(k)).map(k=>k+':'+_gaH[k]).join('|');
+    }
+    const res=await fetch(APPS_SCRIPT_URL+'?action=getAll'+(hq?'&h='+encodeURIComponent(hq):'')+(opts.force?'&force=1':''),{cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const d=await res.json();
+    if(d && d._v===2 && full) _gaLastFull = Date.now();
+    if(d && d._unchanged){
+      if(txt) txt.textContent='ซิงค์แล้ว '+new Date().toLocaleTimeString('th-TH');
+      if(dot) dot.style.background='var(--green)';
+      return;
+    }
+    if(d && d._h) _gaH = Object.assign({}, d._h);
+    const _changedLocal = ['appointments','treatments','labs'].filter(k=>Array.isArray(d[k]));
     // ---- Sheet is source of truth: full replace ----
     const sid = r=>String(r.id||'').trim();
     // ข้อมูลเก่าที่เคยถูก append ซ้ำจากคำขอพร้อมกัน อาจยังอยู่ใน Sheet
@@ -5475,8 +5555,8 @@ async function syncAll(){
         });
       });
     }
-    // cache-first: เก็บข้อมูลล่าสุดลง localStorage เพื่อให้เปิดครั้งหน้าขึ้นทันที
-    saveLocal();
+    // cache-first: เก็บข้อมูลล่าสุดลง localStorage เพื่อให้เปิดครั้งหน้าขึ้นทันที (เฉพาะตารางที่เปลี่ยน)
+    saveLocal(_changedLocal);
     // re-render current page
     const p=document.querySelector('.page.active')?.id?.replace('page-','');
     if(p==='home') renderHome();
@@ -5505,6 +5585,7 @@ async function syncAll(){
     if(txt) txt.textContent='ซิงค์แล้ว '+t;
     if(dot) dot.style.background='var(--green)';
   } catch(e){
+    _gaH = {}; // ประมวลผลไม่ครบ → รอบหน้าขอข้อมูลเต็ม ไม่เชื่อ hash เดิม
     if(dot) dot.style.background='var(--red)';
     if(txt) txt.textContent='⚠️ ไม่สามารถเชื่อมได้';
     console.warn('syncAll error:',e);
@@ -5518,7 +5599,7 @@ async function manualSync(){
   dot.style.background='var(--gold)';
   txt.textContent='กำลัง sync...';
   setTimeout(()=>btn.style.transform='',400);
-  await syncAll();
+  await syncAll({ force:true }); // ปุ่ม sync = อ่านจากชีตจริงทันที (ข้าม cache)
   dot.style.background='var(--green)';
   txt.textContent='ซิงค์แล้ว '+new Date().toLocaleTimeString('th-TH');
   showToast('Sync สำเร็จ ✅');
@@ -6931,8 +7012,9 @@ function buildDaySlotSettingsUI(){
 function startAutoSync(){
   if(_autoSyncStarted) return;
   _autoSyncStarted = true;
-  const syncEveryMs = window.matchMedia('(max-width: 768px)').matches ? 5000 : 20000;
-  setInterval(syncAll, syncEveryMs); // มือถือเช็คข้อมูลใหม่ทุก 5 วินาที; เดสก์ท็อปทุก 20 วินาที
+  const syncEveryMs = window.matchMedia('(max-width: 768px)').matches ? 5000 : 10000;
+  // ถามแค่ "มีอะไรเปลี่ยนไหม" (เล็กมาก) และหยุดถามเมื่อแอปอยู่เบื้องหลัง — กลับมาเปิดจะ sync ทันที
+  setInterval(()=>{ if(document.visibilityState !== 'hidden') syncAll(); }, syncEveryMs); // มือถือเช็คข้อมูลใหม่ทุก 5 วินาที; เดสก์ท็อปทุก 20 วินาที
 }
 
 // ============================================================
@@ -7091,7 +7173,7 @@ function clearCacheAndReload(){
 
 // patients array — source of truth คือ Google Sheet tab "คนไข้"
 // localStorage ใช้เป็น cache เท่านั้น
-var patients = JSON.parse(localStorage.getItem('bl_patients')||'[]');
+var patients = lsGetTable_('bl_patients','patients');
 
 // ---- sync ขึ้น Sheet โดยตรง ----
 function pushPatientToSheet(rec){
@@ -7103,7 +7185,8 @@ function deletePatientFromSheet(hn){
 
 // ---- save local cache ----
 function cachePatients(){
-  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+  _dataVer++;
+  lsPutTable_('bl_patients', patients, _gaH.patients);
 }
 
 // ---- next HN ----
@@ -7148,14 +7231,23 @@ function getPatientList(){
 // normalize HN สำหรับเปรียบเทียบ (ลบ dash และ space)
 function normHN(hn){ return String(hn||'').replace(/[-\s]/g,'').trim().toLowerCase(); }
 
+// index การรักษาต่อ HN (สร้างครั้งเดียวต่อรุ่นข้อมูล) — เดิมกรองทั้งตารางทุกครั้งต่อคนไข้ 1 คน
+var _tIdx = null, _tIdxVer = -1, _tIdxSrc = null, _tIdxLen = -1;
+function treatIndex_(){
+  if(_tIdx && _tIdxVer===_dataVer && _tIdxSrc===treatments && _tIdxLen===treatments.length) return _tIdx;
+  const m = new Map();
+  for(const t of treatments){ const k = normHN(t.hn); if(!k) continue; let a = m.get(k); if(!a){ a = []; m.set(k, a); } a.push(t); }
+  m.forEach(a=>a.sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))));
+  _tIdx = m; _tIdxVer = _dataVer; _tIdxSrc = treatments; _tIdxLen = treatments.length;
+  return m;
+}
 function getPatientVisitCount(hn){
-  const n = normHN(hn);
-  return treatments.filter(t=>normHN(t.hn)===n).length;
+  const a = treatIndex_().get(normHN(hn));
+  return a ? a.length : 0;
 }
 function getPatientTreatments(hn){
-  const n = normHN(hn);
-  return treatments.filter(t=>normHN(t.hn)===n)
-    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  const a = treatIndex_().get(normHN(hn));
+  return a ? a.slice() : [];
 }
 function getLastVisit(hn){
   const ts = getPatientTreatments(hn);
@@ -7609,9 +7701,9 @@ function recallLogParse_(raw){
   const map = { 'ติดต่อแล้ว':'contacted', 'นัดแล้ว':'booked', 'ไม่สะดวก/ปฏิเสธ':'declined' };
   return map[st] ? [{ d:d||todayStr(), t:'', r:map[st], a:'', n:'' }] : [];
 }
-function getRecallLog(hn, year){
+function getRecallLog(hn, year, store){
   let raw = '';
-  try{ raw = JSON.parse(localStorage.getItem('bl_recall')||'{}')[recallYearKey_(hn,year)] || ''; }catch(e){}
+  try{ raw = (store || JSON.parse(localStorage.getItem('bl_recall')||'{}'))[recallYearKey_(hn,year)] || ''; }catch(e){}
   return recallLogParse_(raw).sort((x,y)=>(String(x.d)+String(x.t||'')).localeCompare(String(y.d)+String(y.t||'')));
 }
 function saveRecallLogArr_(hn, year, arr){
@@ -7661,8 +7753,9 @@ function recallYearData_(){
     const k=normHN(a.hn); if(!k) return; const d=String(a.date||'').slice(0,10);
     if(d>=today && a.status!=='ยกเลิก' && (!nextApt.has(k) || d<nextApt.get(k))) nextApt.set(k,d);
   });
+  let _rstore = {}; try{ _rstore = JSON.parse(localStorage.getItem('bl_recall')||'{}'); }catch(e){}
   const rows = recallPeople_().map(p=>{
-    const k=normHN(p.hn); const tr=getPatientTreatments(p.hn); const log=getRecallLog(p.hn,year);
+    const k=normHN(p.hn); const tr=getPatientTreatments(p.hn); const log=getRecallLog(p.hn,year,_rstore);
     const na = nextApt.get(k)||'';
     const procsOf = list => { const set=new Set(); list.forEach(t=>(Array.isArray(t.proc)?t.proc:String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean).forEach(x=>set.add(x))); return [...set]; };
     const lastD = tr.length ? String(tr[0].date||'').slice(0,10) : '';
@@ -8724,7 +8817,7 @@ async function orthoPost(payload){
 // เพื่อให้สถานะที่เปลี่ยนจากเดสก์ท็อปสะท้อนโดยไม่ต้องรอรอบ auto-sync
 let _mobileStatusRefreshAt = 0;
 function refreshMobileStatusNow(){
-  if(!window.matchMedia('(max-width: 768px)').matches) return;
+  if(!currentUser) return;
   if(document.visibilityState === 'hidden') return;
   const now = Date.now();
   if(now - _mobileStatusRefreshAt < 1200) return;
