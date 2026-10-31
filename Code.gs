@@ -175,9 +175,108 @@ function callClaudeForInsight_(prompt) {
   return parsed;
 }
 
+// ============================================================
+//  FAST SYNC — getAll แบบมี cache + ส่งเฉพาะตารางที่เปลี่ยน
+//  - เก็บ JSON ของแต่ละชีตไว้ใน CacheService (หมดอายุ GA_TTL วินาที)
+//  - ทุกครั้งที่แอปบันทึกข้อมูล (doPost) จะ "เปลี่ยนรุ่น" ของชีตนั้น → cache เก่าใช้ไม่ได้ทันที
+//  - หน้าเว็บส่ง hash ของข้อมูลที่มีอยู่ (h=key:hash|...) → ถ้าตรงกัน ไม่ต้องส่งข้อมูลซ้ำ
+//  - แก้ชีตด้วยมือใน Google Sheets: แอปจะเห็นภายใน GA_TTL วินาที (หรือกด sync ในแอป = force)
+// ============================================================
+var GA_TABS = ['ตารางนัด','บันทึกการรักษา','แลป','settings','คนไข้','day_notes','sch_slots','recall'];
+var GA_KEYS = ['appointments','treatments','labs','settings','patients','day_notes','sch_slots','recall'];
+var GA_TTL = 120;
+var GA_CHUNK = 25000; // ตัวอักษรต่อ 1 ช่อง cache (ไทย 3 ไบต์/ตัว → < 100KB)
+
+function gaReadTab_(ss, tab) {
+  var sh = ss.getSheetByName(tab);
+  if (!sh) return [];
+  var lastRow = sh.getLastRow(), lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+  var hdr = sh.getRange(1,1,1,lastCol).getValues()[0];
+  var raw = sh.getRange(2,1,lastRow-1,lastCol).getValues();
+  var result = [];
+  for (var i = 0; i < raw.length; i++) {
+    var row = raw[i], hasData = false;
+    for (var c = 0; c < row.length; c++) { if (row[c] !== '' && row[c] !== null) { hasData = true; break; } }
+    if (!hasData) continue;
+    var obj = {};
+    for (var c2 = 0; c2 < hdr.length; c2++) obj[hdr[c2]] = cellToStr(row[c2], hdr[c2]);
+    result.push(obj);
+  }
+  return result;
+}
+function gaHash_(str) {
+  var b = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, str, Utilities.Charset.UTF_8), h = '';
+  for (var i = 0; i < 8; i++) { var v = (b[i] + 256) % 256; h += (v < 16 ? '0' : '') + v.toString(16); }
+  return h;
+}
+function gaChunksGet_(cache, key, n) {
+  if (!n) return null;
+  var keys = []; for (var i = 0; i < n; i++) keys.push('ga2c:' + key + ':' + i);
+  var got = cache.getAll(keys), out = [];
+  for (var j = 0; j < n; j++) { var v = got[keys[j]]; if (v === null || v === undefined) return null; out.push(v); }
+  return out.join('');
+}
+function gaChunksPut_(cache, key, json, h, gen) {
+  try {
+    var obj = {}, n = 0;
+    for (var i = 0; i < json.length || n === 0; i += GA_CHUNK) { obj['ga2c:' + key + ':' + n] = json.slice(i, i + GA_CHUNK); n++; }
+    cache.putAll(obj, GA_TTL);
+    cache.put('ga2m:' + key, JSON.stringify({ h: h, n: n, g: gen }), GA_TTL);
+  } catch (e) { /* cache เต็ม/ใหญ่เกิน → ทำงานต่อแบบไม่มี cache */ }
+}
+// เรียกหลังเขียนชีตสำเร็จ — ทำให้ cache ของชีตนั้นหมดสภาพทันที (ทุกเครื่องจะได้ข้อมูลใหม่รอบถัดไป)
+function gaTouch_(key) {
+  try { CacheService.getScriptCache().put('ga2g:' + key, String(Date.now()) + '-' + Math.random(), 21600); } catch (e) {}
+}
+function gaOk_(key) { gaTouch_(key); return ContentService.createTextOutput('ok'); }
+function gaIds_(sh) {
+  var n = sh.getLastRow();
+  if (n < 1) return [];
+  return sh.getRange(1, 1, n, 1).getValues().map(function(r){ return String(r[0]); });
+}
+function gaFastGetAll_(p) {
+  var cache = CacheService.getScriptCache();
+  var force = String(p.force || '') === '1';
+  var client = {};
+  String(p.h || '').split('|').forEach(function(x){ var i = x.indexOf(':'); if (i > 0) client[x.slice(0, i)] = x.slice(i + 1); });
+  var want = [];
+  GA_KEYS.forEach(function(k){ want.push('ga2g:' + k, 'ga2m:' + k); });
+  var got = {};
+  try { got = cache.getAll(want); } catch (e) {}
+  var ss = null, parts = [], hashes = {}, same = [];
+  for (var t = 0; t < GA_KEYS.length; t++) {
+    var k = GA_KEYS[t];
+    var gen = got['ga2g:' + k];
+    if (!gen) { gen = String(Date.now()) + '-' + Math.random(); try { cache.put('ga2g:' + k, gen, 21600); } catch (e) {} }
+    var meta = null;
+    try { meta = got['ga2m:' + k] ? JSON.parse(got['ga2m:' + k]) : null; } catch (e) {}
+    if (force || (meta && meta.g !== gen)) meta = null;
+    if (meta && client[k] && client[k] === meta.h) { hashes[k] = meta.h; same.push(k); continue; }
+    var json = meta ? gaChunksGet_(cache, k, meta.n) : null;
+    var h = meta ? meta.h : '';
+    if (json === null) {
+      if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+      json = JSON.stringify(gaReadTab_(ss, GA_TABS[t]));
+      h = gaHash_(json);
+      gaChunksPut_(cache, k, json, h, gen);
+    }
+    hashes[k] = h;
+    if (client[k] && client[k] === h) { same.push(k); continue; }
+    parts.push(JSON.stringify(k) + ':' + json);
+  }
+  var head = '"_v":2,"_h":' + JSON.stringify(hashes) + ',"_same":' + JSON.stringify(same) + (parts.length ? '' : ',"_unchanged":true');
+  return ContentService.createTextOutput('{' + head + (parts.length ? ',' + parts.join(',') : '') + '}')
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
   try {
-    // ---- ORTHO + LINE webhook (อยู่ในไฟล์ ortho-backend.gs) ----
+    // ---- LINE CRM: webhook + งานหลังบ้าน CRM (อยู่ในไฟล์ line-crm.gs) — ต้องอยู่ก่อน ortho ----
+    var _crm = (typeof crmRoutePost_ === 'function') ? crmRoutePost_(e) : null; // ไม่มีไฟล์ line-crm.gs ก็ยังทำงานได้
+    if (_crm) return _crm;
+
+    // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
     var _ortho = orthoRoutePost_(e);
     if (_ortho) return _ortho;
 
@@ -189,22 +288,22 @@ function doPost(e) {
       var map = { treatments: 'บันทึกการรักษา', labs: 'แลป', appointments: 'ตารางนัด' };
       var sh = ss.getSheetByName(map[data.data.type]);
       if (sh) {
-        var ids = sh.getDataRange().getValues().map(function(r){ return String(r[0]); });
+        var ids = gaIds_(sh);
         var i = ids.indexOf(String(data.data.id));
         if (i > 0) sh.deleteRow(i + 1);
       }
-      return ContentService.createTextOutput('ok');
+      return gaOk_(data.data.type);
     }
 
     // DELETE PATIENT
     if (data.type === 'delete_patient') {
       var sh = ss.getSheetByName('คนไข้');
       if (sh) {
-        var hns = sh.getDataRange().getValues().map(function(r){ return String(r[0]); });
+        var hns = gaIds_(sh);
         var i = hns.indexOf(String(data.data.hn));
         if (i > 0) sh.deleteRow(i + 1);
       }
-      return ContentService.createTextOutput('ok');
+      return gaOk_('patients');
     }
 
     // SETTINGS
@@ -216,13 +315,13 @@ function doPost(e) {
         var hdrRow = sh.getRange(1,1,1,Math.max(sh.getLastColumn(),8)).getValues()[0];
         if (!hdrRow[6]) sh.getRange(1,7).setValue('fullName');
         if (!hdrRow[7]) sh.getRange(1,8).setValue('licenseNo');
-        var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
+        var ids = gaIds_(sh);
         var i = ids.indexOf(String(r.id));
         var row = [r.id, r.name, r.gender||'', r.specialty||'', r.share||50, r.pin||'', r.fullName||'', r.licenseNo||''];
         if (i < 1) sh.appendRow(row);
         else sh.getRange(i+1,1,1,row.length).setValues([row]);
       }
-      return ContentService.createTextOutput('ok');
+      return gaOk_('settings');
     }
 
     // PATIENTS
@@ -230,7 +329,7 @@ function doPost(e) {
       var sh = ss.getSheetByName('คนไข้');
       if (sh) {
         var r = data.data;
-        var hns = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
+        var hns = gaIds_(sh);
         var i = hns.indexOf(String(r.hn));
         var addedAt = r.addedAt ? String(r.addedAt) : '';
         var row = [String(r.hn||''), String(r.name||''), String(r.phone||''), String(r.lineId||''), r.sso?'TRUE':'FALSE', addedAt];
@@ -242,7 +341,7 @@ function doPost(e) {
           if (addedAt) sh.getRange(i+1,6).setNumberFormat('@STRING@').setValue(addedAt);
         }
       }
-      return ContentService.createTextOutput('ok');
+      return gaOk_('patients');
     }
 
     // DAY NOTES
@@ -255,7 +354,7 @@ function doPost(e) {
         var sh = ss.getSheetByName('day_notes');
         if (sh) {
           var r = data.data;
-          var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
+          var ids = gaIds_(sh);
           var matchRows = []; // sheet row numbers (1-based) ที่ id ตรงกัน ข้ามแถว header (idx 0)
           for (var idx = 1; idx < ids.length; idx++) {
             if (ids[idx] === String(r.id)) matchRows.push(idx + 1);
@@ -272,7 +371,7 @@ function doPost(e) {
       } finally {
         lock.releaseLock();
       }
-      return ContentService.createTextOutput('ok');
+      return gaOk_('day_notes');
     }
 
     // SCH_SLOTS
@@ -280,13 +379,13 @@ function doPost(e) {
       var sh = ss.getSheetByName('sch_slots');
       if (sh) {
         var r = data.data;
-        var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
+        var ids = gaIds_(sh);
         var i = ids.indexOf(String(r.id));
         var row = [String(r.id), String(r.date||''), String(r.slots||'')];
         if (i < 1) sh.appendRow(row);
         else sh.getRange(i+1,1,1,row.length).setValues([row]);
       }
-      return ContentService.createTextOutput('ok');
+      return gaOk_('sch_slots');
     }
 
     // RECALL
@@ -294,13 +393,13 @@ function doPost(e) {
       var sh = ss.getSheetByName('recall');
       if (sh) {
         var r = data.data;
-        var hns = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
+        var hns = gaIds_(sh);
         var i = hns.indexOf(String(r.hn));
         var row = [String(r.hn), String(r.status), String(r.updatedAt||'')];
         if (i < 1) sh.appendRow(row);
         else sh.getRange(i+1,1,1,row.length).setValues([row]);
       }
-      return ContentService.createTextOutput('ok');
+      return gaOk_('recall');
     }
 
     // APPOINTMENTS / TREATMENTS / LABS
@@ -318,7 +417,7 @@ function doPost(e) {
     recordLock.waitLock(30000);
     try {
       var r = data.data;
-      var ids = sh.getDataRange().getValues().map(function(row){ return String(row[0]); });
+      var ids = gaIds_(sh);
       var i = ids.indexOf(String(r.id));
       var duplicateRows = [];
       ids.forEach(function(id, idx){ if(idx > i && id === String(r.id)) duplicateRows.push(idx + 1); });
@@ -372,7 +471,7 @@ function doPost(e) {
 
       // เก็บแถวแรกไว้เป็นแถวล่าสุด แล้วลบแถวซ้ำจากล่างขึ้นบนเพื่อไม่ให้ index เลื่อน
       for (var d = duplicateRows.length - 1; d >= 0; d--) sh.deleteRow(duplicateRows[d]);
-      return ContentService.createTextOutput('ok');
+      return gaOk_(data.type);
     } finally {
       recordLock.releaseLock();
     }
@@ -384,50 +483,16 @@ function doPost(e) {
 
 function doGet(e) {
   try {
+    // ---- LINE CRM (อยู่ในไฟล์ line-crm.gs) ----
+    var _crm = (typeof crmRouteGet_ === 'function') ? crmRouteGet_(e) : null;
+    if (_crm) return _crm;
+
     // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
     var _ortho = orthoRouteGet_(e);
     if (_ortho) return _ortho;
 
     var p = (e && e.parameter) || {};
-    if (p.action === 'getAll') {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var out = {};
-
-      var tabs = ['ตารางนัด','บันทึกการรักษา','แลป','settings','คนไข้','day_notes','sch_slots','recall'];
-      var keys = ['appointments','treatments','labs','settings','patients','day_notes','sch_slots','recall'];
-
-      for (var t = 0; t < tabs.length; t++) {
-        var sh = ss.getSheetByName(tabs[t]);
-        if (!sh) { out[keys[t]] = []; continue; }
-
-        var lastRow = sh.getLastRow();
-        var lastCol = sh.getLastColumn();
-        if (lastRow < 2 || lastCol < 1) { out[keys[t]] = []; continue; }
-
-        var hdr = sh.getRange(1,1,1,lastCol).getValues()[0];
-        var raw = sh.getRange(2,1,lastRow-1,lastCol).getValues();
-
-        var result = [];
-        for (var i = 0; i < raw.length; i++) {
-          var row = raw[i];
-          var hasData = false;
-          for (var c = 0; c < row.length; c++) {
-            if (row[c] !== '' && row[c] !== null) { hasData = true; break; }
-          }
-          if (!hasData) continue;
-          var obj = {};
-          for (var c = 0; c < hdr.length; c++) {
-            obj[hdr[c]] = cellToStr(row[c], hdr[c]);
-          }
-          result.push(obj);
-        }
-        out[keys[t]] = result;
-      }
-
-      return ContentService
-        .createTextOutput(JSON.stringify(out))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+    if (p.action === 'getAll') return gaFastGetAll_(p);
 
     // เช็คว่าเคยออกใบรับรองแพทย์ให้ treatment นี้แล้วหรือยัง (สำหรับพิมพ์ซ้ำ)
     if (p.action === 'getCertificate') {
