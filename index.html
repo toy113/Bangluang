@@ -2777,7 +2777,7 @@ async function crmLoad(force){
     const txt = await res.text();
     let d=null; try{ d=JSON.parse(txt); }catch(e){}
     if(!d || !d.ok){ CRM.err = (d && d.error) ? d.error : 'backend_missing'; }
-    else CRM.data = d;
+    else { CRM.data = d; try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : '0'); }catch(e){} }
   }catch(e){ CRM.err = 'network'; }
   CRM.loading = false;
   crmRender();
@@ -2800,6 +2800,13 @@ async function crmCall(payload){
     await new Promise(r=>setTimeout(r,1800));
     return { ok:true, unverified:true };
   }
+}
+// สั่งรอบส่งของ LINE CRM ทันทีหลังบันทึกนัด (รวมหลายครั้งติดกันเป็นครั้งเดียว) · ไม่ทำอะไรถ้า CRM ปิดหรือยังไม่ติดตั้ง
+let _crmKickT = null;
+function crmKick_(){
+  try{ if(localStorage.getItem('bl_crm_en')==='0') return; }catch(e){}
+  clearTimeout(_crmKickT);
+  _crmKickT = setTimeout(()=>{ crmCall({crm:'runNow'}).catch(()=>{}); }, 3500); // รอให้ชีตเขียนนัดเสร็จก่อน
 }
 async function crmDo(payload, okMsg){
   const r = await crmCall(payload);
@@ -3985,6 +3992,7 @@ function saveApt(){
   markPendingSync('appointments', apt);
   syncToSheet('appointments', apt).then(()=>{
     setTimeout(syncAll, 2000);
+    crmKick_(); // สั่งรอบส่ง LINE CRM ทันที (ข้อความยืนยันนัดออกภายในไม่กี่วินาที แทนการรอ trigger)
   }).catch(()=>{
     showToast('⚠️ บันทึกไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ', 'error');
   });
