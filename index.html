@@ -3771,6 +3771,16 @@ function syncXrayRuleToForm(){
     hint.textContent = '🩻 X-Ray ตั้งแต่ ต.ค. 2569 ผูกกับ '+xrayDoctorName()+' เท่านั้น · ส่วนแบ่งหมอ (DF) = 0';
     hint.style.display = '';
     _xrayFormLocked = true;
+  } else if(drugRuleApplies({date:document.getElementById('treat-date')?.value, proc:getProcSelected()})){
+    docEl.disabled = false;
+    if(shareEl){ shareEl.value = '0'; shareEl.disabled = true; }
+    if(!hint){
+      docEl.insertAdjacentHTML('afterend','<div id="treat-xray-hint" style="margin-top:6px;font-size:12px;font-weight:700;color:var(--wine-dark);"></div>');
+      hint = document.getElementById('treat-xray-hint');
+    }
+    hint.textContent = '💊 จ่ายยา · ส่วนแบ่งหมอ (DF) = 0';
+    hint.style.display = '';
+    _xrayFormLocked = true;
   } else if(_xrayFormLocked){
     docEl.disabled = false;
     if(shareEl){ shareEl.disabled = false; shareEl.value = ''; }
@@ -4159,8 +4169,8 @@ function saveTreat(){
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
   if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason','dfPaid','dfPaidAt','dfPaidBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
-  if(xrayRuleApplies(t)) applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0
-  else if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
+  applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0 · จ่ายยา ตั้งแต่ 31 ต.ค. 2569 → ส่วนแบ่ง 0
+  if(!xrayRuleApplies(t) && isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
 
@@ -5507,7 +5517,7 @@ function openDoctorBreakdown(idx){
   const share=dr.reduce((s,r)=>s+totalPrice(r)*docSharePct(r,doc)/100,0);
   // รายที่ % ส่วนแบ่งที่บันทึกไว้ ไม่ตรงกับ % ปัจจุบันของหมอ (ยกเว้นรายที่เข้ากฎ X-Ray ซึ่งตั้งใจให้เป็น 0)
   const curPct=+doc.share||0;
-  const isOff=r=>!xrayRuleApplies(r) && Math.abs(docSharePct(r,doc)-curPct)>0.001;
+  const isOff=r=>!xrayRuleApplies(r) && !drugRuleApplies(r) && Math.abs(docSharePct(r,doc)-curPct)>0.001;
   const offRows=dr.filter(isOff);
   const offExtra=offRows.reduce((s,r)=>s+totalPrice(r)*(docSharePct(r,doc)-curPct)/100,0);
 
@@ -5580,7 +5590,7 @@ function openDoctorBreakdown(idx){
         <div class="dbk-case-meta">${showDate?fmtDate(r.date)+' · ':''}${_escHtml(r.time||'')}</div>
         <div>${procBadge(r.proc)}</div>
       </div>
-      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(totalPrice(r)*docSharePct(r,doc)/100)}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':(+docSharePct(r,doc))+'%'}</span></small>${(isManager&&isOff(r)&&canEditTreat(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
+      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(totalPrice(r)*docSharePct(r,doc)/100)}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':drugRuleApplies(r)?'0% · จ่ายยา':(+docSharePct(r,doc))+'%'}</span></small>${(isManager&&isOff(r)&&canEditTreat(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
     </div>`).join('');
   }
   document.getElementById('dbk-body').innerHTML=html;
@@ -7794,8 +7804,20 @@ function xrayDoctorName(){
   const d = doctors.find(x=>x.id==='toy') || DOCTORS_DATA.find(x=>x.id==='toy');
   return d ? d.name : 'หมอทอย';
 }
+// กฎ "จ่ายยา": ตั้งแต่ 31 ต.ค. 2569 รายการที่เป็นจ่ายยาอย่างเดียว ส่วนแบ่งหมอ (DF) = 0 (หมอเจ้าของเคสไม่เปลี่ยน)
+// อยากให้ย้อนหลังไปถึงวันอื่น ให้แก้วันที่ใน drugRuleStart() ที่เดียว
+function drugRuleStart(){ return '2026-10-31'; }
+function isDrugOnly(proc){
+  const parts = String(proc||'').split(',').map(p=>p.trim()).filter(Boolean);
+  return parts.length>0 && parts.every(p=>p==='จ่ายยา');
+}
+function drugRuleApplies(t){
+  const d = String((t&&t.date)||'').slice(0,10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=drugRuleStart() && isDrugOnly(t.proc);
+}
 function applyXrayRule(t){
   if(xrayRuleApplies(t)){ t.docName = xrayDoctorName(); t.docShare = 0; }
+  else if(drugRuleApplies(t)){ t.docShare = 0; }
   return t;
 }
 // ใช้ % ส่วนแบ่งที่ snapshot ไว้ในรายการรักษาแต่ละรายการ (docShare) ถ้ามี
