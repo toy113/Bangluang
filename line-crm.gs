@@ -7,7 +7,7 @@
  *  - ส่งยืนยันนัด / เตือนก่อนนัด (จัดฟัน 2 วัน, งานอื่น 1 วัน) พร้อมปุ่ม ยืนยัน / ขอเลื่อน / ติดต่อคลินิก
  *  - ขอเลื่อนนัด = สร้างงานให้พนักงาน (ไม่แตะตารางนัดจริง)
  *  - ส่งคำแนะนำหลังรักษา (เฉพาะ template ที่ทันตแพทย์อนุมัติแล้ว) + คำแนะนำพิเศษเฉพาะเคส
- *  - ถามอาการวันถัดไป 10:00 น. ปุ่มตอบตามหัตถการ, อาการฉุกเฉิน → แนะนำห้องฉุกเฉินทันที
+ *  - ถามอาการวันถัดไป 10:00 น. ปุ่มตอบตามหัตถการ, อาการฉุกเฉิน → สร้างงานด่วนให้พนักงาน + ตอบรับสั้น ๆ
  *  - กันส่งซ้ำด้วย log + key ไม่ซ้ำ, โหมดทดสอบ, ช่วงเวลาส่ง, กันโควตาหมด
  *  - rich menu ใหม่ 3 ปุ่ม (ลบของเดิมทิ้ง)
  *
@@ -59,7 +59,8 @@ var CRM_DEFAULT_SETTINGS = {
   linkApproval: 'staff',     // staff = พนักงานต้องกดอนุมัติการผูกบัญชี, auto = เบอร์+ชื่อตรงก็ผูกเลย
   quotaGuard: 20,            // หยุด push เมื่อโควตาคงเหลือ <= ค่านี้
   emergencyKeywords: 'หายใจลำบาก,หายใจไม่ออก,หายใจไม่สะดวก,กลืนลำบาก,กลืนไม่ได้,เลือดไม่หยุด,เลือดออกไม่หยุด,เลือดออกมาก,บวมลาม,บวมถึงตา,บวมถึงคอ,บวมมาก',
-  emergencyText: '⚠️ อาการที่แจ้งมาควรได้รับการประเมินโดยเร็ว\n\nกรุณาไปห้องฉุกเฉินของโรงพยาบาลที่ใกล้ที่สุดทันที หรือโทร 1669 (สายด่วนการแพทย์ฉุกเฉิน) — ไม่ต้องรอคลินิกโทรกลับ\n\nคลินิกได้รับข้อความแล้ว และจะติดต่อกลับเพื่อติดตามอาการค่ะ',
+  // อาการฉุกเฉิน: ไม่แนะนำห้องฉุกเฉินอัตโนมัติ — สร้างงานด่วนให้พนักงาน และตอบรับข้อความนี้ (เว้นว่าง = ไม่ตอบ)
+  emergencyText: 'ได้รับข้อความแล้วค่ะ 🙏 ทีมคลินิกจะติดต่อกลับโดยเร็วที่สุด',
   emergencyApprovedBy: '', emergencyApprovedAt: '',
   rescheduleText: 'รับเรื่องขอเลื่อนนัดแล้วค่ะ 🙏\nพนักงานจะติดต่อกลับเพื่อยืนยันวันเวลาใหม่\n\n*นัดเดิมยังคงอยู่จนกว่าคลินิกจะยืนยันการเปลี่ยนแปลง*\n\nสะดวกช่วงเวลาไหนคะ?',
   confirmThanksText: 'ขอบคุณค่ะ ✅ ยืนยันนัดเรียบร้อย แล้วพบกันนะคะ'
@@ -372,7 +373,7 @@ function crmUserHns_(uid) {
 function crmOpt_(label, kind, reply) { return { label: label, kind: kind, reply: reply || '' }; }
 var CRM_REPLY_OK = 'ดีใจด้วยค่ะ 😊 ดูแลตามคำแนะนำต่อไปนะคะ';
 var CRM_REPLY_MILD = 'อาการปวดเล็กน้อยพบได้ในช่วง 1–3 วันแรก รับประทานยาตามที่ทันตแพทย์สั่ง และดูแลตามคำแนะนำค่ะ\nถ้าปวดมากขึ้นหรือไม่ดีขึ้น กดปุ่ม "ให้คลินิกโทรกลับ" ได้เลยค่ะ';
-var CRM_REPLY_SEVERE = 'ขอบคุณที่แจ้งค่ะ ส่งเรื่องให้ทีมคลินิกติดต่อกลับโดยเร็วแล้ว (ในเวลาทำการ)\n\nถ้ามีอาการหายใจลำบาก กลืนลำบาก บวมลามเร็ว หรือเลือดออกมากไม่หยุด กรุณาไปห้องฉุกเฉินทันที หรือโทร 1669';
+var CRM_REPLY_SEVERE = 'ขอบคุณที่แจ้งค่ะ 🙏 ส่งเรื่องให้ทีมคลินิกติดต่อกลับโดยเร็วแล้ว';
 var CRM_REPLY_CALLBACK = 'รับเรื่องแล้วค่ะ 🙏 ทีมคลินิกจะโทรกลับในเวลาทำการ';
 
 function crmSeedTemplates_() {
@@ -771,25 +772,23 @@ function crmHandlePostback_(s, ev, uid) {
     }
     crmUpdate_('followups', fu._row, { answer: opt.label, answerKind: opt.kind, answeredAt: crmNow_(), taskId: taskId || '' });
     var reply;
-    if (opt.kind === 'emergency') reply = crmEmergencyText_(s);
+    if (opt.kind === 'emergency') reply = crmEmergencyText_(s); // ตอบรับเฉย ๆ + งานด่วน (ไม่แนะนำทางการแพทย์)
     else {
       reply = opt.reply || (opt.kind === 'ok' ? CRM_REPLY_OK : CRM_REPLY_CALLBACK);
       if (opt.kind === 'ok') reply += crmNextAptText_(fu.hn, crmReadByName_('ตารางนัด'));
     }
-    crmReply_(ev.replyToken, [crmText_(reply)]);
+    if (reply) crmReply_(ev.replyToken, [crmText_(reply)]);
   }
 }
-function crmEmergencyText_(s) {
-  if (s.emergencyApprovedBy) return s.emergencyText;
-  return 'กรุณาไปห้องฉุกเฉินของโรงพยาบาลที่ใกล้ที่สุดทันที หรือโทร 1669 — คลินิกได้รับข้อความแล้วและจะติดต่อกลับค่ะ';
-}
+function crmEmergencyText_(s) { return String(s.emergencyText || '').trim(); }
 function crmHandleText_(s, ev, uid) {
   var text = String(ev.message.text || '');
   if (crmHasWord_(text, crmSplitList_(s.emergencyKeywords))) {
     var hns = crmUserHns_(uid), name = '';
     if (hns.length) { var l = crmRead_('links').filter(function (x) { return x.lineUserId === uid && x.status === 'active'; })[0]; name = l ? l.patName : ''; }
     crmCreateTask_({ type: 'emergency', priority: 'urgent', hn: hns[0] || '', patName: name, lineUserId: uid, detail: 'ข้อความจากคนไข้: ' + text.slice(0, 300) });
-    crmReply_(ev.replyToken, [crmText_(crmEmergencyText_(s))]);
+    var ack = crmEmergencyText_(s);
+    if (ack) crmReply_(ev.replyToken, [crmText_(ack)]);
     return;
   }
   var t = text.replace(/\s/g, '');
@@ -967,8 +966,6 @@ function crmStaffAction_(b) {
         'aftercareOn','aftercareDelayMin','followupOn','followupHour','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
       ['enabled','testMode','confirmOn','remindOn','aftercareOn','followupOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
-      if (s.emergencyText !== old.emergencyText) { s.emergencyApprovedBy = ''; s.emergencyApprovedAt = ''; }
-      if (s.enabled && !s.emergencyApprovedBy) return { ok: false, error: 'ต้องให้ทันตแพทย์อนุมัติข้อความฉุกเฉินก่อนเปิดระบบ' };
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);

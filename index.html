@@ -2834,7 +2834,6 @@ function crmViewToday(){
     [d.tokenSet, 'ตั้ง LINE_CHANNEL_ACCESS_TOKEN แล้ว'],
     [d.tickInstalled, 'ติดตั้ง trigger crmTick (ทุก 10 นาที) แล้ว — รัน crmSetup()'],
     [!!d.richMenu, 'สร้าง rich menu ใหม่แล้ว — รัน crmSetupRichMenu()'],
-    [!!s.emergencyApprovedBy, 'ทันตแพทย์อนุมัติข้อความฉุกเฉินแล้ว (ตั้งค่า)'],
     [tplApproved>0, 'ทันตแพทย์อนุมัติ template Aftercare แล้ว '+tplApproved+'/'+(d.templates||[]).length],
     [!!s.testUserId, 'เลือกบัญชี LINE สำหรับทดสอบแล้ว (ตั้งค่า)'],
     [s.enabled && !s.testMode, 'เปิดส่งจริง (หลังทดสอบเรียบร้อย)']
@@ -2969,16 +2968,15 @@ function crmViewAftercare(){
         <div class="meta">ตรงกับ: ${crmEsc(t.procKeywords)} · ลำดับ ${crmEsc(t.priority)} · ถามอาการวันถัดไป: <b>${String(t.followupEnabled).toUpperCase()==='TRUE'?'เปิด ('+opts.length+' ตัวเลือก)':'ปิด'}</b></div>
         <div>${crmTplStatus(t)}</div>
         <details style="margin-top:6px;"><summary class="crm-muted" style="cursor:pointer;">ดูข้อความ</summary><div class="crm-pre" style="margin-top:6px;">${crmEsc(t.aftercareText)}</div>
-          ${String(t.followupEnabled).toUpperCase()==='TRUE'?`<div class="crm-pre" style="margin-top:6px;">${crmEsc(t.followupQuestion)}\n\n${opts.map(o=>'• '+o.label+' ['+(CRM_KIND[o.kind]||[o.kind])[0]+']'+(o.kind==='emergency'?' → ข้อความฉุกเฉิน':(o.reply?' → '+o.reply:''))).join('\n')}</div>`:''}</details></div>
+          ${String(t.followupEnabled).toUpperCase()==='TRUE'?`<div class="crm-pre" style="margin-top:6px;">${crmEsc(t.followupQuestion)}\n\n${opts.map(o=>'• '+o.label+' ['+(CRM_KIND[o.kind]||[o.kind])[0]+']'+(o.kind==='emergency'?' → งานด่วนให้พนักงาน':(o.reply?' → '+o.reply:''))).join('\n')}</div>`:''}</details></div>
         <div class="acts">${t.status!=='approved'&&t.status!=='disabled'?`<button class="crm-btn g" onclick="crmApproveTpl('${t.id}')">อนุมัติ (ทันตแพทย์)</button>`:''}
           ${isManager?`<button class="crm-btn" onclick="crmEditTpl('${t.id}')">แก้ไข</button>`:''}
           <button class="crm-btn" onclick="crmDo({crm:'sendTest',kind:'aftercare',templateId:'${t.id}'},'ส่งตัวอย่างไปบัญชีทดสอบแล้ว')">ส่งตัวอย่าง</button>
           ${isManager?(t.status==='disabled'?`<button class="crm-btn" onclick="crmDo({crm:'setTemplateStatus',id:'${t.id}',status:'draft'},'เปิดใช้งานแล้ว (ต้องอนุมัติใหม่)')">เปิดใช้</button>`:`<button class="crm-btn r" onclick="crmDo({crm:'setTemplateStatus',id:'${t.id}',status:'disabled'},'ปิดใช้งานแล้ว')">ปิดใช้</button>`):''}</div></div>`;
     }).join('')||'<div class="crm-empty">ยังไม่มี template — รัน crmSetup() เพื่อสร้างร่างเริ่มต้น</div>'}</div></div>
-  <div class="crm-card"><h4>🚨 ข้อความฉุกเฉิน<span class="sp"></span>${s.emergencyApprovedBy?`<span class="crm-chip g">อนุมัติแล้ว · ${crmEsc(s.emergencyApprovedBy)}</span>`:'<span class="crm-chip o">รออนุมัติ</span>'}</h4>
-    <p class="crm-muted" style="margin-bottom:6px;">ส่งทันทีเมื่อคนไข้เลือกอาการฉุกเฉิน หรือพิมพ์คำว่า "${crmEsc(String(s.emergencyKeywords||'').split(',').slice(0,4).join('", "'))}"... (แก้ได้ที่ ตั้งค่า)</p>
-    <div class="crm-pre">${crmEsc(s.emergencyText)}</div>
-    ${!s.emergencyApprovedBy?'<div style="margin-top:8px;"><button class="crm-btn g" onclick="crmApproveEmergency()">อนุมัติ (ทันตแพทย์)</button></div>':''}</div>`;
+  <div class="crm-card"><h4>🚨 เมื่อพบอาการฉุกเฉิน</h4>
+    <p class="crm-muted" style="margin-bottom:6px;">เมื่อคนไข้เลือกอาการประเภท "ฉุกเฉิน" หรือพิมพ์คำว่า "${crmEsc(String(s.emergencyKeywords||'').split(',').slice(0,4).join('", "'))}"... ระบบจะ<b>สร้างงานด่วน</b>ในเมนูงานโทรกลับ และตอบรับคนไข้ด้วยข้อความนี้ (ไม่แนะนำทางการแพทย์อัตโนมัติ — แก้ได้ที่ ตั้งค่า)</p>
+    <div class="crm-pre">${crmEsc(s.emergencyText||'(ไม่ตอบกลับ)')}</div></div>`;
 }
 /* ยืนยันตัวตนทันตแพทย์ด้วย PIN ก่อนอนุมัติข้อความทางการแพทย์ */
 function crmAskDoctor(title, onOk){
@@ -3034,7 +3032,7 @@ function crmEditTpl(id){
       <div class="full"><label>ข้อความคำแนะนำหลังรักษา</label><textarea class="form-control" id="crmTplText" style="min-height:180px;">${crmEsc(t.aftercareText)}</textarea></div>
       <label class="crm-sw full"><span>ถามอาการวันถัดไป 10:00 น.</span><input type="checkbox" id="crmTplFu" ${String(t.followupEnabled).toUpperCase()==='TRUE'?'checked':''}></label>
       <div class="full"><label>คำถาม ({name} = ชื่อคนไข้, {proc} = หัตถการ)</label><textarea class="form-control" id="crmTplQ">${crmEsc(t.followupQuestion)}</textarea></div>
-      <div class="full"><label>ตัวเลือกคำตอบ (สูงสุด 9) — ประเภท "ฉุกเฉิน" จะตอบด้วยข้อความฉุกเฉินและสร้างงานด่วน</label><div id="crmTplOpts"></div>
+      <div class="full"><label>ตัวเลือกคำตอบ (สูงสุด 9) — ประเภท "ฉุกเฉิน" จะสร้างงานด่วนให้พนักงานและตอบรับสั้น ๆ</label><div id="crmTplOpts"></div>
         <button class="crm-btn" onclick="crmTplOptAdd()">+ เพิ่มตัวเลือก</button></div>
     </div>
     <div class="foot">${id?`<button class="crm-btn r" style="margin-right:auto" onclick="if(confirm('ลบ template นี้?')){crmCloseModal();crmDo({crm:'deleteTemplate',id:'${t.id}'},'ลบแล้ว');}">ลบ</button>`:''}
@@ -3046,7 +3044,7 @@ function crmTplOptsRender(){
   el.innerHTML=_crmTplOpts.map((o,i)=>`<div class="crm-opt">
     <input class="form-control" maxlength="20" value="${crmEsc(o.label)}" placeholder="ข้อความปุ่ม" oninput="_crmTplOpts[${i}].label=this.value">
     <select class="form-control" onchange="_crmTplOpts[${i}].kind=this.value">${Object.keys(CRM_KIND).map(k=>`<option value="${k}" ${o.kind===k?'selected':''}>${CRM_KIND[k][0]}</option>`).join('')}</select>
-    <textarea class="form-control" placeholder="${o.kind==='emergency'?'ใช้ข้อความฉุกเฉิน':'ข้อความตอบกลับ'}" oninput="_crmTplOpts[${i}].reply=this.value">${crmEsc(o.reply||'')}</textarea>
+    <textarea class="form-control" placeholder="${o.kind==='emergency'?'ใช้ข้อความตอบรับ + งานด่วน':'ข้อความตอบกลับ'}" oninput="_crmTplOpts[${i}].reply=this.value">${crmEsc(o.reply||'')}</textarea>
     <button class="crm-btn r" onclick="_crmTplOpts.splice(${i},1);crmTplOptsRender()">✕</button></div>`).join('');
 }
 function crmTplOptAdd(){ if(_crmTplOpts.length>=9) return showToast('สูงสุด 9 ตัวเลือก','error'); _crmTplOpts.push({label:'',kind:'callback',reply:''}); crmTplOptsRender(); }
@@ -3263,7 +3261,7 @@ function crmViewReport(){
       <div class="crm-kpi ${q.remaining!=null&&q.remaining<proj-(cur.sent||0)?'alert':''}"><div class="l">คงเหลือ</div><div class="v">${q.remaining??'—'}</div><div class="s">${q.remaining!=null&&q.remaining<proj-(cur.sent||0)?'อาจไม่พอถึงสิ้นเดือน':'อัปเดต '+crmEsc(String(q.checkedAt||'').slice(11,16))}</div></div></div>
   <div class="crm-card"><h4>💡 อะไรนับโควตา<span class="sp"></span><button class="crm-btn" onclick="crmDo({crm:'refreshQuota'},'อัปเดตโควตาแล้ว')">อัปเดตโควตา</button></h4>
     <div class="crm-check"><div>💬 <span><b>นับโควตา (push):</b> ยืนยันนัด, เตือนนัด, Aftercare, คำแนะนำพิเศษ, ถามอาการ, แคมเปญ — 1 ข้อความต่อคนต่อครั้ง</span></div>
-      <div>🆓 <span><b>ไม่นับ (reply):</b> ตอบกลับเมื่อคนไข้กดปุ่ม ยืนยัน/ขอเลื่อน/ตอบอาการ, ข้อความต้อนรับ, ข้อความฉุกเฉิน</span></div>
+      <div>🆓 <span><b>ไม่นับ (reply):</b> ตอบกลับเมื่อคนไข้กดปุ่ม ยืนยัน/ขอเลื่อน/ตอบอาการ, ข้อความต้อนรับ, ข้อความตอบรับอาการฉุกเฉิน</span></div>
       <div>⚙️ <span>ลดการใช้โควตา: ปิด "ถามอาการ" ใน template ที่ไม่จำเป็น, ปิดยืนยันนัดทันที (เหลือแค่เตือนก่อนนัด) ได้ที่ ตั้งค่า</span></div>
       <div>🛡️ <span>ระบบหยุด push อัตโนมัติเมื่อโควตาเหลือ ≤ ${crmEsc(d.settings.quotaGuard)} (ตั้งค่า)</span></div></div></div>
   <div class="crm-card"><h4>📊 ข้อความรายเดือน</h4>${months.length?`<div class="crm-tablewrap"><table class="crm-table"><tr><th>เดือน</th><th style="min-width:120px;">ส่งจริง</th>${types.map(t=>`<th>${CRM_LOG_TYPE[t]}</th>`).join('')}<th>ทดสอบ</th><th>ล้มเหลว</th></tr>
@@ -3279,7 +3277,7 @@ function crmViewSettings(){
   const sw=(k,label,desc)=>`<label class="crm-sw"><span>${label}${desc?`<div class="crm-muted">${desc}</div>`:''}</span><input type="checkbox" id="crmS_${k}" ${s[k]?'checked':''}></label>`;
   const inp=(k,label,type)=>`<div><label>${label}</label><input class="form-control" id="crmS_${k}" type="${type||'text'}" value="${crmEsc(s[k])}"></div>`;
   return `<div class="crm-card"><h4>🔌 สวิตช์หลัก</h4>
-      ${sw('enabled','เปิดระบบส่งข้อความอัตโนมัติ','ต้องอนุมัติข้อความฉุกเฉินก่อน · ตอนเปิดครั้งแรก นัดที่มีอยู่แล้วจะไม่ถูกส่ง "ยืนยันนัด" ย้อนหลัง')}
+      ${sw('enabled','เปิดระบบส่งข้อความอัตโนมัติ','ตอนเปิดครั้งแรก นัดที่มีอยู่แล้วจะไม่ถูกส่ง "ยืนยันนัด" ย้อนหลัง')}
       ${sw('testMode','โหมดทดสอบ','ทุกข้อความ push ส่งไปที่บัญชีทดสอบคนเดียว พร้อมบอกว่าปกติจะส่งถึงใคร')}
       <div style="padding:8px 0;"><label class="crm-muted" style="font-weight:700;">บัญชีทดสอบ (ต้องเพิ่มเพื่อน LINE OA และทักแชทก่อน 1 ครั้ง)</label>
         <select class="form-control" id="crmS_testUserId" style="margin-top:4px;"><option value="">— เลือก —</option>${fol.map(f=>`<option value="${crmEsc(f.lineUserId)}" ${f.lineUserId===s.testUserId?'selected':''}>${crmEsc(f.displayName||f.lineUserId)}</option>`).join('')}</select></div>
@@ -3295,8 +3293,7 @@ function crmViewSettings(){
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
       <div class="full"><label>การผูกบัญชีของคนไข้</label><select class="form-control" id="crmS_linkApproval"><option value="staff" ${s.linkApproval!=='auto'?'selected':''}>พนักงานต้องกดอนุมัติ (ปลอดภัยกว่า — แนะนำ)</option><option value="auto" ${s.linkApproval==='auto'?'selected':''}>ผูกอัตโนมัติเมื่อชื่อ+เบอร์ตรง</option></select></div>
-      <div class="full"><label>ข้อความฉุกเฉิน ${s.emergencyApprovedBy?'<span class="crm-chip g">อนุมัติแล้ว</span>':'<span class="crm-chip o">รออนุมัติ</span>'} — แก้แล้วต้องอนุมัติใหม่</label><textarea class="form-control" id="crmS_emergencyText">${crmEsc(s.emergencyText)}</textarea>
-        ${!s.emergencyApprovedBy?'<button class="crm-btn g" style="margin-top:6px;" onclick="crmApproveEmergency()">อนุมัติข้อความฉุกเฉิน (ทันตแพทย์)</button>':''}</div>
+      <div class="full"><label>ข้อความตอบรับเมื่อพบอาการฉุกเฉิน (ระบบสร้างงานด่วนเสมอ · เว้นว่าง = ไม่ตอบคนไข้)</label><textarea class="form-control" id="crmS_emergencyText">${crmEsc(s.emergencyText)}</textarea></div>
       <div class="full"><label>คำที่ถือว่าฉุกเฉินเมื่อคนไข้พิมพ์มา (คั่นด้วย ,)</label><textarea class="form-control" id="crmS_emergencyKeywords" style="min-height:60px;">${crmEsc(s.emergencyKeywords)}</textarea></div>
       <div class="full"><label>ข้อความตอบเมื่อคนไข้กดขอเลื่อนนัด</label><textarea class="form-control" id="crmS_rescheduleText">${crmEsc(s.rescheduleText)}</textarea></div>
       <div class="full"><label>ข้อความตอบเมื่อคนไข้กดยืนยันนัด</label><input class="form-control" id="crmS_confirmThanksText" value="${crmEsc(s.confirmThanksText)}"></div>
