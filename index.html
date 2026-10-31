@@ -575,10 +575,6 @@ select.form-control { cursor: pointer; }
 .psk-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); color: #B26A00; white-space: nowrap; vertical-align: middle; }
 .rc-bar { height: 8px; border-radius: 4px; background: var(--wine-pale); overflow: hidden; margin-top: 8px; }
 .rc-bar > div { height: 100%; background: #16A085; border-radius: 4px; }
-.rc-stat { background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 8px; text-align:center; box-shadow:var(--shadow); font:inherit; cursor:pointer; min-width:0; transition:background .15s, border-color .15s; }
-.rc-stat:hover, .rc-stat[aria-pressed="true"] { background:var(--wine-pale); border-color:var(--wine); }
-.rc-stat[aria-pressed="true"] { box-shadow:inset 0 0 0 1px var(--wine); }
-.rc-stat:focus-visible { outline:3px solid var(--wine); outline-offset:3px; }
 .rc-btn { padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-size: 12px; font-weight: 700; font-family: inherit; }
 .endo-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(17,122,101,0.13); border: 1px solid rgba(17,122,101,0.4); color: #0E6655; white-space: nowrap; vertical-align: middle; }
 .endo-grp-hdr { margin: 14px 0 8px; padding: 8px 12px; font-weight: 800; font-size: 14px; border-left: 6px solid; }
@@ -1380,7 +1376,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <option value="หยุด/เลิกรักษา">หยุด/เลิกรักษา</option>
             </select>
             <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--red);cursor:pointer;">
-              <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน <span id="orthoOverdueDays">50</span> วัน
+              <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน 60 วัน
             </label>
             <button type="button" class="ortho-chip" id="orthoPskChip" onclick="toggleOrthoPskFilter()" aria-pressed="false" title="คนไข้ที่มี ปกส แต่ปีนี้ยังไม่ได้ใช้สิทธิประกันสังคม">🏛️ ปกส ปีนี้ยังไม่ใช้สิทธิ <span id="orthoPskChipN">0</span></button>
             <select class="form-control" id="orthoSortSel" onchange="setOrthoSort(this.value)" aria-label="เรียงลำดับ" style="height:36px;width:200px;"></select>
@@ -1526,7 +1522,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <option value="นัดแล้ว">นัดแล้ว</option>
           <option value="ปฏิเสธ">ปฏิเสธ</option>
           <option value="จะติดต่อมาเอง">จะติดต่อมาเอง</option>
-          <option value="declined-self">ปฏิเสธ / ติดต่อเอง</option>
         </select>
       </div>
       <div id="recallList" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -2274,45 +2269,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 <div id="toastContainer"></div>
 
 <script>
-// Move old clinic caches off persistent browser storage while preserving this open session.
-try {
-  for (let i=localStorage.length-1;i>=0;i--) {
-    const key=localStorage.key(i);
-    if(key && key.startsWith('bl_')) {
-      sessionStorage.setItem(key,localStorage.getItem(key));
-      localStorage.removeItem(key);
-    }
-  }
-} catch(e) { console.warn('Clinic cache migration failed',e); }
 // ============================================================
 //  GOOGLE SHEETS CONFIG
 // ============================================================
 // วาง Apps Script Web App URL ที่นี่
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
-let staffKey_ = '';
-let staffKeyWait_ = null;
-async function staffAccess_(){
-  if(staffKey_) return staffKey_;
-  if(staffKeyWait_) return staffKeyWait_;
-  staffKeyWait_ = (async()=>{
-    const key = (window.prompt('กรอกรหัสเจ้าหน้าที่ 64 ตัวอักษรที่คลินิกออกให้') || '').trim().toUpperCase();
-    if(!/^[A-F0-9]{64}$/.test(key)) throw new Error('staff_key_required');
-    const resp = await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'staffPing',staffKey:key}),cache:'no-store',credentials:'omit'});
-    const result = await resp.json();
-    if(!result.ok) throw new Error('staff_key_invalid');
-    staffKey_ = key; // Memory only: never URL, localStorage, or sessionStorage.
-    return key;
-  })().finally(()=>{staffKeyWait_=null;});
-  return staffKeyWait_;
-}
-async function staffRequest_(payload){
-  const staffKey = await staffAccess_();
-  const resp = await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({...payload,staffKey}),cache:'no-store',credentials:'omit'});
-  if(!resp.ok) throw new Error('staff_api_unavailable');
-  const clone = resp.clone();
-  try { const data = await clone.json(); if(data.error==='staff_unauthorized'){staffKey_='';throw new Error('staff_key_invalid');} } catch(e) {if(e.message==='staff_key_invalid') throw e;}
-  return resp;
-}
 
 // ============================================================
 //  DOCTORS & AUTH
@@ -2380,9 +2341,9 @@ for(let h=10;h<=18;h++) for(let m=0;m<60;m+=30){
 let currentUser = null;
 let isManager = false;
 let doctors = JSON.parse(JSON.stringify(DOCTORS_DATA)); // editable copy
-let appointments = JSON.parse(sessionStorage.getItem('bl_apt')||'[]');
-let treatments = JSON.parse(sessionStorage.getItem('bl_treat')||'[]');
-let labs = JSON.parse(sessionStorage.getItem('bl_lab')||'[]');
+let appointments = JSON.parse(localStorage.getItem('bl_apt')||'[]');
+let treatments = JSON.parse(localStorage.getItem('bl_treat')||'[]');
+let labs = JSON.parse(localStorage.getItem('bl_lab')||'[]');
 
 let selectedLoginDoc = null;
 let currentPin = '';
@@ -2400,9 +2361,9 @@ const _treatCollapsed = new Set(); // ชื่อหมอที่พับก
 function saveLocal(){
   // cache-first: เก็บลง localStorage เพื่อให้เปิดครั้งหน้าแสดงข้อมูลทันที แล้วค่อย sync ทับ
   try {
-    sessionStorage.setItem('bl_apt', JSON.stringify(appointments));
-    sessionStorage.setItem('bl_treat', JSON.stringify(treatments));
-    sessionStorage.setItem('bl_lab', JSON.stringify(labs));
+    localStorage.setItem('bl_apt', JSON.stringify(appointments));
+    localStorage.setItem('bl_treat', JSON.stringify(treatments));
+    localStorage.setItem('bl_lab', JSON.stringify(labs));
   } catch(e){}
 }
 function loadLocal(){ /* arrays โหลดจาก localStorage ตอนประกาศตัวแปรแล้ว (bl_apt/bl_treat/bl_lab) */ }
@@ -2475,12 +2436,10 @@ function verifyLogin(){
 // ============================================================
 //  START APP
 // ============================================================
-async function startApp(){
-  try { await staffAccess_(); }
-  catch(e){ document.getElementById('loginError').textContent='กรุณาใส่รหัสเจ้าหน้าที่ที่ถูกต้อง'; currentUser=null; return false; }
+function startApp(){
   loadLocal();
   // Save session so refresh doesn't log out
-  sessionStorage.setItem('bl_session', JSON.stringify({
+  localStorage.setItem('bl_session', JSON.stringify({
     userId: currentUser.id,
     isManager: isManager,
     ts: Date.now()
@@ -2542,7 +2501,7 @@ async function startApp(){
   // Load all data from Sheet on startup
   // Show page immediately, sync in background
   const managerOnlyPages = ['settings','schedule','ortho'];
-  let lastPage = sessionStorage.getItem('bl_lastPage') || 'home';
+  let lastPage = localStorage.getItem('bl_lastPage') || 'home';
   // ถ้าหมอ restore ไปหน้า manager-only ให้ redirect ไปหน้าหลักแทน
   if(!isManager && managerOnlyPages.includes(lastPage)) lastPage = 'home';
   showPage(lastPage);
@@ -2555,7 +2514,6 @@ async function startApp(){
     if(loadOverlay){ loadOverlay.classList.add('hide'); setTimeout(()=>loadOverlay.style.display='none', 300); }
   });
   startAutoSync();
-  return true;
 }
 
 function showLoadingOverlay(show){
@@ -2629,7 +2587,7 @@ function showPage(p){
   const navEl = document.getElementById('nav-'+p);
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
-  sessionStorage.setItem('bl_lastPage', p);
+  localStorage.setItem('bl_lastPage', p);
   const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',endo:'🔁 เคสต่อเนื่อง',stats:'📈 สถิติ'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
@@ -2788,7 +2746,7 @@ function renderDailyInsightCard(){
     <button class="btn btn-primary" onclick="generateDailyInsight()">✨ สร้างแผนเตรียมตัววันนี้</button>
   </div>`;
   // เช็คว่าเคยสร้างไว้แล้ววันนี้หรือยัง (โหลดจาก cache ฝั่ง server ถ้ามี ไม่เสีย API ซ้ำ)
-  staffRequest_({action:'getDailyInsight',date:today,docId:currentUser.id})
+  fetch(APPS_SCRIPT_URL+'?action=getDailyInsight&date='+encodeURIComponent(today)+'&docId='+encodeURIComponent(currentUser.id), {cache:'no-store'})
     .then(r=>r.json()).then(d=>{
       if(d.found && d.result) renderDailyInsightResult_(d.result, d.generatedAt);
     }).catch(()=>{});
@@ -2829,7 +2787,9 @@ async function generateDailyInsight(){
   body.innerHTML = `<div style="text-align:center;color:var(--text-light);padding:16px 0;">⏳ กำลังวิเคราะห์ตารางนัดวันนี้...</div>`;
   try {
     const today = todayStr();
-    const resp = await staffRequest_({action:'generateDailyInsight',date:today,docId:currentUser.id,docName:currentUser.name});
+    const url = APPS_SCRIPT_URL+'?action=generateDailyInsight&date='+encodeURIComponent(today)
+      +'&docId='+encodeURIComponent(currentUser.id)+'&docName='+encodeURIComponent(currentUser.name);
+    const resp = await fetch(url, {cache:'no-store'});
     const d = await resp.json();
     if(d.error){ body.innerHTML = `<div style="text-align:center;color:var(--red);padding:16px 0;font-size:13px;">สร้างไม่สำเร็จ: ${escapeHtml(d.error)}</div>`; return; }
     if(d.empty){ body.innerHTML = `<div style="text-align:center;color:var(--text-light);padding:8px 0;">วันนี้ไม่มีนัด พักผ่อนได้เต็มที่ 😌</div>`; return; }
@@ -3095,7 +3055,7 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=nul
   } else if(prefillDoc){
     document.getElementById('apt-doc').value = prefillDoc;
   } else {
-    const lastDoc = sessionStorage.getItem('bl_last_doc');
+    const lastDoc = localStorage.getItem('bl_last_doc');
     if(lastDoc) document.getElementById('apt-doc').value = lastDoc;
   }
   document.getElementById('modalApt').classList.add('open');
@@ -3139,7 +3099,7 @@ function saveApt(){
   };
   if(!apt.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); _aptSaving=false; return; }
   // บันทึกหมอล่าสุด
-  if(isManager && apt.docName) sessionStorage.setItem('bl_last_doc', apt.docName);
+  if(isManager && apt.docName) localStorage.setItem('bl_last_doc', apt.docName);
   const idx = appointments.findIndex(a=>String(a.id)===String(apt.id));
   if(idx>-1) appointments[idx]=apt; else appointments.push(apt);
   saveLocal();
@@ -3219,17 +3179,17 @@ function deleteAptFromModal(){
 // blacklist id นัดที่เพิ่งลบ — กัน syncAll ดึงกลับมาก่อน Sheet propagate (guard 25 วิ)
 function _blacklistDeletedApt(id){
   try{
-    const bl = JSON.parse(sessionStorage.getItem('bl_deleted_apts')||'{}');
+    const bl = JSON.parse(localStorage.getItem('bl_deleted_apts')||'{}');
     bl[String(id).trim()] = Date.now();
-    sessionStorage.setItem('bl_deleted_apts', JSON.stringify(bl));
+    localStorage.setItem('bl_deleted_apts', JSON.stringify(bl));
   }catch(e){}
 }
 function _deletedAptIds(){
   try{
-    const bl = JSON.parse(sessionStorage.getItem('bl_deleted_apts')||'{}');
+    const bl = JSON.parse(localStorage.getItem('bl_deleted_apts')||'{}');
     const now = Date.now(); let changed=false; const live={};
     Object.keys(bl).forEach(id=>{ if(now - bl[id] < 25000) live[id]=bl[id]; else changed=true; });
-    if(changed) sessionStorage.setItem('bl_deleted_apts', JSON.stringify(live));
+    if(changed) localStorage.setItem('bl_deleted_apts', JSON.stringify(live));
     return new Set(Object.keys(live));
   }catch(e){ return new Set(); }
 }
@@ -3327,7 +3287,7 @@ function openAddTreat(t=null){
   const treatHint = document.getElementById('treat-hn-hint');
   if(treatHint) treatHint.innerHTML = '';
   if(t?.hn) autoFillPatient(t.hn, 'treat');
-  document.getElementById('treat-doc').value = t?.docName || (isManager ? (sessionStorage.getItem('bl_last_doc') || doctors[0]?.name) : currentUser.name);
+  document.getElementById('treat-doc').value = t?.docName || (isManager ? (localStorage.getItem('bl_last_doc') || doctors[0]?.name) : currentUser.name);
   const shareWrap = document.getElementById('treat-share-wrap');
   const shareInput = document.getElementById('treat-share');
   if(shareWrap) shareWrap.style.display = isManager ? '' : 'none';
@@ -3397,7 +3357,7 @@ function saveTreat(){
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
   if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason','dfPaid','dfPaidAt','dfPaidBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
   if(xrayRuleApplies(t)) applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0
-  else if(isManager && t.docName) sessionStorage.setItem('bl_last_doc', t.docName);
+  else if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
 
@@ -3482,7 +3442,7 @@ function openCertificateModal(t){
   btn.disabled = false; btn.textContent = '🖨️ ออกใบรับรอง + พิมพ์';
   document.getElementById('modalCertificate').classList.add('open');
   // เช็คว่าเคยออกให้ treatment นี้แล้วหรือยัง เผื่อพิมพ์ซ้ำ (เลขที่เอกสารต้องคงเดิม)
-  staffRequest_({action:'getCertificate',treatId:t.id})
+  fetch(APPS_SCRIPT_URL+'?action=getCertificate&treatId='+encodeURIComponent(t.id), {cache:'no-store'})
     .then(r=>r.json()).then(d=>{
       if(d.found && d.cert) document.getElementById('cert-status-note').textContent = 'เคยออกใบรับรองนี้แล้ว เลขที่ '+d.cert.docNo+' — กดปุ่มด้านล่างเพื่อพิมพ์ซ้ำ (เลขที่เดิม)';
     }).catch(()=>{});
@@ -3544,7 +3504,7 @@ async function issueCertificateAndPrint(){
   const btn = document.getElementById('btnIssueCert');
   btn.disabled = true; btn.textContent = '⏳ กำลังออกใบรับรอง...';
   try {
-    const resp = await staffRequest_({action:'issueCertificate',data:JSON.stringify(payload)});
+    const resp = await fetch(APPS_SCRIPT_URL+'?action=issueCertificate&data='+encodeURIComponent(JSON.stringify(payload)), {cache:'no-store'});
     const d = await resp.json();
     if(d.error){ showToast('ออกใบรับรองไม่สำเร็จ: '+d.error,'error'); return; }
     document.getElementById('certPrintArea').innerHTML = buildCertPrintHtml(d.cert);
@@ -4962,9 +4922,9 @@ function deleteLab(id){
 }
 function hideFollowup(hn){
   try {
-    const hidden = JSON.parse(sessionStorage.getItem('bl_followup_hidden')||'[]');
+    const hidden = JSON.parse(localStorage.getItem('bl_followup_hidden')||'[]');
     if(!hidden.includes(hn)) hidden.push(hn);
-    sessionStorage.setItem('bl_followup_hidden', JSON.stringify(hidden));
+    localStorage.setItem('bl_followup_hidden', JSON.stringify(hidden));
     renderFollowup();
   } catch(e){}
 }
@@ -4998,7 +4958,7 @@ function renderFollowup(){
   });
 
   // กรองคนที่ซ่อนไว้
-  const hidden = JSON.parse(sessionStorage.getItem('bl_followup_hidden')||'[]');
+  const hidden = JSON.parse(localStorage.getItem('bl_followup_hidden')||'[]');
   const overdue = Object.values(byHN).filter(p=>{
     if(!p.lastDate) return false;
     const last = new Date(p.lastDate+'T00:00:00');
@@ -5014,7 +4974,7 @@ function renderFollowup(){
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <span style="font-size:13px;color:var(--wine-dark);font-weight:700;">พบ ${overdue.length} ราย ที่ไม่มาเกิน ${days} วัน</span>
-      ${hidden.length?`<button onclick="sessionStorage.removeItem('bl_followup_hidden');renderFollowup();"
+      ${hidden.length?`<button onclick="localStorage.removeItem('bl_followup_hidden');renderFollowup();"
         style="font-size:11px;background:#f5f0f5;border:1px solid var(--border);border-radius:6px;
         padding:3px 10px;cursor:pointer;color:var(--wine-dark);">แสดงทั้งหมด (${hidden.length})</button>`:''}
     </div>
@@ -5245,7 +5205,7 @@ function setGender(docId,gender,btn){
 }
 function saveDoctorSettingsLocal(){
   try {
-    sessionStorage.setItem('bl_doctor_settings', JSON.stringify(
+    localStorage.setItem('bl_doctor_settings', JSON.stringify(
       doctors.map(({id,name,pin,emoji,specialty,gender,share,color,fullName,licenseNo}) =>
         ({id,name,pin,emoji,specialty,gender,share,color,fullName,licenseNo})
       )
@@ -5316,7 +5276,12 @@ async function syncToSheet(type, data){
   const txt = document.getElementById('syncText');
   if(dot) dot.style.background='var(--gold)';
   try {
-    await staffRequest_({type,data});
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type,data}),
+    });
     if(dot) dot.style.background='var(--green)';
     if(txt) txt.textContent='ซิงค์แล้ว '+new Date().toLocaleTimeString('th-TH');
     return Promise.resolve();
@@ -5332,7 +5297,7 @@ async function syncAll(){
   const dot=document.getElementById('syncDot');
   const txt=document.getElementById('syncText');
   try {
-    const res=await staffRequest_({action:'getAll'});
+    const res=await fetch(APPS_SCRIPT_URL+'?action=getAll',{cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const d=await res.json();
     // ---- Sheet is source of truth: full replace ----
@@ -5422,17 +5387,17 @@ async function syncAll(){
     // Load recall status from Sheet
     if(Array.isArray(d.recall)){
       try{
-        const data = JSON.parse(sessionStorage.getItem('bl_recall')||'{}');
+        const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
         d.recall.forEach(r=>{
           if(r.hn && r.status) data[String(r.hn)] = String(r.status);
         });
-        sessionStorage.setItem('bl_recall', JSON.stringify(data));
+        localStorage.setItem('bl_recall', JSON.stringify(data));
       }catch(e){}
     }
     // Load day_notes + day_colors
     if(Array.isArray(d.day_notes)){
       const colorMap = {};
-      const noteWriteTs = JSON.parse(sessionStorage.getItem('bl_note_write_ts')||'{}');
+      const noteWriteTs = JSON.parse(localStorage.getItem('bl_note_write_ts')||'{}');
       const now = Date.now();
       let noteWriteTsChanged = false;
       d.day_notes.forEach(r=>{
@@ -5464,20 +5429,20 @@ async function syncAll(){
         }
       });
       if(noteWriteTsChanged){
-        try{ sessionStorage.setItem('bl_note_write_ts', JSON.stringify(noteWriteTs)); }catch(e){}
+        try{ localStorage.setItem('bl_note_write_ts', JSON.stringify(noteWriteTs)); }catch(e){}
       }
       try {
-        const existing = JSON.parse(sessionStorage.getItem('bl_day_colors')||'{}');
+        const existing = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
         Object.assign(existing, colorMap);
-        sessionStorage.setItem('bl_day_colors', JSON.stringify(existing));
+        localStorage.setItem('bl_day_colors', JSON.stringify(existing));
       } catch(e){}
     }
     // sch_slots — Sheet เป็น source of truth
     // แต่ไม่ทับ local ถ้าเพิ่ง write ไปไม่นาน (5 วิ)
     if(Array.isArray(d.sch_slots)){
       try {
-        const all = JSON.parse(sessionStorage.getItem(SCH_SLOTS_KEY)||'{}');
-        const writeTs = JSON.parse(sessionStorage.getItem('bl_slots_write_ts')||'{}');
+        const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
+        const writeTs = JSON.parse(localStorage.getItem('bl_slots_write_ts')||'{}');
         const now = Date.now();
         d.sch_slots.forEach(r=>{
           if(!r.date || !r.slots) return;
@@ -5489,7 +5454,7 @@ async function syncAll(){
             all[r.date] = JSON.parse(r.slots);
           } catch(e){}
         });
-        sessionStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
+        localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
       } catch(e){}
     }
     // ---- Apply settings from Sheet (pin, share, specialty, gender) ----
@@ -5564,12 +5529,12 @@ async function manualSync(){
 // ============================================================
 function saveDailyCashNote(val){
   const key = 'bl_cash_note_' + todayStr();
-  sessionStorage.setItem(key, val||'');
+  localStorage.setItem(key, val||'');
   syncToSheet('day_notes', { id: '__cash__'+todayStr(), date: '__cash__'+todayStr(), note: val||'' });
 }
 function loadDailyCashNote(){
   const key = 'bl_cash_note_' + todayStr();
-  const val = sessionStorage.getItem(key) || '';
+  const val = localStorage.getItem(key) || '';
   const el = document.getElementById('dailyCashNote');
   if(el) el.value = val;
 }
@@ -5587,9 +5552,9 @@ function schResetSlots(){
   if(!confirm(`รีเซ็ต slot วันที่ ${fmtDate(date)} เป็น 10:00-18:30?`)) return;
   // ลบ slot ของวันนี้ใน localStorage
   try {
-    const all = JSON.parse(sessionStorage.getItem(SCH_SLOTS_KEY)||'{}');
+    const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
     delete all[date];
-    sessionStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
+    localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
   } catch(e){}
   renderScheduleDay();
   showToast('รีเซ็ต slot สำเร็จ');
@@ -5607,7 +5572,7 @@ function schChangeDay(delta){
 //   docKey '' = หมอเดี่ยว/ไม่มีหมอ (shared) ; 'หมอก้อย' = ของหมอคนนั้นโดยเฉพาะ
 function _slotMap(date){
   try{
-    const all = JSON.parse(sessionStorage.getItem(SCH_SLOTS_KEY)||'{}');
+    const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
     const v = all[date];
     if(v==null) return {};
     if(Array.isArray(v)) return { '': v };   // legacy array → shared
@@ -5616,7 +5581,7 @@ function _slotMap(date){
 }
 function _deletedMap(date){
   try{
-    const all = JSON.parse(sessionStorage.getItem('bl_deleted_slots')||'{}');
+    const all = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
     const v = all[date];
     if(v==null) return {};
     if(Array.isArray(v)) return { '': v };
@@ -5625,20 +5590,20 @@ function _deletedMap(date){
 }
 function _writeSlotMap(date, map){
   try{
-    const all = JSON.parse(sessionStorage.getItem(SCH_SLOTS_KEY)||'{}');
+    const all = JSON.parse(localStorage.getItem(SCH_SLOTS_KEY)||'{}');
     all[date] = map;
-    sessionStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
-    const ts = JSON.parse(sessionStorage.getItem('bl_slots_write_ts')||'{}');
+    localStorage.setItem(SCH_SLOTS_KEY, JSON.stringify(all));
+    const ts = JSON.parse(localStorage.getItem('bl_slots_write_ts')||'{}');
     ts[date] = Date.now();
-    sessionStorage.setItem('bl_slots_write_ts', JSON.stringify(ts));
+    localStorage.setItem('bl_slots_write_ts', JSON.stringify(ts));
     syncToSheet('sch_slots', { id: date, date: date, slots: JSON.stringify(map) });
   }catch(e){}
 }
 function _writeDeletedMap(date, map){
   try{
-    const all = JSON.parse(sessionStorage.getItem('bl_deleted_slots')||'{}');
+    const all = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
     all[date] = map;
-    sessionStorage.setItem('bl_deleted_slots', JSON.stringify(all));
+    localStorage.setItem('bl_deleted_slots', JSON.stringify(all));
   }catch(e){}
 }
 function getSchSlots(date, doc){
@@ -5659,16 +5624,16 @@ function saveSchSlots(date, slots, doc){
 }
 function isSlotBlocked(date, slot, doc){
   try {
-    const all = JSON.parse(sessionStorage.getItem(SCH_BLOCKED_KEY)||'{}');
+    const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}');
     return !!all[`${date}_${doc||''}_${slot}`];
   } catch(e){ return false; }
 }
 function toggleSlotBlocked(date, slot, doc){
   try {
-    const all = JSON.parse(sessionStorage.getItem(SCH_BLOCKED_KEY)||'{}');
+    const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}');
     const key = `${date}_${doc||''}_${slot}`;
     if(all[key]) delete all[key]; else all[key] = true;
-    sessionStorage.setItem(SCH_BLOCKED_KEY, JSON.stringify(all));
+    localStorage.setItem(SCH_BLOCKED_KEY, JSON.stringify(all));
     renderScheduleDay();
   } catch(e){}
 }
@@ -6689,16 +6654,16 @@ function getDayNote(date){
 }
 function getDayColor(date){
   try {
-    const all = JSON.parse(sessionStorage.getItem('bl_day_colors')||'{}');
+    const all = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
     return all[date]||'';
   } catch(e){ return ''; }
 }
 function setDayColor(date, color){
   try {
-    const all = JSON.parse(sessionStorage.getItem('bl_day_colors')||'{}');
+    const all = JSON.parse(localStorage.getItem('bl_day_colors')||'{}');
     if(color==='#ffffff'||!color) delete all[date];
     else all[date] = color;
-    sessionStorage.setItem('bl_day_colors', JSON.stringify(all));
+    localStorage.setItem('bl_day_colors', JSON.stringify(all));
     // sync ขึ้น Sheet — เก็บใน day_notes ด้วย prefix __color__
     const noteKey = '__color__'+date;
     syncToSheet('day_notes', { id: noteKey, date: noteKey, note: color==='#ffffff'?'':color });
@@ -6721,9 +6686,9 @@ function saveDayNote(date, val){
   else delete dayNotes[date];
   // บันทึก timestamp เพื่อป้องกัน syncAll ทับภายใน 30 วิ
   try{
-    const ts = JSON.parse(sessionStorage.getItem('bl_note_write_ts')||'{}');
+    const ts = JSON.parse(localStorage.getItem('bl_note_write_ts')||'{}');
     ts[date] = Date.now();
-    sessionStorage.setItem('bl_note_write_ts', JSON.stringify(ts));
+    localStorage.setItem('bl_note_write_ts', JSON.stringify(ts));
   }catch(e){}
   // sync ไป Sheet
   syncToSheet('day_notes', { id: date, date: date, note: val||'' });
@@ -6905,7 +6870,7 @@ const DEFAULT_DAY_SLOTS = [
 
 function loadDaySlotConfig(){
   try {
-    const saved = sessionStorage.getItem('bl_day_slots');
+    const saved = localStorage.getItem('bl_day_slots');
     if(saved) return JSON.parse(saved);
   } catch(e){}
   return JSON.parse(JSON.stringify(DEFAULT_DAY_SLOTS));
@@ -6919,7 +6884,7 @@ function saveDaySlotSettings(){
     const max   = parseInt(document.getElementById(`ds_max_${d.dow}`)?.value) || d.maxSlots;
     return { ...d, open, start, end, maxSlots: max };
   });
-  sessionStorage.setItem('bl_day_slots', JSON.stringify(config));
+  localStorage.setItem('bl_day_slots', JSON.stringify(config));
   showToast('✅ บันทึกการตั้งค่า Slot แล้ว');
   renderSchedulePage(); // re-render ปฏิทิน
 }
@@ -7109,13 +7074,13 @@ function showUndoToast(msg, onCommit, onUndo, delayMs=5000){
 }
 function clearCacheAndReload(){
   if(!confirm('ล้าง Cache และโหลดข้อมูลใหม่จาก Sheet? ข้อมูลในเครื่องจะถูกล้างและดึงใหม่จาก Google Sheet')) return;
-  const session = sessionStorage.getItem('bl_session');
-  const pins = sessionStorage.getItem('bl_doctors_pins');
-  const lastPage = sessionStorage.getItem('bl_lastPage');
-  sessionStorage.clear();
-  if(session) sessionStorage.setItem('bl_session', session);
-  if(pins) sessionStorage.setItem('bl_doctors_pins', pins);
-  if(lastPage) sessionStorage.setItem('bl_lastPage', lastPage);
+  const session = localStorage.getItem('bl_session');
+  const pins = localStorage.getItem('bl_doctors_pins');
+  const lastPage = localStorage.getItem('bl_lastPage');
+  localStorage.clear();
+  if(session) localStorage.setItem('bl_session', session);
+  if(pins) localStorage.setItem('bl_doctors_pins', pins);
+  if(lastPage) localStorage.setItem('bl_lastPage', lastPage);
   showToast('ล้าง Cache สำเร็จ กำลังโหลดใหม่...');
   setTimeout(()=>location.reload(), 1000);
 }
@@ -7126,7 +7091,7 @@ function clearCacheAndReload(){
 
 // patients array — source of truth คือ Google Sheet tab "คนไข้"
 // localStorage ใช้เป็น cache เท่านั้น
-var patients = JSON.parse(sessionStorage.getItem('bl_patients')||'[]');
+var patients = JSON.parse(localStorage.getItem('bl_patients')||'[]');
 
 // ---- sync ขึ้น Sheet โดยตรง ----
 function pushPatientToSheet(rec){
@@ -7138,7 +7103,7 @@ function deletePatientFromSheet(hn){
 
 // ---- save local cache ----
 function cachePatients(){
-  try{ sessionStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
+  try{ localStorage.setItem('bl_patients', JSON.stringify(patients)); }catch(e){}
 }
 
 // ---- next HN ----
@@ -7594,13 +7559,13 @@ function doSendSummary(date, dayName, dd, mon, yy){
 //  RECALL — ติดตามคนไข้ ปกส. ที่ไม่ได้มา 11 เดือน
 // ============================================================
 function getRecallStatus(hn){
-  const data = JSON.parse(sessionStorage.getItem('bl_recall')||'{}');
+  const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
   return data[String(hn)] || 'รอติดตาม';
 }
 function setRecallStatus(hn, status){
-  const data = JSON.parse(sessionStorage.getItem('bl_recall')||'{}');
+  const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
   data[String(hn)] = status;
-  sessionStorage.setItem('bl_recall', JSON.stringify(data));
+  localStorage.setItem('bl_recall', JSON.stringify(data));
   // sync ขึ้น Sheet
   syncToSheet('recall', { hn: String(hn), status, updatedAt: todayStr() })
     .then(()=>showToast(status==='ติดตามแล้ว' ? 'บันทึก ติดตามแล้ว ✅' : 'รีเซ็ตสถานะแล้ว'))
@@ -7646,15 +7611,15 @@ function recallLogParse_(raw){
 }
 function getRecallLog(hn, year){
   let raw = '';
-  try{ raw = JSON.parse(sessionStorage.getItem('bl_recall')||'{}')[recallYearKey_(hn,year)] || ''; }catch(e){}
+  try{ raw = JSON.parse(localStorage.getItem('bl_recall')||'{}')[recallYearKey_(hn,year)] || ''; }catch(e){}
   return recallLogParse_(raw).sort((x,y)=>(String(x.d)+String(x.t||'')).localeCompare(String(y.d)+String(y.t||'')));
 }
 function saveRecallLogArr_(hn, year, arr){
   const val = arr.length ? JSON.stringify(arr) : 'รอติดตาม';
   try{
-    const data = JSON.parse(sessionStorage.getItem('bl_recall')||'{}');
+    const data = JSON.parse(localStorage.getItem('bl_recall')||'{}');
     data[recallYearKey_(hn,year)] = val;
-    sessionStorage.setItem('bl_recall', JSON.stringify(data));
+    localStorage.setItem('bl_recall', JSON.stringify(data));
   }catch(e){}
   return syncToSheet('recall', { hn: recallYearKey_(hn,year), status: val, updatedAt: todayStr() })
     .catch(()=>showToast('บันทึกในเครื่องแล้ว (sync ขึ้นชีตไม่สำเร็จ)','error'));
@@ -7675,7 +7640,7 @@ function setRecallMode(m, btn){
   const sel = document.getElementById('recallStatusFilter');
   if(sel){
     const opts = m==='year' ? RECALL_YEAR_STATUSES : ['รอติดตาม','ติดตามแล้ว'];
-    sel.innerHTML = '<option value="">ทุกสถานะ</option>'+opts.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+(m==='year' ? '<option value="declined-self">ปฏิเสธ / ติดต่อเอง</option>' : '');
+    sel.innerHTML = '<option value="">ทุกสถานะ</option>'+opts.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
     sel.value = '';
   }
   const sub = document.getElementById('recallSubtitle');
@@ -7683,14 +7648,6 @@ function setRecallMode(m, btn){
   renderRecall();
 }
 function renderRecall(){ return recallMode==='year' ? renderRecallYear_() : renderRecallLong_(); }
-function toggleRecallStat(status){
-  const sel = document.getElementById('recallStatusFilter');
-  if(!sel) return;
-  sel.value = sel.value===status ? '' : status;
-  renderRecall();
-  const card = Array.from(document.querySelectorAll('#recallList .rc-stat')).find(b=>b.dataset.status===status);
-  if(card) card.focus({preventScroll:true});
-}
 function recallYearData_(){
   const today = todayStr(), year = today.slice(0,4);
   const used = new Set(), lastSso = new Map(), nextApt = new Map();
@@ -7736,18 +7693,18 @@ function renderRecallYear_(){
   const cnt = key => todo.filter(r=>r.state.key===key).length;
   const today = new Date(todayStr()+'T12:00'); const daysLeft = Math.max(0, Math.round((new Date(year+'-12-31T12:00')-today)/86400000));
   const pct = total ? Math.round(usedN/total*100) : 0;
-  const card = (n,l,c,status)=>'<button type="button" class="rc-stat" data-status="'+status+'" aria-pressed="'+(statusFilter===status)+'" onclick="toggleRecallStat(\''+status+'\')" title="คลิกเพื่อกรองสถานะ คลิกซ้ำเพื่อแสดงทุกสถานะ"><span style="display:block;font-size:24px;font-weight:800;color:'+c+';font-family:\'Prompt\',sans-serif;">'+n+'</span><span class="text-caption" style="display:block;line-height:1.3;">'+l+'</span></button>';
+  const card = (n,l,c)=>'<div style="background:#fff;border-radius:12px;padding:12px 8px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border);"><div style="font-size:24px;font-weight:800;color:'+c+';font-family:\'Prompt\',sans-serif;">'+n+'</div><div class="text-caption" style="line-height:1.3;">'+l+'</div></div>';
   const summary =
     '<div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border);">'
     +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;"><b style="color:var(--wine-dark);">ใช้สิทธิประกันสังคมปี '+(Number(year)+543)+' แล้ว '+usedN+' จาก '+total+' คน ('+pct+'%)</b><span style="color:'+(daysLeft<=60?'#C0392B':'var(--text-light)')+';font-weight:700;">'+(daysLeft<=60?'🚨 ':'')+'เหลือ '+daysLeft+' วันสิ้นปี</span></div>'
     +'<div class="rc-bar"><div style="width:'+pct+'%"></div></div></div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">'
-    + card(cnt('wait'),'รอติดตาม','#E74C3C','รอติดตาม') + card(cnt('noanswer'),'📵 โทรไม่รับ<br>(ต้องโทรซ้ำ)','#E67E22','โทรไม่รับ') + card(cnt('booked'),'✅ นัดแล้ว','#16A085','นัดแล้ว') + card(cnt('declined')+cnt('self'),'ปฏิเสธ /<br>ติดต่อเอง','#7F8C8D','declined-self')
+    + card(cnt('wait'),'รอติดตาม','#E74C3C') + card(cnt('noanswer'),'📵 โทรไม่รับ<br>(ต้องโทรซ้ำ)','#E67E22') + card(cnt('booked'),'✅ นัดแล้ว','#16A085') + card(cnt('declined')+cnt('self'),'ปฏิเสธ /<br>ติดต่อเอง','#7F8C8D')
     +'</div>'
     +'<div style="font-size:12px;color:var(--text-light);margin:0 2px 12px;">📖 ก่อนโทร อ่านบัตรก่อนทุกครั้ง</div>';
   let list = todo;
   if(q) list = list.filter(r=>String(r.hn||'').toLowerCase().includes(q)||String(r.name||'').toLowerCase().includes(q)||String(r.phone||'').toLowerCase().includes(q));
-  if(statusFilter) list = list.filter(r=>statusFilter==='declined-self' ? ['declined','self'].includes(r.state.key) : r.state.label===statusFilter);
+  if(statusFilter) list = list.filter(r=>r.state.label===statusFilter);
   const ord = {wait:0, noanswer:1, self:2, booked:3, declined:4};
   const lastTry = r=>r.log.length ? String(r.log[r.log.length-1].d) : '';
   list = [...list].sort((a,b)=> (ord[a.state.key]-ord[b.state.key]) || (a.state.key==='noanswer' ? lastTry(a).localeCompare(lastTry(b)) : String(a.lastSso).localeCompare(String(b.lastSso))));
@@ -7766,6 +7723,7 @@ function renderRecallYear_(){
       +'<div style="font-size:12px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;"><span>HN '+_escHtml(r.hn||'—')+'</span>'+(r.phone?'<span>📞 '+_escHtml(r.phone)+'</span>':'')+'</div></div>'
       +'<span style="background:'+c+'1A;color:'+c+';border:1.5px solid '+c+'44;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:800;white-space:nowrap;">'+r.state.label+'</span></div>'
       +'<div style="font-size:12px;color:var(--text-mid);margin-top:8px;line-height:1.7;">'
+      +'<div>🦷 <b>มาล่าสุด</b> '+(r.lastVisit ? '<b style="color:var(--wine-dark);">'+fmtDate(r.lastVisit)+'</b> <span style="color:var(--text-light);">('+orthoAgoText_(r.lastVisit)+')</span>'+(r.lastVisitProcs.length?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin:2px 0 2px 22px;">'+r.lastVisitProcs.map(procBadge).join('')+(r.lastVisitDocs.length?'<span style="font-size:11px;color:var(--text-light);align-self:center;">· '+_escHtml(r.lastVisitDocs.join(', '))+'</span>':'')+'</div>':'') : '<span style="color:var(--text-light);">ยังไม่มีประวัติรักษาในโปรแกรม</span>')+'</div>'
       +'<div>🏛️ <b>ใช้สิทธิ ปกส ล่าสุด</b> '+(r.lastSso ? '<b style="color:var(--wine-dark);">'+fmtDate(r.lastSso)+'</b>'+(r.lastSsoProcs.length?' <span style="color:var(--text-light);">· '+_escHtml(r.lastSsoProcs.join(', '))+'</span>':'') : '<span style="color:var(--text-light);">ยังไม่เคยใช้สิทธิกับคลินิก</span>')+'</div></div>'
       +(r.nextApt?'<div style="margin-top:6px;"><span style="background:rgba(22,160,133,0.12);color:#0E6655;border-radius:20px;font-size:12px;font-weight:800;padding:3px 10px;">📆 มีนัดในตารางนัด '+fmtDate(r.nextApt)+'</span></div>':'')
       +'<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text-light);">ผลการติดตามปีนี้ '+(r.log.length?'('+r.log.length+' ครั้ง)':'')+'</div>'
@@ -7959,8 +7917,8 @@ function renderRecallSummary(wait, done, urgent, total){
 
 function logout(){
   if(!confirm('ออกจากระบบ?')) return;
-  staffKey_='';
-  sessionStorage.clear(); // Clear clinic data and the remembered user on logout.
+  localStorage.removeItem('bl_session');
+  localStorage.removeItem('bl_lastPage'); // ล้างหน้าสุดท้ายเพื่อป้องกัน restore ไปหน้า manager-only
   currentUser=null; isManager=false;
   // ซ่อน tab manager-only ก่อนกลับหน้า login
   ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
@@ -7992,14 +7950,13 @@ var ORTHO_SORTS = [
   { k:'name_asc',    label:'เรียง: ชื่อ ก→ฮ' },
   { k:'scale_asc',   label:'เรียง: ขูดหินปูนนานสุด (ปกส)' }
 ];
-var orthoSortKey = (function(){ try{ const v=sessionStorage.getItem('bl_ortho_sort'); return ORTHO_SORTS.some(x=>x.k===v) ? v : 'code_asc'; }catch(e){ return 'code_asc'; } })();
+var orthoSortKey = (function(){ try{ const v=localStorage.getItem('bl_ortho_sort'); return ORTHO_SORTS.some(x=>x.k===v) ? v : 'code_asc'; }catch(e){ return 'code_asc'; } })();
 function setOrthoSort(k){
   orthoSortKey = ORTHO_SORTS.some(x=>x.k===k) ? k : 'code_asc';
-  try{ sessionStorage.setItem('bl_ortho_sort', orthoSortKey); }catch(e){}
+  try{ localStorage.setItem('bl_ortho_sort', orthoSortKey); }catch(e){}
   renderOrthoPage();
 }
 function orthoSyncSortSel_(){
-  const od = document.getElementById('orthoOverdueDays'); if(od) od.textContent = ORTHO_OVERDUE_DAYS;
   const sel = document.getElementById('orthoSortSel'); if(!sel) return;
   if(!sel.options.length) sel.innerHTML = ORTHO_SORTS.map(x=>'<option value="'+x.k+'">'+x.label+'</option>').join('');
   sel.value = orthoSortKey;
@@ -8046,7 +8003,7 @@ async function loadOrthoData(force){
   _orthoLoaded = true; // กัน retry loop ถ้า fetch ล้มเหลว
   try{
     const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
-    const res = await staffRequest_({action:'orthoList'});
+    const res = await fetch(url+'?action=orthoList',{cache:'no-store'});
     const d = await res.json();
     if(d && d.ok && Array.isArray(d.rows)) orthoData = d.rows;
   }catch(e){ console.warn('loadOrtho error',e); }
@@ -8210,27 +8167,12 @@ async function renderOrthoPage(){
   box.innerHTML = rows.map(orthoCardHtml).join('');
 }
 
-// เกณฑ์ "ค้างนาน" ของแท็บจัดฟัน (วัน) — ใช้กับป้ายแดง ตัวกรอง และสีบรรทัด "ไม่ได้มา N วัน"
-var ORTHO_OVERDUE_DAYS = 50;
-// วันที่แบบไทย: '2026-11-19' → '19 พฤศจิกายน' (ปีนี้) หรือ '19 พฤศจิกายน 2568' (ปีอื่น แสดง พ.ศ.)
-function thaiDate_(v){
-  const m = String(v==null?'':v).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(!m) return String(v==null?'':v);
-  const y=+m[1], mo=+m[2], d=+m[3];
-  if(mo<1 || mo>12) return String(v);
-  return d+' '+THAI_MONTHS[mo-1]+(y===Number(todayStr().slice(0,4)) ? '' : ' '+(y+543));
-}
-// มีนัดล่วงหน้า (วันนัด >= วันนี้) ไหม — ถ้าไม่มีวันนัด หรือวันนัดผ่านไปแล้ว ถือว่ายังไม่นัด
-function orthoHasUpcomingAppt_(r){
-  const v = String((r&&r['นัดถัดไป'])||'').slice(0,10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= todayStr();
-}
 function orthoOverdue_(r){
   const last = r['ปรับล่าสุด'] || r['วันเริ่ม'];
   if(!last) return false;
   const d = new Date(last);
   if(isNaN(d)) return false;
-  return Math.round((Date.now()-d.getTime())/86400000) > ORTHO_OVERDUE_DAYS;
+  return Math.round((Date.now()-d.getTime())/86400000) > 60;
 }
 
 function orthoMissedAppt_(r){
@@ -8283,7 +8225,7 @@ function toggleOrthoPskFilter(){ orthoPskOnly = !orthoPskOnly; renderOrthoPage()
 function orthoManualScale_(r){
   const v = String((r&&r['ขูดหินปูนล่าสุด'])||'').slice(0,10);
   if(v) return v;
-  try{ const m = JSON.parse(sessionStorage.getItem('bl_ortho_scale_manual')||'{}'); return m[orthoHnKey_(r&&r.hn)] || ''; }catch(e){ return ''; }
+  try{ const m = JSON.parse(localStorage.getItem('bl_ortho_scale_manual')||'{}'); return m[orthoHnKey_(r&&r.hn)] || ''; }catch(e){ return ''; }
 }
 function orthoLastScale_(r){
   if(!_orthoPsk) orthoBuildPsk_();
@@ -8322,7 +8264,7 @@ async function saveScaling(){
   try{
     const row = Object.assign({}, orthoData[idx], { 'ขูดหินปูนล่าสุด': date });
     // เก็บสำรองในเครื่อง กันค่าหายถ้าชีตยังไม่มีคอลัมน์นี้
-    try{ const m = JSON.parse(sessionStorage.getItem('bl_ortho_scale_manual')||'{}'); const k = orthoHnKey_(hn); if(date) m[k]=date; else delete m[k]; sessionStorage.setItem('bl_ortho_scale_manual', JSON.stringify(m)); }catch(e){}
+    try{ const m = JSON.parse(localStorage.getItem('bl_ortho_scale_manual')||'{}'); const k = orthoHnKey_(hn); if(date) m[k]=date; else delete m[k]; localStorage.setItem('bl_ortho_scale_manual', JSON.stringify(m)); }catch(e){}
     await orthoPost({action:'orthoSave', row});
     orthoData[idx] = row;
     closeModal('modalScaling');
@@ -8353,14 +8295,13 @@ function orthoCardHtml(r){
   const overdue = isActive && orthoOverdue_(r);
   const sc = orthoStatusColor_(status);
   const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
-  const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน ${ORTHO_OVERDUE_DAYS} วัน</span>` : '';
-  const noApptPill = (isActive && orthoOverdue_(r) && !orthoHasUpcomingAppt_(r)) ? `<span title="ไม่มาเกิน ${ORTHO_OVERDUE_DAYS} วัน และยังไม่มีนัดล่วงหน้า" style="background:#FFF4E5;color:#9A5B00;border:1.5px solid #F0A030;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">📵 ยังไม่นัด</span>` : '';
+  const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 60 วัน</span>` : '';
   const hasPsk = orthoHasPsk_(r);
   const pskPill = hasPsk ? `<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.38);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">🏛️ ปกส</span>` + (orthoPskPending_(r) ? `<span title="ปีนี้ยังไม่มีรายการรักษาที่จ่ายด้วยประกันสังคม" style="background:#FFF4E5;color:#9A5B00;border:1px solid #F0B25E;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">⏳ ปีนี้ยังไม่ใช้สิทธิ</span>` : '') : '';
   let scaleLine = '';
   if(hasPsk){
     const ls = orthoLastScale_(r);
-    scaleLine = `<div style="font-size:12px;margin-top:4px;color:var(--text-mid);" onclick="event.stopPropagation()">🧼 ขูดหินปูนล่าสุด: ${ls ? `<b style="color:var(--wine-dark);">${thaiDate_(ls.date)}</b> <span style="color:var(--text-light);">(${orthoAgoText_(ls.date)} · ${ls.src})</span>` : '<span style="color:var(--text-light);">ยังไม่มีข้อมูล</span>'} <button class="btn btn-ghost btn-sm" style="padding:1px 8px;font-size:11px;" onclick="openScalingEdit('${hnEsc}')">${ls ? '✏️ แก้' : '＋ กรอกวันที่'}</button></div>`;
+    scaleLine = `<div style="font-size:12px;margin-top:4px;color:var(--text-mid);" onclick="event.stopPropagation()">🧼 ขูดหินปูนล่าสุด: ${ls ? `<b style="color:var(--wine-dark);">${fmtDate(ls.date)}</b> <span style="color:var(--text-light);">(${orthoAgoText_(ls.date)} · ${ls.src})</span>` : '<span style="color:var(--text-light);">ยังไม่มีข้อมูล</span>'} <button class="btn btn-ghost btn-sm" style="padding:1px 8px;font-size:11px;" onclick="openScalingEdit('${hnEsc}')">${ls ? '✏️ แก้' : '＋ กรอกวันที่'}</button></div>`;
   }
   const missedPill = (isActive && orthoMissedAppt_(r)) ? `<span style="background:#E67E22;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">⏰ ขาดนัด</span>` : '';
   return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
@@ -8370,15 +8311,15 @@ function orthoCardHtml(r){
           ${r['รหัสประจำตัว']?`<span style="color:var(--wine);font-weight:700;font-size:13px;">${r['รหัสประจำตัว']}</span>`:''}
           <span style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'}</span>
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
-          ${statusPill}${pskPill}${overduePill}${noApptPill}${missedPill}
+          ${statusPill}${pskPill}${overduePill}${missedPill}
         </div>
         ${scaleLine}
         ${bound}
       </div>
       <div style="text-align:right;font-size:12px;">
         <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r)}</strong> ครั้ง</div>
-        ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
-        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>`:''}
+        ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>60?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>60?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
+        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${r['นัดถัดไป']}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']:''}</div>`:''}
         ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
       </div>
     </div>
@@ -8515,7 +8456,7 @@ async function openOrthoHistory(hn){
   document.getElementById('modalOrthoHistory').classList.add('open');
   try{
     const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
-    const res = await staffRequest_({action:'orthoLogsByHn',hn});
+    const res = await fetch(url+'?action=orthoLogsByHn&hn='+encodeURIComponent(hn), {cache:'no-store'});
     const d = await res.json();
     const logs = (d && d.ok && Array.isArray(d.logs)) ? d.logs : [];
     if(!logs.length){
@@ -8548,7 +8489,7 @@ async function openOrthoHistory(hn){
       const gap = (!m.loose && m.gapDays!=null && m.gapDays>0) ? '<span style="font-size:11px;color:var(--text-light);">ห่างครั้งก่อน '+gapText(m.gapDays)+'</span>' : '';
       return `
       <div style="border-bottom:1px dashed var(--border);padding:10px 0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:12px;color:var(--gold);font-weight:700;">${_escHtml(thaiDate_(l['วันที่']||''))}</span>${badge}${gap}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:12px;color:var(--gold);font-weight:700;">${_escHtml(l['วันที่']||'')}</span>${badge}${gap}</div>
         <div style="font-size:14px;font-weight:700;margin-top:2px;">${_escHtml(l['ทำอะไร']||'—')}</div>
         ${l['หมอ']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${_escHtml(l['หมอ'])}</div>`:''}
         ${l['note']?`<div style="font-size:12px;color:var(--text-mid);margin-top:2px;">${_escHtml(l['note'])}</div>`:''}
@@ -8685,7 +8626,7 @@ async function openQuickLog(hn){
   // ไม่ใช่ช่องว่างลอยๆ — ช่องที่มีอยู่แล้วจะเป็นสีส้มและแก้ไขวันที่ได้
   try{
     const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
-    const res = await staffRequest_({action:'orthoLogsByHn',hn});
+    const res = await fetch(url+'?action=orthoLogsByHn&hn='+encodeURIComponent(hn), {cache:'no-store'});
     const d = await res.json();
     const logs = (d && d.ok && Array.isArray(d.logs)) ? d.logs : [];
     const existingDates = logs.filter(l=> l['ทำอะไร']==='ปรับเครื่องมือ').map(l=> l['วันที่']).filter(Boolean).sort();
@@ -8756,7 +8697,7 @@ async function saveQuickLog(){
 async function orthoPost(payload){
   const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
   try{
-    await staffRequest_(payload);
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   }catch(e){ console.warn('orthoPost error',e); showToast('บันทึกไม่สำเร็จ','error'); }
 }
 
@@ -8799,7 +8740,7 @@ function setMobileNav(page){
 // Restore every saved doctor setting from localStorage before login/session restoration.
 (function restoreDoctorSettings(){
   try {
-    const saved = sessionStorage.getItem('bl_doctor_settings');
+    const saved = localStorage.getItem('bl_doctor_settings');
     if(saved){
       const savedDoctors = JSON.parse(saved);
       if(!Array.isArray(savedDoctors)) return;
@@ -8817,7 +8758,7 @@ function setMobileNav(page){
       return;
     }
     // Backward compatibility with the former PIN/share-only cache.
-    const legacy = JSON.parse(sessionStorage.getItem('bl_doctors_pins')||'[]');
+    const legacy = JSON.parse(localStorage.getItem('bl_doctors_pins')||'[]');
     if(!Array.isArray(legacy)) return;
     legacy.forEach(record=>{
       if(!record || !record.id) return;
@@ -8833,18 +8774,18 @@ function setMobileNav(page){
 (function migrateBenColorOrange(){
   try {
     const FLAG='bl_mig_ben_orange_v1', NEW_COLOR='#F27A0D';
-    if(sessionStorage.getItem(FLAG)) return;
+    if(localStorage.getItem(FLAG)) return;
     const d=doctors.find(x=>x.id==='ben'); if(d) d.color=NEW_COLOR;
     const o=DOCTORS_DATA.find(x=>x.id==='ben'); if(o) o.color=NEW_COLOR;
-    const saved=sessionStorage.getItem('bl_doctor_settings');
+    const saved=localStorage.getItem('bl_doctor_settings');
     if(saved){
       const arr=JSON.parse(saved);
       if(Array.isArray(arr)){
         arr.forEach(r=>{ if(r && r.id==='ben') r.color=NEW_COLOR; });
-        sessionStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
+        localStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
       }
     }
-    sessionStorage.setItem(FLAG,'1');
+    localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('migrateBenColorOrange error:', e); }
 })();
 
@@ -8852,18 +8793,18 @@ function setMobileNav(page){
 (function migrateMindEmoji(){
   try {
     const FLAG='bl_mig_mind_emoji_v3', NEW_EMOJI='😎';
-    if(sessionStorage.getItem(FLAG)) return;
+    if(localStorage.getItem(FLAG)) return;
     const d=doctors.find(x=>x.id==='mind'); if(d) d.emoji=NEW_EMOJI;
     const o=DOCTORS_DATA.find(x=>x.id==='mind'); if(o) o.emoji=NEW_EMOJI;
-    const saved=sessionStorage.getItem('bl_doctor_settings');
+    const saved=localStorage.getItem('bl_doctor_settings');
     if(saved){
       const arr=JSON.parse(saved);
       if(Array.isArray(arr)){
         arr.forEach(r=>{ if(r && r.id==='mind') r.emoji=NEW_EMOJI; });
-        sessionStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
+        localStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
       }
     }
-    sessionStorage.setItem(FLAG,'1');
+    localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('migrateMindEmoji error:', e); }
 })();
 
@@ -8871,18 +8812,18 @@ function setMobileNav(page){
 (function migrateMindColorPink(){
   try {
     const FLAG='bl_mig_mind_color_pink_v2', NEW_COLOR='#E91E8C';
-    if(sessionStorage.getItem(FLAG)) return;
+    if(localStorage.getItem(FLAG)) return;
     const d=doctors.find(x=>x.id==='mind'); if(d) d.color=NEW_COLOR;
     const o=DOCTORS_DATA.find(x=>x.id==='mind'); if(o) o.color=NEW_COLOR;
-    const saved=sessionStorage.getItem('bl_doctor_settings');
+    const saved=localStorage.getItem('bl_doctor_settings');
     if(saved){
       const arr=JSON.parse(saved);
       if(Array.isArray(arr)){
         arr.forEach(r=>{ if(r && r.id==='mind') r.color=NEW_COLOR; });
-        sessionStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
+        localStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
       }
     }
-    sessionStorage.setItem(FLAG,'1');
+    localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('migrateMindColorPink error:', e); }
 })();
 
@@ -8890,18 +8831,18 @@ function setMobileNav(page){
 (function migrateKhaoColorYellow(){
   try {
     const FLAG='bl_mig_khao_color_yellow_v1', NEW_COLOR='#E5B80B';
-    if(sessionStorage.getItem(FLAG)) return;
+    if(localStorage.getItem(FLAG)) return;
     const d=doctors.find(x=>x.id==='khao'); if(d) d.color=NEW_COLOR;
     const o=DOCTORS_DATA.find(x=>x.id==='khao'); if(o) o.color=NEW_COLOR;
-    const saved=sessionStorage.getItem('bl_doctor_settings');
+    const saved=localStorage.getItem('bl_doctor_settings');
     if(saved){
       const arr=JSON.parse(saved);
       if(Array.isArray(arr)){
         arr.forEach(r=>{ if(r && r.id==='khao') r.color=NEW_COLOR; });
-        sessionStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
+        localStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
       }
     }
-    sessionStorage.setItem(FLAG,'1');
+    localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('migrateKhaoColorYellow error:', e); }
 })();
 
@@ -8909,18 +8850,18 @@ function setMobileNav(page){
 (function migratePongEmojiCamera(){
   try {
     const FLAG='bl_mig_pong_emoji_camera_v1', NEW_EMOJI='📷';
-    if(sessionStorage.getItem(FLAG)) return;
+    if(localStorage.getItem(FLAG)) return;
     const d=doctors.find(x=>x.id==='pong'); if(d) d.emoji=NEW_EMOJI;
     const o=DOCTORS_DATA.find(x=>x.id==='pong'); if(o) o.emoji=NEW_EMOJI;
-    const saved=sessionStorage.getItem('bl_doctor_settings');
+    const saved=localStorage.getItem('bl_doctor_settings');
     if(saved){
       const arr=JSON.parse(saved);
       if(Array.isArray(arr)){
         arr.forEach(r=>{ if(r && r.id==='pong') r.emoji=NEW_EMOJI; });
-        sessionStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
+        localStorage.setItem('bl_doctor_settings', JSON.stringify(arr));
       }
     }
-    sessionStorage.setItem(FLAG,'1');
+    localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('migratePongEmojiCamera error:', e); }
 })();
 
@@ -8929,14 +8870,14 @@ try { treatments.forEach(applyXrayRule); } catch(e){ console.warn('applyXrayRule
 buildDoctorGrid();
 // Ensure correct initial state
 // Auto-restore session on page load/refresh
-(async function restoreSession(){
+(function restoreSession(){
   try {
-    const saved = sessionStorage.getItem('bl_session');
+    const saved = localStorage.getItem('bl_session');
     if(!saved) return;
     const sess = JSON.parse(saved);
     // Session expires after 24 hours
     if(Date.now() - sess.ts > 24 * 60 * 60 * 1000){
-      sessionStorage.removeItem('bl_session'); return;
+      localStorage.removeItem('bl_session'); return;
     }
     // Find user - always use fresh DOCTORS_DATA
     let user = null;
@@ -8950,14 +8891,14 @@ buildDoctorGrid();
     }
     if(!user){ 
       // Can't find user - clear session
-      sessionStorage.removeItem('bl_session');
+      localStorage.removeItem('bl_session'); 
       return; 
     }
     currentUser = user;
-    if(!await startApp()) return;
+    startApp();
     // Restore last active page — filter manager-only pages for doctors
     const _managerOnly = ['settings','schedule'];
-    let _lastPage = sessionStorage.getItem('bl_lastPage') || 'home';
+    let _lastPage = localStorage.getItem('bl_lastPage') || 'home';
     if(!isManager && _managerOnly.includes(_lastPage)) _lastPage = 'home';
     showPage(_lastPage);
   } catch(e){ console.warn('Session restore error:',e); }
