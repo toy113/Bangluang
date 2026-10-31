@@ -8337,7 +8337,11 @@ function copyIncomeSummary(){
 
   modal.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;width:320px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,0.25);">'
     + '<div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:16px;">💰 เลือกหมอสำหรับสรุปรายได้</div>'
-    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">' + docOptions + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">' + docOptions + '</div>'
+    + '<div style="margin-bottom:20px;">'
+    + '<label for="incomePaidCash" style="display:block;font-size:13px;font-weight:700;color:var(--wine-dark);margin-bottom:6px;">💵 จ่ายเงินสดให้หมอที่เลือก (บาท)</label>'
+    + '<input id="incomePaidCash" type="number" inputmode="numeric" min="0" step="1" placeholder="ไม่จ่าย / เว้นว่าง" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;font-family:inherit;">'
+    + '</div>'
     + '<div style="display:flex;gap:10px;">'
     + '<button onclick="document.getElementById(\'incomeDocModal\').remove()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:700;cursor:pointer;">ยกเลิก</button>'
     + '<button onclick="doSendIncome(\''+periodLabel+'\')" style="flex:2;padding:10px;border-radius:10px;border:none;background:var(--wine);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💰 Copy</button>'
@@ -8347,6 +8351,7 @@ function copyIncomeSummary(){
 
 function doSendIncome(periodLabel){
   const selected = document.querySelector('input[name="incomeDoc"]:checked')?.value;
+  const paidCash = Math.max(0, Math.round(+document.getElementById('incomePaidCash')?.value || 0));
   document.getElementById('incomeDocModal')?.remove();
   if(!selected){ showToast('กรุณาเลือกหมอ','error'); return; }
 
@@ -8375,6 +8380,10 @@ function doSendIncome(periodLabel){
   text += LINE + '\n';
   text += `รวม  ${fmt(total)}\n`;
   text += `df ${share}% = ${fmt(df)}\n`;
+  if(paidCash>0){
+    text += `จ่ายเงินสดให้${selected}แล้ว  ${fmt(paidCash)}\n`;
+    text += `df คงเหลือ  ${fmt(df-paidCash)}\n`;
+  }
   text += 'Bangluang Dental 🦷';
 
   navigator.clipboard.writeText(text)
