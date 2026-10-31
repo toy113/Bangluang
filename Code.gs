@@ -177,7 +177,11 @@ function callClaudeForInsight_(prompt) {
 
 function doPost(e) {
   try {
-    // ---- ORTHO + LINE webhook (อยู่ในไฟล์ ortho-backend.gs) ----
+    // ---- LINE CRM: webhook + งานหลังบ้าน CRM (อยู่ในไฟล์ line-crm.gs) — ต้องอยู่ก่อน ortho ----
+    var _crm = crmRoutePost_(e);
+    if (_crm) return _crm;
+
+    // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
     var _ortho = orthoRoutePost_(e);
     if (_ortho) return _ortho;
 
@@ -384,6 +388,10 @@ function doPost(e) {
 
 function doGet(e) {
   try {
+    // ---- LINE CRM (อยู่ในไฟล์ line-crm.gs) ----
+    var _crm = crmRouteGet_(e);
+    if (_crm) return _crm;
+
     // ---- ORTHO (อยู่ในไฟล์ ortho-backend.gs) ----
     var _ortho = orthoRouteGet_(e);
     if (_ortho) return _ortho;
