@@ -874,13 +874,16 @@ function crmBind_(p) {
   if (!u) return { ok: false, error: 'auth' };
   if (String(p.consent) !== '1') return { ok: false, error: 'consent_required' };
   var phone = crmPhone_(p.phone), name = crmNameKey_(p.name), code = String(p.code || '').trim().toUpperCase();
-  if (phone.length < 9 || !name) return { ok: false, error: 'missing_field' };
+  var hnIn = crmHN_(p.hn);                       // ผูกด้วย HN (6 หลัก เช่น 659385 หรือ 65-9385) + เบอร์โทร
+  if (phone.length < 9 || (!hnIn && !name)) return { ok: false, error: 'missing_field' };
+  if (hnIn && !/^\d{6}$/.test(hnIn)) return { ok: false, error: 'hn_format' };
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var s = crmSettings_(), now = crmNow_();
     var pats = crmReadByName_('คนไข้');
     var matches = pats.filter(function (r) {
       if (crmPhone_(r.phone || r['เบอร์โทร'] || r['เบอร์'] || '') !== phone) return false;
+      if (hnIn) return crmHN_(r.hn) === hnIn;
       var nm = crmNameKey_(r.name || r['ชื่อ'] || '');
       var first = name.split(' ')[0];
       return nm && first && (nm.indexOf(first) !== -1 || first.indexOf(nm.split(' ')[0]) === 0);
@@ -899,7 +902,7 @@ function crmBind_(p) {
     if (!matches.length) {
       if (!existing.some(function (l) { return l.status === 'pending' && crmPhone_(l.inputPhone) === phone; })) {
         crmAppend_('links', { id: crmId_('LK'), lineUserId: u.userId, hn: '', patName: '', status: 'pending', source: 'self', consent: 'TRUE',
-          displayName: u.name, inputName: p.name, inputPhone: p.phone, createdAt: now, note: 'ไม่พบเบอร์+ชื่อที่ตรงกันในรายชื่อคนไข้' });
+          displayName: u.name, inputName: hnIn ? ('HN ' + p.hn) : p.name, inputPhone: p.phone, createdAt: now, note: 'ไม่พบเบอร์+ชื่อที่ตรงกันในรายชื่อคนไข้' });
       }
       return { ok: true, status: 'pending', matched: 0 };
     }
@@ -907,7 +910,7 @@ function crmBind_(p) {
       var already = existing.filter(function (l) { return crmHN_(l.hn) === crmHN_(m.hn) && l.status !== 'revoked'; })[0];
       if (already) { if (auto && already.status === 'pending') crmUpdate_('links', already._row, { status: 'active', approvedBy: codeOk ? 'รหัสจัดฟัน' : 'อัตโนมัติ', approvedAt: now }); return; }
       crmAppend_('links', { id: crmId_('LK'), lineUserId: u.userId, hn: m.hn, patName: m.name || m['ชื่อ'] || '', status: auto ? 'active' : 'pending',
-        source: codeOk ? 'ortho-code' : 'self', consent: 'TRUE', displayName: u.name, inputName: p.name, inputPhone: p.phone, createdAt: now,
+        source: codeOk ? 'ortho-code' : 'self', consent: 'TRUE', displayName: u.name, inputName: hnIn ? ('HN ' + p.hn) : p.name, inputPhone: p.phone, createdAt: now,
         approvedBy: auto ? (codeOk ? 'รหัสจัดฟัน' : 'อัตโนมัติ') : '', approvedAt: auto ? now : '' });
       created.push(m.hn);
     });

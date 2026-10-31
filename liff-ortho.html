@@ -115,7 +115,7 @@
   <div class="wrap">
     <div class="card">
       <div class="err" id="bindErr"></div>
-      <div class="field"><label>ชื่อจริงของคนไข้</label><input id="b-name" placeholder="เช่น สมชาย" autocomplete="off"></div>
+      <div class="field"><label>HN ของคนไข้ (6 หลัก)</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 65-9385" maxlength="7" autocomplete="off" oninput="fmtHn(this)"><div class="muted" style="margin-top:4px;">ดู HN ได้จากบัตรคนไข้หรือใบนัดของคลินิก</div></div>
       <div class="field"><label>เบอร์โทรที่ให้ไว้กับคลินิก</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
       <details class="ortho-code" id="codeBox">
         <summary>คนไข้จัดฟัน: มีรหัสจัดฟัน (A-xxx)?</summary>
@@ -358,7 +358,7 @@ function openBind(isAdd, orthoOpen){
   show('bindView');
 }
 async function doBind(){
-  const name = $('b-name').value.trim(), phone = $('b-phone').value.trim(), code = $('b-code').value.trim(), consent = $('b-consent').checked;
+  const hn = $('b-hn').value.trim(), phone = $('b-phone').value.trim(), code = $('b-code').value.trim(), consent = $('b-consent').checked;
   const err = m=>{ $('bindErr').textContent = m; $('bindErr').style.display = 'block'; };
   $('bindErr').style.display = 'none';
   if(LEGACY){
@@ -373,18 +373,20 @@ async function doBind(){
     $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';
     return;
   }
-  if(!name) return err('กรุณากรอกชื่อจริงของคนไข้');
+  if(!/^\d{2}-?\d{4}$/.test(hn)) return err('กรุณากรอก HN 6 หลัก (ตัวอย่าง 65-9385)');
   if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)) return err('กรุณากรอกเบอร์โทร 10 หลัก (ตัวอย่าง 081-234-5678)');
   if(code && !/^A-\d{2,}$/.test(code)) return err('รูปแบบรหัสจัดฟันไม่ถูกต้อง (ตัวอย่าง A-123)');
   if(!consent) return err('กรุณากดยินยอมก่อนผูกบัญชี');
   $('bindBtn').disabled = true; $('bindBtn').textContent = 'กำลังส่งข้อมูล...';
   try{
-    const d = await api({ action:'crmBind', name, phone, code, consent: '1' });
+    const d = await api({ action:'crmBind', hn, phone, code, consent: '1' });
     if(d && d.ok){ await load(); }
     else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
   }catch(e){ console.error(e); err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }
   $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';
 }
+// HN 6 หลัก: พิมพ์เฉพาะตัวเลข แล้วใส่ขีดหลังตัวที่ 2 ให้ (65-9385)
+function fmtHn(el){ const d = el.value.replace(/\D/g,'').slice(0,6); el.value = d.length>2 ? d.slice(0,2)+'-'+d.slice(2) : d; }
 async function setConsent(on){
   try{
     const d = await api({ action:'crmConsent', on: on ? '1' : '0' });
