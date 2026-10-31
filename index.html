@@ -4215,6 +4215,7 @@ function saveTreat(){
   markPendingSync('treatments', t);
   syncToSheet('treatments', t).then(()=>{
     setTimeout(syncAll, 2000);
+    crmKick_(); // สั่งรอบส่ง LINE CRM ทันที → คำแนะนำหลังรักษา (Aftercare) ถึงคนไข้ภายในไม่กี่วินาที
   }).catch(err => {
     showToast('⚠️ บันทึกไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ', 'error');
   });
