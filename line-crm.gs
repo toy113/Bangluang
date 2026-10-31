@@ -1103,6 +1103,18 @@ function crmSetup() {
   return msg;
 }
 
+/* ปรับความถี่รอบส่ง (ค่าที่ Apps Script รับ: 1, 5, 10, 15, 30 นาที) — เลือกฟังก์ชัน crmSetTick5 แล้วกด Run */
+function crmSetTickMinutes(n) {
+  n = +n; if ([1, 5, 10, 15, 30].indexOf(n) === -1) throw new Error('ใช้ได้เฉพาะ 1, 5, 10, 15 หรือ 30 นาที');
+  var removed = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'crmTick') { ScriptApp.deleteTrigger(t); removed++; } });
+  ScriptApp.newTrigger('crmTick').timeBased().everyMinutes(n).create();
+  var msg = 'ตั้งรอบส่ง crmTick ทุก ' + n + ' นาทีแล้ว (ลบ trigger เดิม ' + removed + ' อัน)';
+  Logger.log(msg); return msg;
+}
+function crmSetTick5() { return crmSetTickMinutes(5); }
+function crmSetTick10() { return crmSetTickMinutes(10); }
+
 /* ลบ rich menu เดิมทั้งหมด แล้วสร้างใหม่ 3 ปุ่ม: นัดครั้งถัดไป / ประวัติการรักษา / จัดฟัน */
 function crmSetupRichMenu() {
   if (!crmToken_()) throw new Error('ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN ใน Script Properties');
