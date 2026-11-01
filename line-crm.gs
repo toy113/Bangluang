@@ -1139,7 +1139,7 @@ function crmCampaignSend_(b, by) {
 function crmSendTest_(b) {
   var s = crmSettings_();
   var to = b.to || s.testUserId; if (!to) return { ok: false, error: 'ยังไม่ได้เลือกบัญชีทดสอบ' };
-  var demoApt = { id: 'TEST', date: crmAddDays_(crmToday_(), 1), time: '10:30', patName: 'ทดสอบ ระบบ', docName: 'หมอทอย', proc: 'ขูดหินปูน' };
+  var demoApt = { id: 'TEST', date: crmAddDays_(crmToday_(), 1), time: '10:30', patName: 'ทดสอบ ระบบ', docName: 'ทพ.สรวิศ สุภาพ', proc: 'ขูดหินปูน' };
   var msgs;
   if (b.kind === 'aftercare') {
     var tp = crmFind_(crmRead_('templates'), 'id', b.templateId);
@@ -1148,7 +1148,7 @@ function crmSendTest_(b) {
     if (String(tp.followupEnabled).toUpperCase() === 'TRUE') msgs.push(crmFollowupMessage_(s, { id: 'TEST' }, tp, 'ทดสอบ ระบบ', tp.name));
   } else {
     msgs = [crmText_('🧪 ตัวอย่างข้อความยืนยันนัด/เตือนนัด/สรุปการรักษา'), crmAptMessage_(s, demoApt, 'confirm'), crmAptMessage_(s, demoApt, 'remind'),
-      crmReceiptMessage_(s, { date: crmToday_(), docName: 'หมอทอย', proc: 'ขูดหินปูน, อุดฟัน', cash: 800, transfer: 700, sso: 0, patName: 'ทดสอบ ระบบ' })];
+      crmReceiptMessage_(s, { date: crmToday_(), docName: 'ทพ.สรวิศ สุภาพ', proc: 'ขูดหินปูน, อุดฟัน', cash: 800, transfer: 700, sso: 0, patName: 'ทดสอบ ระบบ' })];
   }
   var res = crmApi_('post', '/v2/bot/message/push', { to: to, messages: msgs.slice(0, 5) });
   crmAppend_('log', { key: 'test:' + Date.now(), type: 'test', lineUserId: to, status: res.code === 200 ? 'test' : 'failed', detail: res.code === 200 ? (b.kind || 'apt') : ('HTTP ' + res.code + ' ' + String(res.text).slice(0, 150)), createdAt: crmNow_(), pushCount: res.code === 200 ? 1 : 0 });
