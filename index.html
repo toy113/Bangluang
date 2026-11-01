@@ -2575,7 +2575,7 @@ function doVerify(){
     userData = MANAGER; isManager = true;
   } else {
     var doc = doctors.find(function(d){return d.id===id;}) || DOCTORS_DATA.find(function(d){return d.id===id;});
-    if(doc && currentPin === doc.pin){ match = true; userData = doc; isManager = false; }
+    if(doc && currentPin === doc.pin){ match = true; userData = doc; isManager = (doc.id==='toy'); }
   }
   if(match){
     currentUser = userData;
@@ -2610,7 +2610,7 @@ function startApp(){
   // sidebar user info
   document.getElementById('sideUserAvatar').textContent = currentUser.emoji;
   document.getElementById('sideUserName').textContent = currentUser.name;
-  document.getElementById('sideUserRole').textContent = isManager ? 'ผู้จัดการ' : (currentUser.specialty||'');
+  document.getElementById('sideUserRole').textContent = isAdminUser() ? 'แอดมิน' : (isManager ? 'ผู้จัดการ' : (currentUser.specialty||''));
   // Show the portrait below หมอก้อย's specialty in the sidebar.
   const portraitWrap = document.getElementById('sideUserPortraitWrap');
   if(portraitWrap) portraitWrap.style.display = (!isManager && currentUser.id==='koi') ? 'block' : 'none';
@@ -4163,7 +4163,9 @@ document.addEventListener('click', function(e){
 //  TREATMENTS
 // ============================================================
 // ล็อกการแก้ไขย้อนหลัง: แก้ไข/ลบรายการรักษาได้เฉพาะรายการที่ลงวันที่ของวันนี้ (วันถัดไปรายการจะถูกล็อก)
-function canEditTreat(t){ return !!t && String(t.date||'').slice(0,10) === todayStr(); }
+// แอดมิน (หมอทอย) แก้ไข/ลบรายการย้อนหลังได้ · คนอื่นแก้ได้เฉพาะรายการของวันนี้
+function isAdminUser(){ return !!(currentUser && currentUser.id==='toy'); }
+function canEditTreat(t){ return !!t && (isAdminUser() || String(t.date||'').slice(0,10) === todayStr()); }
 function warnTreatLocked(){ showToast('🔒 รายการย้อนหลัง แก้ไข/ลบไม่ได้ (แก้ได้เฉพาะรายการของวันนี้)','error'); }
 function openAddTreat(t=null){
   if(t && !canEditTreat(t)){ warnTreatLocked(); return; }
@@ -4174,7 +4176,7 @@ function openAddTreat(t=null){
   const today=todayStr();
   document.getElementById('treat-id').value = t?.id||'';
   document.getElementById('treat-date').value = t?.date||today;
-  document.getElementById('treat-date').disabled = !!t; // แก้ไขรายการเดิม: ล็อกวันที่ ไม่ให้ย้ายวัน
+  document.getElementById('treat-date').disabled = !!t && !isAdminUser(); // แก้ไขรายการเดิม: ล็อกวันที่ ไม่ให้ย้ายวัน
   
   // เวลาปัจจุบัน
   const treatTimeEl = document.getElementById('treat-time');
@@ -9934,13 +9936,13 @@ buildDoctorGrid();
     }
     // Find user - always use fresh DOCTORS_DATA
     let user = null;
-    if(sess.isManager){ 
+    if(sess.isManager && sess.userId==='manager'){ 
       user = {...MANAGER}; 
       isManager = true; 
     } else {
       // Try doctors[] first, then DOCTORS_DATA
       const doc = DOCTORS_DATA.find(d=>d.id===sess.userId) || doctors.find(d=>d.id===sess.userId);
-      if(doc){ user = {...doc}; isManager = false; }
+      if(doc){ user = {...doc}; isManager = (doc.id==='toy'); }
     }
     if(!user){ 
       // Can't find user - clear session
