@@ -491,6 +491,20 @@ function crmAptMessage_(s, apt, kind) {
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
 }
+// เตือนนัดหลายนัดในวันเดียวกัน (คนไข้คนเดียว) ในการ์ดเดียว · ปุ่มยืนยัน/เลื่อนนัดใช้กับทุกนัดในการ์ด (ids คั่นด้วย ,)
+function crmAptGroupMessage_(s, list) {
+  var a0 = list[0], ids = list.map(function (a) { return a.id; }).join(',');
+  var rows = [crmRow_('วัน', crmThaiDate_(a0.date))];
+  list.forEach(function (a, i) {
+    rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace(':', '.') + ' น.', [a.proc, a.docName].filter(Boolean).join('\n')));
+  });
+  var buttons = [
+    { type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + ids, displayText: 'ยืนยันนัด' } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '🔄 ขอเลื่อนนัด', data: 'apt|resched|' + ids, displayText: 'ขอเลื่อนนัด' } },
+    { type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } }];
+  return { type: 'flex', altText: 'เตือนนัดหมาย ' + crmThaiDate_(a0.date) + ' ' + list.length + ' นัด',
+    contents: crmBubble_(s, '🔔 เตือนนัดหมาย', 'คุณ' + (a0.patName || '') + ' อย่าลืมนัดหมายของคุณนะคะ (' + list.length + ' นัดในวันเดียวกัน)', rows, buttons) };
+}
 function crmMoney_(n) { return '฿' + String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 // สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (+ คำแนะนำหลังรักษาในการ์ดเดียวกัน ถ้ามี template ที่อนุมัติแล้ว)
 // trs = รายการรักษา (อันเดียวหรือ array) · extra = { tpls: [...], notes: [...] } (ไม่บังคับ)
@@ -631,7 +645,8 @@ function crmTickInner_() {
 
   function targets(hn) { return (links[crmHN_(hn)] || []).filter(function (x) { return x.consent; }); }
 
-  // 1) ยืนยันนัด + 2) เตือนนัด
+  // 1) ยืนยันนัด (+ รวบรวมนัดที่ต้องเตือน)
+  var remindGroups = {};
   apts.forEach(function (a) {
     a.date = crmDateOnly_(a.date);
     if (!a.id || !a.date || a.date < today || closed.indexOf(a.status) !== -1) return;
@@ -650,21 +665,35 @@ function crmTickInner_() {
       }
     }
     if (s.remindOn && hm >= s.remindHour) {
-      var days = crmIsOrthoApt_(s, a, orthoActive) ? (+s.orthoDays || 2) : (+s.otherDays || 1);
-      if (a.date === crmAddDays_(today, days)) {
-        var rk = crmKey_(s, 'remind:' + a.id + ':' + a.date);
-        if (!crmIsDone_(state, rk) && crmSentWithinHours_(state, crmKey_(s, 'confirm:' + a.id + ':' + a.date + ':' + (a.time || '')), 12)) {
-          crmMark_(state, rk, 'remind', { hn: a.hn, patName: a.patName, refId: a.id }, 'skipped', 'เพิ่งส่งยืนยันนัดไปไม่เกิน 12 ชม.');
-        }
-        if (!crmIsDone_(state, rk)) {
-          tg.forEach(function (t) {
-            if (crmSend_(s, state, { key: rk + '>' + t.lineUserId, type: 'remind', hn: a.hn, patName: a.patName, lineUserId: t.lineUserId, refId: a.id, detail: a.date + ' ' + (a.time || '') + ' (' + days + ' วัน)' },
-              [crmAptMessage_(s, a, 'remind')])) summary.remind++;
-          });
-          if (crmAllDone_(state, rk, tg)) crmMark_(state, rk, 'remind', { hn: a.hn, patName: a.patName, refId: a.id }, 'done', '');
-        }
-      }
+      var gk = crmHN_(a.hn) + '|' + a.date;
+      (remindGroups[gk] = remindGroups[gk] || []).push({ a: a, tg: tg, days: crmIsOrthoApt_(s, a, orthoActive) ? (+s.orthoDays || 2) : (+s.otherDays || 1) });
     }
+  });
+
+  // 2) เตือนนัด: คนไข้คนเดียวกัน วันเดียวกัน มีหลายนัด (เช่น ปรับลวด + ขูดหินปูน) → รวมเป็นข้อความเดียว ส่งตามวันที่เตือนล่วงหน้ามากที่สุดของกลุ่ม
+  Object.keys(remindGroups).forEach(function (gk) {
+    var g = remindGroups[gk], date = g[0].a.date, days = Math.max.apply(null, g.map(function (x) { return x.days; }));
+    if (date !== crmAddDays_(today, days)) return;
+    var items = [];
+    g.forEach(function (x) {
+      var a = x.a, rk = crmKey_(s, 'remind:' + a.id + ':' + a.date);
+      if (crmIsDone_(state, rk)) return;
+      if (crmSentWithinHours_(state, crmKey_(s, 'confirm:' + a.id + ':' + a.date + ':' + (a.time || '')), 12)) {
+        crmMark_(state, rk, 'remind', { hn: a.hn, patName: a.patName, refId: a.id }, 'skipped', 'เพิ่งส่งยืนยันนัดไปไม่เกิน 12 ชม.'); return;
+      }
+      items.push(x);
+    });
+    if (!items.length) return;
+    items.sort(function (x, y) { return String(x.a.time || '').localeCompare(String(y.a.time || '')); });
+    var list = items.map(function (x) { return x.a; }), tg = items[0].tg;
+    var ids = list.map(function (a) { return a.id; }).join(',');
+    var gkey = crmKey_(s, 'remind:' + list[0].id + ':' + list[0].date);
+    tg.forEach(function (t) {
+      if (crmSend_(s, state, { key: gkey + '>' + t.lineUserId, type: 'remind', hn: list[0].hn, patName: list[0].patName, lineUserId: t.lineUserId, refId: ids,
+        detail: date + ' ' + list.map(function (a) { return a.time || ''; }).join(' / ') + ' (' + days + ' วัน' + (list.length > 1 ? ' · รวม ' + list.length + ' นัด' : '') + ')' },
+        [list.length > 1 ? crmAptGroupMessage_(s, list) : crmAptMessage_(s, list[0], 'remind')])) summary.remind++;
+    });
+    if (crmAllDone_(state, gkey, tg)) list.forEach(function (a) { crmMark_(state, crmKey_(s, 'remind:' + a.id + ':' + a.date), 'remind', { hn: a.hn, patName: a.patName, refId: a.id }, 'done', ''); });
   });
 
   // 3) คำแนะนำหลังรักษา (วันนี้)
@@ -883,20 +912,27 @@ function crmHandlePostback_(s, ev, uid) {
   var hns = crmUserHns_(uid);
   var isTester = s.testMode && s.testUserId && uid === s.testUserId; // โหมดทดสอบ: บัญชีทดสอบกดปุ่มแทนคนไข้ได้
   if (parts[0] === 'apt') {
-    var aptId = parts[2];
-    var apt = crmFind_(crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), crmReadByName_('ortho')), 'id', aptId);
-    if (!apt || (hns.indexOf(crmHN_(apt.hn)) === -1 && !isTester)) { crmReply_(ev.replyToken, [crmText_('ไม่พบนัดหมายนี้ในบัญชีของคุณ กรุณาติดต่อคลินิก ' + s.clinicPhone)]); return; }
-    var aptRows = crmRead_('apt'), ar = crmFind_(aptRows, 'aptId', aptId), now = crmNow_();
+    var allApts = crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), crmReadByName_('ortho'));
+    var found = String(parts[2] || '').split(',').filter(Boolean).map(function (id) { return crmFind_(allApts, 'id', id); })
+      .filter(function (x) { return x && (hns.indexOf(crmHN_(x.hn)) !== -1 || isTester); });   // ปุ่มจากการ์ดเตือนรวมหลายนัดส่ง id คั่นด้วย ,
+    if (!found.length) { crmReply_(ev.replyToken, [crmText_('ไม่พบนัดหมายนี้ในบัญชีของคุณ กรุณาติดต่อคลินิก ' + s.clinicPhone)]); return; }
+    found.sort(function (x, y) { return String(x.time || '').localeCompare(String(y.time || '')); });
+    var apt = found[0], aptId = found.map(function (x) { return x.id; }).join(',');
+    var aptRows = crmRead_('apt'), now = crmNow_();
+    var aptLine = function (x) { return crmDateOnly_(x.date) + ' ' + (x.time || '') + (x.proc ? ' (' + x.proc + ')' : '') + (x.docName ? ' ' + x.docName : ''); };
+    var recAct = function (x, fields) {
+      var ar = crmFind_(aptRows, 'aptId', x.id);
+      if (ar) crmUpdate_('apt', ar._row, fields);
+      else { var o = { aptId: x.id, hn: x.hn }; for (var f in fields) o[f] = fields[f]; crmAppend_('apt', o); }
+    };
     if (parts[1] === 'confirm') {
-      if (ar) crmUpdate_('apt', ar._row, { confirmedAt: now, lastAction: 'confirm', updatedAt: now });
-      else crmAppend_('apt', { aptId: aptId, hn: apt.hn, confirmedAt: now, lastAction: 'confirm', updatedAt: now });
-      crmReply_(ev.replyToken, [crmText_(s.confirmThanksText + '\n\n📅 ' + crmThaiDate_(crmDateOnly_(apt.date)) + ' เวลา ' + (apt.time || '-') + ' น.')]);
+      found.forEach(function (x) { recAct(x, { confirmedAt: now, lastAction: 'confirm', updatedAt: now }); });
+      crmReply_(ev.replyToken, [crmText_(s.confirmThanksText + found.map(function (x) { return '\n\n📅 ' + crmThaiDate_(crmDateOnly_(x.date)) + ' เวลา ' + (x.time || '-') + ' น.' + (found.length > 1 && x.proc ? ' (' + x.proc + ')' : ''); }).join(''))]);
     } else if (parts[1] === 'resched') {
-      if (ar) crmUpdate_('apt', ar._row, { rescheduleAt: now, lastAction: 'reschedule', updatedAt: now });
-      else crmAppend_('apt', { aptId: aptId, hn: apt.hn, rescheduleAt: now, lastAction: 'reschedule', updatedAt: now });
+      found.forEach(function (x) { recAct(x, { rescheduleAt: now, lastAction: 'reschedule', updatedAt: now }); });
       var open = crmRead_('tasks').filter(function (t) { return t.type === 'reschedule' && t.status === 'open' && String(t.aptId) === String(aptId); })[0];
       var task = open || crmCreateTask_({ type: 'reschedule', priority: 'normal', hn: apt.hn, patName: apt.patName, lineUserId: uid, aptId: aptId,
-        aptDate: crmDateOnly_(apt.date), aptTime: apt.time, detail: 'คนไข้ขอเลื่อนนัด ' + crmDateOnly_(apt.date) + ' ' + (apt.time || '') + (apt.proc ? ' (' + apt.proc + ')' : '') + (apt.docName ? ' ' + apt.docName : '') });
+        aptDate: crmDateOnly_(apt.date), aptTime: apt.time, detail: 'คนไข้ขอเลื่อนนัด ' + found.map(aptLine).join(' + ') });
       var prefs = ['ช่วงเช้า', 'ช่วงบ่าย', 'ช่วงเย็น', 'วันเสาร์-อาทิตย์', 'ให้โทรคุย'];
       crmReply_(ev.replyToken, [{ type: 'text', text: s.rescheduleText,
         quickReply: { items: prefs.map(function (p) { return { type: 'action', action: { type: 'postback', label: p, data: 'pref|' + task.id + '|' + p, displayText: p } }; }) } }]);
