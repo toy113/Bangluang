@@ -8571,7 +8571,7 @@ function doSendIncome(periodLabel){
   text += LINE + '\n';
   text += `รวม  ${fmt(total)}\n`;
   if(xrayTotal>0){
-    text += `X-Ray  ${fmt(xrayTotal)} (${Math.round(xrayTotal/total*100)}% ของยอด · ไม่คิด df)\n`;
+    text += `X-Ray  ${fmt(xrayTotal)}\n`;
     text += `ฐานคิด df  ${fmt(base)}\n`;
   }
   text += `df ${share}% = ${fmt(df)}\n`;
