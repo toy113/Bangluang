@@ -8608,17 +8608,38 @@ function doSendSummary(date, dayName, dd, mon, yy){
   if(selected !== '__all__') dayApts = dayApts.filter(a=>a.docName===selected);
 
   const docLabel = selected==='__all__' ? 'ทุกหมอ' : selected;
-  const LINE = '─'.repeat(28);
+  const LINE = '━'.repeat(16);
+  const THIN = '┄'.repeat(16);
+  // เวลาใช้จุด (10.30) กัน LINE แปลงเป็นลิงก์สีน้ำเงิน
+  const tm = a => a.time ? String(a.time).replace(':','.') + ' น.' : '—';
+  const line1 = a => {
+    const procs = Array.isArray(a.proc) ? a.proc.join(', ') : (a.proc||'');
+    const note = a.note ? String(a.note).trim() : '';
+    let o = `🕘 ${tm(a)}  ${a.patName||'—'}\n`;
+    if(procs) o += `     🦷 ${procs}\n`;
+    if(note) o += `     📝 ${note}\n`;
+    return o;
+  };
 
-  let text = `📅 สรุปนัด ${dayName}ที่ ${dd} ${mon} ${yy}\n`;
-  text += `${docLabel} | ${dayApts.length} นัด\n`;
+  let text = `📅 ตารางนัด\n`;
+  text += `${dayName}ที่ ${dd} ${mon} ${yy}\n`;
+  text += `${docLabel} · ${dayApts.length} นัด\n`;
   text += LINE + '\n';
 
-  dayApts.forEach(a=>{
-    const procs = Array.isArray(a.proc) ? a.proc.join(', ') : (a.proc||'');
-    const note = a.note ? ` (${a.note})` : '';
-    text += `${a.time||'—'}  ${a.patName||'—'}\n— ${procs}${note}\n`;
-  });
+  if(!dayApts.length){
+    text += 'ไม่มีนัดหมาย\n';
+  } else if(selected === '__all__'){
+    const groups = new Map();
+    dayApts.forEach(a=>{ const k=a.docName||'ไม่ระบุหมอ'; if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(a); });
+    let gi = 0;
+    groups.forEach((list,doc)=>{
+      if(gi++>0) text += THIN + '\n';
+      text += `👨‍⚕️ ${doc} · ${list.length} นัด\n`;
+      list.forEach(a=>{ text += line1(a); });
+    });
+  } else {
+    dayApts.forEach(a=>{ text += line1(a); });
+  }
 
   text += LINE + '\n';
   text += 'Bangluang Dental 🦷';
