@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>คนไข้ — คลินิกทันตกรรมบางหลวง</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
+<link rel="preconnect" href="https://api.line.me">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <!--
   หน้าคนไข้ผ่าน LINE (LIFF) — เปิดจาก rich menu 3 ปุ่ม
@@ -201,24 +204,41 @@ async function boot(){
     if(!liff.isLoggedIn()){ liff.login({ redirectUri: location.href }); return; }
     const idt = liff.getIDToken();
     TOKEN = idt ? { idToken: idt } : { accessToken: liff.getAccessToken() };
+    try{ const dt = liff.getDecodedIDToken && liff.getDecodedIDToken(); if(dt && dt.sub) CKEY = 'bl_portal_' + dt.sub; }catch(e){}
   }catch(e){ console.error(e); return fail('กรุณาเปิดหน้านี้จากเมนูในแอป LINE ของคลินิก'); }
-  await load();
+  // แสดงข้อมูลรอบก่อนทันที (เก็บในเครื่องคนไข้เอง) แล้วอัปเดตเบื้องหลัง
+  const c = cacheGet();
+  if(c){ DATA = c; applyPhone(c); render(); return load(true); }
+  await load(false);
 }
-async function load(){
-  show('loading');
+let CKEY = '';
+function cacheGet(){
+  try{ if(!CKEY) return null; const c = JSON.parse(localStorage.getItem(CKEY)||'null');
+    if(c && c.ok && c.patients && c.patients.length && Date.now()-(c._savedAt||0) < 14*86400000) return c; }catch(e){}
+  return null;
+}
+function cacheSave(d){
+  try{ if(!CKEY) return; if(d && d.ok && d.patients && d.patients.length){ d._savedAt = Date.now(); localStorage.setItem(CKEY, JSON.stringify(d)); } else localStorage.removeItem(CKEY); }catch(e){}
+}
+function applyPhone(d){
+  const phone = (d && d.clinicPhone) || CLINIC_PHONE_FALLBACK, tel = 'tel:'+phone.replace(/[^0-9+]/g,'');
+  ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tel; });
+  $('bindPhone').textContent = phone;
+}
+async function load(silent){
+  if(!silent) show('loading');
   try{
     const d = await api({ action:'crmPortal' });
-    if(d && d.__notJson) return fail('ระบบกำลังปรับปรุง กรุณาลองใหม่ภายหลัง หรือติดต่อคลินิก');
+    if(d && d.__notJson){ if(silent) return; return fail('ระบบกำลังปรับปรุง กรุณาลองใหม่ภายหลัง หรือติดต่อคลินิก'); }
     if(!d || !d.ok){
       if(d && d.error==='auth') return fail('ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดเมนูใหม่อีกครั้ง');
+      if(silent) return;   // ข้อมูลรอบก่อนยังแสดงอยู่
       return fail('โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง');
     }
-    DATA = d;
-    const phone = d.clinicPhone || CLINIC_PHONE_FALLBACK, tel = 'tel:'+phone.replace(/[^0-9+]/g,'');
-    ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tel; });
-    $('bindPhone').textContent = phone;
-    render();
-  }catch(e){ console.error(e); fail('เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
+    const keepTab = TAB;
+    DATA = d; cacheSave(d); applyPhone(d);
+    TAB = keepTab; render();
+  }catch(e){ console.error(e); if(!silent) fail('เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
 }
 function render(){
   const d = DATA;
@@ -339,7 +359,7 @@ async function doBind(){
   $('bindBtn').disabled = true; $('bindBtn').textContent = 'กำลังส่งข้อมูล...';
   try{
     const d = await api({ action:'crmBind', hn, phone, consent: '1' });
-    if(d && d.ok){ if(d.portal && d.portal.ok){ DATA = d.portal; const ph = DATA.clinicPhone || CLINIC_PHONE_FALLBACK, tl = 'tel:'+ph.replace(/[^0-9+]/g,''); ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tl; }); $('bindPhone').textContent = ph; render(); } else { await load(); } }
+    if(d && d.ok){ if(d.portal && d.portal.ok){ DATA = d.portal; cacheSave(DATA); const ph = DATA.clinicPhone || CLINIC_PHONE_FALLBACK, tl = 'tel:'+ph.replace(/[^0-9+]/g,''); ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tl; }); $('bindPhone').textContent = ph; render(); } else { await load(); } }
     else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
   }catch(e){ console.error(e); err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }
   $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';
@@ -349,7 +369,7 @@ function fmtHn(el){ const d = el.value.replace(/\D/g,'').slice(0,7); el.value = 
 async function setConsent(on){
   try{
     const d = await api({ action:'crmConsent', on: on ? '1' : '0' });
-    if(d && d.ok){ DATA.patients.forEach(p=>p.consent = d.consent); }
+    if(d && d.ok){ DATA.patients.forEach(p=>p.consent = d.consent); cacheSave(DATA); }
     else $('consentToggle').checked = !on;
   }catch(e){ $('consentToggle').checked = !on; }
 }

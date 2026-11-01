@@ -265,7 +265,7 @@ function crmRouteGet_(e) {
   var a = p.action || '';
   if (a.indexOf('crm') !== 0) return null;
   try {
-    if (a === 'crmPortal')    return crmJson_(crmPortal_(p));
+    if (a === 'crmPortal')    return ContentService.createTextOutput(crmPortalJson_(p)).setMimeType(ContentService.MimeType.JSON);
     if (a === 'crmBind')      return crmJson_(crmBind_(p));
     if (a === 'crmConsent')   return crmJson_(crmConsent_(p));
     if (a === 'crmDashboard') return ContentService.createTextOutput(crmDashboardJson_(p.fresh === '1')).setMimeType(ContentService.MimeType.JSON);
@@ -1123,6 +1123,19 @@ function crmVerifyUser_(p) {
   }
   if (user) cache.put('crm_tok_' + h, JSON.stringify(user), 900);
   return user;
+}
+/* หน้าคนไข้ (rich menu) แบบแคช 2 นาทีต่อคน · ข้อมูล CRM/ตารางนัด/การรักษาเปลี่ยน (บันทึกจากแอป) = คำนวณใหม่ทันที */
+function crmPortalJson_(p) {
+  var u = crmVerifyUser_(p);
+  if (!u) return JSON.stringify({ ok: false, error: 'auth' });
+  var c = CacheService.getScriptCache();
+  var g = c.getAll(['crm_gen', 'ga2g:appointments', 'ga2g:treatments']);
+  var ver = [g['crm_gen'] || '', g['ga2g:appointments'] || '', g['ga2g:treatments'] || ''].join('|');
+  var key = 'crm_portal_' + u.userId;
+  try { var hit = JSON.parse(c.get(key) || 'null'); if (hit && hit.v === ver) return hit.j; } catch (e) {}
+  var json = JSON.stringify(crmPortal_(p));
+  try { if (json.length < 30000) c.put(key, JSON.stringify({ v: ver, j: json }), 120); } catch (e) {}
+  return json;
 }
 function crmPortal_(p) {
   var u = crmVerifyUser_(p);
