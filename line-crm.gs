@@ -55,7 +55,7 @@ var CRM_DEFAULT_SETTINGS = {
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
   aftercareOn: true, aftercareDelayMin: 0,
   followupOn: true, followupHour: '10:00',
-  ratingOn: true, ratingTpls: 'tpl_extraction', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
+  ratingOn: true, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
   clinicPhone: '095-947-6759',
   linkApproval: 'staff',     // staff = พนักงานต้องกดอนุมัติการผูกบัญชี, auto = เบอร์+ชื่อตรงก็ผูกเลย
