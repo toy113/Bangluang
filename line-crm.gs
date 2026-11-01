@@ -431,7 +431,7 @@ function crmTemplatesFor_(proc, templates) {
 /* ============================ MESSAGE BUILDERS ============================ */
 function crmRow_(k, v) {
   return { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
-    { type: 'text', text: k, color: '#83627C', size: 'sm', flex: 2 },
+    { type: 'text', text: String(k || '\u3000'), color: '#83627C', size: 'sm', flex: 2 },
     { type: 'text', text: String(v || '-'), wrap: true, color: '#1A0A17', size: 'sm', flex: 5, weight: 'bold' }] };
 }
 function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
