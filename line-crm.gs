@@ -560,7 +560,7 @@ function crmReceiptMessage_(s, trs, extra) {
     contents: crmBubble_(s, hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา', sub, rows, buttons, '#1D825C') };
 }
 function crmAftercareMessages_(s, patName, date, tpls, notes) {
-  var parts = ['คุณ' + (patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nคำแนะนำหลังการรักษาวันนี้ (' + crmThaiDate_(date) + ')'];
+  var parts = ['คุณ' + (patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nคำแนะนำหลังการรักษา' + (date === crmToday_() ? 'วันนี้' : '') + ' (' + crmThaiDate_(date) + ')'];
   tpls.forEach(function (t) { parts.push(String(t.aftercareText || '').trim()); });
   if (notes && notes.length) parts.push('📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'));
   parts.push('มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ');
@@ -749,16 +749,21 @@ function crmTickInner_() {
   var templates = crmRead_('templates');
   var notes = crmRead_('casenotes');
   if (s.aftercareOn || s.receiptOn) {
-    var byHn = {};
+    var byHn = {}, ydayR = crmAddDays_(today, -1);
+    // รวมรายการของเมื่อวานที่ยังไม่ได้ส่ง (เช่น บันทึกหลังเวลาปิดส่ง sendEnd) → ส่งเช้านี้ ไม่หลุดหาย
     treats.forEach(function (t) {
       t.date = crmDateOnly_(t.date);
-      if (!t.id || t.date !== today || !t.hn || t.status === 'ยกเลิก') return;
-      var k = crmHN_(t.hn); (byHn[k] = byHn[k] || []).push(t);
+      if (!t.id || (t.date !== today && t.date !== ydayR) || !t.hn || t.status === 'ยกเลิก') return;
+      var k = crmHN_(t.hn) + '|' + t.date; (byHn[k] = byHn[k] || []).push(t);
     });
-    Object.keys(byHn).forEach(function (k) {
+    Object.keys(byHn).forEach(function (gk) {
+      var k = gk.split('|')[0], gDate = gk.split('|')[1];
       var tg = targets(k); if (!tg.length) return;
-      var rowsR = s.receiptOn ? byHn[k].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'receipt:' + t.id)); }) : [];
-      var rowsA = s.aftercareOn ? byHn[k].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'after:' + t.id)); }) : [];
+      // เมื่อวาน: ส่งเฉพาะรายการที่หลุดทั้งหมด (ยังไม่ได้ส่งทั้งสรุปและคำแนะนำ) — ไม่ส่งคำแนะนำย้อนหลังให้เคสที่ได้สรุปไปแล้ว
+      if (gDate === ydayR) byHn[gk] = byHn[gk].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'receipt:' + t.id)) && !crmIsDone_(state, crmKey_(s, 'after:' + t.id)); });
+      if (!byHn[gk].length) return;
+      var rowsR = s.receiptOn ? byHn[gk].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'receipt:' + t.id)); }) : [];
+      var rowsA = s.aftercareOn ? byHn[gk].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'after:' + t.id)); }) : [];
       if (!rowsR.length && !rowsA.length) return;
       var waiting = [];
       if (rowsA.length && +s.aftercareDelayMin > 0) {
@@ -782,11 +787,11 @@ function crmTickInner_() {
       var msgs, key, refId, detail, type;
       if (hasAfter && rowsR.length) {            // การ์ดเดียว: สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ + คำแนะนำหลังรักษา
         var card = crmReceiptMessage_(s, rowsR, { tpls: tpls, notes: myNotes });
-        msgs = (JSON.stringify(card).length < 45000) ? [card] : [crmReceiptMessage_(s, rowsR)].concat(crmAftercareMessages_(s, rowsR[0].patName, today, tpls, myNotes));
+        msgs = (JSON.stringify(card).length < 45000) ? [card] : [crmReceiptMessage_(s, rowsR)].concat(crmAftercareMessages_(s, rowsR[0].patName, gDate, tpls, myNotes));
         key = crmKey_(s, 'after:' + rowsA[0].id); type = 'receipt'; refId = treatIds.join(',');
         detail = 'สรุป+Aftercare: ' + tpls.map(function (x) { return x.name; }).join(', ') + (myNotes.length ? ' +คำแนะนำพิเศษ' : '');
       } else if (hasAfter) {                      // สวิตช์สรุปการรักษาปิด หรือส่งสรุปไปแล้ว → ส่งคำแนะนำล้วน
-        msgs = crmAftercareMessages_(s, rowsA[0].patName, today, tpls, myNotes);
+        msgs = crmAftercareMessages_(s, rowsA[0].patName, gDate, tpls, myNotes);
         key = crmKey_(s, 'after:' + rowsA[0].id); type = 'aftercare'; refId = treatIds.join(',');
         detail = tpls.map(function (x) { return x.name; }).join(', ') + (myNotes.length ? ' +คำแนะนำพิเศษ' : '');
       } else if (rowsR.length) {                  // ยังไม่มี template อนุมัติ → ส่งสรุปการรักษาอย่างเดียวก่อน
@@ -870,9 +875,12 @@ function crmBaseline_(s) {
     if (!state.done[ck]) { crmMark_(state, ck, 'confirm', { hn: a.hn, patName: a.patName, refId: a.id }, 'baseline', 'นัดที่มีอยู่ก่อนเปิดระบบ'); n++; }
   });
   crmReadByName_('บันทึกการรักษา').forEach(function (t) {
-    if (!t.id || !t.hn || crmDateOnly_(t.date) !== today) return;
+    var td0 = crmDateOnly_(t.date);
+    if (!t.id || !t.hn || (td0 !== today && td0 !== crmAddDays_(today, -1))) return;   // เมื่อวานด้วย (ระบบส่งย้อนรายการเมื่อวานที่ยังไม่ได้ส่ง)
     var rk = crmKey_(s, 'receipt:' + t.id);
     if (!state.done[rk]) { crmMark_(state, rk, 'receipt', { hn: t.hn, patName: t.patName, refId: t.id }, 'baseline', 'การรักษาที่บันทึกไว้ก่อนเปิดระบบ'); n++; }
+    var ak = crmKey_(s, 'after:' + t.id);
+    if (td0 !== today && !state.done[ak]) { crmMark_(state, ak, 'aftercare', { hn: t.hn, patName: t.patName, refId: t.id }, 'baseline', 'การรักษาเมื่อวานก่อนเปิดระบบ'); n++; }
   });
   var yday = crmAddDays_(today, -1);
   crmReadByName_('บันทึกการรักษา').forEach(function (t) {
@@ -1208,7 +1216,19 @@ function crmConsent_(p) {
   var u = crmVerifyUser_(p);
   if (!u) return { ok: false, error: 'auth' };
   var on = String(p.on) === '1' ? 'TRUE' : 'FALSE';
-  crmRead_('links').forEach(function (l) { if (l.lineUserId === u.userId && l.status === 'active') crmUpdate_('links', l._row, { consent: on }); });
+  var links = crmRead_('links'), have = {};
+  links.forEach(function (l) {
+    if (l.lineUserId !== u.userId || l.status !== 'active') return;
+    have[crmHN_(l.hn)] = true; crmUpdate_('links', l._row, { consent: on });
+  });
+  // คนไข้จัดฟันที่ผูกด้วยระบบเดิม (มีแค่ lineUserId ในชีตจัดฟัน ไม่มีแถว crm_links) → สร้างแถวลิงก์เก็บค่ายินยอม ไม่งั้นปิดรับข้อความไม่ได้ผล
+  crmReadByName_('ortho').forEach(function (o) {
+    var k = crmHN_(o.hn);
+    if (o.lineUserId !== u.userId || !k || have[k]) return;
+    have[k] = true;
+    crmAppend_('links', { id: crmId_('LK'), lineUserId: u.userId, hn: o.hn, patName: o['ชื่อ'] || '', status: 'active', source: 'ortho-legacy', consent: on,
+      displayName: u.name, createdAt: crmNow_(), approvedBy: 'ระบบจัดฟันเดิม', approvedAt: crmNow_() });
+  });
   return { ok: true, consent: on === 'TRUE' };
 }
 
