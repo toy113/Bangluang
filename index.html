@@ -8558,7 +8558,10 @@ function doSendIncome(periodLabel){
     const timeStr = t.time ? ` ${DOT} ${String(t.time).replace(':','.')} น.` : '';
     let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
     const priced = procList.filter(x=>pp[x]!==undefined && procList.length>1);
-    text += `${i+1}. ${t.patName||'—'}${timeStr}\n`;
+    // เคสที่ % df ต่างจากอัตราปกติของหมอ (และไม่ใช่ X-Ray ล้วนที่มีป้ายอยู่แล้ว) แสดงกำกับไว้
+    const casePct = docSharePct(t, doc), defPct = doc ? +doc.share : 50;
+    const pctTag = (price>0 && !xrayRuleApplies(t) && casePct!==defPct) ? ` ${DOT} df ${casePct}%` : '';
+    text += `${i+1}. ${t.patName||'—'}${timeStr}${pctTag}\n`;
     if(xrayRuleApplies(t)){
       text += `     ${procList.join(', ')}  ${baht(price)}  (ไม่คิด df)\n`;
     } else if(priced.length && (xrayMixedPrice(t)>0 || priced.length===procList.length)){
@@ -8577,7 +8580,7 @@ function doSendIncome(periodLabel){
     text += `🩻 X-Ray  ${baht(xrayTotal)}\n`;
     text += `📊 ฐานคิด df  ${baht(base)}\n`;
   }
-  text += `✨ df ${share}%  =  ${baht(df)}\n`;
+  text += `✨ df เฉลี่ย ${share}%  =  ${baht(df)}\n`;
   if(paidCash>0){
     text += LINE + '\n';
     text += `💵 จ่ายเงินสดให้${selected}แล้ว  ${baht(paidCash)}\n`;
