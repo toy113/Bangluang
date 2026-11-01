@@ -2748,10 +2748,10 @@ function getDoctorOptions(){
 var CRM = { data:null, loading:false, err:'', sub:'today', aptRange:'tomorrow', fuFilter:'all', taskFilter:'open', oldSeg:'gone12', oldQ:'', linkQ:'' };
 var CRM_SUBS = [
   ['today','🏠','ภาพรวมวันนี้'], ['apts','📅','นัดหมาย'], ['remind','🔔','เตือนนัด'], ['aftercare','🩹','Aftercare'],
-  ['followup','🩺','ติดตามอาการ'], ['tasks','📞','งานโทรกลับ'], ['old','🗂️','คนไข้เก่า'], ['sso','🏛️','แคมเปญประกันสังคม'],
+  ['followup','🩺','ติดตามอาการ'], ['rating','⭐','คะแนนบริการ'], ['tasks','📞','งานโทรกลับ'], ['old','🗂️','คนไข้เก่า'], ['sso','🏛️','แคมเปญประกันสังคม'],
   ['links','🔗','LINE Connections'], ['report','📊','รายงานและต้นทุน'], ['settings','⚙️','ตั้งค่า']
 ];
-var CRM_DOCTOR_SUBS = ['aftercare','followup','tasks'];
+var CRM_DOCTOR_SUBS = ['aftercare','followup','rating','tasks'];
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ' };
 var CRM_LOG_TYPE = { confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
@@ -2878,7 +2878,7 @@ function crmRender(){
     if(CRM.loading) { el.innerHTML = '<div class="crm-empty">กำลังโหลดข้อมูล LINE CRM...</div>'; return; }
     el.innerHTML = crmSetupHelp(CRM.err); return;
   }
-  const fn = { today:crmViewToday, apts:crmViewApts, remind:crmViewRemind, aftercare:crmViewAftercare, followup:crmViewFollowup, tasks:crmViewTasks,
+  const fn = { today:crmViewToday, apts:crmViewApts, remind:crmViewRemind, aftercare:crmViewAftercare, followup:crmViewFollowup, rating:crmViewRating, tasks:crmViewTasks,
     old:crmViewOld, sso:crmViewSso, links:crmViewLinks, report:crmViewReport, settings:crmViewSettings }[CRM.sub] || crmViewToday;
   try { el.innerHTML = crmStatusBar() + fn(); }
   catch(e){ console.error(e); el.innerHTML = '<div class="crm-alert r">แสดงผลไม่สำเร็จ: '+crmEsc(e.message)+'</div>'; }
@@ -3166,6 +3166,43 @@ function crmViewFollowup(){
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
         <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:'<span class="crm-chip x">ยังไม่ตอบ</span>'}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}</div></div>
         <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
+}
+
+/* ---------- คะแนนบริการ (หลังถอนฟัน/ผ่าฟันคุด) แยกตามหมอ ---------- */
+function crmRatingDoc_(f){
+  // followup ไม่มีชื่อหมอ → หาจากรายการรักษา HN + วันที่เดียวกัน (เลือกรายการที่ตรงชนิดหัตถการก่อน)
+  const k = crmHN(f.hn), d = String(f.treatDate||'').slice(0,10);
+  const same = (treatments||[]).filter(t=>crmHN(t.hn)===k && String(t.date||'').slice(0,10)===d && t.docName);
+  if(!same.length) return 'ไม่ระบุหมอ';
+  const key = String(f.proc||'');
+  const hit = same.find(t=>key && String(t.proc||'').split(',').some(p=>key.indexOf(p.trim())!==-1)) || same[0];
+  return hit.docName;
+}
+function crmViewRating(){
+  const range = CRM.ratingRange || '90';
+  const from = range==='all' ? '0000-00-00' : crmAddDays(todayStr(), -(+range));
+  let rows = (CRM.data.followups||[]).filter(f=>String(f.rating||'')!=='' && String(f.ratedAt||f.sentAt||'').slice(0,10)>=from)
+    .map(f=>Object.assign({}, f, { doc: crmRatingDoc_(f), r: +f.rating }));
+  if(!isManager) rows = rows.filter(f=>f.doc===currentUser.name);
+  const by = {};
+  rows.forEach(f=>{ const o = by[f.doc] || (by[f.doc]={ n:0, sum:0, dist:[0,0,0,0,0,0] }); o.n++; o.sum+=f.r; o.dist[f.r]++; });
+  const names = Object.keys(by).sort((a,b)=>(by[b].sum/by[b].n)-(by[a].sum/by[a].n));
+  const all = rows.length, avg = all ? (rows.reduce((n,f)=>n+f.r,0)/all) : 0, five = rows.filter(f=>f.r===5).length;
+  const seg = [['30','30 วัน'],['90','90 วัน'],['365','1 ปี'],['all','ทั้งหมด']];
+  const bar = (n,max,c)=>`<div style="flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden;"><div style="width:${max?Math.round(n/max*100):0}%;height:100%;background:${c};"></div></div>`;
+  const low = rows.filter(f=>f.r<=3).sort((a,b)=>String(b.ratedAt).localeCompare(String(a.ratedAt))).slice(0,20);
+  return `<div class="crm-kpis">
+      <div class="crm-kpi"><div class="l">คะแนนเฉลี่ย</div><div class="v">${all?avg.toFixed(2):'—'}</div><div class="s">จาก ${all} คำตอบ</div></div>
+      <div class="crm-kpi"><div class="l">ให้ 5 ⭐ (ส่งลิงก์รีวิว)</div><div class="v">${five}</div><div class="s">${all?Math.round(five/all*100):0}%</div></div>
+      <div class="crm-kpi"><div class="l">ต่ำกว่า 4</div><div class="v">${rows.filter(f=>f.r<=3).length}</div><div class="s">มีงานโทรสอบถาม</div></div>
+    </div>
+    <div class="crm-card"><h4>⭐ คะแนนบริการแยกตามหมอ<span class="sp"></span>
+      <span class="crm-seg">${seg.map(x=>`<button class="${range===x[0]?'on':''}" onclick="CRM.ratingRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
+      <p class="crm-muted" style="margin-bottom:8px;">นับเฉพาะคนไข้ที่ตอบ "ปกติดี" หลังถอนฟัน/ถอนฟันคุด/ผ่าฟันคุด แล้วกดให้คะแนน 0–5 · ${isManager?'แสดงทุกหมอ':'แสดงเฉพาะของคุณ'}</p>
+      <div class="crm-list">${names.map(n=>{ const o=by[n], mx=Math.max(...o.dist);
+        return `<div class="crm-item"><div class="main"><div class="nm">${crmEsc(n)} <span class="crm-chip ${o.sum/o.n>=4.5?'g':(o.sum/o.n>=3.5?'o':'r')}">⭐ ${(o.sum/o.n).toFixed(2)}</span> <span class="crm-muted">${o.n} คำตอบ</span></div>
+          <div style="margin-top:6px;">${[5,4,3,2,1,0].map(i=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:2px 0;"><span style="width:18px;">${i}⭐</span>${bar(o.dist[i],mx,i>=4?'#1D825C':(i===3?'#E67E22':'#C0392B'))}<span style="width:24px;text-align:right;">${o.dist[i]}</span></div>`).join('')}</div></div></div>`; }).join('')||'<div class="crm-empty">ยังไม่มีคะแนนในช่วงนี้</div>'}</div></div>
+    ${low.length?`<div class="crm-card"><h4>⚠️ คะแนนต่ำล่าสุด (≤3)</h4><div class="crm-list">${low.map(f=>`<div class="crm-item high"><div class="main"><div class="nm">⭐ ${f.r}/5 · ${crmEsc(f.patName||'')} <span class="crm-muted">HN ${crmEsc(f.hn||'')}</span></div><div class="meta">${crmEsc(f.proc||'')} · ${crmEsc(f.doc)} · ${crmEsc(crmTs(f.ratedAt))}</div></div></div>`).join('')}</div></div>`:''}`;
 }
 
 /* ---------- 6) งานโทรกลับ ---------- */

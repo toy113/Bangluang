@@ -1110,6 +1110,17 @@ function crmDashboard_() {
     crmSheet_(key);
     var ix = -2; return strip(crmReadByNameWhere_(CRM_SHEET_NAMES[key], function (row, hdr) { if (ix === -2) ix = crmColIdx_(hdr, [col]); return ix >= 0 && String(row[ix] || '').slice(0, 10) >= from; }));
   };
+  // followups: 45 วันล่าสุด + แถวที่มีคะแนนย้อนหลัง 400 วัน (ไว้ทำสถิติคะแนนแยกหมอ)
+  var recentRated = function (key, col, from, ratedFrom) {
+    crmSheet_(key);
+    var ix = -2, rx = -2;
+    return strip(crmReadByNameWhere_(CRM_SHEET_NAMES[key], function (row, hdr) {
+      if (ix === -2) { ix = crmColIdx_(hdr, [col]); rx = crmColIdx_(hdr, ['rating']); }
+      if (ix < 0) return false;
+      var d = String(row[ix] || '').slice(0, 10);
+      return d >= from || (rx >= 0 && String(row[rx] === 0 ? '0' : (row[rx] || '')) !== '' && d >= ratedFrom);
+    }));
+  };
   var tasks = crmRead_('tasks').filter(function (t) { return t.status === 'open' || String(t.updatedAt).slice(0, 10) >= crmAddDays_(crmToday_(), -60); });
   var triggers = null;
   try { var cc = CacheService.getScriptCache().get('crm_trig'); if (cc) triggers = JSON.parse(cc); } catch (e) {}
@@ -1122,7 +1133,7 @@ function crmDashboard_() {
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
   var links = crmRead_('links'), orthoAll = crmReadByName_('ortho');
   return { ok: true, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
-    followups: recent('followups', 'sentAt', since),
+    followups: recentRated('followups', 'sentAt', since, crmAddDays_(crmToday_(), -400)),
     links: strip(links.slice()), followers: strip(crmRead_('followers')), apt: strip(crmRead_('apt')),
     casenotes: recent('casenotes', 'createdAt', since),
     campaigns: strip(crmRead_('campaigns')), log: log, stats: stats, quota: quota, lastTick: lastTick,
