@@ -8542,42 +8542,46 @@ function doSendIncome(periodLabel){
   const xrayTotal = treats.reduce((s,t)=>s + (xrayRuleApplies(t) ? totalPrice(t) : xrayMixedPrice(t)), 0);
   const base = total - xrayTotal;
   const share = base>0 ? Math.round(df/base*100) : (total>0 ? Math.round(df/total*100) : (doc ? doc.share : 50));
-  const LINE = '─'.repeat(28);
+  const LINE = '━'.repeat(16);
+  const baht = n => '฿'+fmt(n);
+  const DOT = '·';
 
-  let text = `💰 สรุปรายได้ ${periodLabel}\n`;
-  text += `${selected} | ${treats.length} ราย\n`;
+  let text = `💰 สรุปรายได้\n`;
+  text += `${periodLabel}\n`;
+  text += `${selected} ${DOT} ${treats.length} ราย\n`;
   text += LINE + '\n';
 
-  treats.forEach(t=>{
+  treats.forEach((t,i)=>{
     const procList = (Array.isArray(t.proc) ? t.proc : String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
     const price = totalPrice(t);
-    const timeStr = t.time ? `${t.time}  ` : '';
+    // เวลาใช้จุด (10.48) แทนทวิภาค เพื่อไม่ให้ LINE แปลงเป็นลิงก์สีน้ำเงิน
+    const timeStr = t.time ? ` ${DOT} ${String(t.time).replace(':','.')} น.` : '';
     let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
     const priced = procList.filter(x=>pp[x]!==undefined && procList.length>1);
-    text += `${timeStr}${t.patName||'—'}\n`;
+    text += `${i+1}. ${t.patName||'—'}${timeStr}\n`;
     if(xrayRuleApplies(t)){
-      text += `— ${procList.join(', ')}  ${fmt(price)} (ไม่คิด df)\n`;
+      text += `     ${procList.join(', ')}  ${baht(price)}  (ไม่คิด df)\n`;
     } else if(priced.length && (xrayMixedPrice(t)>0 || priced.length===procList.length)){
-      // แยกบรรทัดตามราคาแต่ละรายการ · X-Ray ติดป้าย "ไม่คิด df" · รายการที่ไม่มีราคารวมเป็นบรรทัดเดียวด้วยยอดคงเหลือ
       let used = 0;
-      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `— ${x}  ${fmt(+pp[x]||0)}${_isXrayProc(x)?' (ไม่คิด df)':''}\n`; });
+      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `     ${x}  ${baht(+pp[x]||0)}${_isXrayProc(x)?'  (ไม่คิด df)':''}\n`; });
       const rest = procList.filter(x=>pp[x]===undefined);
-      if(rest.length) text += `— ${rest.join(', ')}  ${fmt(Math.max(0,price-used))}\n`;
+      if(rest.length) text += `     ${rest.join(', ')}  ${baht(Math.max(0,price-used))}\n`;
     } else {
-      text += `— ${procList.join(', ')}  ${fmt(price)}\n`;
+      text += `     ${procList.join(', ')}  ${baht(price)}\n`;
     }
   });
 
   text += LINE + '\n';
-  text += `รวม  ${fmt(total)}\n`;
+  text += `🧾 ยอดรวม  ${baht(total)}\n`;
   if(xrayTotal>0){
-    text += `X-Ray  ${fmt(xrayTotal)}\n`;
-    text += `ฐานคิด df  ${fmt(base)}\n`;
+    text += `🩻 X-Ray  ${baht(xrayTotal)}\n`;
+    text += `📊 ฐานคิด df  ${baht(base)}\n`;
   }
-  text += `df ${share}% = ${fmt(df)}\n`;
+  text += `✨ df ${share}%  =  ${baht(df)}\n`;
   if(paidCash>0){
-    text += `จ่ายเงินสดให้${selected}แล้ว  ${fmt(paidCash)}\n`;
-    text += `df คงเหลือ  ${fmt(df-paidCash)}\n`;
+    text += LINE + '\n';
+    text += `💵 จ่ายเงินสดให้${selected}แล้ว  ${baht(paidCash)}\n`;
+    text += `📌 df คงเหลือ  ${baht(df-paidCash)}\n`;
   }
   text += 'Bangluang Dental 🦷';
 
