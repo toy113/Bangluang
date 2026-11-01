@@ -379,14 +379,17 @@ function crmFlushMarks_(state) {
 
 /* ============================ LINKS ============================ */
 /* hn → [{lineUserId, consent}] (เฉพาะ active) รวมคนไข้จัดฟันที่ผูกไว้ในชีต ortho เดิม */
-function crmLinkMap_(preLinks, preOrtho) {
+function crmLinkMap_(preLinks, preOrtho, preFollowers) {
   var map = {};
+  // คนไข้ที่บล็อก/เลิกติดตาม OA → ไม่ส่งข้อความ (consent=false, blocked=true) จนกว่าจะเพิ่มเพื่อนกลับมา
+  var blocked = {};
+  try { (preFollowers || crmRead_('followers')).forEach(function (f) { if (f.status === 'unfollow' && f.lineUserId) blocked[f.lineUserId] = true; }); } catch (e) {}
   function add(hn, uid, consent, name) {
     var k = crmHN_(hn);
     if (!k || !uid) return;
     map[k] = map[k] || [];
     for (var i = 0; i < map[k].length; i++) if (map[k][i].lineUserId === uid) return;
-    map[k].push({ lineUserId: uid, consent: consent, patName: name || '' });
+    map[k].push({ lineUserId: uid, consent: consent && !blocked[uid], blocked: !!blocked[uid], patName: name || '' });
   }
   (preLinks || crmRead_('links')).forEach(function (l) {
     if (l.status === 'active') add(l.hn, l.lineUserId, String(l.consent).toUpperCase() !== 'FALSE', l.patName);
@@ -595,8 +598,54 @@ function crmNextAptText_(hn, apts, fromDate) {
 function crmTick() {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return { ok: false, error: 'busy' };
-  try { return crmTickInner_(); }
+  try {
+    // ย้าย log เก่าไปชีต archive วันละครั้ง (ทำแม้ระบบปิดอยู่) — กันชีต log โตจนรอบส่งช้า/หมดเวลา
+    try {
+      var props = PropertiesService.getScriptProperties(), td = crmToday_();
+      if (props.getProperty('CRM_LOG_ARCHIVED_AT') !== td) { crmArchiveLog_(90); props.setProperty('CRM_LOG_ARCHIVED_AT', td); }
+    } catch (ea) {}
+    return crmTickInner_();
+  }
   finally { lock.releaseLock(); }
+}
+/* ย้ายแถว crm_log ที่เก่ากว่า keepDays วันไปชีต crm_log_archive · เก็บสถิติรายเดือนของแถวที่ย้ายไว้ใน Script Properties (CRM_LOG_STATS) ให้ dashboard ยังเห็นครบ
+   ยกเว้น: แถว "ยืนยันนัด" ของนัดที่ยังไม่ถึงวัน (ต้องใช้กันส่งยืนยันซ้ำ) */
+function crmArchiveLog_(keepDays) {
+  var sh = crmSheet_('log'), last = sh.getLastRow();
+  if (last < 2) return 0;
+  var lastCol = sh.getLastColumn(), vals = sh.getRange(1, 1, last, lastCol).getValues(), hdr = vals[0];
+  var ci = crmColIdx_(hdr, ['createdAt']), si = crmColIdx_(hdr, ['status']), ti = crmColIdx_(hdr, ['type']), pi = crmColIdx_(hdr, ['pushCount']), ki = crmColIdx_(hdr, ['key']);
+  if (ci < 0) return 0;
+  var today = crmToday_(), cutoff = crmAddDays_(today, -(+keepDays || 90));
+  var keep = [], move = [], stats = {};
+  try { stats = JSON.parse(crmProp_('CRM_LOG_STATS', '{}')) || {}; } catch (e) { stats = {}; }
+  for (var r = 1; r < vals.length; r++) {
+    var row = vals[r], ca = crmCell_(row[ci], 'createdAt'), d = String(ca).slice(0, 10);
+    var isBlank = row.every(function (v) { return v === '' || v === null; });
+    if (isBlank) continue;
+    var old = /^\d{4}-\d{2}-\d{2}$/.test(d) && d < cutoff;
+    if (old && ki >= 0) {
+      var m = String(row[ki] || '').match(/confirm:.+:(\d{4}-\d{2}-\d{2}):/);
+      if (m && m[1] >= today) old = false;
+    }
+    if (!old) { keep.push(row); continue; }
+    move.push(row);
+    var st = String(row[si] || ''), mo = d.slice(0, 7);
+    if (st === 'sent' || st === 'test' || st === 'failed') {
+      stats[mo] = stats[mo] || { sent: 0, test: 0, failed: 0, byType: {} };
+      stats[mo][st] += (st === 'failed') ? 1 : (+row[pi] || 0);
+      if (st === 'sent') stats[mo].byType[row[ti]] = (stats[mo].byType[row[ti]] || 0) + (+row[pi] || 0);
+    }
+  }
+  if (!move.length) return 0;
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), ar = ss.getSheetByName('crm_log_archive');
+  if (!ar) { ar = ss.insertSheet('crm_log_archive'); ar.getRange(1, 1, 1, lastCol).setValues([hdr]); }
+  ar.getRange(ar.getLastRow() + 1, 1, move.length, lastCol).setValues(move);
+  var blank = []; for (var c = 0; c < lastCol; c++) blank.push('');
+  var out = keep.slice(); while (out.length < last - 1) out.push(blank.slice());
+  sh.getRange(2, 1, last - 1, lastCol).setValues(out);
+  PropertiesService.getScriptProperties().setProperty('CRM_LOG_STATS', JSON.stringify(stats));
+  return move.length;
 }
 // นัดจัดฟัน (เก็บในการ์ดจัดฟัน คอลัมน์ นัดถัดไป) → แปลงเป็นแถวนัดเสมือน (id = ORTHO-<HN>-<วันที่นัด> วันนัดใหม่ = นัดใหม่) รวมกับตารางนัด
 // เพื่อให้ได้ข้อความยืนยัน/เปลี่ยนนัด/เตือนนัด + ปุ่มขอเลื่อนเหมือนนัดทั่วไป · ถ้ามีนัดในตารางนัดวันเดียวกัน (เวลาตรง หรือฝั่งใดไม่ระบุเวลา) ถือว่าซ้ำ ใช้แถวของตารางนัด ไม่สร้างเสมือน
@@ -1186,6 +1235,15 @@ function crmDashboard_() {
     }
     return ca.slice(0, 10) >= since && st !== 'done' && st !== 'seen';
   });
+  // รวมสถิติของ log ที่ย้ายไป archive แล้ว
+  try {
+    var arch = JSON.parse(crmProp_('CRM_LOG_STATS', '{}')) || {};
+    Object.keys(arch).forEach(function (mo) {
+      var a = arch[mo], o = stats[mo] = stats[mo] || { sent: 0, test: 0, failed: 0, byType: {} };
+      o.sent += +a.sent || 0; o.test += +a.test || 0; o.failed += +a.failed || 0;
+      Object.keys(a.byType || {}).forEach(function (t) { o.byType[t] = (o.byType[t] || 0) + (+a.byType[t] || 0); });
+    });
+  } catch (e) {}
   var log = logRows.map(function (r) { delete r._row; return r; }).slice(-2500);
   var strip = function (rows) { return rows.map(function (r) { delete r._row; return r; }); };
   var recent = function (key, col, from) {
@@ -1213,13 +1271,13 @@ function crmDashboard_() {
   }
   var lastTick = null; try { lastTick = JSON.parse(crmProp_('CRM_LAST_TICK', 'null')); } catch (e) {}
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
-  var links = crmRead_('links'), orthoAll = crmReadByName_('ortho');
+  var links = crmRead_('links'), orthoAll = crmReadByName_('ortho'), followersAll = crmRead_('followers');
   return { ok: true, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
     followups: recentRated('followups', 'sentAt', since, crmAddDays_(crmToday_(), -400)),
-    links: strip(links.slice()), followers: strip(crmRead_('followers')), apt: strip(crmRead_('apt')),
+    links: strip(links.slice()), followers: strip(followersAll.slice()), apt: strip(crmRead_('apt')),
     casenotes: recent('casenotes', 'createdAt', since),
     campaigns: strip(crmRead_('campaigns')), log: log, stats: stats, quota: quota, lastTick: lastTick,
-    linked: crmLinkMap_(links, orthoAll), orthoActive: orthoAll.filter(function (o) { return !o['สถานะ'] || o['สถานะ'] === 'กำลังจัด'; }).map(function (o) { return crmHN_(o.hn); }),
+    linked: crmLinkMap_(links, orthoAll, followersAll), orthoActive: orthoAll.filter(function (o) { return !o['สถานะ'] || o['สถานะ'] === 'กำลังจัด'; }).map(function (o) { return crmHN_(o.hn); }),
     tickInstalled: triggers.indexOf('crmTick') !== -1, liffUrl: crmLiffUrl_(''), richMenu: crmProp_('CRM_RICHMENU_ID', ''),
     tokenSet: !!crmToken_(), now: crmNow_() };
 }
