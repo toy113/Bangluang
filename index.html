@@ -2777,7 +2777,7 @@ async function crmLoad(force){
     const txt = await res.text();
     let d=null; try{ d=JSON.parse(txt); }catch(e){}
     if(!d || !d.ok){ CRM.err = (d && d.error) ? d.error : 'backend_missing'; }
-    else { CRM.data = d; try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : '0'); }catch(e){} }
+    else { CRM.data = d; try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : ('0|'+Date.now())); }catch(e){} }
   }catch(e){ CRM.err = 'network'; }
   CRM.loading = false;
   crmRender();
@@ -2802,11 +2802,13 @@ async function crmCall(payload){
   }
 }
 // สั่งรอบส่งของ LINE CRM ทันทีหลังบันทึกนัด (รวมหลายครั้งติดกันเป็นครั้งเดียว) · ไม่ทำอะไรถ้า CRM ปิดหรือยังไม่ติดตั้ง
-let _crmKickT = null;
+let _crmKickT = null, _crmKickT2 = null;
 function crmKick_(){
-  try{ if(localStorage.getItem('bl_crm_en')==='0') return; }catch(e){}
-  clearTimeout(_crmKickT);
-  _crmKickT = setTimeout(()=>{ crmCall({crm:'runNow'}).catch(()=>{}); }, 3500); // รอให้ชีตเขียนนัดเสร็จก่อน
+  // ข้ามเฉพาะเมื่อเพิ่งรู้ว่า CRM ปิดอยู่ (ภายใน 3 นาที) — ไม่ใช้ค่าเก่าค้างข้ามเครื่อง (เปิดระบบจากอีกเครื่องแล้วเครื่องนี้ต้องส่งได้ทันที)
+  try{ const v=(localStorage.getItem('bl_crm_en')||'').split('|'); if(v[0]==='0' && Date.now()-(+v[1]||0) < 180000) return; }catch(e){}
+  clearTimeout(_crmKickT); clearTimeout(_crmKickT2);
+  _crmKickT  = setTimeout(()=>{ crmCall({crm:'runNow'}).catch(()=>{}); }, 1500);   // รอบแรก: ทันทีหลังชีตเขียนเสร็จ
+  _crmKickT2 = setTimeout(()=>{ crmCall({crm:'runNow'}).catch(()=>{}); }, 9000);   // รอบสำรอง: กรณีเซิร์ฟเวอร์ช้า (ไม่ส่งซ้ำ เพราะมี log กันซ้ำ)
 }
 async function crmDo(payload, okMsg){
   const r = await crmCall(payload);
