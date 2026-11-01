@@ -3531,7 +3531,7 @@ function renderHome(){
   // calc share
   const shareDoc = treats.reduce((s,t)=>{
     const doc = doctors.find(d=>d.name===t.docName);
-    return s + totalPrice(t)*docSharePct(t,doc)/100;
+    return s + dfAmt(t,doc);
   },0);
 
   document.getElementById('statCount').textContent = treats.length;
@@ -4265,6 +4265,13 @@ function saveTreat(){
     procPrices:getProcPrices(),
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
+  // X-Ray ลงรวมกับหัตถการอื่น: ต้องกรอกราคา X-Ray ในช่องราคาแต่ละรายการ (ส่วนนี้ DF = 0)
+  { const _parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
+    if(String(t.date||'')>=xrayRuleStart() && _parts.some(_isXrayProc) && !isXrayOnly(t.proc)){
+      let _pp = {}; try{ _pp = JSON.parse(t.procPrices||'{}'); }catch(e){}
+      const miss = _parts.filter(_isXrayProc).filter(x=>_pp[x]===undefined);
+      if(miss.length){ _treatSaving = false; showToast('กรุณากรอกราคา X-Ray ในช่อง "ราคาแต่ละรายการ" (ส่วน X-Ray ไม่คิด DF · ถ้าฟรีใส่ 0)','error');
+        const _i = document.querySelector('#treat-pp-list input[data-proc="'+miss[0].replace(/"/g,'')+'"]'); if(_i){ _i.focus(); _i.style.borderColor='#C0392B'; } return; } } }
   if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason','dfPaid','dfPaidAt','dfPaidBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
   applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0 · จ่ายยา ตั้งแต่ 31 ต.ค. 2569 → ส่วนแบ่ง 0
   if(!xrayRuleApplies(t) && isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
@@ -5010,7 +5017,7 @@ function statsSankey(rows){
   rows.forEach(t=>{
     const n=t.docName||'ไม่ระบุ'; const dd=doctors.find(d=>d.name===n)||DOCTORS_DATA.find(d=>d.name===n);
     const o = docs[n] || (docs[n]={ name:n, emoji:dd?.emoji||'', color:/^#[0-9a-f]{6}$/i.test(dd?.color||'')?dd.color:'#7A6A78', rev:0, df:0, c:{cash:0,transfer:0,sso:0} });
-    const pr=totalPrice(t); o.rev+=pr; o.df+=pr*docSharePct(t,dd||{share:0})/100; CH.forEach(x=>{ o.c[x.f]+=(+t[x.f]||0); });
+    const pr=totalPrice(t); o.rev+=pr; o.df+=dfAmt(t,dd||{share:0}); CH.forEach(x=>{ o.c[x.f]+=(+t[x.f]||0); });
   });
   const D = Object.values(docs).filter(o=>o.rev>0).sort((a,b)=>b.rev-a.rev);
   if(!D.length) return '';
@@ -5156,7 +5163,7 @@ function renderStatsPage(){
   // ----- อันดับหมอ (ผู้จัดการ ไม่ได้กรองหมอ) -----
   let docHtml = '';
   if(isManager && !statsDoc){
-    const per = {}; rows.forEach(t=>{ const n=t.docName||'ไม่ระบุ'; const o=per[n]||(per[n]={rev:0,n:0,df:0}); const pr=totalPrice(t); o.rev+=pr; o.n++; const dd=doctors.find(d=>d.name===n)||DOCTORS_DATA.find(d=>d.name===n); o.df+=pr*docSharePct(t,dd||{share:0})/100; });
+    const per = {}; rows.forEach(t=>{ const n=t.docName||'ไม่ระบุ'; const o=per[n]||(per[n]={rev:0,n:0,df:0}); const pr=totalPrice(t); o.rev+=pr; o.n++; const dd=doctors.find(d=>d.name===n)||DOCTORS_DATA.find(d=>d.name===n); o.df+=dfAmt(t,dd||{share:0}); });
     const arr = Object.entries(per).sort((a,b)=>b[1].rev-a[1].rev);
     docHtml = _statsCard('🏅 อันดับหมอ', statsRowsBar(arr.map(([n,o])=>{ const dd=doctors.find(d=>d.name===n)||DOCTORS_DATA.find(d=>d.name===n); const col=/^#[0-9a-f]{6}$/i.test(dd?.color||'')?dd.color:'#7A6A78';
       return { name:n, html:(dd?.emoji||'')+' '+_escHtml(n), val:o.rev, color:col, label:'฿'+fmt(o.rev)+'<div style="font-weight:600;color:var(--text-light);font-size:11px;">'+o.n+' เคส · DF ฿'+fmt(Math.round(o.df))+'</div>' }; })), 'รายได้ · จำนวนเคส · ส่วนแบ่งหมอ');
@@ -5379,7 +5386,7 @@ function renderTreatPage(){
     const doc=doctors.find(d=>d.name===k)||DOCTORS_DATA.find(d=>d.name===k);
     const col=/^#[0-9a-f]{6}$/i.test(doc?.color||'')?doc.color:'#7A6A78';
     const tot=list.reduce((s,t)=>s+totalPrice(t),0);
-    const shr=list.reduce((s,t)=>s+totalPrice(t)*docSharePct(t,doc)/100,0);
+    const shr=list.reduce((s,t)=>s+dfAmt(t,doc),0);
     const xr=list.filter(t=>isXrayOnly(t.proc)).reduce((s,t)=>s+totalPrice(t),0); // ค่า X-Ray (เฉพาะรายการ X-Ray อย่างเดียว)
     const collapsed=_treatCollapsed.has(k);
     const hdr=`<tr class="treat-grp-hdr" onclick="toggleTreatGroup(${gi})"><td colspan="${ncol}" style="background:${col}26;color:${col};color:color-mix(in srgb,${col} 70%,#000);box-shadow:inset 6px 0 0 ${col};">
@@ -5612,19 +5619,19 @@ function openDoctorBreakdown(idx){
   const doc=_shareDocList[idx]; if(!doc) return;
   const dr=_shareRows.filter(r=>r.docName===doc.name);
   const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
-  const share=dr.reduce((s,r)=>s+totalPrice(r)*docSharePct(r,doc)/100,0);
+  const share=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
   // รายที่ % ส่วนแบ่งที่บันทึกไว้ ไม่ตรงกับ % ปัจจุบันของหมอ (ยกเว้นรายที่เข้ากฎ X-Ray ซึ่งตั้งใจให้เป็น 0)
   const curPct=+doc.share||0;
   const isOff=r=>!xrayRuleApplies(r) && !drugRuleApplies(r) && Math.abs(docSharePct(r,doc)-curPct)>0.001;
   const offRows=dr.filter(isOff);
-  const offExtra=offRows.reduce((s,r)=>s+totalPrice(r)*(docSharePct(r,doc)-curPct)/100,0);
+  const offExtra=offRows.reduce((s,r)=>s+dfBase(r)*(docSharePct(r,doc)-curPct)/100,0);
 
   // รวมตามรายการรักษา (ถ้าคิดเงินหลายรายการรวมกันในครั้งเดียว จะนับเป็นกลุ่มเดียวกัน เพราะระบบเก็บราคาเป็นยอดรวมต่อครั้ง)
   const groups={};
   dr.forEach(r=>{
     const key=(r.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ')||'ไม่ระบุรายการ';
     const g=groups[key]||(groups[key]={key,count:0,total:0,share:0});
-    g.count++; g.total+=totalPrice(r); g.share+=totalPrice(r)*docSharePct(r,doc)/100;
+    g.count++; g.total+=totalPrice(r); g.share+=dfAmt(r,doc);
   });
   const gl=Object.values(groups).sort((a,b)=>b.total-a.total);
   const hasCombo=gl.some(g=>g.key.includes(','));
@@ -5657,7 +5664,7 @@ function openDoctorBreakdown(idx){
     if(currentPeriod==='month'||currentPeriod==='range'||currentPeriod==='year'){
       const byYear = currentPeriod==='year';
       const gp = {};
-      dr.forEach(r=>{ const d=String(r.date||'').slice(0,10); const k=byYear?d.slice(0,7):d; const o=gp[k]||(gp[k]={n:0,rev:0,df:0}); const pr=totalPrice(r); o.n++; o.rev+=pr; o.df+=pr*docSharePct(r,doc)/100; });
+      dr.forEach(r=>{ const d=String(r.date||'').slice(0,10); const k=byYear?d.slice(0,7):d; const o=gp[k]||(gp[k]={n:0,rev:0,df:0}); const pr=totalPrice(r); o.n++; o.rev+=pr; o.df+=dfAmt(r,doc); });
       const keys = Object.keys(gp).sort();
       if(keys.length>1){
         const best = keys.reduce((b,k)=>gp[k].rev>gp[b].rev?k:b, keys[0]);
@@ -5672,7 +5679,7 @@ function openDoctorBreakdown(idx){
           let cap=''; if(st===2){ const ts=Math.max(...dayRecs(k).map(r=>+r.dfPaidAt||0)); if(ts){ const dd=new Date(ts); const q=n=>String(n).padStart(2,'0'); cap='<div class="bill-cap">โอน '+q(dd.getDate())+'/'+q(dd.getMonth()+1)+'</div>'; } }
           return '<input type="checkbox" class="bill-chk dfpaid-chk" '+(st===2?'checked ':'')+(st===1?'data-ind="1" ':'')+'aria-label="โอนส่วนแบ่งให้หมอแล้ว" onchange="toggleDfPaid('+idx+',\''+k+'\',this.checked)">'+cap;
         };
-        const paidDf = dr.filter(isDfPaid).reduce((s0,r)=>s0+totalPrice(r)*docSharePct(r,doc)/100,0);
+        const paidDf = dr.filter(isDfPaid).reduce((s0,r)=>s0+dfAmt(r,doc),0);
         const dailyCols = !byYear;
         html += '<div class="dbk-h">'+(byYear?'สรุปรายเดือน':'สรุปรายวัน')+' ('+keys.length+(byYear?' เดือน':' วัน')+')</div><div style="overflow-x:auto;"><table class="dbk-table"><thead><tr><th>'+(byYear?'เดือน':'วัน')+'</th><th>ราย</th><th>รายได้</th><th>ส่วนแบ่งหมอ</th>'+(dailyCols?'<th>โอนแล้ว</th>':'')+'</tr></thead><tbody>'
           + keys.map(k=>'<tr><td>'+lab(k)+(k===best&&keys.length>2?' <span style="color:var(--gold)" title="ยอดสูงสุด">★</span>':'')+'</td><td>'+gp[k].n+'</td><td style="font-weight:700;">'+fmt(gp[k].rev)+'</td><td style="color:var(--gold);font-weight:700;">'+fmt(gp[k].df)+'</td>'+(dailyCols?'<td style="text-align:center;">'+paidCell(k)+'</td>':'')+'</tr>').join('')
@@ -5688,7 +5695,7 @@ function openDoctorBreakdown(idx){
         <div class="dbk-case-meta">${showDate?fmtDate(r.date)+' · ':''}${_escHtml(r.time||'')}</div>
         <div>${procBadge(r.proc)}</div>
       </div>
-      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(totalPrice(r)*docSharePct(r,doc)/100)}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':drugRuleApplies(r)?'0% · จ่ายยา':(+docSharePct(r,doc))+'%'}</span></small>${(isManager&&isOff(r)&&canEditTreat(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
+      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(dfAmt(r,doc))}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':drugRuleApplies(r)?'0% · จ่ายยา':(xrayMixedPrice(r)>0?(+docSharePct(r,doc))+'% · ไม่รวม X-Ray '+fmt(xrayMixedPrice(r)):(+docSharePct(r,doc))+'%')}</span></small>${(isManager&&isOff(r)&&canEditTreat(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
     </div>`).join('');
   }
   document.getElementById('dbk-body').innerHTML=html;
@@ -5709,7 +5716,7 @@ function buildShareGrid(rows){
   el.innerHTML=docList.map((doc,docIdx)=>{
     const dr=rows.filter(r=>r.docName===doc.name);
     const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
-    const share=dr.reduce((s,r)=>s+totalPrice(r)*docSharePct(r,doc)/100,0);
+    const share=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
     const clinicShare=tot-share;
     const pct=maxTot>0?Math.round(tot/maxTot*100):0;
     chartRows.push({name:doc.name, share, clinicShare});
@@ -7803,7 +7810,7 @@ function renderProcPrices(selected){
 function getProcPrices(){
   ppCollect_();
   const sel = getProcSelected().split(',').map(x=>x.trim()).filter(Boolean), o = {};
-  sel.forEach(p=>{ const v = +_ppVals[p]; if(v>0) o[p] = v; });
+  sel.forEach(p=>{ const raw = _ppVals[p]; if(raw!==undefined && raw!=='' && +raw>=0) o[p] = +raw; });
   return Object.keys(o).length ? JSON.stringify(o) : '';
 }
 function setProcPrices(json){
@@ -7813,13 +7820,16 @@ function setProcPrices(json){
 }
 function calcProcPriceCheck(){
   const el = document.getElementById('treat-pp-check'); if(!el) return;
+  const _sel = getProcSelected().split(',').map(x=>x.trim()).filter(Boolean);
+  const _xr = _sel.some(_isXrayProc) && !isXrayOnly(getProcSelected());
+  const _note = _xr ? '<div style="color:#6B2D5E;font-weight:700;margin-bottom:4px;">ℹ️ ราคา X-Ray ไม่คิด DF (ต้องกรอกราคา X-Ray) · ส่วนที่เหลือคิดตาม % ของหมอ</div>' : '';
   const inputs = [...document.querySelectorAll('#treat-pp-list input[data-proc]')];
   const sum = inputs.reduce((n,i)=>n+(+i.value||0),0);
-  if(!sum){ el.innerHTML=''; return; }
+  if(!sum){ el.innerHTML=_note; return; }
   const total = ['treat-cash','treat-transfer','treat-sso'].reduce((n,id)=>n+(+document.getElementById(id)?.value||0),0);
   const ok = sum===total;
-  el.innerHTML = ok ? `<span style="color:#1D825C;font-weight:700;">✓ รวมรายการ ${fmt(sum)} ตรงกับยอดชำระ</span>`
-    : `<span style="color:#C0392B;font-weight:700;">⚠️ รวมรายการ ${fmt(sum)} · ยอดชำระ ${fmt(total)} (ต่างกัน ${fmt(Math.abs(sum-total))})</span>`;
+  el.innerHTML = _note + (ok ? `<span style="color:#1D825C;font-weight:700;">✓ รวมรายการ ${fmt(sum)} ตรงกับยอดชำระ</span>`
+    : `<span style="color:#C0392B;font-weight:700;">⚠️ รวมรายการ ${fmt(sum)} · ยอดชำระ ${fmt(total)} (ต่างกัน ${fmt(Math.abs(sum-total))})</span>`);
 }
 
 function setProcSelected(procs){
@@ -7952,6 +7962,18 @@ function drugRuleApplies(t){
   const d = String((t&&t.date)||'').slice(0,10);
   return /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=drugRuleStart() && isDrugOnly(t.proc);
 }
+// X-Ray ที่ลงรวมกับหัตถการอื่น: ส่วน "ราคา X-Ray" (จากช่องราคาแยกรายการ procPrices) ไม่คิด DF — ส่วนที่เหลือคิด % ปกติ · ไม่บังคับหมอ
+function _isXrayProc(p){ return /^x[\s-]?ray(?:[\s-]*bw)?$/i.test(String(p||'').trim()); }
+function xrayMixedPrice(t){
+  const d = String((t&&t.date)||'').slice(0,10);
+  if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=xrayRuleStart())) return 0;
+  const parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!parts.some(_isXrayProc) || isXrayOnly(t.proc)) return 0;
+  let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
+  return parts.filter(_isXrayProc).reduce((n,x)=>n+(+pp[x]||0),0);
+}
+function dfBase(t){ return Math.max(0, totalPrice(t) - xrayMixedPrice(t)); }
+function dfAmt(t, doc){ return dfBase(t) * docSharePct(t, doc) / 100; }
 function applyXrayRule(t){
   if(xrayRuleApplies(t)){ t.docName = xrayDoctorName(); t.docShare = 0; }
   else if(drugRuleApplies(t)){ t.docShare = 0; }
@@ -8516,7 +8538,7 @@ function doSendIncome(periodLabel){
 
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   const doc = doctors.find(d=>d.name===selected)||DOCTORS_DATA.find(d=>d.name===selected);
-  const df = Math.round(treats.reduce((s,t)=>s+totalPrice(t)*docSharePct(t,doc)/100,0));
+  const df = Math.round(treats.reduce((s,t)=>s+dfAmt(t,doc),0));
   const share = total>0 ? Math.round(df/total*100) : (doc ? doc.share : 50);
   const LINE = '─'.repeat(28);
 
