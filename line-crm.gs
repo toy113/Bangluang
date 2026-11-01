@@ -32,7 +32,7 @@ var CRM_SHEETS = {
   followers: ['lineUserId','displayName','pictureUrl','status','followedAt','updatedAt','lastSeenAt'],
   log:       ['key','type','hn','patName','lineUserId','refId','status','detail','createdAt','pushCount'],
   tasks:     ['id','type','priority','status','hn','patName','lineUserId','aptId','aptDate','aptTime','detail','preference','createdAt','updatedAt','doneBy','resultNote'],
-  followups: ['id','hn','patName','lineUserId','treatDate','templateId','proc','sentAt','answer','answerKind','answeredAt','taskId','status','rating','ratedAt'],
+  followups: ['id','hn','patName','lineUserId','treatDate','templateId','proc','sentAt','answer','answerKind','answeredAt','taskId','status','rating','ratedAt','calledAt','calledBy','callNote'],
   templates: ['id','name','procKeywords','priority','aftercareText','followupEnabled','followupQuestion','followupOptions','status','version','approvedBy','approvedAt','updatedBy','updatedAt'],
   casenotes: ['id','treatId','hn','patName','text','author','status','approvedBy','approvedAt','sentAt','createdAt'],
   apt:       ['aptId','hn','confirmedAt','rescheduleAt','lastAction','updatedAt'],
@@ -1270,6 +1270,11 @@ function crmStaffAction_(b) {
     if (act === 'deleteTemplate') {
       var r4 = crmFind_(crmRead_('templates'), 'id', b.id); if (!r4) return { ok: false, error: 'not_found' };
       crmSheet_('templates').deleteRow(r4._row); return { ok: true };
+    }
+    if (act === 'fuCalled') {   // ติดตามอาการที่คนไข้ไม่ตอบ → พนักงานโทรตามแล้ว (บันทึกผล)
+      crmSheet_('followups');
+      var rf = crmFind_(crmRead_('followups'), 'id', b.id); if (!rf) return { ok: false, error: 'not_found' };
+      crmUpdate_('followups', rf._row, { calledAt: now, calledBy: by, callNote: String(b.note || '').slice(0, 300) }); return { ok: true };
     }
     if (act === 'updateTask') {
       var r5 = crmFind_(crmRead_('tasks'), 'id', b.id); if (!r5) return { ok: false, error: 'not_found' };

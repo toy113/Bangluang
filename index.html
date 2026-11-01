@@ -2862,6 +2862,14 @@ function renderCrmPage(){
   crmLoad();
 }
 function crmSetSub(s){ CRM.sub = s; crmRender(); const el=document.getElementById('page-crm'); if(el && el.scrollIntoView) window.scrollTo({top:0}); }
+// ถามอาการแล้วคนไข้ไม่ตอบเกิน 24 ชม. (ภายใน 7 วัน) และพนักงานยังไม่ได้โทรตาม
+function crmFuLate(f){
+  if(!f || f.answeredAt || f.calledAt || f.status==='test' || !f.sentAt) return false;
+  const t = new Date(String(f.sentAt).replace(' ','T')+'+07:00').getTime();
+  if(isNaN(t)) return false;
+  const h = (Date.now()-t)/3600000;
+  return h>=24 && h<=24*7;
+}
 function crmCounts(){
   const d = CRM.data || {};
   const tasks = (d.tasks||[]).filter(t=>t.status==='open');
@@ -2869,14 +2877,15 @@ function crmCounts(){
     tasks: tasks.length, urgent: tasks.filter(t=>t.priority==='urgent').length,
     linksPending: (d.links||[]).filter(l=>l.status==='pending').length,
     tplDraft: (d.templates||[]).filter(t=>t.status==='draft').length + ((d.casenotes||[]).filter(n=>n.status==='pending').length),
-    fuAlert: (d.followups||[]).filter(f=>['severe','emergency','callback'].includes(f.answerKind) && f.answeredAt && f.answeredAt.slice(0,10)>=crmAddDays(todayStr(),-2)).length
+    fuAlert: (d.followups||[]).filter(f=>['severe','emergency','callback'].includes(f.answerKind) && f.answeredAt && f.answeredAt.slice(0,10)>=crmAddDays(todayStr(),-2)).length,
+    fuLate: (d.followups||[]).filter(crmFuLate).length
   };
 }
 
 // ตัวเลขงานค้างบนแท็บ LINE CRM (งานที่ต้องทำ + คนไข้รออนุมัติผูก + เทมเพลต/โน้ตรออนุมัติ + อาการที่ต้องตาม)
 function crmUpdateBadge(){
   try{
-    const c = crmCounts(); const n = (c.tasks||0)+(c.linksPending||0)+(c.tplDraft||0)+(c.fuAlert||0);
+    const c = crmCounts(); const n = (c.tasks||0)+(c.linksPending||0)+(c.tplDraft||0)+(c.fuAlert||0)+(c.fuLate||0);
     ['crmNavBadge','crmTopBadge'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; el.textContent = n>99?'99+':String(n); el.style.display = n>0 ? '' : 'none'; if(c.urgent>0) el.style.background='#C0392B'; });
   }catch(e){}
 }
@@ -2893,7 +2902,7 @@ function crmRender(){
   const el = document.getElementById('crmBody'); if(!el) return;
   const subsEl = document.getElementById('crmSubs');
   const c = crmCounts();
-  const badge = { tasks:c.tasks, links:c.linksPending, aftercare:c.tplDraft, followup:c.fuAlert };
+  const badge = { tasks:c.tasks, links:c.linksPending, aftercare:c.tplDraft, followup:(c.fuAlert||0)+(c.fuLate||0) };
   const subs = CRM_SUBS.filter(s=>isManager || CRM_DOCTOR_SUBS.includes(s[0]));
   subsEl.innerHTML = subs.map(s=>`<button class="${CRM.sub===s[0]?'on':''}" onclick="crmSetSub('${s[0]}')">${s[1]} ${s[2]}${badge[s[0]]?`<span class="n">${badge[s[0]]}</span>`:''}</button>`).join('');
   if(!CRM.data){
@@ -2956,6 +2965,7 @@ function crmViewToday(){
   const ready = checklist.every(x=>x[0]);
   return `
   ${urgent.length?`<div class="crm-alert r">🚨 มีงานด่วน ${urgent.length} รายการ — ${urgent.slice(0,3).map(t=>crmEsc((t.patName||'ไม่ทราบชื่อ')+': '+(t.detail||''))).join(' · ')} <button class="crm-btn r" style="margin-left:6px" onclick="crmSetSub('tasks')">เปิดงานโทรกลับ</button></div>`:''}
+  ${c.fuLate?`<div class="crm-alert o">⏰ คนไข้ไม่ตอบข้อความถามอาการเกิน 24 ชม. ${c.fuLate} ราย <button class="crm-btn" style="margin-left:6px" onclick="CRM.fuFilter='late';crmSetSub('followup')">ดูรายชื่อ</button></div>`:''}
   <div class="crm-kpis">
     <div class="crm-kpi"><div class="l">นัดวันนี้</div><div class="v">${aT.length}</div><div class="s">คนไข้ยืนยันทาง LINE ${aT.filter(a=>confirmed.has(String(a.id))).length}</div></div>
     <div class="crm-kpi"><div class="l">นัดพรุ่งนี้</div><div class="v">${aM.length}</div><div class="s">มี LINE ${aM.filter(a=>crmHasLine(a.hn)).length} · ต้องโทรเอง ${aM.filter(a=>!crmHasLine(a.hn)).length}</div></div>
@@ -3188,17 +3198,18 @@ function crmSaveTpl(id){
 function crmViewFollowup(){
   const fus=(CRM.data.followups||[]).slice().sort((a,b)=>String(b.sentAt).localeCompare(String(a.sentAt)));
   const f=CRM.fuFilter;
-  const list=fus.filter(x=> f==='all' ? true : f==='none' ? !x.answeredAt : ['severe','emergency','callback'].includes(x.answerKind));
-  const answered=fus.filter(x=>x.answeredAt).length;
+  const list=fus.filter(x=> f==='all' ? true : f==='none' ? !x.answeredAt : f==='late' ? crmFuLate(x) : ['severe','emergency','callback'].includes(x.answerKind));
+  const answered=fus.filter(x=>x.answeredAt).length, late=fus.filter(crmFuLate).length;
   return `<div class="crm-card"><h4>🩺 ติดตามอาการวันถัดไป<span class="sp"></span>
-      <span class="crm-seg">${[['all','ทั้งหมด'],['care','ต้องดูแล'],['none','ยังไม่ตอบ']].map(x=>`<button class="${f===x[0]?'on':''}" onclick="CRM.fuFilter='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
+      <span class="crm-seg">${[['all','ทั้งหมด'],['care','ต้องดูแล'],['late','ไม่ตอบ >24 ชม.'+(late?' ('+late+')':'')],['none','ยังไม่ตอบ']].map(x=>`<button class="${f===x[0]?'on':''}" onclick="CRM.fuFilter='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
+    ${late && f!=='late'?`<div class="crm-alert o">⏰ คนไข้ไม่ตอบข้อความถามอาการเกิน 24 ชม. ${late} ราย — ควรโทรสอบถาม <button class="crm-btn" style="margin-left:6px" onclick="CRM.fuFilter='late';crmRender()">ดูรายชื่อ</button></div>`:''}
     <p class="crm-muted" style="margin-bottom:8px;">45 วันล่าสุด: ส่ง ${fus.length} · ตอบ ${answered} (${fus.length?Math.round(answered/fus.length*100):0}%) — ระบบตอบด้วยข้อความที่ทันตแพทย์อนุมัติเท่านั้น ไม่มี AI วินิจฉัย</p>
     <div class="crm-list">${list.map(x=>{ const k=CRM_KIND[x.answerKind];
       return `<div class="crm-item ${x.answerKind==='emergency'?'urgent':(x.answerKind==='severe'?'high':'')}"><div class="main">
         <div class="nm">${crmEsc(x.patName||'')} <span class="crm-muted">HN ${crmEsc(x.hn||'')}</span> ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
-        <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:'<span class="crm-chip x">ยังไม่ตอบ</span>'}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}</div></div>
-        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
+        <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:(crmFuLate(x)?'<span class="crm-chip r">⏰ ไม่ตอบเกิน 24 ชม.</span>':'<span class="crm-chip x">ยังไม่ตอบ</span>')}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}${x.calledAt?` <span class="crm-chip g">📞 โทรแล้ว ${crmEsc(crmTs(x.calledAt))}${x.calledBy?' · '+crmEsc(x.calledBy):''}</span>${x.callNote?` <span class="crm-muted">— ${crmEsc(x.callNote)}</span>`:''}`:''}</div></div>
+        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test'?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
 }
 
 /* ---------- คะแนนบริการ (หลังถอนฟัน/ผ่าฟันคุด) แยกตามหมอ ---------- */
@@ -3255,6 +3266,13 @@ function crmViewTasks(){
         <div class="acts">${ph?`<a class="crm-btn" href="${crmTel(ph)}">📞 ${crmEsc(ph)}</a>`:'<span class="crm-muted">ไม่มีเบอร์ (ตอบใน LINE OA Chat)</span>'}
           ${t.aptId && appointments.some(a=>String(a.id)===String(t.aptId))?`<button class="crm-btn" onclick="openEditApt('${crmEsc(t.aptId)}')">เปิดนัด</button>`:''}
           ${t.status==='open'?`<button class="crm-btn g" onclick="crmCloseTask('${t.id}')">เสร็จแล้ว</button>`:`<button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'open'},'เปิดงานอีกครั้ง')">เปิดอีกครั้ง</button>`}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีงาน 🎉</div>'}</div></div>`;
+}
+function crmFuCalled(id){
+  const note = window.prompt('ผลการโทรติดตาม (ไม่บังคับ) เช่น "ปกติดี" หรือ "ปวดเล็กน้อย นัดดูอาการ"', '');
+  if(note===null) return;
+  const f=((CRM.data&&CRM.data.followups)||[]).find(x=>String(x.id)===String(id));
+  if(f){ f.calledAt = new Date().toLocaleString('sv-SE',{timeZone:'Asia/Bangkok'}).slice(0,16); f.calledBy = crmBy(); f.callNote = note; crmRender(); crmUpdateBadge(); }
+  crmDo({crm:'fuCalled', id, note}, 'บันทึกการโทรแล้ว ✅');
 }
 function crmCloseTask(id){
   const note = window.prompt('ผลการติดต่อ (ไม่บังคับ) เช่น "เลื่อนเป็น 12 พ.ย. 14:00"', '');
