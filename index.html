@@ -1620,8 +1620,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <!-- โหมด "ไม่ได้มานาน (11 เดือน)" ซ่อนไว้ — โค้ดยังอยู่ (setRecallMode('long')) ถ้าจะเปิดกลับให้คืนปุ่มสลับโหมดตรงนี้ -->
       <div style="background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-        <input type="text" class="form-control" id="recallSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="renderRecall()" style="height:38px;flex:1;min-width:200px;">
-        <select id="recallStatusFilter" onchange="renderRecall()" class="form-control" style="height:38px;width:160px;">
+        <input type="text" class="form-control" id="recallSearch" placeholder="🔍  ค้นหา HN / ชื่อ / เบอร์" oninput="_recallLimit=60;renderRecall()" style="height:38px;flex:1;min-width:200px;">
+        <select id="recallStatusFilter" onchange="_recallLimit=60;renderRecall()" class="form-control" style="height:38px;width:160px;">
           <option value="">ทุกสถานะ</option>
           <option value="รอติดตาม">รอติดตาม</option>
           <option value="โทรไม่รับ">โทรไม่รับ</option>
@@ -3431,7 +3431,7 @@ function showPage(p){
     renderPatients();
     syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
   }
-  if(p==='recall') renderRecall();
+  if(p==='recall'){ _recallLimit = 60; renderRecall(); }
   if(p==='crm') renderCrmPage();
   if(p==='schedule'){
     const el = document.getElementById('schDate');
@@ -8604,6 +8604,7 @@ function recallYearData_(){
   return { year, rows };
 }
 var _recallRows = [];
+var _recallLimit = 60;   // วาดทีละ 60 ใบ กันหน้า recall ค้างเมื่อมีหลายร้อยราย
 function _recallLogLine(e){
   const R = RECALL_RESULTS[e.r] || { icon:'•', label:e.r };
   const ap = (e.r==='booked' && e.a) ? ' · นัด <b>'+fmtDate(e.a)+'</b>' : '';
@@ -8640,6 +8641,7 @@ function renderRecallYear_(){
     return;
   }
   const col = { wait:'#E74C3C', noanswer:'#E67E22', booked:'#16A085', declined:'#7F8C8D', self:'#2078B4' };
+  const _total = list.length; list = list.slice(0, _recallLimit);
   el.innerHTML = summary + list.map(r=>{
     const c = col[r.state.key]; const hnA = String(r.hn).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const tl = r.log.slice(-3).reverse().map(_recallLogLine).join('');
@@ -8656,7 +8658,7 @@ function renderRecallYear_(){
       +(r.log.length ? '<div class="rc-timeline">'+tl+more+'</div>' : '<div style="font-size:12px;color:var(--text-light);margin-top:2px;">ยังไม่เคยติดตามปีนี้</div>')
       +'<div style="margin-top:10px;"><button class="btn btn-primary btn-sm" onclick="openRecallLog(\''+hnA+'\')">📝 บันทึกผลการติดตาม</button></div></div>';
   }).join('')
-  +'<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">แสดง '+list.length+' ราย จากคนไข้ ปกส. ที่ปีนี้ยังไม่ได้ใช้สิทธิ ทั้งหมด '+todo.length+' ราย</div>';
+  +'<div style="text-align:center;padding:12px;color:var(--text-light);font-size:13px;">แสดง '+list.length+' ราย จากคนไข้ ปกส. ที่ปีนี้ยังไม่ได้ใช้สิทธิ ทั้งหมด '+todo.length+' ราย'+(_total>list.length?'<div style="margin-top:10px;"><button class="btn btn-primary btn-sm" onclick="_recallLimit+=60;renderRecall()">แสดงเพิ่มอีก 60 ราย (เหลือ '+(_total-list.length)+')</button></div>':'')+'</div>';
 }
 // ----- หน้าต่างบันทึกผลการติดตาม -----
 function rlogResultChanged(){

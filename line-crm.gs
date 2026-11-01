@@ -979,9 +979,10 @@ function crmBindCore_(p) {
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var s = crmSettings_(), now = crmNow_();
+    var phIx = -2;
     var pats = crmReadByNameWhere_('คนไข้', function (row, hdr) {
-      var pi = crmColIdx_(hdr, ['phone', 'เบอร์โทร', 'เบอร์']);
-      return pi >= 0 && crmPhone_(row[pi]) === phone;
+      if (phIx === -2) phIx = crmColIdx_(hdr, ['phone', 'เบอร์โทร', 'เบอร์']);
+      return phIx >= 0 && crmPhone_(row[phIx]) === phone;
     });
     var matches = pats.filter(function (r) {
       if (crmPhone_(r.phone || r['เบอร์โทร'] || r['เบอร์'] || '') !== phone) return false;
@@ -1035,8 +1036,9 @@ function crmDashboard_() {
   var stats = {};
   // log: อ่านค่าดิบรอบเดียว — นับสถิติทุกแถว แต่แปลงเป็น object เฉพาะแถวย้อนหลัง 45 วัน (เร็วกว่าแปลงทั้งชีตมาก)
   crmSheet_('log');
+  var ci = -2, si = 0, ti = 0, pi = 0;
   var logRows = crmReadByNameWhere_(CRM_SHEET_NAMES.log, function (row, hdr) {
-    var ci = crmColIdx_(hdr, ['createdAt']), si = crmColIdx_(hdr, ['status']), ti = crmColIdx_(hdr, ['type']), pi = crmColIdx_(hdr, ['pushCount']);
+    if (ci === -2) { ci = crmColIdx_(hdr, ['createdAt']); si = crmColIdx_(hdr, ['status']); ti = crmColIdx_(hdr, ['type']); pi = crmColIdx_(hdr, ['pushCount']); }
     if (ci < 0) return false;
     var ca = String(row[ci] || ''), st = String(row[si] || '');
     if (ca) {
@@ -1054,7 +1056,7 @@ function crmDashboard_() {
   var strip = function (rows) { return rows.map(function (r) { delete r._row; return r; }); };
   var recent = function (key, col, from) {
     crmSheet_(key);
-    return strip(crmReadByNameWhere_(CRM_SHEET_NAMES[key], function (row, hdr) { var i = crmColIdx_(hdr, [col]); return i >= 0 && String(row[i] || '').slice(0, 10) >= from; }));
+    var ix = -2; return strip(crmReadByNameWhere_(CRM_SHEET_NAMES[key], function (row, hdr) { if (ix === -2) ix = crmColIdx_(hdr, [col]); return ix >= 0 && String(row[ix] || '').slice(0, 10) >= from; }));
   };
   var tasks = crmRead_('tasks').filter(function (t) { return t.status === 'open' || String(t.updatedAt).slice(0, 10) >= crmAddDays_(crmToday_(), -60); });
   var triggers = null;
