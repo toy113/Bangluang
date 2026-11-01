@@ -326,6 +326,9 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .user-role { color: var(--wine-light); font-size: 11px; }
 
 .sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.crm-nav-badge{margin-left:auto;background:#E74C3C;color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;line-height:20px;padding:0 6px;border-radius:10px;text-align:center;}
+.top-tab{position:relative;}
+.crm-nav-badge-top{position:absolute;top:2px;right:6px;margin:0;min-width:16px;height:16px;line-height:16px;font-size:10px;padding:0 4px;}
 .nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: var(--radius-sm);
@@ -1184,13 +1187,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="nav-item" onclick="showPage('recall')" id="nav-recall" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>Recall ปกส</button>
       <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>หน้าหลัก</button>
       <button class="nav-item" onclick="showPage('schedule')" id="nav-schedule" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>ดูนัด</button>
+      <button class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon" style="font-size:17px;line-height:1;">💬</span>LINE CRM<span class="crm-nav-badge" id="crmNavBadge" style="display:none;"></span></button>
       <button class="nav-item" onclick="showPage('treatment')" id="nav-treatment"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="4" y="4" width="16" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg></span>บันทึกการรักษา</button>
       <button class="nav-item" onclick="showPage('endo')" id="nav-endo"><span class="nav-icon" style="font-size:17px;line-height:1;">🔁</span>เคสต่อเนื่อง</button>
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>สรุปรายได้</button>
       <button class="nav-item" onclick="showPage('stats')" id="nav-stats"><span class="nav-icon" style="font-size:17px;line-height:1;">📈</span>สถิติ</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8.5 13h7"/></svg></span>ค่าแลป</button>
       <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>จัดฟัน</button>
-      <button class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon" style="font-size:17px;line-height:1;">💬</span>LINE CRM</button>
       <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>ตั้งค่า</button>
 
     </div>
@@ -1229,13 +1232,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="top-tab" id="ttab-recall" style="display:none;" onclick="showPage('recall');setMobileNav('recall')"><span class="mn-icon">🔔</span>Recall</button>
       <button class="top-tab active" id="ttab-home" onclick="showPage('home');setMobileNav('home')"><span class="mn-icon">🏠</span>หน้าหลัก</button>
       <button class="top-tab" id="ttab-schedule" style="display:none;" onclick="showPage('schedule');setMobileNav('schedule')"><span class="mn-icon">📆</span>ดูนัด</button>
+      <button class="top-tab" id="ttab-crm" onclick="showPage('crm');setMobileNav('crm')"><span class="mn-icon">💬</span>LINE CRM<span class="crm-nav-badge crm-nav-badge-top" id="crmTopBadge" style="display:none;"></span></button>
       <button class="top-tab" id="ttab-treatment" onclick="showPage('treatment');setMobileNav('treatment')"><span class="mn-icon">📋</span>รักษา</button>
       <button class="top-tab" id="ttab-endo" onclick="showPage('endo');setMobileNav('endo')"><span class="mn-icon">🔁</span>เคสต่อเนื่อง</button>
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-stats" onclick="showPage('stats');setMobileNav('stats')"><span class="mn-icon">📈</span>สถิติ</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
       <button class="top-tab" id="ttab-ortho" style="display:none;" onclick="showPage('ortho')"><span class="mn-icon">😬</span>จัดฟัน</button>
-      <button class="top-tab" id="ttab-crm" onclick="showPage('crm');setMobileNav('crm')"><span class="mn-icon">💬</span>LINE CRM</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -2598,6 +2601,7 @@ function startApp(){
   document.getElementById('loginScreen').classList.remove('visible');
   const app = document.getElementById('appShell');
   app.classList.add('visible');
+  try{ crmBadgeStart(); }catch(e){}
   // sidebar user info
   document.getElementById('sideUserAvatar').textContent = currentUser.emoji;
   document.getElementById('sideUserName').textContent = currentUser.name;
@@ -2787,7 +2791,7 @@ async function crmLoad(force){
     else { CRM.data = d; CRM.stale = false; try{ localStorage.setItem('bl_crm_cache', JSON.stringify(d)); }catch(e){ try{ localStorage.removeItem('bl_crm_cache'); }catch(e2){} } try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : ('0|'+Date.now())); }catch(e){} }
   }catch(e){ CRM.err = 'network'; }
   CRM.loading = false;
-  crmRender();
+  crmRender(); crmUpdateBadge();
 }
 // เรียก action ฝั่ง CRM: ลอง POST แบบอ่านผลได้ก่อน ถ้าเบราว์เซอร์บล็อก ค่อยส่งแบบ no-cors แล้วโหลดข้อมูลใหม่
 async function crmCall(payload){
@@ -2840,6 +2844,23 @@ function crmCounts(){
     tplDraft: (d.templates||[]).filter(t=>t.status==='draft').length + ((d.casenotes||[]).filter(n=>n.status==='pending').length),
     fuAlert: (d.followups||[]).filter(f=>['severe','emergency','callback'].includes(f.answerKind) && f.answeredAt && f.answeredAt.slice(0,10)>=crmAddDays(todayStr(),-2)).length
   };
+}
+
+// ตัวเลขงานค้างบนแท็บ LINE CRM (งานที่ต้องทำ + คนไข้รออนุมัติผูก + เทมเพลต/โน้ตรออนุมัติ + อาการที่ต้องตาม)
+function crmUpdateBadge(){
+  try{
+    const c = crmCounts(); const n = (c.tasks||0)+(c.linksPending||0)+(c.tplDraft||0)+(c.fuAlert||0);
+    ['crmNavBadge','crmTopBadge'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; el.textContent = n>99?'99+':String(n); el.style.display = n>0 ? '' : 'none'; if(c.urgent>0) el.style.background='#C0392B'; });
+  }catch(e){}
+}
+let _crmBadgeT = null;
+function crmBadgeStart(){
+  if(!isManager) return;
+  try{ if(!CRM.data){ const c = localStorage.getItem('bl_crm_cache'); if(c){ const cd = JSON.parse(c); if(cd && cd.ok) CRM.data = cd; } } }catch(e){}
+  crmUpdateBadge();
+  const tick = ()=>{ if(document.hidden || CRM.loading) return; crmLoad(true).catch(()=>{}); };
+  setTimeout(tick, 4000);
+  clearInterval(_crmBadgeT); _crmBadgeT = setInterval(tick, 180000);
 }
 function crmRender(){
   const el = document.getElementById('crmBody'); if(!el) return;
