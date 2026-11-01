@@ -8614,10 +8614,8 @@ function doSendSummary(date, dayName, dd, mon, yy){
   const tm = a => a.time ? String(a.time).replace(':','.') + ' น.' : '—';
   const line1 = a => {
     const procs = Array.isArray(a.proc) ? a.proc.join(', ') : (a.proc||'');
-    const note = a.note ? String(a.note).trim() : '';
     let o = `🕘 ${tm(a)}  ${a.patName||'—'}\n`;
     if(procs) o += `     🦷 ${procs}\n`;
-    if(note) o += `     📝 ${note}\n`;
     return o;
   };
 
