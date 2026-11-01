@@ -537,7 +537,7 @@ function crmReceiptMessage_(s, trs, extra) {
     if (notes.length) rows.push({ type: 'text', text: '📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'), wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' });
     rows.push({ type: 'text', text: 'มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ', wrap: true, size: 'xs', color: '#83627C', margin: 'md' });
   }
-  var sub = 'คุณ' + (t0.patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nขอบคุณที่ไว้วางใจให้เราดูแลรอยยิ้มของคุณ';
+  var sub = 'คุณ' + (t0.patName || '') + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูรอยยิ้มของคุณค่ะ☺️';
   var buttons = [{ type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } }];
   return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + (hasAfter ? ' และคำแนะนำหลังรักษา' : '') + ' ขอบคุณที่มาใช้บริการค่ะ',
     contents: crmBubble_(s, hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา', sub, rows, buttons, '#1D825C') };
