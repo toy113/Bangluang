@@ -201,6 +201,7 @@ function gaReadTab_(ss, tab) {
     if (!hasData) continue;
     var obj = {};
     for (var c2 = 0; c2 < hdr.length; c2++) obj[hdr[c2]] = cellToStr(row[c2], hdr[c2]);
+    if (tab === 'settings' && (AUTH_CTX || PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === '1')) delete obj.pin;   // ไม่ส่ง PIN ออกไปหน้าเว็บรุ่นใหม่ (รุ่นเก่าที่ยังไม่มีบัตรผ่านยังได้ PIN เดิม ระหว่างเปลี่ยนผ่าน — PIN ที่ตั้งใหม่เก็บแบบ hash ไม่อยู่ในชีต)
     result.push(obj);
   }
   return result;
@@ -251,7 +252,7 @@ function gaFastGetAll_(p) {
     if (!gen) { gen = String(Date.now()) + '-' + Math.random(); try { cache.put('ga2g:' + k, gen, 21600); } catch (e) {} }
     var meta = null;
     try { meta = got['ga2m:' + k] ? JSON.parse(got['ga2m:' + k]) : null; } catch (e) {}
-    if (force || (meta && meta.g !== gen)) meta = null;
+    if (force || (meta && meta.g !== gen) || k === 'settings') meta = null;   // settings อ่านสดเสมอ (ชีตเล็ก · กัน cache เก่าที่ยังมี PIN)
     if (meta && client[k] && client[k] === meta.h) { hashes[k] = meta.h; same.push(k); continue; }
     var json = meta ? gaChunksGet_(cache, k, meta.n) : null;
     var h = meta ? meta.h : '';
@@ -270,8 +271,144 @@ function gaFastGetAll_(p) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+
+// ============================================================
+//  AUTH — ตรวจสิทธิ์ฝั่งเซิร์ฟเวอร์ (ล็อกอินด้วย PIN → ได้บัตรผ่าน token อายุ 24 ชม.)
+//  - PIN ใหม่เก็บแบบ hash ใน Script Properties (AUTH_PIN_<id>) ไม่ส่งกลับไปหน้าเว็บ
+//  - PIN เดิม (ชีต settings / ค่าเริ่มต้นในโค้ด) ใช้ได้ครั้งเดียวเพื่อเข้าแล้ว "บังคับตั้ง PIN ใหม่" (PIN เดิมรั่วแล้ว)
+//  - โหมด: AUTH_ENFORCE != '1' → ยังไม่บังคับ (ปล่อยผ่านแต่นับคำขอที่ไม่มีบัตรผ่าน) · '1' → ปฏิเสธ
+//    เปิดบังคับ: รัน authEnforceOn() ใน editor · ดูรายงาน: authReport() · ปิด: authEnforceOff()
+// ============================================================
+var AUTH_TTL_MS = 24 * 3600 * 1000;
+var AUTH_PUBLIC_GET = ['crmPortal', 'crmBind', 'crmConsent', 'authLogin'];   // หน้า LINE ของคนไข้ (ยืนยันตัวตนด้วย LINE เอง) + ล็อกอิน
+var AUTH_LEGACY_DEFAULT = { toy: '1111', mind: '6465', koi: '9677', pong: '3467', aim: '7699', khao: '8986', part: '8888', ben: '2233', manager: '1234' }; // รั่วแล้ว → ใช้เข้าได้แต่ต้องเปลี่ยนทันที
+var AUTH_CTX = null;
+
+function authSecret_() {
+  var pr = PropertiesService.getScriptProperties(), s = pr.getProperty('AUTH_SECRET');
+  if (!s) { s = Utilities.getUuid() + Utilities.getUuid(); pr.setProperty('AUTH_SECRET', s); }
+  return s;
+}
+function authB64_(bytes) { return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, ''); }
+function authHashPin_(id, pin) { return authB64_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, authSecret_() + '|' + id + '|' + pin)); }
+function authSign_(payload) { return authB64_(Utilities.computeHmacSha256Signature(payload, authSecret_())).slice(0, 43); }
+function authRole_(id) { return (id === 'manager' || id === 'toy') ? 'manager' : 'doctor'; }
+function authKnownIds_() {
+  var ids = {}; Object.keys(AUTH_LEGACY_DEFAULT).forEach(function (k) { ids[k] = true; });
+  try {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('settings');
+    if (sh && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().forEach(function (r) { if (r[0]) ids[String(r[0])] = true; });
+  } catch (e) {}
+  return ids;
+}
+function authLegacyPin_(id) {
+  try {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('settings');
+    if (sh && sh.getLastRow() > 1) {
+      var lc = Math.max(sh.getLastColumn(), 6), hdr = sh.getRange(1, 1, 1, lc).getValues()[0], pc = hdr.indexOf('pin'); if (pc < 0) pc = 5;
+      var rows = sh.getRange(2, 1, sh.getLastRow() - 1, lc).getValues();
+      for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === String(id) && String(rows[i][pc] || '').length >= 4) return String(rows[i][pc]);
+    }
+  } catch (e) {}
+  return AUTH_LEGACY_DEFAULT[id] || '';
+}
+function authIssue_(id) {
+  var exp = Date.now() + AUTH_TTL_MS, payload = id + '.' + exp;
+  return { token: payload + '.' + authSign_(payload), exp: exp, id: id, role: authRole_(id) };
+}
+function authVerify_(tok) {
+  var m = String(tok || '').match(/^([A-Za-z0-9_-]+)\.(\d+)\.([A-Za-z0-9_-]+)$/);
+  if (!m) return null;
+  if (+m[2] < Date.now()) return null;
+  if (authSign_(m[1] + '.' + m[2]) !== m[3]) return null;
+  return { id: m[1], role: authRole_(m[1]), exp: +m[2] };
+}
+function authFail_(id) {
+  var c = CacheService.getScriptCache(), k = 'authf_' + id, n = (+c.get(k) || 0) + 1;
+  c.put(k, String(n), 900); return n;
+}
+function authLocked_(id) { return (+CacheService.getScriptCache().get('authf_' + id) || 0) >= 5; }
+// ตรวจ PIN: คืน 'ok' | 'legacy' (ถูกแต่เป็น PIN เดิม ต้องเปลี่ยน) | 'bad' | 'locked'
+function authCheck_(id, pin) {
+  id = String(id || ''); pin = String(pin || '');
+  if (!id || !authKnownIds_()[id]) return 'bad';
+  if (authLocked_(id)) return 'locked';
+  var stored = PropertiesService.getScriptProperties().getProperty('AUTH_PIN_' + id);
+  var res = 'bad';
+  if (stored) res = (stored === authHashPin_(id, pin)) ? 'ok' : 'bad';
+  else { var lg = authLegacyPin_(id); res = (lg && pin === lg) ? 'legacy' : 'bad'; }
+  if (res === 'bad') { if (authFail_(id) >= 5) return 'locked'; }
+  else CacheService.getScriptCache().remove('authf_' + id);
+  return res;
+}
+function authSetPin_(id, pin) {
+  if (!/^\d{4}$/.test(String(pin || ''))) return { ok: false, error: 'PIN ต้องเป็นตัวเลข 4 หลัก' };
+  if (String(pin) === String(AUTH_LEGACY_DEFAULT[id] || '') || String(pin) === authLegacyPin_(id)) return { ok: false, error: 'ห้ามใช้ PIN เดิม กรุณาตั้ง PIN ใหม่' };
+  if (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000') return { ok: false, error: 'PIN ง่ายเกินไป กรุณาตั้งใหม่' };
+  PropertiesService.getScriptProperties().setProperty('AUTH_PIN_' + id, authHashPin_(id, pin));
+  return { ok: true };
+}
+function authJson_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+// คำสั่งเกี่ยวกับล็อกอิน · คืน null ถ้าไม่ใช่
+function authHandle_(a, p) {
+  if (a === 'authLogin') {
+    var r = authCheck_(p.id, p.pin);
+    if (r === 'locked') return authJson_({ ok: false, error: 'locked' });
+    if (r === 'bad') return authJson_({ ok: false, error: 'bad_pin' });
+    var t = authIssue_(String(p.id)); t.ok = true; t.mustChange = (r === 'legacy');
+    return authJson_(t);
+  }
+  var me = authVerify_(p._t);
+  if (a === 'authChangePin') {
+    if (!me) return authJson_({ ok: false, error: 'auth_required' });
+    return authJson_(authSetPin_(me.id, p.newPin));
+  }
+  if (a === 'authSetPin') {   // ผู้จัดการ/แอดมินตั้ง PIN ให้คนอื่น
+    if (!me || me.role !== 'manager') return authJson_({ ok: false, error: 'forbidden' });
+    if (!authKnownIds_()[String(p.id || '')]) return authJson_({ ok: false, error: 'not_found' });
+    return authJson_(authSetPin_(String(p.id), p.pin));
+  }
+  if (a === 'authCheckPin') { // อนุมัติ template/โน้ต: ทันตแพทย์ยืนยันด้วย PIN ของตัวเอง
+    if (!me) return authJson_({ ok: false, error: 'auth_required' });
+    var r2 = authCheck_(p.id, p.pin);
+    return authJson_({ ok: r2 === 'ok' || r2 === 'legacy', error: r2 === 'locked' ? 'locked' : (r2 === 'bad' ? 'bad_pin' : '') });
+  }
+  return null;
+}
+// ประตู: คืน null = ผ่าน · คืน response = ปฏิเสธ
+function authGate_(action, tok, isPublic) {
+  AUTH_CTX = authVerify_(tok);
+  if (isPublic || AUTH_CTX) return null;
+  try {   // นับคำขอที่ไม่มีบัตรผ่าน (ดูด้วย authReport)
+    var c = CacheService.getScriptCache(), k = 'authmiss', o = {}; try { o = JSON.parse(c.get(k) || '{}'); } catch (e) {}
+    var key = (action || '(none)') + (tok ? ' [token ไม่ถูกต้อง/หมดอายุ]' : '');
+    o[key] = (o[key] || 0) + 1; o._last = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'); c.put(k, JSON.stringify(o), 21600);
+  } catch (e) {}
+  if (PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === '1') return authJson_({ ok: false, error: 'auth_required' });
+  return null;
+}
+function authEnforceOn() { PropertiesService.getScriptProperties().setProperty('AUTH_ENFORCE', '1'); Logger.log('เปิดบังคับบัตรผ่านแล้ว'); }
+function authEnforceOff() { PropertiesService.getScriptProperties().deleteProperty('AUTH_ENFORCE'); Logger.log('ปิดบังคับบัตรผ่านแล้ว'); }
+function authReport() {
+  var pr = PropertiesService.getScriptProperties(), keys = pr.getKeys().filter(function (k) { return k.indexOf('AUTH_PIN_') === 0; }).map(function (k) { return k.slice(9); });
+  Logger.log('โหมดบังคับ: ' + (pr.getProperty('AUTH_ENFORCE') === '1' ? 'เปิด' : 'ยังไม่เปิด'));
+  Logger.log('ตั้ง PIN ใหม่แล้ว: ' + (keys.join(', ') || '-'));
+  Logger.log('ยังใช้ PIN เดิม: ' + Object.keys(authKnownIds_()).filter(function (k) { return keys.indexOf(k) === -1; }).join(', '));
+  Logger.log('คำขอที่ไม่มีบัตรผ่าน (6 ชม.ล่าสุด): ' + (CacheService.getScriptCache().get('authmiss') || 'ไม่มี'));
+}
+
 function doPost(e) {
   try {
+    // ---- AUTH: ล็อกอิน / ประตูตรวจบัตรผ่าน ----
+    var _pb = null; try { _pb = JSON.parse((e.postData && e.postData.contents) || 'null'); } catch (eb) {}
+    var _pq = (e && e.parameter) || {};
+    if (_pb && _pb.action && String(_pb.action).indexOf('auth') === 0) {
+      var _ah = authHandle_(_pb.action, Object.assign({ _t: _pq._t }, _pb)); if (_ah) return _ah;
+    }
+    var _isHook = !!(_pb && Object.prototype.toString.call(_pb.events) === '[object Array]');   // LINE webhook
+    var _deny = authGate_(_pb ? (_pb.crm ? 'crm:' + _pb.crm : (_pb.type || _pb.action || 'post')) : 'post', _pq._t || (_pb && _pb._t), _isHook);
+    if (_deny) return _deny;
+
     // ---- LINE CRM: webhook + งานหลังบ้าน CRM (อยู่ในไฟล์ line-crm.gs) — ต้องอยู่ก่อน ortho ----
     var _crm = (typeof crmRoutePost_ === 'function') ? crmRoutePost_(e) : null; // ไม่มีไฟล์ line-crm.gs ก็ยังทำงานได้
     if (_crm) return _crm;
@@ -317,7 +454,10 @@ function doPost(e) {
         if (!hdrRow[7]) sh.getRange(1,8).setValue('licenseNo');
         var ids = gaIds_(sh);
         var i = ids.indexOf(String(r.id));
-        var row = [r.id, r.name, r.gender||'', r.specialty||'', r.share||50, r.pin||'', r.fullName||'', r.licenseNo||''];
+        if (PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === '1' && !(AUTH_CTX && AUTH_CTX.role === 'manager')) return authJson_({ ok: false, error: 'forbidden' });
+        // PIN ไม่ส่งจากหน้าเว็บแล้ว (ตั้งผ่าน authSetPin) → คงค่าเดิมในคอลัมน์ pin ไว้ (ใช้เป็น PIN เดิมครั้งแรกก่อนบังคับเปลี่ยน)
+        var oldPin = i >= 1 ? String(sh.getRange(i+1, 6).getValue() || '') : '';
+        var row = [r.id, r.name, r.gender||'', r.specialty||'', r.share||50, oldPin, r.fullName||'', r.licenseNo||''];
         if (i < 1) sh.appendRow(row);
         else sh.getRange(i+1,1,1,row.length).setValues([row]);
       }
@@ -483,6 +623,12 @@ function doPost(e) {
 
 function doGet(e) {
   try {
+    // ---- AUTH ----
+    var _gp = (e && e.parameter) || {};
+    if (_gp.action && String(_gp.action).indexOf('auth') === 0) { var _ah = authHandle_(_gp.action, _gp); if (_ah) return _ah; }
+    var _deny = authGate_(_gp.action || '(none)', _gp._t, AUTH_PUBLIC_GET.indexOf(_gp.action) !== -1);
+    if (_deny) return _deny;
+
     // ---- LINE CRM (อยู่ในไฟล์ line-crm.gs) ----
     var _crm = (typeof crmRouteGet_ === 'function') ? crmRouteGet_(e) : null;
     if (_crm) return _crm;
