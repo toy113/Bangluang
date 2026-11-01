@@ -8538,7 +8538,10 @@ function doSendIncome(periodLabel){
   const total = treats.reduce((s,t)=>s+totalPrice(t),0);
   const doc = doctors.find(d=>d.name===selected)||DOCTORS_DATA.find(d=>d.name===selected);
   const df = Math.round(treats.reduce((s,t)=>s+dfAmt(t,doc),0));
-  const share = total>0 ? Math.round(df/total*100) : (doc ? doc.share : 50);
+  // X-Ray ไม่คิด df: ทั้งใบถ้าเป็น X-Ray อย่างเดียว · เฉพาะราคา X-Ray ถ้าลงรวมกับหัตถการอื่น (ต้องมีราคาแยกรายการ)
+  const xrayTotal = treats.reduce((s,t)=>s + (xrayRuleApplies(t) ? totalPrice(t) : xrayMixedPrice(t)), 0);
+  const base = total - xrayTotal;
+  const share = base>0 ? Math.round(df/base*100) : (total>0 ? Math.round(df/total*100) : (doc ? doc.share : 50));
   const LINE = '─'.repeat(28);
 
   let text = `💰 สรุปรายได้ ${periodLabel}\n`;
@@ -8546,14 +8549,31 @@ function doSendIncome(periodLabel){
   text += LINE + '\n';
 
   treats.forEach(t=>{
-    const procs = Array.isArray(t.proc) ? t.proc.join(', ') : (t.proc||'');
+    const procList = (Array.isArray(t.proc) ? t.proc : String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
     const price = totalPrice(t);
     const timeStr = t.time ? `${t.time}  ` : '';
-    text += `${timeStr}${t.patName||'—'}\n— ${procs}  ${fmt(price)}\n`;
+    let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
+    const priced = procList.filter(x=>pp[x]!==undefined && procList.length>1);
+    text += `${timeStr}${t.patName||'—'}\n`;
+    if(xrayRuleApplies(t)){
+      text += `— ${procList.join(', ')}  ${fmt(price)} (ไม่คิด df)\n`;
+    } else if(priced.length && (xrayMixedPrice(t)>0 || priced.length===procList.length)){
+      // แยกบรรทัดตามราคาแต่ละรายการ · X-Ray ติดป้าย "ไม่คิด df" · รายการที่ไม่มีราคารวมเป็นบรรทัดเดียวด้วยยอดคงเหลือ
+      let used = 0;
+      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `— ${x}  ${fmt(+pp[x]||0)}${_isXrayProc(x)?' (ไม่คิด df)':''}\n`; });
+      const rest = procList.filter(x=>pp[x]===undefined);
+      if(rest.length) text += `— ${rest.join(', ')}  ${fmt(Math.max(0,price-used))}\n`;
+    } else {
+      text += `— ${procList.join(', ')}  ${fmt(price)}\n`;
+    }
   });
 
   text += LINE + '\n';
   text += `รวม  ${fmt(total)}\n`;
+  if(xrayTotal>0){
+    text += `X-Ray  ${fmt(xrayTotal)} (${Math.round(xrayTotal/total*100)}% ของยอด · ไม่คิด df)\n`;
+    text += `ฐานคิด df  ${fmt(base)}\n`;
+  }
   text += `df ${share}% = ${fmt(df)}\n`;
   if(paidCash>0){
     text += `จ่ายเงินสดให้${selected}แล้ว  ${fmt(paidCash)}\n`;
