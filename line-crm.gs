@@ -502,8 +502,25 @@ function crmReceiptMessage_(s, trs, extra) {
   var total = cash + tr + sso;
   var rows = [crmRow_('วัน', crmThaiDate_(crmDateOnly_(t0.date)))];
   if (docs.length) rows.push(crmRow_('ทันตแพทย์', docs.join(', ')));
-  if (list.length === 1) rows.push(crmRow_('การรักษา', String(t0.proc || '').replace(/\s*,\s*/g, ', ') || '-'));
-  else list.forEach(function (t, i) { rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + (String(t.proc || '').replace(/\s*,\s*/g, ', ') || '-'))); });
+  // รายการรักษา: ถ้ามีราคาแยกรายการ (procPrices) แสดงราคาต่อรายการ · ไม่มีก็แสดงชื่ออย่างเดียว
+  var items = [], anyPrice = false;
+  list.forEach(function (t) {
+    var procs = crmSplitList_(String(t.proc || '')), pp = {};
+    try { pp = JSON.parse(t.procPrices || '{}') || {}; } catch (e) { pp = {}; }
+    var recTotal = (+t.cash || 0) + (+t.transfer || 0) + (+t.sso || 0);
+    if (!procs.length) procs = ['-'];
+    procs.forEach(function (pr) {
+      var price = +pp[pr] > 0 ? +pp[pr] : (procs.length === 1 && list.length > 1 && recTotal > 0 ? recTotal : null);
+      if (price !== null) anyPrice = true;
+      items.push({ proc: pr, price: price });
+    });
+  });
+  if (items.length === 1 || !anyPrice) {
+    if (list.length === 1) rows.push(crmRow_('การรักษา', items.map(function (x) { return x.proc; }).join(', ') || '-'));
+    else list.forEach(function (t, i) { rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + (String(t.proc || '').replace(/\s*,\s*/g, ', ') || '-'))); });
+  } else {
+    items.forEach(function (x, i) { rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + x.proc + (x.price !== null ? ' — ' + crmMoney_(x.price) : ''))); });
+  }
   if (total > 0) {
     rows.push(crmRow_('ค่าใช้จ่าย', crmMoney_(total)));
     var parts = [];

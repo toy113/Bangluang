@@ -1842,6 +1842,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
         <input type="hidden" id="treat-proc">
       </div>
+      <div class="form-group" id="treat-pp-wrap" style="display:none;">
+        <label>💰 ราคาแต่ละรายการ <span style="font-size:11px;color:var(--text-light);font-weight:400;">(ไม่บังคับ — ถ้ากรอก ข้อความสรุปที่ส่งคนไข้ทาง LINE จะแยกราคาให้)</span></label>
+        <div id="treat-pp-list"></div>
+        <div id="treat-pp-check" style="font-size:12px;margin-top:6px;"></div>
+      </div>
     </div>
     <div style="margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--wine-dark);text-transform:uppercase;letter-spacing:0.4px;">💳 ราคาแยกตามประเภทชำระ</div>
     <div class="payment-split">
@@ -4155,7 +4160,9 @@ function openAddTreat(t=null){
   if(shareWrap) shareWrap.style.display = isManager ? '' : 'none';
   if(shareInput) shareInput.value = (t && t.docShare!==undefined && t.docShare!=='') ? t.docShare : '';
   document.getElementById('treat-proc').value = t?.proc||'';
+  _ppVals = {};
   setProcSelected(t?.proc||'');
+  setProcPrices(t?.procPrices||'');
   document.getElementById('treat-cash').value = t?.cash||'';
   document.getElementById('treat-transfer').value = t?.transfer||'';
   document.getElementById('treat-sso').value = t?.sso||'';
@@ -4170,6 +4177,7 @@ function calcTotal(){
   document.getElementById('totalDisplay').textContent=fmt(v);
   const bw = document.getElementById('treat-bank-wrap');
   if(bw) bw.style.display = (+document.getElementById('treat-transfer').value||0) > 0 ? '' : 'none';
+  try{ calcProcPriceCheck(); }catch(e){}
 }
 let _treatSaving = false;
 function saveTreat(){
@@ -4215,6 +4223,7 @@ function saveTreat(){
     note:document.getElementById('treat-note').value,
     status:'เสร็จ',
     docShare,
+    procPrices:getProcPrices(),
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
   if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason','dfPaid','dfPaidAt','dfPaidBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
@@ -7734,6 +7743,44 @@ function updateProcDisplay(){
     tag.textContent = p;
     display.insertBefore(tag, ph||null);
   });
+  renderProcPrices(selected);
+}
+
+
+// ---- ราคาแยกรายการ (procPrices) ----
+let _ppVals = {};
+function ppCollect_(){ document.querySelectorAll('#treat-pp-list input[data-proc]').forEach(i=>{ _ppVals[i.dataset.proc] = i.value; }); }
+function renderProcPrices(selected){
+  const wrap = document.getElementById('treat-pp-wrap'), box = document.getElementById('treat-pp-list');
+  if(!wrap || !box) return;
+  ppCollect_();
+  wrap.style.display = selected.length ? '' : 'none';
+  box.innerHTML = selected.map(p=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <span style="flex:1;font-size:13px;font-weight:700;color:${PROC_COLORS[p]||'var(--wine)'};">${_escHtml(p)}</span>
+    <input type="number" min="0" class="form-control" data-proc="${_escHtml(p)}" value="${_escHtml(_ppVals[p]||'')}" placeholder="บาท" oninput="calcProcPriceCheck()" style="width:130px;height:38px;text-align:right;">
+  </div>`).join('');
+  calcProcPriceCheck();
+}
+function getProcPrices(){
+  ppCollect_();
+  const sel = getProcSelected().split(',').map(x=>x.trim()).filter(Boolean), o = {};
+  sel.forEach(p=>{ const v = +_ppVals[p]; if(v>0) o[p] = v; });
+  return Object.keys(o).length ? JSON.stringify(o) : '';
+}
+function setProcPrices(json){
+  _ppVals = {};
+  try{ const o = typeof json==='string' ? JSON.parse(json||'{}') : (json||{}); Object.keys(o).forEach(k=>{ _ppVals[k] = String(o[k]); }); }catch(e){}
+  renderProcPrices(getProcSelected().split(',').map(x=>x.trim()).filter(Boolean));
+}
+function calcProcPriceCheck(){
+  const el = document.getElementById('treat-pp-check'); if(!el) return;
+  const inputs = [...document.querySelectorAll('#treat-pp-list input[data-proc]')];
+  const sum = inputs.reduce((n,i)=>n+(+i.value||0),0);
+  if(!sum){ el.innerHTML=''; return; }
+  const total = ['treat-cash','treat-transfer','treat-sso'].reduce((n,id)=>n+(+document.getElementById(id)?.value||0),0);
+  const ok = sum===total;
+  el.innerHTML = ok ? `<span style="color:#1D825C;font-weight:700;">✓ รวมรายการ ${fmt(sum)} ตรงกับยอดชำระ</span>`
+    : `<span style="color:#C0392B;font-weight:700;">⚠️ รวมรายการ ${fmt(sum)} · ยอดชำระ ${fmt(total)} (ต่างกัน ${fmt(Math.abs(sum-total))})</span>`;
 }
 
 function setProcSelected(procs){
