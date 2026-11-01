@@ -68,9 +68,6 @@
   .field input:focus{outline:none;border-color:var(--wine);}
   .check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-mid);line-height:1.55;margin:4px 0 16px;}
   .check input{width:20px;height:20px;margin-top:1px;accent-color:var(--wine);flex-shrink:0;}
-  details.ortho-code{margin-bottom:14px;border:1px dashed var(--border);border-radius:12px;padding:10px 12px;}
-  details.ortho-code summary{font-size:13px;color:var(--wine);font-weight:700;cursor:pointer;}
-  details.ortho-code .field{margin:10px 0 0;}
   .muted{color:var(--text-light);font-size:13px;}
   .center{text-align:center;}
   .err{background:#fdecea;color:var(--red);padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none;line-height:1.5;}
@@ -117,11 +114,6 @@
       <div class="err" id="bindErr"></div>
       <div class="field"><label>HN ของคนไข้ (7 หลัก)</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 65-12345" maxlength="8" autocomplete="off" oninput="fmtHn(this)"><div class="muted" style="margin-top:4px;">ดู HN ได้จากบัตรคนไข้หรือใบนัดของคลินิก</div></div>
       <div class="field"><label>เบอร์โทรที่ให้ไว้กับคลินิก</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
-      <details class="ortho-code" id="codeBox">
-        <summary>คนไข้จัดฟัน: มีรหัสจัดฟัน (A-xxx)?</summary>
-        <div class="field"><label>รหัสจัดฟัน (ไม่บังคับ)</label><input id="b-code" placeholder="A-123" maxlength="10" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')"></div>
-        <p class="muted" style="margin-top:6px;">ใส่รหัสแล้วผูกบัญชีได้ทันทีโดยไม่ต้องรอคลินิกยืนยัน</p>
-      </details>
       <label class="check"><input type="checkbox" id="b-consent">
         <span>ยินยอมให้คลินิกเชื่อมบัญชี LINE นี้กับข้อมูลคนไข้ และส่งข้อความยืนยันนัด เตือนนัด คำแนะนำหลังการรักษา และติดตามอาการทาง LINE (ยกเลิกได้ทุกเมื่อในหน้านี้)</span></label>
       <button class="btn btn-primary" id="bindBtn" onclick="doBind()">ผูกบัญชี</button>
@@ -187,8 +179,6 @@ function show(id){ ['loading','errorView','bindView','pendingView','mainView'].f
 function fail(msg){ $('errorMsg').textContent = msg; show('errorView'); }
 
 let TOKEN = null, DATA = null, CUR = 0, TAB = 'next';
-// LEGACY = เซิร์ฟเวอร์ยังเป็นรุ่นเก่า (ยังไม่ได้ติดตั้ง line-crm.gs) → ใช้ระบบจัดฟันเดิมไปก่อน หน้าไม่พัง
-let LEGACY = false, USER_ID = null;
 
 function initialTab(){
   const q = new URLSearchParams(location.search);
@@ -218,7 +208,7 @@ async function load(){
   show('loading');
   try{
     const d = await api({ action:'crmPortal' });
-    if(d && d.__notJson){ LEGACY = true; return loadLegacy(); }
+    if(d && d.__notJson) return fail('ระบบกำลังปรับปรุง กรุณาลองใหม่ภายหลัง หรือติดต่อคลินิก');
     if(!d || !d.ok){
       if(d && d.error==='auth') return fail('ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดเมนูใหม่อีกครั้ง');
       return fail('โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง');
@@ -228,19 +218,6 @@ async function load(){
     ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tel; });
     $('bindPhone').textContent = phone;
     render();
-  }catch(e){ console.error(e); fail('เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
-}
-async function loadLegacy(){
-  show('loading');
-  try{
-    if(!USER_ID) USER_ID = (await liff.getProfile()).userId;
-    const d = await api({ action:'orthoGet', lineUserId: USER_ID }, true);
-    if(d && d.ok && d.bound){
-      const p = d.profile || {};
-      const nx = p['นัดถัดไป'] ? [{ date:String(p['นัดถัดไป']).slice(0,10), time:p['นัดถัดไปเวลา']||'', proc:p['รายการนัดถัดไป']||'', docName:'' }] : [];
-      DATA = { patients:[{ hn:p.hn, name:p['ชื่อ']||'', consent:true, next:nx, history:null, ortho:{ profile:p, logs:d.logs||[] } }], pending:[] };
-      render();
-    } else { DATA = { patients:[], pending:[] }; openBind(false, true); }
   }catch(e){ console.error(e); fail('เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
 }
 function render(){
@@ -257,8 +234,6 @@ function render(){
   $('consentToggle').checked = d.patients.every(x=>x.consent);
   $('pendingNote').style.display = d.pending.length ? '' : 'none';
   $('pendingNote').textContent = d.pending.length ? ('มีคำขอผูกบัญชีเพิ่มรอคลินิกยืนยัน ' + d.pending.length + ' รายการ') : '';
-  // โหมดระบบเดิม: ยังตั้งค่าการรับข้อความ/ผูกครอบครัวไม่ได้
-  const consentCard = $('consentToggle').closest('.card'); if(consentCard) consentCard.classList.toggle('hide', LEGACY);
   renderNext(p); renderHistory(p); renderOrtho(p);
   setTab(TAB);
   show('mainView');
@@ -302,8 +277,8 @@ function renderOrtho(p){
   const o = p.ortho;
   if(!o){
     $('panel-ortho').innerHTML = `<div class="card"><h3>สำหรับคนไข้จัดฟัน</h3>
-      <div class="empty" style="padding:6px 0 14px;">ยังไม่พบข้อมูลจัดฟันของคุณ${esc(p.name||'')}<br>ถ้าจัดฟันกับคลินิก ผูกด้วยรหัสจัดฟัน (A-xxx) เพื่อดูความคืบหน้า</div>
-      <button class="btn btn-ghost" onclick="openBind(true,true)">ผูกด้วยรหัสจัดฟัน</button></div>`;
+      <div class="empty" style="padding:6px 0 14px;">ยังไม่พบข้อมูลจัดฟันของคุณ${esc(p.name||'')}<br>ถ้าจัดฟันกับคลินิกแต่ไม่เห็นข้อมูล กรุณาติดต่อคลินิกค่ะ</div>
+      <a class="btn btn-ghost" href="${esc($('mainCall').href)}">📞 ติดต่อคลินิก</a></div>`;
     return;
   }
   const pr = o.profile || {}, logs = o.logs || [];
@@ -348,37 +323,22 @@ function renderOrtho(p){
       <li>กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์ยกเลิกโปร 28 ครั้ง</li>
     </ul></div>`;
 }
-function openBind(isAdd, orthoOpen){
-  $('bindTitle').textContent = LEGACY ? 'ผูกบัญชีคนไข้จัดฟัน' : (isAdd ? 'ผูกบัญชีคนไข้เพิ่ม' : 'ผูกบัญชีคนไข้');
-  if(LEGACY) orthoOpen = true;
+function openBind(isAdd){
+  $('bindTitle').textContent = isAdd ? 'ผูกบัญชีคนไข้เพิ่ม' : 'ผูกบัญชีคนไข้';
   $('bindCancel').classList.toggle('hide', !isAdd);
-  $('codeBox').open = !!orthoOpen;
   $('bindErr').style.display = 'none';
   show('bindView');
 }
 async function doBind(){
-  const hn = $('b-hn').value.trim(), phone = $('b-phone').value.trim(), code = $('b-code').value.trim(), consent = $('b-consent').checked;
+  const hn = $('b-hn').value.trim(), phone = $('b-phone').value.trim(), consent = $('b-consent').checked;
   const err = m=>{ $('bindErr').textContent = m; $('bindErr').style.display = 'block'; };
   $('bindErr').style.display = 'none';
-  if(LEGACY){
-    if(!/^A-\d{2,}$/.test(code)) return err('ตอนนี้ผูกบัญชีได้เฉพาะคนไข้จัดฟัน กรุณากรอกรหัสจัดฟัน (ตัวอย่าง A-123)');
-    if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)) return err('กรุณากรอกเบอร์โทร 10 หลัก (ตัวอย่าง 081-234-5678)');
-    $('bindBtn').disabled = true; $('bindBtn').textContent = 'กำลังผูกบัญชี...';
-    try{
-      const d = await api({ action:'orthoBind', lineUserId: USER_ID, idcode: code, phone }, true);
-      if(d && d.ok) await loadLegacy();
-      else err('ไม่พบข้อมูล — รหัสจัดฟันกับเบอร์โทรไม่ตรงกัน กรุณาตรวจสอบ หรือติดต่อคลินิก');
-    }catch(e){ err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }
-    $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';
-    return;
-  }
   if(!/^\d{2}-?\d{4,5}$/.test(hn)) return err('กรุณากรอก HN 7 หลัก (ตัวอย่าง 65-12345)');
   if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)) return err('กรุณากรอกเบอร์โทร 10 หลัก (ตัวอย่าง 081-234-5678)');
-  if(code && !/^A-\d{2,}$/.test(code)) return err('รูปแบบรหัสจัดฟันไม่ถูกต้อง (ตัวอย่าง A-123)');
   if(!consent) return err('กรุณากดยินยอมก่อนผูกบัญชี');
   $('bindBtn').disabled = true; $('bindBtn').textContent = 'กำลังส่งข้อมูล...';
   try{
-    const d = await api({ action:'crmBind', hn, phone, code, consent: '1' });
+    const d = await api({ action:'crmBind', hn, phone, consent: '1' });
     if(d && d.ok){ if(d.portal && d.portal.ok){ DATA = d.portal; const ph = DATA.clinicPhone || CLINIC_PHONE_FALLBACK, tl = 'tel:'+ph.replace(/[^0-9+]/g,''); ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tl; }); $('bindPhone').textContent = ph; render(); } else { await load(); } }
     else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
   }catch(e){ console.error(e); err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }

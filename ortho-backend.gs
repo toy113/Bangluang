@@ -45,8 +45,8 @@ var ORTHO_TZ = 'Asia/Bangkok';
  * คืน ContentService ถ้าเป็นคำขอของ ortho, คืน null ถ้าไม่ใช่ (ให้ของเดิมทำต่อ) */
 function orthoRouteGet_(e) {
   var p = (e && e.parameter) || {};
-  if (p.action === 'orthoGet')  return orthoJsonOut_(orthoGetByLineId(p.lineUserId));
-  if (p.action === 'orthoBind') return orthoJsonOut_(orthoBind(p.lineUserId, p.idcode, p.phone));
+  // orthoGet / orthoBind เดิม (เชื่อ lineUserId ที่หน้าเว็บส่งมาเอง ไม่ยืนยันกับ LINE) ปิดแล้ว — ใช้ crmPortal / crmBind ใน line-crm.gs แทน
+  if (p.action === 'orthoGet' || p.action === 'orthoBind') return orthoJsonOut_({ ok: false, error: 'disabled' });
   if (p.action === 'orthoList') return orthoJsonOut_(orthoList());      // ใช้ใน admin tab
   if (p.action === 'orthoLogsByHn') return orthoJsonOut_(orthoLogsByHn(p.hn)); // admin: ดูประวัติการรักษา
   return null; // ไม่ใช่งานของ ortho
@@ -64,8 +64,7 @@ function orthoRoutePost_(e) {
 
   // 2) action จาก LIFF / admin tab
   var action = body.action || (e.parameter && e.parameter.action);
-  if (action === 'orthoBind')   return orthoJsonOut_(orthoBind(body.lineUserId, body.idcode, body.phone));
-  if (action === 'orthoGet')    return orthoJsonOut_(orthoGetByLineId(body.lineUserId));
+  if (action === 'orthoBind' || action === 'orthoGet') return orthoJsonOut_({ ok: false, error: 'disabled' });
   if (action === 'orthoSave')   return orthoJsonOut_(orthoSave(body.row));     // admin: เพิ่ม/แก้ profile
   if (action === 'orthoLogAdd') return orthoJsonOut_(orthoLogAdd(body.log));   // admin: เพิ่ม log adjust
   if (action === 'orthoLogAddBatch') return orthoJsonOut_(orthoLogAddBatch(body.logs)); // admin: บันทึกย้อนหลายวันในคำสั่งเดียว

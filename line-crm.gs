@@ -1099,7 +1099,7 @@ function crmBindCore_(p) {
   if (String(p.consent) !== '1') return { ok: false, error: 'consent_required' };
   var phone = crmPhone_(p.phone), name = crmNameKey_(p.name), code = String(p.code || '').trim().toUpperCase();
   var hnIn = crmHN_(p.hn);                       // ผูกด้วย HN (6-7 หลัก เช่น 65-9385 หรือ 65-12345) + เบอร์โทร
-  if (phone.length < 9 || (!hnIn && !name)) return { ok: false, error: 'missing_field' };
+  if (phone.length < 9 || !hnIn) return { ok: false, error: 'missing_field' };   // บังคับ HN + เบอร์เสมอ (ไม่รับผูกด้วยชื่อ)
   if (hnIn && !/^\d{6,7}$/.test(hnIn)) return { ok: false, error: 'hn_format' };
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
