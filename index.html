@@ -2778,6 +2778,28 @@ function crmIsOrtho(a){
   return kws.some(k=>String(a.proc||'').includes(k));
 }
 function crmLogFor(type, refId){ return ((CRM.data&&CRM.data.log)||[]).filter(r=>r.type===type && String(r.refId).split(',').includes(String(refId))); }
+// นัดจัดฟัน (การ์ดจัดฟัน คอลัมน์ นัดถัดไป) → id เสมือนแบบเดียวกับฝั่งเซิร์ฟเวอร์ ORTHO-<HN>-<วันที่>
+function crmOrthoAptId(hn, date){ return 'ORTHO-'+crmHN(hn)+'-'+String(date||'').slice(0,10); }
+function crmCalDupOf(hn, date, time){
+  const k=crmHN(hn), d=String(date||'').slice(0,10), tm=String(time||'').slice(0,5);
+  return (appointments||[]).find(a=>crmHN(a.hn)===k && a.date===d && !['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status) && (!tm || !a.time || String(a.time).slice(0,5)===tm)) || null;
+}
+// สถานะ LINE ของนัดจัดฟัน: คนไข้กดยืนยัน / ขอเลื่อน (ถ้านัดซ้ำกับตารางนัด ระบบใช้ id ของตารางนัด)
+function crmOrthoAptRec(r){
+  if(!r || !r['นัดถัดไป']) return null;
+  try{ if(!CRM.data){ const c=localStorage.getItem('bl_crm_cache'); if(c){ const cd=JSON.parse(c); if(cd && cd.ok) CRM.data=cd; } } }catch(e){}
+  const recs=(CRM.data&&CRM.data.apt)||[]; if(!recs.length) return null;
+  const dup=crmCalDupOf(r.hn, r['นัดถัดไป'], r['นัดถัดไปเวลา']);
+  const id=dup ? String(dup.id) : crmOrthoAptId(r.hn, r['นัดถัดไป']);
+  return recs.find(x=>String(x.aptId)===id) || null;
+}
+function crmOrthoAptBadge(r){
+  const rec=crmOrthoAptRec(r); if(!rec) return '';
+  const resched = rec.rescheduleAt && (!rec.confirmedAt || String(rec.rescheduleAt)>String(rec.confirmedAt));
+  if(resched) return `<div><span style="background:#FDEBD0;color:#A04000;border-radius:20px;font-size:11px;font-weight:800;padding:2px 8px;">📅 คนไข้ขอเลื่อนนัด</span></div>`;
+  if(rec.confirmedAt) return `<div><span style="background:#D5F5E3;color:#1D6B44;border-radius:20px;font-size:11px;font-weight:800;padding:2px 8px;">✅ ยืนยันทาง LINE ${crmTs(rec.confirmedAt).split(' ').slice(-1)[0]}</span></div>`;
+  return '';
+}
 function crmSentOk(rows){ return rows.some(r=>r.status==='sent'||r.status==='test'); }
 
 async function crmLoad(force){
@@ -2967,18 +2989,29 @@ function crmViewApts(){
   const today=todayStr();
   const ranges={ today:[today,today], tomorrow:[crmAddDays(today,1),crmAddDays(today,1)], week:[today,crmAddDays(today,7)] };
   const r=ranges[CRM.aptRange]||ranges.tomorrow;
-  const list=appointments.filter(a=>a.date>=r[0] && a.date<=r[1] && a.status!=='ยกเลิก').sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+  const list=appointments.filter(a=>a.date>=r[0] && a.date<=r[1] && a.status!=='ยกเลิก');
+  // นัดจัดฟันจากการ์ดจัดฟัน (ไม่อยู่ในตารางนัด) — แสดงรวม พร้อมสถานะ LINE · ไม่มีปุ่มตั้งคอนเฟิร์ม (ไม่มีแถวในตารางนัด)
+  if(typeof orthoData!=='undefined'){
+    if(!_orthoLoaded && typeof loadOrthoData==='function') loadOrthoData().then(()=>{ if(CRM.sub==='apts') crmRender(); }).catch(()=>{});
+    (orthoData||[]).forEach(o=>{
+      const d=String(o['นัดถัดไป']||'').slice(0,10);
+      if(!d || d<r[0] || d>r[1] || (o['สถานะ'] && o['สถานะ']!=='กำลังจัด')) return;
+      if(crmCalDupOf(o.hn, d, o['นัดถัดไปเวลา'])) return;
+      list.push({ id:crmOrthoAptId(o.hn,d), _ortho:true, date:d, time:String(o['นัดถัดไปเวลา']||'').slice(0,5), hn:o.hn, patName:o['ชื่อ']||'', proc:o['รายการนัดถัดไป']||'นัดจัดฟัน', docName:o['หมอ']||'', status:'นัดจัดฟัน' });
+    });
+  }
+  list.sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   const confirmed=new Set((CRM.data.apt||[]).filter(x=>x.confirmedAt).map(x=>String(x.aptId)));
   return `<div class="crm-card"><h4>📅 นัดหมายและสถานะ LINE<span class="sp"></span>
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน']].map(x=>`<button class="${CRM.aptRange===x[0]?'on':''}" onclick="CRM.aptRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
-    <p class="crm-muted" style="margin-bottom:10px;">คนไข้กด "ยืนยันนัด" ใน LINE → ระบบไม่แก้ตารางนัดเอง กด "ตั้งเป็นคอนเฟิร์ม" เพื่ออัปเดตสถานะในตารางนัด</p>
+    <p class="crm-muted" style="margin-bottom:10px;">คนไข้กด "ยืนยันนัด" ใน LINE → ระบบไม่แก้ตารางนัดเอง กด "ตั้งเป็นคอนเฟิร์ม" เพื่ออัปเดตสถานะในตารางนัด · นัดจัดฟัน (ป้าย จัดฟัน) ดูสถานะจากป้าย ✅ คนไข้ยืนยัน ได้เลย และขึ้นที่การ์ดในหน้าจัดฟันด้วย</p>
     <div class="crm-list">${list.map(a=>`<div class="crm-item"><div class="main">
         <div class="nm">${crmEsc(a.time||'')} · ${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
         <div class="meta">${crmEsc(crmThaiShort(a.date))} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} · สถานะ: <b>${crmEsc(a.status||'-')}</b>${crmIsOrtho(a)?' · <span class="crm-chip b">จัดฟัน</span>':''}</div>
         <div>${crmAptLineChips(a)}</div></div>
-      <div class="acts">${confirmed.has(String(a.id)) && a.status!=='คอนเฟิร์ม' ? `<button class="crm-btn g" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">ตั้งเป็นคอนเฟิร์ม</button>`:''}
+      <div class="acts">${!a._ortho && confirmed.has(String(a.id)) && a.status!=='คอนเฟิร์ม' ? `<button class="crm-btn g" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">ตั้งเป็นคอนเฟิร์ม</button>`:''}
         ${crmPhoneOf(a.hn,a.phone)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(a.hn,a.phone))}">📞</a>`:''}
-        <button class="crm-btn" onclick="openEditApt('${crmEsc(a.id)}')">เปิดนัด</button></div></div>`).join('') || '<div class="crm-empty">ไม่มีนัดในช่วงนี้</div>'}</div></div>`;
+        ${a._ortho?`<button class="crm-btn" onclick="openOrthoHistory('${crmEsc(a.hn)}')">การ์ดจัดฟัน</button>`:`<button class="crm-btn" onclick="openEditApt('${crmEsc(a.id)}')">เปิดนัด</button>`}</div></div>`).join('') || '<div class="crm-empty">ไม่มีนัดในช่วงนี้</div>'}</div></div>`;
 }
 function crmMarkConfirmed(id){
   const a=appointments.find(x=>String(x.id)===String(id)); if(!a) return;
@@ -9457,7 +9490,7 @@ function orthoCardHtml(r){
       <div style="text-align:right;font-size:12px;">
         <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r)}</strong> ครั้ง</div>
         ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
-        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>`:''}
+        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>${crmOrthoAptBadge(r)}`:''}
         ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
       </div>
     </div>
