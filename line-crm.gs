@@ -273,7 +273,7 @@ function crmRoutePost_(e) {
   try { body = JSON.parse(e.postData.contents); } catch (err) { return null; }
   if (!body) return null;
   if (body.events && Object.prototype.toString.call(body.events) === '[object Array]') {
-    crmHandleWebhook_(body.events);
+    crmHandleWebhook_(body.events, body.destination);
     return ContentService.createTextOutput('OK');
   }
   if (body.crm) {
@@ -893,10 +893,31 @@ function crmBaseline_(s) {
 }
 
 /* ============================ WEBHOOK ============================ */
-function crmHandleWebhook_(events) {
+// userId ของบอท (OA) จาก LINE — ใช้ตรวจว่า webhook ส่งมาถึงบอทเราจริง (Apps Script ตรวจลายเซ็น LINE ไม่ได้)
+function crmBotId_() {
+  var pr = PropertiesService.getScriptProperties(), id = pr.getProperty('CRM_BOT_ID');
+  if (id) return id;
+  var c = CacheService.getScriptCache(); if (c.get('crm_botid_try')) return '';
+  c.put('crm_botid_try', '1', 600);   // ถาม LINE ไม่เกินทุก 10 นาทีถ้ายังไม่สำเร็จ
+  try { var r = crmApi_('get', '/v2/bot/info'); if (r.code === 200 && r.data && /^U[0-9a-f]{32}$/.test(r.data.userId || '')) { pr.setProperty('CRM_BOT_ID', r.data.userId); return r.data.userId; } } catch (e) {}
+  return '';
+}
+function crmHandleWebhook_(events, destination) {
   var s = crmSettings_();
+  // กัน event ปลอม: ถ้ารู้ userId ของบอทแล้ว event ต้องระบุ destination ตรงกัน (ไม่รู้ = ปล่อยผ่าน กันระบบล่ม)
+  var bot = (events && events.length) ? crmBotId_() : '';
+  if (bot && destination !== bot) {
+    try { var c0 = CacheService.getScriptCache(); if (!c0.get('crm_whrej')) { c0.put('crm_whrej', '1', 3600); crmAppend_('log', { key: 'whrej:' + Date.now(), type: 'webhook_reject', status: 'error', detail: 'destination ไม่ตรงกับบอท: ' + String(destination || '(ไม่มี)').slice(0, 40), createdAt: crmNow_(), pushCount: 0 }); } } catch (e0) {}
+    return;
+  }
+  var cache = CacheService.getScriptCache();
   (events || []).forEach(function (ev) {
     try {
+      // LINE ส่งซ้ำ (redelivery) → ทำครั้งเดียว
+      var evId = ev.webhookEventId;
+      if (evId) { if (cache.get('crm_ev_' + evId)) return; cache.put('crm_ev_' + evId, '1', 21600); }
+      // รับเฉพาะแชท 1:1 (ไม่ตอบในกลุ่ม/ห้อง)
+      if (ev.source && ev.source.type && ev.source.type !== 'user') return;
       var uid = ev.source && ev.source.userId;
       if (ev.type === 'follow') {
         crmUpsertFollower_(uid, 'follow');
@@ -1047,7 +1068,11 @@ function crmHandleText_(s, ev, uid) {
   if (crmHasWord_(text, crmSplitList_(s.emergencyKeywords))) {
     var hns = crmUserHns_(uid), name = '';
     if (hns.length) { var l = crmRead_('links').filter(function (x) { return x.lineUserId === uid && x.status === 'active'; })[0]; name = l ? l.patName : ''; }
-    crmCreateTask_({ type: 'emergency', priority: 'urgent', hn: hns[0] || '', patName: name, lineUserId: uid, detail: 'ข้อความจากคนไข้: ' + text.slice(0, 300) });
+    // ส่งข้อความฉุกเฉินหลายข้อความติดกัน → รวมในงานเดิมที่ยังเปิดอยู่ (ภายใน 30 นาที) ไม่สร้างงานซ้ำ
+    var lim = Utilities.formatDate(new Date(Date.now() - 30 * 60000), CRM_TZ, 'yyyy-MM-dd HH:mm');
+    var openT = crmRead_('tasks').filter(function (x) { return x.type === 'emergency' && x.status === 'open' && x.lineUserId === uid && String(x.createdAt) >= lim; })[0];
+    if (openT) crmUpdate_('tasks', openT._row, { detail: String(openT.detail || '').slice(0, 1500) + '\n+ ' + text.slice(0, 300), updatedAt: crmNow_() });
+    else crmCreateTask_({ type: 'emergency', priority: 'urgent', hn: hns[0] || '', patName: name, lineUserId: uid, detail: 'ข้อความจากคนไข้: ' + text.slice(0, 300) });
     var ack = crmEmergencyText_(s);
     if (ack) crmReply_(ev.replyToken, [crmText_(ack)]);
     return;
