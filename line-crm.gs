@@ -52,6 +52,7 @@ var CRM_DEFAULT_SETTINGS = {
   confirmOn: true,
   remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 1,
   orthoKeywords: 'จัดฟัน,ปรับเครื่องมือ,รีเทนเนอร์,ถอดเครื่องมือจัดฟัน',
+  receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
   aftercareOn: true, aftercareDelayMin: 0,
   followupOn: true, followupHour: '10:00',
   clinicName: 'คลินิกทันตกรรมบางหลวง',
@@ -459,6 +460,24 @@ function crmAptMessage_(s, apt, kind) {
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
 }
+function crmMoney_(n) { return '฿' + String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+// สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (ข้อความทั่วไป ไม่ใช่คำแนะนำทางการแพทย์ จึงไม่ต้องรออนุมัติ template)
+function crmReceiptMessage_(s, t) {
+  var cash = +t.cash || 0, tr = +t.transfer || 0, sso = +t.sso || 0, total = cash + tr + sso;
+  var rows = [crmRow_('วัน', crmThaiDate_(crmDateOnly_(t.date)))];
+  if (t.docName) rows.push(crmRow_('ทันตแพทย์', t.docName));
+  rows.push(crmRow_('การรักษา', String(t.proc || '').replace(/\s*,\s*/g, ', ') || '-'));
+  if (total > 0) {
+    rows.push(crmRow_('ค่าใช้จ่าย', crmMoney_(total)));
+    var parts = [];
+    if (cash > 0) parts.push(['เงินสด', cash]); if (tr > 0) parts.push(['โอนเงิน', tr]); if (sso > 0) parts.push(['ประกันสังคม', sso]);
+    if (parts.length > 1) parts.forEach(function (x) { rows.push(crmRow_('  ' + x[0], crmMoney_(x[1]))); });
+    else if (parts.length === 1 && parts[0][0] !== 'เงินสด') rows.push(crmRow_('ชำระโดย', parts[0][0]));
+  } else rows.push(crmRow_('ค่าใช้จ่าย', 'ไม่มีค่าใช้จ่าย'));
+  var sub = 'คุณ' + (t.patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nขอบคุณที่ไว้วางใจให้เราดูแลรอยยิ้มของคุณ';
+  var buttons = [{ type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } }];
+  return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + ' ขอบคุณที่มาใช้บริการค่ะ', contents: crmBubble_(s, '🧾 สรุปการรักษา', sub, rows, buttons, '#1D825C') };
+}
 function crmAftercareMessages_(s, patName, date, tpls, notes) {
   var parts = ['คุณ' + (patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nคำแนะนำหลังการรักษาวันนี้ (' + crmThaiDate_(date) + ')'];
   tpls.forEach(function (t) { parts.push(String(t.aftercareText || '').trim()); });
@@ -562,6 +581,22 @@ function crmTickInner_() {
     }
   });
 
+  // 2.5) สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (วันนี้ · รายการละ 1 ข้อความ · ไม่ต้องรอ template)
+  if (s.receiptOn) {
+    treats.forEach(function (t) {
+      if (!t.id || !t.hn || crmDateOnly_(t.date) !== today || t.status === 'ยกเลิก') return;
+      var rk = crmKey_(s, 'receipt:' + t.id);
+      if (crmIsDone_(state, rk)) return;
+      var tg = targets(t.hn); if (!tg.length) return;
+      var okR = false;
+      tg.forEach(function (x) {
+        if (crmSend_(s, state, { key: rk + '>' + x.lineUserId, type: 'receipt', hn: t.hn, patName: t.patName, lineUserId: x.lineUserId, refId: t.id,
+          detail: String(t.proc || '') }, [crmReceiptMessage_(s, t)])) { okR = true; summary.receipt = (summary.receipt || 0) + 1; }
+      });
+      if (crmAllDone_(state, rk, tg)) crmMark_(state, rk, 'receipt', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', '');
+    });
+  }
+
   // 3) คำแนะนำหลังรักษา (วันนี้)
   var templates = crmRead_('templates');
   var notes = crmRead_('casenotes');
@@ -662,6 +697,11 @@ function crmBaseline_(s) {
     if (!a.id || !d || d < today) return;
     var ck = crmKey_(s, 'confirm:' + a.id + ':' + d + ':' + (a.time || ''));
     if (!state.done[ck]) { crmMark_(state, ck, 'confirm', { hn: a.hn, patName: a.patName, refId: a.id }, 'baseline', 'นัดที่มีอยู่ก่อนเปิดระบบ'); n++; }
+  });
+  crmReadByName_('บันทึกการรักษา').forEach(function (t) {
+    if (!t.id || !t.hn || crmDateOnly_(t.date) !== today) return;
+    var rk = crmKey_(s, 'receipt:' + t.id);
+    if (!state.done[rk]) { crmMark_(state, rk, 'receipt', { hn: t.hn, patName: t.patName, refId: t.id }, 'baseline', 'การรักษาที่บันทึกไว้ก่อนเปิดระบบ'); n++; }
   });
   var yday = crmAddDays_(today, -1);
   crmReadByName_('บันทึกการรักษา').forEach(function (t) {
@@ -967,9 +1007,9 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'aftercareOn','aftercareDelayMin','followupOn','followupHour','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
+        'receiptOn','aftercareOn','aftercareDelayMin','followupOn','followupHour','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
-      ['enabled','testMode','confirmOn','remindOn','aftercareOn','followupOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
+      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','followupOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);
@@ -1084,7 +1124,8 @@ function crmSendTest_(b) {
     msgs = [crmText_('🧪 ตัวอย่างข้อความ (สถานะ: ' + tp.status + ')')].concat(crmAftercareMessages_(s, 'ทดสอบ ระบบ', crmToday_(), [tp], []));
     if (String(tp.followupEnabled).toUpperCase() === 'TRUE') msgs.push(crmFollowupMessage_(s, { id: 'TEST' }, tp, 'ทดสอบ ระบบ', tp.name));
   } else {
-    msgs = [crmText_('🧪 ตัวอย่างข้อความยืนยันนัด/เตือนนัด'), crmAptMessage_(s, demoApt, 'confirm'), crmAptMessage_(s, demoApt, 'remind')];
+    msgs = [crmText_('🧪 ตัวอย่างข้อความยืนยันนัด/เตือนนัด/สรุปการรักษา'), crmAptMessage_(s, demoApt, 'confirm'), crmAptMessage_(s, demoApt, 'remind'),
+      crmReceiptMessage_(s, { date: crmToday_(), docName: 'หมอทอย', proc: 'ขูดหินปูน, อุดฟัน', cash: 800, transfer: 700, sso: 0, patName: 'ทดสอบ ระบบ' })];
   }
   var res = crmApi_('post', '/v2/bot/message/push', { to: to, messages: msgs.slice(0, 5) });
   crmAppend_('log', { key: 'test:' + Date.now(), type: 'test', lineUserId: to, status: res.code === 200 ? 'test' : 'failed', detail: res.code === 200 ? (b.kind || 'apt') : ('HTTP ' + res.code + ' ' + String(res.text).slice(0, 150)), createdAt: crmNow_(), pushCount: res.code === 200 ? 1 : 0 });

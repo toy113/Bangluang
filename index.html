@@ -2742,7 +2742,7 @@ var CRM_SUBS = [
 var CRM_DOCTOR_SUBS = ['aftercare','followup','tasks'];
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน' };
-var CRM_LOG_TYPE = { confirm:'ยืนยันนัด', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
+var CRM_LOG_TYPE = { confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
 
 function crmEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function crmHN(v){ return String(v==null?'':v).replace(/[-\s]/g,'').trim().toUpperCase(); }
@@ -3356,7 +3356,7 @@ function crmViewSettings(){
       ${inp('orthoDays','งานจัดฟัน เตือนก่อน (วัน)','number')}${inp('otherDays','งานอื่น เตือนก่อน (วัน)','number')}
       <div class="full">${inp('orthoKeywords','คำที่ถือว่าเป็นนัดจัดฟัน (นอกเหนือจากคนไข้จัดฟันในระบบ)')}</div>
       ${inp('aftercareDelayMin','หน่วงส่ง Aftercare (นาที) — เผื่อเวลาเพิ่มคำแนะนำพิเศษ','number')}${inp('quotaGuard','หยุด push เมื่อโควตาเหลือ ≤','number')}
-    </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
+    </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
       <div class="full"><label>การผูกบัญชีของคนไข้</label><select class="form-control" id="crmS_linkApproval"><option value="staff" ${s.linkApproval!=='auto'?'selected':''}>พนักงานต้องกดอนุมัติ (ปลอดภัยกว่า — แนะนำ)</option><option value="auto" ${s.linkApproval==='auto'?'selected':''}>ผูกอัตโนมัติเมื่อชื่อ+เบอร์ตรง</option></select></div>
@@ -3372,7 +3372,7 @@ function crmViewSettings(){
 }
 function crmSaveSettings(){
   const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
-    'confirmOn','remindOn','aftercareOn','followupOn','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText'];
+    'confirmOn','remindOn','receiptOn','aftercareOn','followupOn','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText'];
   const s={};
   keys.forEach(k=>{ const el=document.getElementById('crmS_'+k); if(!el) return; s[k]= el.type==='checkbox' ? el.checked : (el.type==='number' ? +el.value : el.value); });
   const old=CRM.data.settings||{};
