@@ -1822,7 +1822,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <select class="form-control" id="treat-doc"></select>
       </div>
       <div class="form-group" id="treat-share-wrap" style="display:none;">
-        <label>ส่วนแบ่งหมอเฉพาะรายการนี้ (%) <span style="font-size:11px;color:var(--text-light);font-weight:400;">— เว้นว่างไว้ = ใช้ % ปัจจุบันของหมอ</span></label>
+        <label>ส่วนแบ่งหมอเฉพาะรายการนี้ (%) <span style="font-size:11px;color:var(--text-light);font-weight:400;">— ค่าเริ่มต้น = % ที่ตั้งไว้ของหมอคนนั้น แก้เฉพาะรายการนี้ได้</span></label>
         <input type="number" class="form-control" id="treat-share" min="0" max="100" placeholder="เช่น 60">
       </div>
       <div class="form-group">
@@ -3872,13 +3872,26 @@ function syncXrayRuleToForm(){
     _xrayFormLocked = true;
   } else if(_xrayFormLocked){
     docEl.disabled = false;
-    if(shareEl){ shareEl.disabled = false; shareEl.value = ''; }
+    if(shareEl){ shareEl.disabled = false; shareEl.value = treatShareDefault_(docEl.value); shareEl.dataset.autoFor = docEl.value; shareEl.dataset.autoVal = shareEl.value; }
     if(hint) hint.style.display = 'none';
     _xrayFormLocked = false;
   }
 }
+// ส่วนแบ่งหมอ: ตั้งค่าเริ่มต้นตาม % ที่ตั้งไว้ของหมอคนนั้น · เปลี่ยนหมอแล้วตามหมอใหม่ ถ้าไม่ได้พิมพ์แก้เอง
+function treatShareDefault_(docName){
+  const d = doctors.find(x=>x.name===docName) || DOCTORS_DATA.find(x=>x.name===docName);
+  return d && d.share!==undefined && d.share!=='' ? String(d.share) : '';
+}
+function syncShareDefault_(){
+  const docEl = document.getElementById('treat-doc'), el = document.getElementById('treat-share');
+  if(!docEl || !el || el.disabled || el.dataset.autoFor===undefined) return;
+  if(el.dataset.autoFor === docEl.value) return;
+  if(el.value==='' || String(el.value)===String(el.dataset.autoVal)){ el.value = treatShareDefault_(docEl.value); }
+  el.dataset.autoFor = docEl.value; el.dataset.autoVal = treatShareDefault_(docEl.value);
+}
 function renderTreatSaveSummary(){
   syncXrayRuleToForm();
+  syncShareDefault_();
   refreshNoteChips();
   const card = ensureSaveSummary('modalTreat','treat-save-summary');
   if(!card) return;
@@ -4196,7 +4209,11 @@ function openAddTreat(t=null){
   const shareWrap = document.getElementById('treat-share-wrap');
   const shareInput = document.getElementById('treat-share');
   if(shareWrap) shareWrap.style.display = isManager ? '' : 'none';
-  if(shareInput) shareInput.value = (t && t.docShare!==undefined && t.docShare!=='') ? t.docShare : '';
+  if(shareInput){
+    const _dn = document.getElementById('treat-doc').value;
+    shareInput.value = (t && t.docShare!==undefined && t.docShare!=='') ? t.docShare : treatShareDefault_(_dn);
+    shareInput.dataset.autoFor = _dn; shareInput.dataset.autoVal = shareInput.value;
+  }
   document.getElementById('treat-proc').value = t?.proc||'';
   _ppVals = {};
   setProcSelected(t?.proc||'');
