@@ -280,7 +280,7 @@ function renderNext(p){
       ${i===0?'<h3>นัดครั้งถัดไป</h3>':''}
       <div class="when">${esc(thaiDateFull(a.date))}</div>
       <div class="time">${a.time?esc(a.time)+' น.':''}</div>
-      <div class="sub">${[a.proc, a.docName].filter(Boolean).map(esc).join(' · ')}</div>
+      <div class="sub">${a.kind==='ortho'?'😬 จัดฟัน · ':''}${[a.proc, a.docName].filter(Boolean).map(esc).join(' · ')}</div>
       <span class="count">${cnt}</span>
     </div>`;
   }).join('') + `<p class="muted center" style="margin:4px 0 12px;">ต้องการเลื่อนนัด กดปุ่ม "ขอเลื่อนนัด" ในข้อความเตือนนัด หรือโทรหาคลินิก</p>`;

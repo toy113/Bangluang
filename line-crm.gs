@@ -999,6 +999,21 @@ function crmPortal_(p) {
     var next = apts.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) >= today && ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ'].indexOf(x.status) === -1; })
       .map(function (x) { return { id: x.id, date: crmDateOnly_(x.date), time: x.time || '', proc: x.proc || '', docName: x.docName || '' }; })
       .sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); }).slice(0, 5);
+    // นัดจัดฟัน (เก็บแยกในชีตจัดฟัน คอลัมน์ นัดถัดไป) รวมเข้ารายการนัด · ซ้ำกับตารางนัดเมื่อวัน+เวลาตรงกัน ให้ใช้รายการตารางนัด
+    var oNext = null;
+    for (var oi = 0; oi < orthoRows.length; oi++) if (crmHN_(orthoRows[oi].hn) === k) { oNext = orthoRows[oi]; break; }
+    if (oNext) {
+      var od = crmDateOnly_(oNext['นัดถัดไป']);
+      if (od && od >= today) {
+        var ot = String(oNext['นัดถัดไปเวลา'] || '').trim().slice(0, 5);
+        var dup = next.some(function (x) { return x.date === od && (!ot || !x.time || String(x.time).slice(0, 5) === ot); });
+        if (!dup) {
+          next.push({ id: 'ortho-' + k, date: od, time: ot, proc: oNext['รายการนัดถัดไป'] || 'นัดจัดฟัน', docName: oNext['หมอ'] || '', kind: 'ortho' });
+          next.sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); });
+          if (next.length > 5) next = next.slice(0, 5);
+        }
+      }
+    }
     var hist = treats.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) && crmDateOnly_(x.date) <= today; })
       .map(function (x) { return { date: crmDateOnly_(x.date), proc: x.proc || '', docName: x.docName || '' }; })
       .sort(function (x, y) { return y.date.localeCompare(x.date); }).slice(0, 40);
