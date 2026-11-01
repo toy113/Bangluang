@@ -478,7 +478,7 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
 }
 function crmTelUri_(s) { return 'tel:' + String(s.clinicPhone || '').replace(/[^0-9+]/g, ''); }
 function crmAptMessage_(s, apt, kind) {
-  var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'change' ? '📅 นัดหมายมีการเปลี่ยนแปลง' : '📅 ยืนยันการนัดหมาย');
+  var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '✅ ยืนยันการนัดหมาย');
   var sub = 'คุณ' + (apt.patName || '') + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ');
   var rows = [crmRow_('วัน', crmThaiDate_(apt.date)), crmRow_('เวลา', (apt.time || '-') + ' น.')];
   if (apt.docName) rows.push(crmRow_('ทันตแพทย์', apt.docName));
@@ -486,7 +486,7 @@ function crmAptMessage_(s, apt, kind) {
   var buttons = [];
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
   if (kind === 'remind') buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + apt.id, displayText: 'ยืนยันนัด' } });
-  buttons.push({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '📅 ขอเลื่อนนัด', data: 'apt|resched|' + apt.id, displayText: 'ขอเลื่อนนัด' } });
+  buttons.push({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '🔄 ขอเลื่อนนัด', data: 'apt|resched|' + apt.id, displayText: 'ขอเลื่อนนัด' } });
   buttons.push({ type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } });
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
