@@ -32,7 +32,7 @@ var CRM_SHEETS = {
   followers: ['lineUserId','displayName','pictureUrl','status','followedAt','updatedAt','lastSeenAt'],
   log:       ['key','type','hn','patName','lineUserId','refId','status','detail','createdAt','pushCount'],
   tasks:     ['id','type','priority','status','hn','patName','lineUserId','aptId','aptDate','aptTime','detail','preference','createdAt','updatedAt','doneBy','resultNote'],
-  followups: ['id','hn','patName','lineUserId','treatDate','templateId','proc','sentAt','answer','answerKind','answeredAt','taskId','status'],
+  followups: ['id','hn','patName','lineUserId','treatDate','templateId','proc','sentAt','answer','answerKind','answeredAt','taskId','status','rating','ratedAt'],
   templates: ['id','name','procKeywords','priority','aftercareText','followupEnabled','followupQuestion','followupOptions','status','version','approvedBy','approvedAt','updatedBy','updatedAt'],
   casenotes: ['id','treatId','hn','patName','text','author','status','approvedBy','approvedAt','sentAt','createdAt'],
   apt:       ['aptId','hn','confirmedAt','rescheduleAt','lastAction','updatedAt'],
@@ -55,6 +55,7 @@ var CRM_DEFAULT_SETTINGS = {
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
   aftercareOn: true, aftercareDelayMin: 0,
   followupOn: true, followupHour: '10:00',
+  ratingOn: true, ratingTpls: 'tpl_extraction', reviewUrl: '',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
   clinicPhone: '095-947-6759',
   linkApproval: 'staff',     // staff = พนักงานต้องกดอนุมัติการผูกบัญชี, auto = เบอร์+ชื่อตรงก็ผูกเลย
@@ -820,6 +821,24 @@ function crmCreateTask_(t) {
   crmAppend_('tasks', task);
   return task;
 }
+function crmRatingApplies_(s, fu) {
+  if (!(s.ratingOn === true || s.ratingOn === 'true' || s.ratingOn === 'TRUE')) return false;
+  return crmSplitList_(s.ratingTpls).indexOf(String(fu.templateId)) !== -1;
+}
+function crmRatingMessage_(s, fu) {
+  var L = [['5', '5 ⭐ ดีมาก'], ['4', '4 ⭐ ดี'], ['3', '3 ⭐ พอใช้'], ['2', '2 ⭐ ควรปรับปรุง'], ['1', '1 ⭐ ไม่พอใจ'], ['0', '0 ⭐ แย่มาก']];
+  var btn = function (x) { return { type: 'button', height: 'sm', style: x[0] === '5' ? 'primary' : 'secondary', color: x[0] === '5' ? '#1D825C' : undefined,
+    action: { type: 'postback', label: x[1], data: 'rate|' + fu.id + '|' + x[0], displayText: x[1] } }; };
+  var btns = L.map(btn); btns.forEach(function (b) { if (b.color === undefined) delete b.color; });
+  return { type: 'flex', altText: 'ให้คะแนนบริการครั้งนี้ 0-5', contents: crmBubble_(s, '⭐ ให้คะแนนบริการครั้งนี้', 'ความเห็นของคุณช่วยให้เราพัฒนาบริการค่ะ 🙏 กรุณาเลือกคะแนน 0–5', [], btns, '#1D825C') };
+}
+function crmReviewMessages_(s) {
+  var url = String(s.reviewUrl || '').trim();
+  var thanks = crmText_('ขอบคุณมากค่ะ 💚 ดีใจที่คุณพอใจกับบริการของเรา');
+  if (!/^https:\/\//i.test(url)) return [thanks];
+  return [thanks, { type: 'flex', altText: 'ช่วยรีวิวคลินิกให้เราหน่อยนะคะ', contents: crmBubble_(s, '💬 ช่วยรีวิวให้เราหน่อยนะคะ', 'ถ้าคุณประทับใจ รบกวนแบ่งปันประสบการณ์ให้คนอื่นได้รู้จักเรา ใช้เวลาไม่ถึงนาทีค่ะ 🙏', [],
+    [{ type: 'button', style: 'primary', color: '#1D825C', height: 'sm', action: { type: 'uri', label: '⭐ รีวิวให้เรา', uri: url } }], '#1D825C') }];
+}
 function crmHandlePostback_(s, ev, uid) {
   var data = String((ev.postback && ev.postback.data) || ''), parts = data.split('|');
   var hns = crmUserHns_(uid);
@@ -871,7 +890,23 @@ function crmHandlePostback_(s, ev, uid) {
       reply = opt.reply || (opt.kind === 'ok' ? CRM_REPLY_OK : CRM_REPLY_CALLBACK);
       if (opt.kind === 'ok') reply += crmNextAptText_(fu.hn, crmReadByName_('ตารางนัด'));
     }
-    if (reply) crmReply_(ev.replyToken, [crmText_(reply)]);
+    var out = reply ? [crmText_(reply)] : [];
+    if (opt.kind === 'ok' && crmRatingApplies_(s, fu)) out.push(crmRatingMessage_(s, fu));
+    if (out.length) crmReply_(ev.replyToken, out);
+    return;
+  }
+  if (parts[0] === 'rate') {
+    var fr = crmFind_(crmRead_('followups'), 'id', parts[1]);
+    if (!fr || (fr.lineUserId !== uid && hns.indexOf(crmHN_(fr.hn)) === -1 && !isTester)) { crmReply_(ev.replyToken, [crmText_('ขอบคุณค่ะ 🙏')]); return; }
+    if (String(fr.rating || '') !== '') { crmReply_(ev.replyToken, [crmText_('ขอบคุณที่ให้คะแนนแล้วค่ะ 🙏')]); return; }
+    var n = parseInt(parts[2], 10);
+    if (!(n >= 0 && n <= 5)) return;
+    crmUpdate_('followups', fr._row, { rating: String(n), ratedAt: crmNow_() });
+    if (n === 5) { crmReply_(ev.replyToken, crmReviewMessages_(s)); return; }
+    if (n === 4) { crmReply_(ev.replyToken, [crmText_('ขอบคุณสำหรับคะแนนค่ะ 🙏 เราจะพัฒนาบริการให้ดียิ่งขึ้น')]); return; }
+    crmCreateTask_({ type: 'lowrating', priority: 'normal', hn: fr.hn, patName: fr.patName, lineUserId: uid,
+      detail: 'คนไข้ให้คะแนนบริการ ' + n + '/5 หลัง' + fr.proc + ' (' + fr.treatDate + ') — ควรโทรสอบถามความไม่พอใจ' });
+    crmReply_(ev.replyToken, [crmText_('ขอบคุณที่บอกเราค่ะ 🙏 ขออภัยหากบริการยังไม่ดีพอ ทีมงานจะติดต่อกลับเพื่อรับฟังและปรับปรุงค่ะ')]);
   }
 }
 function crmEmergencyText_(s) { return String(s.emergencyText || '').trim(); }
@@ -1087,9 +1122,9 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'receiptOn','aftercareOn','aftercareDelayMin','followupOn','followupHour','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
+        'receiptOn','aftercareOn','aftercareDelayMin','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
-      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','followupOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
+      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);

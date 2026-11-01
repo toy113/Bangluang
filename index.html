@@ -2748,7 +2748,7 @@ var CRM_SUBS = [
 ];
 var CRM_DOCTOR_SUBS = ['aftercare','followup','tasks'];
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
-var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน' };
+var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ' };
 var CRM_LOG_TYPE = { confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
 
 function crmEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -3159,7 +3159,7 @@ function crmViewFollowup(){
       return `<div class="crm-item ${x.answerKind==='emergency'?'urgent':(x.answerKind==='severe'?'high':'')}"><div class="main">
         <div class="nm">${crmEsc(x.patName||'')} <span class="crm-muted">HN ${crmEsc(x.hn||'')}</span> ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
-        <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>`:'<span class="crm-chip x">ยังไม่ตอบ</span>'}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}</div></div>
+        <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:'<span class="crm-chip x">ยังไม่ตอบ</span>'}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}</div></div>
         <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
 }
 
@@ -3390,6 +3390,8 @@ function crmViewSettings(){
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
       <div class="full"><label>การผูกบัญชีของคนไข้</label><select class="form-control" id="crmS_linkApproval"><option value="staff" ${s.linkApproval!=='auto'?'selected':''}>พนักงานต้องกดอนุมัติ (ปลอดภัยกว่า — แนะนำ)</option><option value="auto" ${s.linkApproval==='auto'?'selected':''}>ผูกอัตโนมัติเมื่อชื่อ+เบอร์ตรง</option></select></div>
+      <div class="full"><label>⭐ ให้คะแนนบริการ 0–5 หลังคนไข้ตอบ "ปกติดี" (เฉพาะถอนฟัน) · ได้ 5 ส่งลิงก์รีวิว · ได้ ≤3 สร้างงานโทรสอบถาม</label><div>${sw('ratingOn','เปิดถามคะแนนหลังถอนฟัน')}</div></div>
+      <div class="full"><label>ลิงก์รีวิว Google (ขึ้นต้น https:// — เว้นว่าง = ขอบคุณเฉยๆ ไม่ส่งลิงก์)</label><input class="form-control" id="crmS_reviewUrl" value="${crmEsc(s.reviewUrl||'')}" placeholder="https://g.page/r/xxxx/review"></div>
       <div class="full"><label>ข้อความตอบรับเมื่อพบอาการฉุกเฉิน (ระบบสร้างงานด่วนเสมอ · เว้นว่าง = ไม่ตอบคนไข้)</label><textarea class="form-control" id="crmS_emergencyText">${crmEsc(s.emergencyText)}</textarea></div>
       <div class="full"><label>คำที่ถือว่าฉุกเฉินเมื่อคนไข้พิมพ์มา (คั่นด้วย ,)</label><textarea class="form-control" id="crmS_emergencyKeywords" style="min-height:60px;">${crmEsc(s.emergencyKeywords)}</textarea></div>
       <div class="full"><label>ข้อความตอบเมื่อคนไข้กดขอเลื่อนนัด</label><textarea class="form-control" id="crmS_rescheduleText">${crmEsc(s.rescheduleText)}</textarea></div>
@@ -3402,7 +3404,7 @@ function crmViewSettings(){
 }
 function crmSaveSettings(){
   const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
-    'confirmOn','remindOn','receiptOn','aftercareOn','followupOn','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText'];
+    'confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText'];
   const s={};
   keys.forEach(k=>{ const el=document.getElementById('crmS_'+k); if(!el) return; s[k]= el.type==='checkbox' ? el.checked : (el.type==='number' ? +el.value : el.value); });
   const old=CRM.data.settings||{};
