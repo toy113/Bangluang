@@ -78,6 +78,7 @@ function crmSettings_() {
   return out;
 }
 function crmSaveSettingsRaw_(s) {
+  crmTouch_();
   PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s));
 }
 function crmProp_(k, def) {
@@ -95,23 +96,32 @@ function crmLiffUrl_(tab) { return 'https://liff.line.me/' + crmLiffId_() + (tab
 function crmChannelId_() { return crmProp_('LIFF_CHANNEL_ID', crmLiffId_().split('-')[0]); }
 
 /* ============================ SHEET HELPERS ============================ */
-function crmSheet_(key) {
+// จำชีต + หัวตารางไว้ตลอดการทำงานรอบนี้ (ไม่ต้องอ่านหัวตารางซ้ำทุกครั้งที่อ่าน/เขียน → เร็วขึ้นมาก)
+var CRM_SHEET_MEMO = {};
+function crmSheet_(key) { return crmSheetInfo_(key).sh; }
+function crmSheetInfo_(key) {
+  if (CRM_SHEET_MEMO[key]) return CRM_SHEET_MEMO[key];
   var name = CRM_SHEET_NAMES[key], headers = CRM_SHEETS[key];
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(name);
+  var sh = ss.getSheetByName(name), hdr;
   if (!sh) {
     sh = ss.insertSheet(name);
     sh.getRange(1, 1, 1, headers.length).setValues([headers]);
     sh.setFrozenRows(1);
     sh.getRange(1, 1, Math.max(sh.getMaxRows(), 2), headers.length).setNumberFormat('@');
-    return sh;
+    hdr = headers.slice();
+  } else {
+    var lastCol = Math.max(sh.getLastColumn(), 1);
+    hdr = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+    while (hdr.length && hdr[hdr.length - 1] === '') hdr.pop();
+    var missing = headers.filter(function (h) { return hdr.indexOf(h) === -1; });
+    if (missing.length) { sh.getRange(1, hdr.length + 1, 1, missing.length).setValues([missing]); hdr = hdr.concat(missing); }
   }
-  var lastCol = Math.max(sh.getLastColumn(), 1);
-  var hdr = sh.getRange(1, 1, 1, lastCol).getValues()[0];
-  var missing = headers.filter(function (h) { return hdr.indexOf(h) === -1; });
-  if (missing.length) sh.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
-  return sh;
+  CRM_SHEET_MEMO[key] = { sh: sh, hdr: hdr };
+  return CRM_SHEET_MEMO[key];
 }
+// มีการเขียนข้อมูล CRM → แคชหน้าแดชบอร์ดเก่าใช้ไม่ได้
+function crmTouch_() { try { CacheService.getScriptCache().put('crm_gen', String(Date.now()) + Math.random(), 21600); } catch (e) {} }
 function crmCell_(v, col) {
   if (v === null || v === undefined) return '';
   if (v instanceof Date) {
@@ -173,8 +183,7 @@ function crmReadByName_(name) {
 }
 function crmRead_(key) { crmSheet_(key); return crmReadByName_(CRM_SHEET_NAMES[key]); }
 function crmAppend_(key, obj) {
-  var sh = crmSheet_(key);
-  var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var info = crmSheetInfo_(key), sh = info.sh, hdr = info.hdr; crmTouch_();
   var row = hdr.map(function (h) { var v = obj[h]; return (v === undefined || v === null) ? '' : String(v); });
   var r = sh.getLastRow() + 1;
   sh.getRange(r, 1, 1, row.length).setNumberFormat('@').setValues([row]);
@@ -182,15 +191,13 @@ function crmAppend_(key, obj) {
 }
 function crmAppendMany_(key, objs) {
   if (!objs.length) return;
-  var sh = crmSheet_(key);
-  var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var info = crmSheetInfo_(key), sh = info.sh, hdr = info.hdr; crmTouch_();
   var rows = objs.map(function (obj) { return hdr.map(function (h) { var v = obj[h]; return (v === undefined || v === null) ? '' : String(v); }); });
   var r = sh.getLastRow() + 1;
   sh.getRange(r, 1, rows.length, hdr.length).setNumberFormat('@').setValues(rows);
 }
 function crmUpdate_(key, rowNum, patch) {
-  var sh = crmSheet_(key);
-  var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var info = crmSheetInfo_(key), sh = info.sh, hdr = info.hdr; crmTouch_();
   for (var k in patch) {
     var c = hdr.indexOf(k);
     if (c === -1) continue;
@@ -261,8 +268,8 @@ function crmRouteGet_(e) {
     if (a === 'crmPortal')    return crmJson_(crmPortal_(p));
     if (a === 'crmBind')      return crmJson_(crmBind_(p));
     if (a === 'crmConsent')   return crmJson_(crmConsent_(p));
-    if (a === 'crmDashboard') return crmJson_(crmDashboard_());
-    if (a === 'crmCall')      return crmJson_(crmStaffAction_(JSON.parse(p.data || '{}')));
+    if (a === 'crmDashboard') return ContentService.createTextOutput(crmDashboardJson_(p.fresh === '1')).setMimeType(ContentService.MimeType.JSON);
+    if (a === 'crmCall')      { var cb = JSON.parse(p.data || '{}'), cr = crmStaffAction_(cb); if (cr && cr.ok && cb.withDash) cr.dash = JSON.parse(crmDashboardJson_()); return crmJson_(cr); }
     return crmJson_({ ok: false, error: 'unknown_action' });
   } catch (err) {
     return crmJson_({ ok: false, error: String(err && err.message || err) });
@@ -273,11 +280,11 @@ function crmRoutePost_(e) {
   try { body = JSON.parse(e.postData.contents); } catch (err) { return null; }
   if (!body) return null;
   if (body.events && Object.prototype.toString.call(body.events) === '[object Array]') {
-    crmHandleWebhook_(body.events);
+    crmHandleWebhook_(body.events, body.destination);
     return ContentService.createTextOutput('OK');
   }
   if (body.crm) {
-    try { return crmJson_(crmStaffAction_(body)); }
+    try { var rr = crmStaffAction_(body); if (rr && rr.ok && body.withDash) rr.dash = JSON.parse(crmDashboardJson_()); return crmJson_(rr); }
     catch (err2) { return crmJson_({ ok: false, error: String(err2 && err2.message || err2) }); }
   }
   return null;
@@ -893,10 +900,31 @@ function crmBaseline_(s) {
 }
 
 /* ============================ WEBHOOK ============================ */
-function crmHandleWebhook_(events) {
+// userId ของบอท (OA) จาก LINE — ใช้ตรวจว่า webhook ส่งมาถึงบอทเราจริง (Apps Script ตรวจลายเซ็น LINE ไม่ได้)
+function crmBotId_() {
+  var pr = PropertiesService.getScriptProperties(), id = pr.getProperty('CRM_BOT_ID');
+  if (id) return id;
+  var c = CacheService.getScriptCache(); if (c.get('crm_botid_try')) return '';
+  c.put('crm_botid_try', '1', 600);   // ถาม LINE ไม่เกินทุก 10 นาทีถ้ายังไม่สำเร็จ
+  try { var r = crmApi_('get', '/v2/bot/info'); if (r.code === 200 && r.data && /^U[0-9a-f]{32}$/.test(r.data.userId || '')) { pr.setProperty('CRM_BOT_ID', r.data.userId); return r.data.userId; } } catch (e) {}
+  return '';
+}
+function crmHandleWebhook_(events, destination) {
   var s = crmSettings_();
+  // กัน event ปลอม: ถ้ารู้ userId ของบอทแล้ว event ต้องระบุ destination ตรงกัน (ไม่รู้ = ปล่อยผ่าน กันระบบล่ม)
+  var bot = (events && events.length) ? crmBotId_() : '';
+  if (bot && destination !== bot) {
+    try { var c0 = CacheService.getScriptCache(); if (!c0.get('crm_whrej')) { c0.put('crm_whrej', '1', 3600); crmAppend_('log', { key: 'whrej:' + Date.now(), type: 'webhook_reject', status: 'error', detail: 'destination ไม่ตรงกับบอท: ' + String(destination || '(ไม่มี)').slice(0, 40), createdAt: crmNow_(), pushCount: 0 }); } } catch (e0) {}
+    return;
+  }
+  var cache = CacheService.getScriptCache();
   (events || []).forEach(function (ev) {
     try {
+      // LINE ส่งซ้ำ (redelivery) → ทำครั้งเดียว
+      var evId = ev.webhookEventId;
+      if (evId) { if (cache.get('crm_ev_' + evId)) return; cache.put('crm_ev_' + evId, '1', 21600); }
+      // รับเฉพาะแชท 1:1 (ไม่ตอบในกลุ่ม/ห้อง)
+      if (ev.source && ev.source.type && ev.source.type !== 'user') return;
       var uid = ev.source && ev.source.userId;
       if (ev.type === 'follow') {
         crmUpsertFollower_(uid, 'follow');
@@ -1047,7 +1075,11 @@ function crmHandleText_(s, ev, uid) {
   if (crmHasWord_(text, crmSplitList_(s.emergencyKeywords))) {
     var hns = crmUserHns_(uid), name = '';
     if (hns.length) { var l = crmRead_('links').filter(function (x) { return x.lineUserId === uid && x.status === 'active'; })[0]; name = l ? l.patName : ''; }
-    crmCreateTask_({ type: 'emergency', priority: 'urgent', hn: hns[0] || '', patName: name, lineUserId: uid, detail: 'ข้อความจากคนไข้: ' + text.slice(0, 300) });
+    // ส่งข้อความฉุกเฉินหลายข้อความติดกัน → รวมในงานเดิมที่ยังเปิดอยู่ (ภายใน 30 นาที) ไม่สร้างงานซ้ำ
+    var lim = Utilities.formatDate(new Date(Date.now() - 30 * 60000), CRM_TZ, 'yyyy-MM-dd HH:mm');
+    var openT = crmRead_('tasks').filter(function (x) { return x.type === 'emergency' && x.status === 'open' && x.lineUserId === uid && String(x.createdAt) >= lim; })[0];
+    if (openT) crmUpdate_('tasks', openT._row, { detail: String(openT.detail || '').slice(0, 1500) + '\n+ ' + text.slice(0, 300), updatedAt: crmNow_() });
+    else crmCreateTask_({ type: 'emergency', priority: 'urgent', hn: hns[0] || '', patName: name, lineUserId: uid, detail: 'ข้อความจากคนไข้: ' + text.slice(0, 300) });
     var ack = crmEmergencyText_(s);
     if (ack) crmReply_(ev.replyToken, [crmText_(ack)]);
     return;
@@ -1233,6 +1265,28 @@ function crmConsent_(p) {
 }
 
 /* ============================ STAFF DASHBOARD ============================ */
+/* แดชบอร์ดแบบแคช: เก็บผลไว้ใน CacheService (แบ่งก้อน) สูงสุด 90 วิ · มีการเขียนข้อมูล CRM (crmTouch_) = คำนวณใหม่ */
+function crmDashboardJson_(fresh) {
+  var c = CacheService.getScriptCache(), gen = c.get('crm_gen') || 'g0';
+  if (!fresh) {
+    try {
+      var meta = JSON.parse(c.get('crm_dash_meta') || 'null');
+      if (meta && meta.gen === gen && Date.now() - meta.at < 90000) {
+        var keys = []; for (var i = 0; i < meta.n; i++) keys.push('crm_dash_' + i);
+        var got = c.getAll(keys), parts = [];
+        for (var j = 0; j < meta.n; j++) { if (got['crm_dash_' + j] === undefined || got['crm_dash_' + j] === null) { parts = null; break; } parts.push(got['crm_dash_' + j]); }
+        if (parts) return parts.join('');
+      }
+    } catch (e) {}
+  }
+  var json = JSON.stringify(crmDashboard_());
+  try {
+    var put = {}, n = 0, CH = 30000;
+    for (var k = 0; k < json.length; k += CH) put['crm_dash_' + (n++)] = json.slice(k, k + CH);
+    if (n <= 60) { c.putAll(put, 120); c.put('crm_dash_meta', JSON.stringify({ gen: gen, at: Date.now(), n: n }), 120); }
+  } catch (e) {}
+  return json;
+}
 function crmDashboard_() {
   var s = crmSettings_();
   var since = crmAddDays_(crmToday_(), -45);
