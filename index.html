@@ -1205,6 +1205,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
         <button onclick="manualSync()" id="syncBtn" title="Sync ตอนนี้" aria-label="Sync ตอนนี้" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;transition:transform 0.3s;color:inherit;" ><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>
       </div>
+      <button class="logout-btn" onclick="authChangeMyPin()" style="margin-bottom:6px;">🔑 เปลี่ยน PIN</button>
       <button class="logout-btn" onclick="logout()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ออกจากระบบ</button>
     </div>
   </div>
@@ -2398,6 +2399,21 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 // ============================================================
 // วาง Apps Script Web App URL ที่นี่
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
+// ---- AUTH: บัตรผ่านจากเซิร์ฟเวอร์ (ได้ตอนล็อกอินด้วย PIN · อายุ 24 ชม.) แนบไปกับทุกคำขอถึง Apps Script อัตโนมัติ ----
+function authSess(){ try{ return JSON.parse(localStorage.getItem('bl_session')||'null'); }catch(e){ return null; } }
+let _authTok = null; // {token, exp} ระหว่างล็อกอิน (ก่อนบันทึก session)
+function authToken(){ const s=authSess(); if(s && s.token && s.exp>Date.now()) return s.token; return (_authTok && _authTok.exp>Date.now()) ? _authTok.token : ''; }
+(function(){
+  const _f = window.fetch.bind(window);
+  window.fetch = function(url, opts){
+    try{ if(typeof url==='string' && url.indexOf('https://script.google.com/macros/s/')===0){ const tk=authToken(); if(tk && !/[?&]_t=/.test(url)) url += (url.indexOf('?')>-1?'&':'?')+'_t='+encodeURIComponent(tk); } }catch(e){}
+    return _f(url, opts);
+  };
+})();
+async function authApi(payload){
+  const r = await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(Object.assign({ _t: authToken() }, payload)) });
+  return await r.json();
+}
 
 // ============================================================
 //  DOCTORS & AUTH
@@ -2406,16 +2422,16 @@ const DOC_ALIAS = {'หมอทอย':'ทพ.สรวิศ สุภาพ'
 function docAlias(n){ return (n && DOC_ALIAS[n]) || n; }
 function aliasRows_(rows){ rows.forEach(r=>{ if(r && r.docName) r.docName = docAlias(r.docName); }); return rows; }
 const DOCTORS_DATA = [
-  { id:'toy',   name:'ทพ.สรวิศ สุภาพ',  pin:'1111', emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'ทพ.สรวิศ สุภาพ', licenseNo:'' },
-  { id:'mind',  name:'ทพ.ภาคภูมิ สุนทราภิรมย์', pin:'6465', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'ทพ.ภาคภูมิ สุนทราภิรมย์', licenseNo:'' },
-  { id:'koi',   name:'ทพญ.พัทธนันท์ กฤินหอม',  pin:'9677', emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'ทพญ.พัทธนันท์ กฤินหอม', licenseNo:'' },
-  { id:'pong',  name:'ทพ.สหพล หังสพฤกษ์',  pin:'3467', emoji:'📷', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'ทพ.สหพล หังสพฤกษ์', licenseNo:'' },
-  { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   pin:'7699', emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
-  { id:'khao',  name:'ทพ.สิรวิชญ์ พินิจรัตนพันธ์',  pin:'8986', emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#E5B80B', fullName:'ทพ.สิรวิชญ์ พินิจรัตนพันธ์', licenseNo:'' },
-  { id:'part',  name:'หมอพาร์ท', pin:'8888', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B', fullName:'', licenseNo:'' },
-  { id:'ben',   name:'ทพญ.ภาสิริ ศิริรังษี',  pin:'2233', emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#F27A0D', fullName:'ทพญ.ภาสิริ ศิริรังษี', licenseNo:'' },
+  { id:'toy',   name:'ทพ.สรวิศ สุภาพ',  emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'ทพ.สรวิศ สุภาพ', licenseNo:'' },
+  { id:'mind',  name:'ทพ.ภาคภูมิ สุนทราภิรมย์', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'ทพ.ภาคภูมิ สุนทราภิรมย์', licenseNo:'' },
+  { id:'koi',   name:'ทพญ.พัทธนันท์ กฤินหอม',  emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'ทพญ.พัทธนันท์ กฤินหอม', licenseNo:'' },
+  { id:'pong',  name:'ทพ.สหพล หังสพฤกษ์',  emoji:'📷', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'ทพ.สหพล หังสพฤกษ์', licenseNo:'' },
+  { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
+  { id:'khao',  name:'ทพ.สิรวิชญ์ พินิจรัตนพันธ์',  emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#E5B80B', fullName:'ทพ.สิรวิชญ์ พินิจรัตนพันธ์', licenseNo:'' },
+  { id:'part',  name:'หมอพาร์ท', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B', fullName:'', licenseNo:'' },
+  { id:'ben',   name:'ทพญ.ภาสิริ ศิริรังษี',  emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#F27A0D', fullName:'ทพญ.ภาสิริ ศิริรังษี', licenseNo:'' },
 ];
-const MANAGER = { id:'manager', name:'ผู้จัดการ', pin:'1234', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
+const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
 const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
 
@@ -2567,26 +2583,67 @@ function updatePinDots2(){
   }
 }
 
-function doVerify(){
-  var id = selectedLoginDoc;
-  var match = false, userData = null;
-  if(id==='manager'){
-    match = (currentPin === MANAGER.pin);
-    userData = MANAGER; isManager = true;
-  } else {
-    var doc = doctors.find(function(d){return d.id===id;}) || DOCTORS_DATA.find(function(d){return d.id===id;});
-    if(doc && currentPin === doc.pin){ match = true; userData = doc; isManager = (doc.id==='toy'); }
-  }
-  if(match){
-    currentUser = userData;
-    document.getElementById('loginError').textContent = '';
-    startApp();
-  } else {
-    document.getElementById('loginError').textContent = '❌ PIN ไม่ถูกต้อง ลองใหม่';
-    currentPin = ''; updatePinDots2();
-  }
+let _verifying = false;
+async function doVerify(){
+  if(_verifying) return;
+  const id = selectedLoginDoc, pin = currentPin;
+  const errEl = document.getElementById('loginError');
+  if(!id || pin.length<4) return;
+  _verifying = true; errEl.textContent = '⏳ กำลังตรวจสอบ...';
+  let r = null;
+  try{ r = await authApi({ action:'authLogin', id, pin }); }catch(e){}
+  _verifying = false;
+  if(!r){ errEl.textContent = '⚠️ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่'; currentPin=''; updatePinDots2(); return; }
+  if(!r.ok){ errEl.textContent = r.error==='locked' ? '🔒 ใส่ PIN ผิดหลายครั้ง ระบบล็อก 15 นาที' : '❌ PIN ไม่ถูกต้อง ลองใหม่'; currentPin=''; updatePinDots2(); return; }
+  let userData = null;
+  if(id==='manager'){ userData = MANAGER; isManager = true; }
+  else { const doc = doctors.find(d=>d.id===id) || DOCTORS_DATA.find(d=>d.id===id); if(doc){ userData = doc; isManager = (doc.id==='toy'); } }
+  if(!userData){ errEl.textContent = '❌ ไม่พบผู้ใช้'; return; }
+  _authTok = { token:r.token, exp:r.exp };
+  currentUser = userData; errEl.textContent = '';
+  if(r.mustChange){ authForceChange(()=>startApp()); return; }
+  startApp();
 }
-
+// PIN เดิมรั่วแล้ว → บังคับตั้ง PIN ใหม่ก่อนเข้าใช้งาน (ปิดหน้าต่างไม่ได้)
+function authForceChange(done){
+  authPinDialog('🔑 ตั้ง PIN ใหม่', 'PIN เดิมของคุณต้องเปลี่ยนก่อนเข้าใช้งาน (เพื่อความปลอดภัยของข้อมูลคนไข้) — ห้ามใช้ PIN เดิม, 1234, 0000 หรือเลขซ้ำ 4 ตัว', false, async (pin)=>{
+    const r = await authApi({ action:'authChangePin', newPin:pin });
+    if(r && r.ok){ showToast('ตั้ง PIN ใหม่แล้ว ✅'); done && done(); return true; }
+    return (r && r.error) || 'บันทึกไม่สำเร็จ ลองใหม่';
+  });
+}
+function authChangeMyPin(){
+  authPinDialog('🔑 เปลี่ยน PIN ของฉัน', 'ใส่ PIN ใหม่ 4 หลัก 2 ครั้ง', true, async (pin)=>{
+    const r = await authApi({ action:'authChangePin', newPin:pin });
+    if(r && r.ok){ showToast('เปลี่ยน PIN แล้ว ✅'); return true; }
+    return (r && r.error) || 'บันทึกไม่สำเร็จ ลองใหม่';
+  });
+}
+function authPinDialog(title, note, cancelable, onSave){
+  document.getElementById('authPinDlg')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `<div id="authPinDlg" style="position:fixed;inset:0;background:rgba(30,10,25,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;border-radius:16px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);">
+      <div style="font-size:17px;font-weight:800;color:var(--wine-dark);margin-bottom:6px;">${title}</div>
+      <div style="font-size:12.5px;color:var(--text-mid);margin-bottom:12px;line-height:1.5;">${note}</div>
+      <input id="apd1" class="form-control" type="password" inputmode="numeric" maxlength="4" placeholder="PIN ใหม่ 4 หลัก" style="letter-spacing:6px;font-size:18px;margin-bottom:8px;">
+      <input id="apd2" class="form-control" type="password" inputmode="numeric" maxlength="4" placeholder="ยืนยัน PIN ใหม่" style="letter-spacing:6px;font-size:18px;">
+      <div id="apdErr" style="color:#C0392B;font-size:12.5px;min-height:18px;margin-top:6px;"></div>
+      <div style="display:flex;gap:8px;margin-top:6px;">${cancelable?'<button class="btn btn-ghost" style="flex:1" onclick="document.getElementById(\'authPinDlg\').remove()">ยกเลิก</button>':''}<button class="btn btn-primary" style="flex:1" id="apdOk">บันทึก PIN</button></div>
+    </div></div>`);
+  const ok = document.getElementById('apdOk'), err = document.getElementById('apdErr');
+  ok.onclick = async ()=>{
+    const a = document.getElementById('apd1').value.trim(), b = document.getElementById('apd2').value.trim();
+    if(!/^\d{4}$/.test(a)) { err.textContent = 'PIN ต้องเป็นตัวเลข 4 หลัก'; return; }
+    if(a!==b){ err.textContent = 'PIN สองช่องไม่ตรงกัน'; return; }
+    ok.disabled = true; err.textContent = '⏳ กำลังบันทึก...';
+    let res; try{ res = await onSave(a); }catch(e){ res = 'เชื่อมต่อไม่สำเร็จ ลองใหม่'; }
+    ok.disabled = false;
+    if(res===true){ document.getElementById('authPinDlg')?.remove(); } else err.textContent = '❌ '+res;
+  };
+  setTimeout(()=>document.getElementById('apd1')?.focus(), 50);
+}
+// บัตรผ่านหมดอายุ → ออกจากระบบอัตโนมัติ
+setInterval(()=>{ try{ const s=authSess(); if(currentUser && s && (!s.token || s.exp<=Date.now())){ localStorage.removeItem('bl_session'); showToast('หมดเวลาเข้าสู่ระบบ กรุณาเข้าใหม่','error'); setTimeout(()=>location.reload(), 1500); } }catch(e){} }, 60000);
 
 function verifyLogin(){
   doVerify();
@@ -2598,11 +2655,15 @@ function verifyLogin(){
 function startApp(){
   loadLocal();
   // Save session so refresh doesn't log out
-  localStorage.setItem('bl_session', JSON.stringify({
-    userId: currentUser.id,
-    isManager: isManager,
-    ts: Date.now()
-  }));
+  { const prev = authSess();
+    const tk = _authTok || (prev && prev.userId===currentUser.id ? { token:prev.token, exp:prev.exp } : null);
+    localStorage.setItem('bl_session', JSON.stringify({
+      userId: currentUser.id,
+      isManager: isManager,
+      ts: (prev && prev.userId===currentUser.id && !_authTok) ? prev.ts : Date.now(),
+      token: tk ? tk.token : '', exp: tk ? tk.exp : 0
+    }));
+    _authTok = null; }
   document.getElementById('loginScreen').classList.remove('visible');
   const app = document.getElementById('appShell');
   app.classList.add('visible');
@@ -3126,8 +3187,11 @@ function crmAskDoctor(title, onOk){
   document.getElementById('crmDocOk').onclick = ()=>{
     const name=document.getElementById('crmDocSel').value, pin=document.getElementById('crmDocPin').value.trim();
     const doc=docs.find(d=>d.name===name);
-    if(!doc || String(doc.pin)!==pin){ showToast('PIN ไม่ถูกต้อง','error'); return; }
-    crmCloseModal(); onOk(name);
+    if(!doc || !/^\d{4}$/.test(pin)){ showToast('PIN ไม่ถูกต้อง','error'); return; }
+    authApi({ action:'authCheckPin', id:doc.id, pin }).then(r=>{
+      if(r && r.ok){ crmCloseModal(); onOk(name); }
+      else showToast(r && r.error==='locked' ? 'ใส่ PIN ผิดหลายครั้ง ล็อก 15 นาที' : 'PIN ไม่ถูกต้อง','error');
+    }).catch(()=>showToast('ตรวจ PIN ไม่สำเร็จ (เชื่อมต่อไม่ได้)','error'));
   };
   setTimeout(()=>{ const p=document.getElementById('crmDocPin'); if(p) p.focus(); }, 50);
 }
@@ -6180,7 +6244,7 @@ function buildSettingsPage(){
         </div>
         ${isManager?`<div class="form-group">
           <label>PIN (4 หลัก)</label>
-          <input class="form-control" value="${doc.pin}" id="set-pin-${doc.id}" maxlength="4" placeholder="1234" type="text" inputmode="numeric" pattern="[0-9]*" style="letter-spacing:6px;font-size:18px;font-weight:700;">
+          <input class="form-control" value="" id="set-pin-${doc.id}" maxlength="4" placeholder="ตั้ง PIN ใหม่ (เว้นว่าง = ไม่เปลี่ยน)" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" style="letter-spacing:6px;font-size:16px;font-weight:700;">
         </div>`:''}
         <button class="btn btn-primary" style="width:100%" onclick="saveDocSettings('${doc.id}')">💾 บันทึกการตั้งค่า</button>
       </div>
@@ -6197,8 +6261,8 @@ function setGender(docId,gender,btn){
 function saveDoctorSettingsLocal(){
   try {
     localStorage.setItem('bl_doctor_settings', JSON.stringify(
-      doctors.map(({id,name,pin,emoji,specialty,gender,share,color,fullName,licenseNo}) =>
-        ({id,name,pin,emoji,specialty,gender,share,color,fullName,licenseNo})
+      doctors.map(({id,name,emoji,specialty,gender,share,color,fullName,licenseNo}) =>
+        ({id,name,emoji,specialty,gender,share,color,fullName,licenseNo})
       )
     ));
   } catch(e){ console.warn('saveDoctorSettingsLocal error:', e); }
@@ -6214,7 +6278,11 @@ function saveDocSettings(docId){
   doc.share=parseInt(document.getElementById('set-share-'+docId)?.value)||50;
   if(isManager){
     const pinEl=document.getElementById('set-pin-'+docId);
-    if(pinEl&&pinEl.value.length===4) doc.pin=pinEl.value;
+    if(pinEl && pinEl.value.length===4){
+      authApi({ action:'authSetPin', id:docId, pin:pinEl.value }).then(r=>{
+        if(r && r.ok) showToast('ตั้ง PIN ใหม่ให้ '+doc.name+' แล้ว 🔑'); else showToast('❌ ตั้ง PIN ไม่สำเร็จ: '+((r&&r.error)||'ลองใหม่'),'error');
+      }).catch(()=>showToast('❌ ตั้ง PIN ไม่สำเร็จ (เชื่อมต่อไม่ได้)','error'));
+    }
   }
   // Also update DOCTORS_DATA so new PIN works immediately
   const origDoc = DOCTORS_DATA.find(d=>d.id===docId);
@@ -6225,7 +6293,6 @@ function saveDocSettings(docId){
     origDoc.licenseNo = doc.licenseNo;
     origDoc.share = doc.share;
     origDoc.gender = doc.gender;
-    if(doc.pin) origDoc.pin = doc.pin;
   }
   // Cache all editable doctor settings locally so a refresh does not discard changes
   // while Google Sheet is unavailable or still syncing.
@@ -6480,7 +6547,6 @@ async function syncAllInner_(opts){
         const orig = DOCTORS_DATA.find(x=>String(x.id)===String(s.id));
         [doc, orig].forEach(x=>{
           if(!x) return;
-          if(s.pin && String(s.pin).length===4) x.pin = String(s.pin);
           if(s.share!==undefined && s.share!=='') x.share = +s.share || x.share;
           if(s.specialty) x.specialty = s.specialty;
           if(s.gender) x.gender = s.gender;
@@ -9953,7 +10019,6 @@ function setMobileNav(page){
       if(!record || !record.id) return;
       const doctor = doctors.find(d=>d.id===record.id);
       const original = DOCTORS_DATA.find(d=>d.id===record.id);
-      if(record.pin && String(record.pin).length===4){ if(doctor) doctor.pin=String(record.pin); if(original) original.pin=String(record.pin); }
       if(record.share && +record.share>0){ if(doctor) doctor.share=+record.share; if(original) original.share=+record.share; }
     });
   } catch(e){ console.warn('restoreDoctorSettings error:', e); }
@@ -10057,6 +10122,7 @@ function setMobileNav(page){
 
 // ใช้กฎ X-Ray กับรายการที่แคชไว้ในเครื่อง (ข้อมูลจาก Sheet จะถูกปรับตอน sync)
 try { treatments.forEach(applyXrayRule); } catch(e){ console.warn('applyXrayRule init error:', e); }
+try{ localStorage.removeItem('bl_doctors_pins'); const _ds=JSON.parse(localStorage.getItem('bl_doctor_settings')||'null'); if(Array.isArray(_ds)){ _ds.forEach(d=>{ delete d.pin; }); localStorage.setItem('bl_doctor_settings', JSON.stringify(_ds)); } }catch(e){}   // ล้าง PIN ที่ค้างในเครื่องจากเวอร์ชันเก่า
 buildDoctorGrid();
 // Ensure correct initial state
 // Auto-restore session on page load/refresh
@@ -10065,8 +10131,8 @@ buildDoctorGrid();
     const saved = localStorage.getItem('bl_session');
     if(!saved) return;
     const sess = JSON.parse(saved);
-    // Session expires after 24 hours
-    if(Date.now() - sess.ts > 24 * 60 * 60 * 1000){
+    // Session expires after 24 hours · ต้องมีบัตรผ่านจากเซิร์ฟเวอร์ (session รุ่นเก่าที่ไม่มี → ล็อกอินใหม่ 1 ครั้ง)
+    if(Date.now() - sess.ts > 24 * 60 * 60 * 1000 || !sess.token || !(sess.exp > Date.now())){
       localStorage.removeItem('bl_session'); return;
     }
     // Find user - always use fresh DOCTORS_DATA
