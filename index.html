@@ -3851,14 +3851,13 @@ function syncXrayRuleToForm(){
   const applies = xrayRuleApplies({date:document.getElementById('treat-date')?.value, proc:getProcSelected()});
   let hint = document.getElementById('treat-xray-hint');
   if(applies){
-    docEl.value = xrayDoctorName();
-    docEl.disabled = true;
+    docEl.disabled = false;   // X-Ray: ไม่บังคับหมอแล้ว เลือกหมอได้ — แค่ส่วนแบ่งหมอ (DF) = 0
     if(shareEl){ shareEl.value = '0'; shareEl.disabled = true; }
     if(!hint){
       docEl.insertAdjacentHTML('afterend','<div id="treat-xray-hint" style="margin-top:6px;font-size:12px;font-weight:700;color:var(--wine-dark);"></div>');
       hint = document.getElementById('treat-xray-hint');
     }
-    hint.textContent = '🩻 X-Ray ตั้งแต่ ต.ค. 2569 ผูกกับ '+xrayDoctorName()+' เท่านั้น · ส่วนแบ่งหมอ (DF) = 0';
+    hint.textContent = '🩻 X-Ray ตั้งแต่ ต.ค. 2569 · ส่วนแบ่งหมอ (DF) = 0';
     hint.style.display = '';
     _xrayFormLocked = true;
   } else if(drugRuleApplies({date:document.getElementById('treat-date')?.value, proc:getProcSelected()})){
@@ -4274,7 +4273,7 @@ function saveTreat(){
         const _i = document.querySelector('#treat-pp-list input[data-proc="'+miss[0].replace(/"/g,'')+'"]'); if(_i){ _i.focus(); _i.style.borderColor='#C0392B'; } return; } } }
   if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason','dfPaid','dfPaidAt','dfPaidBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
   applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0 · จ่ายยา ตั้งแต่ 31 ต.ค. 2569 → ส่วนแบ่ง 0
-  if(!xrayRuleApplies(t) && isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
+  if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
 
@@ -7975,7 +7974,7 @@ function xrayMixedPrice(t){
 function dfBase(t){ return Math.max(0, totalPrice(t) - xrayMixedPrice(t)); }
 function dfAmt(t, doc){ return dfBase(t) * docSharePct(t, doc) / 100; }
 function applyXrayRule(t){
-  if(xrayRuleApplies(t)){ t.docName = xrayDoctorName(); t.docShare = 0; }
+  if(xrayRuleApplies(t)){ t.docShare = 0; }   // X-Ray อย่างเดียว: DF = 0 (ไม่บังคับหมอแล้ว)
   else if(drugRuleApplies(t)){ t.docShare = 0; }
   return t;
 }
