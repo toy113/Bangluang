@@ -461,12 +461,18 @@ function crmAptMessage_(s, apt, kind) {
     contents: crmBubble_(s, title, sub, rows, buttons) };
 }
 function crmMoney_(n) { return '฿' + String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-// สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (ข้อความทั่วไป ไม่ใช่คำแนะนำทางการแพทย์ จึงไม่ต้องรออนุมัติ template)
-function crmReceiptMessage_(s, t) {
-  var cash = +t.cash || 0, tr = +t.transfer || 0, sso = +t.sso || 0, total = cash + tr + sso;
-  var rows = [crmRow_('วัน', crmThaiDate_(crmDateOnly_(t.date)))];
-  if (t.docName) rows.push(crmRow_('ทันตแพทย์', t.docName));
-  rows.push(crmRow_('การรักษา', String(t.proc || '').replace(/\s*,\s*/g, ', ') || '-'));
+// สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (+ คำแนะนำหลังรักษาในการ์ดเดียวกัน ถ้ามี template ที่อนุมัติแล้ว)
+// trs = รายการรักษา (อันเดียวหรือ array) · extra = { tpls: [...], notes: [...] } (ไม่บังคับ)
+function crmReceiptMessage_(s, trs, extra) {
+  var list = Object.prototype.toString.call(trs) === '[object Array]' ? trs : [trs];
+  var t0 = list[0] || {};
+  var cash = 0, tr = 0, sso = 0, docs = [];
+  list.forEach(function (t) { cash += +t.cash || 0; tr += +t.transfer || 0; sso += +t.sso || 0; if (t.docName && docs.indexOf(t.docName) === -1) docs.push(t.docName); });
+  var total = cash + tr + sso;
+  var rows = [crmRow_('วัน', crmThaiDate_(crmDateOnly_(t0.date)))];
+  if (docs.length) rows.push(crmRow_('ทันตแพทย์', docs.join(', ')));
+  if (list.length === 1) rows.push(crmRow_('การรักษา', String(t0.proc || '').replace(/\s*,\s*/g, ', ') || '-'));
+  else list.forEach(function (t, i) { rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + (String(t.proc || '').replace(/\s*,\s*/g, ', ') || '-'))); });
   if (total > 0) {
     rows.push(crmRow_('ค่าใช้จ่าย', crmMoney_(total)));
     var parts = [];
@@ -474,9 +480,19 @@ function crmReceiptMessage_(s, t) {
     if (parts.length > 1) parts.forEach(function (x) { rows.push(crmRow_('  ' + x[0], crmMoney_(x[1]))); });
     else if (parts.length === 1 && parts[0][0] !== 'เงินสด') rows.push(crmRow_('ชำระโดย', parts[0][0]));
   } else rows.push(crmRow_('ค่าใช้จ่าย', 'ไม่มีค่าใช้จ่าย'));
-  var sub = 'คุณ' + (t.patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nขอบคุณที่ไว้วางใจให้เราดูแลรอยยิ้มของคุณ';
+  var tpls = (extra && extra.tpls) || [], notes = (extra && extra.notes) || [];
+  var hasAfter = tpls.length || notes.length;
+  if (hasAfter) {
+    rows.push({ type: 'separator', margin: 'md' });
+    rows.push({ type: 'text', text: '🩹 คำแนะนำหลังการรักษา', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
+    tpls.forEach(function (tp) { var tx = String(tp.aftercareText || '').trim(); if (tx) rows.push({ type: 'text', text: tx, wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' }); });
+    if (notes.length) rows.push({ type: 'text', text: '📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'), wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' });
+    rows.push({ type: 'text', text: 'มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ', wrap: true, size: 'xs', color: '#83627C', margin: 'md' });
+  }
+  var sub = 'คุณ' + (t0.patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nขอบคุณที่ไว้วางใจให้เราดูแลรอยยิ้มของคุณ';
   var buttons = [{ type: 'button', style: 'link', height: 'sm', color: '#6B2D5E', action: { type: 'uri', label: '📞 ติดต่อคลินิก', uri: crmTelUri_(s) } }];
-  return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + ' ขอบคุณที่มาใช้บริการค่ะ', contents: crmBubble_(s, '🧾 สรุปการรักษา', sub, rows, buttons, '#1D825C') };
+  return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + (hasAfter ? ' และคำแนะนำหลังรักษา' : '') + ' ขอบคุณที่มาใช้บริการค่ะ',
+    contents: crmBubble_(s, hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา', sub, rows, buttons, '#1D825C') };
 }
 function crmAftercareMessages_(s, patName, date, tpls, notes) {
   var parts = ['คุณ' + (patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nคำแนะนำหลังการรักษาวันนี้ (' + crmThaiDate_(date) + ')'];
@@ -581,64 +597,71 @@ function crmTickInner_() {
     }
   });
 
-  // 2.5) สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (วันนี้ · รายการละ 1 ข้อความ · ไม่ต้องรอ template)
-  if (s.receiptOn) {
-    treats.forEach(function (t) {
-      if (!t.id || !t.hn || crmDateOnly_(t.date) !== today || t.status === 'ยกเลิก') return;
-      var rk = crmKey_(s, 'receipt:' + t.id);
-      if (crmIsDone_(state, rk)) return;
-      var tg = targets(t.hn); if (!tg.length) return;
-      var okR = false;
-      tg.forEach(function (x) {
-        if (crmSend_(s, state, { key: rk + '>' + x.lineUserId, type: 'receipt', hn: t.hn, patName: t.patName, lineUserId: x.lineUserId, refId: t.id,
-          detail: String(t.proc || '') }, [crmReceiptMessage_(s, t)])) { okR = true; summary.receipt = (summary.receipt || 0) + 1; }
-      });
-      if (crmAllDone_(state, rk, tg)) crmMark_(state, rk, 'receipt', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', '');
-    });
-  }
-
   // 3) คำแนะนำหลังรักษา (วันนี้)
   var templates = crmRead_('templates');
   var notes = crmRead_('casenotes');
-  if (s.aftercareOn) {
+  if (s.aftercareOn || s.receiptOn) {
     var byHn = {};
     treats.forEach(function (t) {
       t.date = crmDateOnly_(t.date);
-      if (!t.id || t.date !== today || !t.hn) return;
+      if (!t.id || t.date !== today || !t.hn || t.status === 'ยกเลิก') return;
       var k = crmHN_(t.hn); (byHn[k] = byHn[k] || []).push(t);
     });
     Object.keys(byHn).forEach(function (k) {
       var tg = targets(k); if (!tg.length) return;
-      var rows = byHn[k].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'after:' + t.id)); });
-      if (!rows.length) return;
-      if (+s.aftercareDelayMin > 0) {
-        var ready = rows.filter(function (t) {
+      var rowsR = s.receiptOn ? byHn[k].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'receipt:' + t.id)); }) : [];
+      var rowsA = s.aftercareOn ? byHn[k].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'after:' + t.id)); }) : [];
+      if (!rowsR.length && !rowsA.length) return;
+      var waiting = [];
+      if (rowsA.length && +s.aftercareDelayMin > 0) {
+        var ready = rowsA.filter(function (t) {
           var seenKey = crmKey_(s, 'seen:' + t.id);
           if (!state.done[seenKey]) { crmMark_(state, seenKey, 'seen', { hn: t.hn, patName: t.patName, refId: t.id }, 'seen', ''); return false; }
           var seenAt = new Date(String(state.done[seenKey].createdAt).replace(' ', 'T') + '+07:00');
           return (Date.now() - seenAt.getTime()) >= (+s.aftercareDelayMin) * 60000;
         });
-        rows = ready; if (!rows.length) return;
+        waiting = rowsA.filter(function (t) { return ready.indexOf(t) === -1; });
+        rowsA = ready;
       }
       var tpls = [], ids = {};
-      rows.forEach(function (t) { crmTemplatesFor_(t.proc, templates).forEach(function (tp) { if (!ids[tp.id]) { ids[tp.id] = 1; tpls.push(tp); } }); });
-      var treatIds = rows.map(function (t) { return String(t.id); });
+      rowsA.forEach(function (t) { crmTemplatesFor_(t.proc, templates).forEach(function (tp) { if (!ids[tp.id]) { ids[tp.id] = 1; tpls.push(tp); } }); });
+      var treatIds = rowsA.map(function (t) { return String(t.id); });
       var myNotes = notes.filter(function (n) { return n.status === 'approved' && treatIds.indexOf(String(n.treatId)) !== -1; });
-      if (!tpls.length && !myNotes.length) return; // ยังไม่มี template ที่อนุมัติสำหรับหัตถการนี้ — รอ
-      var t0 = rows[0], sentAny = false;
-      var msgs = crmAftercareMessages_(s, t0.patName, today, tpls, myNotes);
+      var hasAfter = tpls.length || myNotes.length;
+      // ถ้ายังรอหน่วงเวลา Aftercare ที่มี template อยู่ → รอส่งรวมในข้อความเดียว (ไม่ส่งสรุปแยกก่อน)
+      if (rowsR.length && !hasAfter && waiting.some(function (t) { return crmTemplatesFor_(t.proc, templates).length; })) return;
+      var sentAny = false, treatsForMsg = rowsR.length ? rowsR : [];
+      var msgs, key, refId, detail, type;
+      if (hasAfter && rowsR.length) {            // การ์ดเดียว: สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ + คำแนะนำหลังรักษา
+        var card = crmReceiptMessage_(s, rowsR, { tpls: tpls, notes: myNotes });
+        msgs = (JSON.stringify(card).length < 45000) ? [card] : [crmReceiptMessage_(s, rowsR)].concat(crmAftercareMessages_(s, rowsR[0].patName, today, tpls, myNotes));
+        key = crmKey_(s, 'after:' + rowsA[0].id); type = 'receipt'; refId = treatIds.join(',');
+        detail = 'สรุป+Aftercare: ' + tpls.map(function (x) { return x.name; }).join(', ') + (myNotes.length ? ' +คำแนะนำพิเศษ' : '');
+      } else if (hasAfter) {                      // สวิตช์สรุปการรักษาปิด หรือส่งสรุปไปแล้ว → ส่งคำแนะนำล้วน
+        msgs = crmAftercareMessages_(s, rowsA[0].patName, today, tpls, myNotes);
+        key = crmKey_(s, 'after:' + rowsA[0].id); type = 'aftercare'; refId = treatIds.join(',');
+        detail = tpls.map(function (x) { return x.name; }).join(', ') + (myNotes.length ? ' +คำแนะนำพิเศษ' : '');
+      } else if (rowsR.length) {                  // ยังไม่มี template อนุมัติ → ส่งสรุปการรักษาอย่างเดียวก่อน
+        msgs = [crmReceiptMessage_(s, rowsR)];
+        key = crmKey_(s, 'receipt:' + rowsR[0].id); type = 'receipt'; refId = rowsR.map(function (t) { return t.id; }).join(','); detail = 'สรุปการรักษา';
+      } else return;                              // ยังไม่มี template ที่อนุมัติสำหรับหัตถการนี้ — รอ
+      var t0 = (rowsR.length ? rowsR[0] : rowsA[0]);
       tg.forEach(function (t) {
-        if (crmSend_(s, state, { key: crmKey_(s, 'after:' + t0.id) + '>' + t.lineUserId, type: 'aftercare', hn: t0.hn, patName: t0.patName, lineUserId: t.lineUserId, refId: treatIds.join(','),
-          detail: tpls.map(function (x) { return x.name; }).join(', ') + (myNotes.length ? ' +คำแนะนำพิเศษ' : '') }, msgs)) { summary.aftercare++; sentAny = true; }
+        if (crmSend_(s, state, { key: key + '>' + t.lineUserId, type: type, hn: t0.hn, patName: t0.patName, lineUserId: t.lineUserId, refId: refId, detail: detail }, msgs)) {
+          sentAny = true; if (type === 'receipt') summary.receipt = (summary.receipt || 0) + 1; if (hasAfter) summary.aftercare++;
+        }
       });
-      if (crmAllDone_(state, crmKey_(s, 'after:' + t0.id), tg)) {
-        rows.forEach(function (t) { crmMark_(state, crmKey_(s, 'after:' + t.id), 'aftercare', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', ''); });
-        if (sentAny && !s.testMode) myNotes.forEach(function (n) { crmUpdate_('casenotes', n._row, { status: 'sent', sentAt: crmNow_() }); n.status = 'sent'; });
+      if (crmAllDone_(state, key, tg)) {
+        if (type === 'receipt') rowsR.forEach(function (t) { crmMark_(state, crmKey_(s, 'receipt:' + t.id), 'receipt', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', ''); });
+        if (hasAfter) {
+          rowsA.forEach(function (t) { crmMark_(state, crmKey_(s, 'after:' + t.id), 'aftercare', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', ''); });
+          if (sentAny && !s.testMode) myNotes.forEach(function (n) { crmUpdate_('casenotes', n._row, { status: 'sent', sentAt: crmNow_() }); n.status = 'sent'; });
+        }
       }
     });
     // คำแนะนำพิเศษที่อนุมัติหลังจากส่ง aftercare ไปแล้ว → ส่งแยก
     notes.forEach(function (n) {
-      if (n.status !== 'approved') return;
+      if (!s.aftercareOn || n.status !== 'approved') return;
       var tr = crmFind_(treats, 'id', n.treatId); if (!tr) return;
       if (!crmIsDone_(state, crmKey_(s, 'after:' + n.treatId))) return; // ยังไม่ส่ง aftercare หลัก → จะส่งรวมรอบหน้า
       var tg = targets(n.hn || tr.hn); if (!tg.length) return;
