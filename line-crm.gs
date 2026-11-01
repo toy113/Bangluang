@@ -937,9 +937,9 @@ function crmBind_(p) {
   if (!u) return { ok: false, error: 'auth' };
   if (String(p.consent) !== '1') return { ok: false, error: 'consent_required' };
   var phone = crmPhone_(p.phone), name = crmNameKey_(p.name), code = String(p.code || '').trim().toUpperCase();
-  var hnIn = crmHN_(p.hn);                       // ผูกด้วย HN (6 หลัก เช่น 659385 หรือ 65-9385) + เบอร์โทร
+  var hnIn = crmHN_(p.hn);                       // ผูกด้วย HN (6-7 หลัก เช่น 65-9385 หรือ 65-12345) + เบอร์โทร
   if (phone.length < 9 || (!hnIn && !name)) return { ok: false, error: 'missing_field' };
-  if (hnIn && !/^\d{6}$/.test(hnIn)) return { ok: false, error: 'hn_format' };
+  if (hnIn && !/^\d{6,7}$/.test(hnIn)) return { ok: false, error: 'hn_format' };
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var s = crmSettings_(), now = crmNow_();
