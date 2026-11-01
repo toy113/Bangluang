@@ -7984,8 +7984,16 @@ function clearCacheAndReload(){
 var patients = lsGetTable_('bl_patients','patients');
 
 // ---- sync ขึ้น Sheet โดยตรง ----
+// แก้คนไข้แล้ว (เช่นเบอร์โทร) หน้าเว็บต้องไม่เด้งกลับเป็นค่าเก่าจากการดึง Sheet ที่ยังไม่ทันเขียน: เก็บรายการรอยืนยันไว้จนเห็นค่าใหม่บน Sheet จริง
+const pendingPatients = new Map();
 function pushPatientToSheet(rec){
+  pendingPatients.set(String(rec.hn), { rec: Object.assign({}, rec), sentAt: Date.now() });
   return syncToSheet('patients', rec);
+}
+function _patSame_(a,b){
+  const n = v=>String(v==null?'':v).trim();
+  const sso = v=>(v===true||String(v).toUpperCase()==='TRUE');
+  return n(a.name)===n(b.name) && n(a.phone).replace(/\D/g,'').slice(-9)===n(b.phone).replace(/\D/g,'').slice(-9) && n(a.lineId)===n(b.lineId) && sso(a.sso)===sso(b.sso);
 }
 function deletePatientFromSheet(hn){
   return syncToSheet('delete_patient', { hn: String(hn) });
@@ -8023,6 +8031,15 @@ function loadPatientsFromSheet(sheetData){
       hn: String(p.hn),
       sso: (String(p.sso||'').toUpperCase()==='TRUE' || p.sso===true)
     }));
+  if(pendingPatients.size){
+    pendingPatients.forEach((pp, hn)=>{
+      const i = patients.findIndex(x=>String(x.hn)===hn);
+      if(i>-1 && _patSame_(patients[i], pp.rec)){ pendingPatients.delete(hn); return; }   // Sheet เห็นค่าใหม่แล้ว
+      if(Date.now()-pp.sentAt > 120000){ pendingPatients.delete(hn); return; }            // เกิน 2 นาทีไม่ขึ้น: ยอมรับค่าจาก Sheet
+      if(i>-1) patients[i] = Object.assign({}, patients[i], pp.rec); else patients.push(Object.assign({}, pp.rec));  // คงค่าที่เพิ่งแก้ไว้
+      if(Date.now()-pp.sentAt > 15000){ pp.sentAt = Date.now(); syncToSheet('patients', pp.rec).catch(()=>{}); }       // ส่งซ้ำถ้าเงียบนาน
+    });
+  }
   cachePatients();
 }
 
