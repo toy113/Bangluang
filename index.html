@@ -1104,14 +1104,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         appearance:none;-webkit-appearance:none;cursor:pointer;outline:none;
         font-family:'Sarabun',sans-serif;box-shadow:0 2px 12px rgba(107,45,94,0.08);">
         <option value="">— เลือกทันตแพทย์ —</option>
-        <option value="toy">หมอทอย</option>
-        <option value="mind">หมอมายด์</option>
-        <option value="koi">หมอก้อย</option>
+        <option value="toy">ทพ.สรวิศ สุภาพ</option>
+        <option value="mind">ทพ.ภาคภูมิ สุนทราภิรมย์</option>
+        <option value="koi">ทพญ.พัทธนันท์ กฤินหอม</option>
         <option value="pong">หมอป้อง</option>
         <option value="aim">ทพญ.วัจน์กร เสือดี</option>
         <option value="khao">หมอข้าว</option>
         <option value="part">หมอพาร์ท</option>
-        <option value="ben">หมอเบญ</option>
+        <option value="ben">ทพญ.ภาสิริ ศิริรังษี</option>
       </select>
       <div style="position:absolute;right:16px;top:50%;transform:translateY(-50%);
         pointer-events:none;color:#9B3D8B;font-size:18px;">▾</div>
@@ -1125,7 +1125,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   <!-- STEP 2: กรอก PIN -->
   <div id="step-pin" class="login-step" style="display:none;">
     <div class="login-pin-avatar" id="loginPinAvatar">🦷</div>
-    <div class="login-pin-name" id="pinForName">หมอทอย</div>
+    <div class="login-pin-name" id="pinForName">ทพ.สรวิศ สุภาพ</div>
     <div class="login-pin-label">กรอกรหัส PIN 4 หลัก</div>
     <div class="login-pin-dots">
       <div class="lpd" id="pd0"></div>
@@ -2394,15 +2394,18 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KF
 // ============================================================
 //  DOCTORS & AUTH
 // ============================================================
+const DOC_ALIAS = {'หมอทอย':'ทพ.สรวิศ สุภาพ','หมอมายด์':'ทพ.ภาคภูมิ สุนทราภิรมย์','หมอก้อย':'ทพญ.พัทธนันท์ กฤินหอม','หมอเบญ':'ทพญ.ภาสิริ ศิริรังษี','หมอเอม':'ทพญ.วัจน์กร เสือดี'};
+function docAlias(n){ return (n && DOC_ALIAS[n]) || n; }
+function aliasRows_(rows){ rows.forEach(r=>{ if(r && r.docName) r.docName = docAlias(r.docName); }); return rows; }
 const DOCTORS_DATA = [
-  { id:'toy',   name:'หมอทอย',  pin:'1111', emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'', licenseNo:'' },
-  { id:'mind',  name:'หมอมายด์', pin:'6465', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'', licenseNo:'' },
-  { id:'koi',   name:'หมอก้อย',  pin:'9677', emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'', licenseNo:'' },
+  { id:'toy',   name:'ทพ.สรวิศ สุภาพ',  pin:'1111', emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'ทพ.สรวิศ สุภาพ', licenseNo:'' },
+  { id:'mind',  name:'ทพ.ภาคภูมิ สุนทราภิรมย์', pin:'6465', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'ทพ.ภาคภูมิ สุนทราภิรมย์', licenseNo:'' },
+  { id:'koi',   name:'ทพญ.พัทธนันท์ กฤินหอม',  pin:'9677', emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'ทพญ.พัทธนันท์ กฤินหอม', licenseNo:'' },
   { id:'pong',  name:'หมอป้อง',  pin:'3467', emoji:'📷', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'', licenseNo:'' },
   { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   pin:'7699', emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
   { id:'khao',  name:'หมอข้าว',  pin:'8986', emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#E5B80B', fullName:'', licenseNo:'' },
   { id:'part',  name:'หมอพาร์ท', pin:'8888', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B', fullName:'', licenseNo:'' },
-  { id:'ben',   name:'หมอเบญ',  pin:'2233', emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#F27A0D', fullName:'ภาสิริ ศิริรังษี', licenseNo:'' },
+  { id:'ben',   name:'ทพญ.ภาสิริ ศิริรังษี',  pin:'2233', emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#F27A0D', fullName:'ทพญ.ภาสิริ ศิริรังษี', licenseNo:'' },
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', pin:'1234', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
@@ -2489,9 +2492,9 @@ function lsPutTable_(key, rows, h){
   }
 }
 function gaPending_(type){ try{ return !!(pendingSync[type] && pendingSync[type].size); }catch(e){ return false; } }
-let appointments = lsGetTable_('bl_apt','appointments');
-let treatments = lsGetTable_('bl_treat','treatments');
-let labs = lsGetTable_('bl_lab','labs');
+let appointments = aliasRows_(lsGetTable_('bl_apt','appointments'));
+let treatments = aliasRows_(lsGetTable_('bl_treat','treatments'));
+let labs = aliasRows_(lsGetTable_('bl_lab','labs'));
 
 let selectedLoginDoc = null;
 let currentPin = '';
@@ -4119,7 +4122,7 @@ function openAddTreat(t=null){
   const treatHint = document.getElementById('treat-hn-hint');
   if(treatHint) treatHint.innerHTML = '';
   if(t?.hn) autoFillPatient(t.hn, 'treat');
-  document.getElementById('treat-doc').value = t?.docName || (isManager ? (localStorage.getItem('bl_last_doc') || doctors[0]?.name) : currentUser.name);
+  document.getElementById('treat-doc').value = t?.docName || (isManager ? (docAlias(localStorage.getItem('bl_last_doc')) || doctors[0]?.name) : currentUser.name);
   const shareWrap = document.getElementById('treat-share-wrap');
   const shareInput = document.getElementById('treat-share');
   if(shareWrap) shareWrap.style.display = isManager ? '' : 'none';
@@ -6231,6 +6234,7 @@ async function syncAllInner_(opts){
       return s;
     };
     const normRow = r => { 
+      if(r.docName) r.docName = docAlias(r.docName);
       if(r.date) r.date = normDate(r.date);
       if(r.time) r.time = normTime(r.time);
       // Fix: if patName is missing but phone has name-like value, it's old data without phone col
@@ -6331,7 +6335,7 @@ async function syncAllInner_(opts){
           if(s.share!==undefined && s.share!=='') x.share = +s.share || x.share;
           if(s.specialty) x.specialty = s.specialty;
           if(s.gender) x.gender = s.gender;
-          if(s.name) x.name = s.name;
+          if(s.name) x.name = docAlias(s.name);
           if(s.fullName) x.fullName = s.fullName;
           if(s.licenseNo) x.licenseNo = s.licenseNo;
         });
@@ -7822,7 +7826,7 @@ function xrayRuleApplies(t){
 }
 function xrayDoctorName(){
   const d = doctors.find(x=>x.id==='toy') || DOCTORS_DATA.find(x=>x.id==='toy');
-  return d ? d.name : 'หมอทอย';
+  return d ? d.name : 'ทพ.สรวิศ สุภาพ';
 }
 // กฎ "จ่ายยา": ตั้งแต่ 31 ต.ค. 2569 รายการที่เป็นจ่ายยาอย่างเดียว ส่วนแบ่งหมอ (DF) = 0 (หมอเจ้าของเคสไม่เปลี่ยน)
 // อยากให้ย้อนหลังไปถึงวันอื่น ให้แก้วันที่ใน drugRuleStart() ที่เดียว
@@ -9686,6 +9690,7 @@ function setMobileNav(page){
       if(record.share && +record.share>0){ if(doctor) doctor.share=+record.share; if(original) original.share=+record.share; }
     });
   } catch(e){ console.warn('restoreDoctorSettings error:', e); }
+  try{ doctors.concat(DOCTORS_DATA).forEach(d=>{ d.name = docAlias(d.name); }); }catch(e){}
 })();
 
 // ย้ายสีประจำตัวหมอเบญเป็นสีส้ม (ทำครั้งเดียวต่อเครื่อง) — เบราว์เซอร์ที่เคยบันทึกการตั้งค่าหมอไว้จะจำสีเก่าทับค่าในโค้ด
