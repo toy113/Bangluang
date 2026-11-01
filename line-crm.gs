@@ -1053,6 +1053,12 @@ function crmBindCore_(p) {
     }
     var existing = crmRead_('links').filter(function (l) { return l.lineUserId === u.userId; });
     var auto = codeOk || (s.linkApproval === 'auto' && matches.length >= 1);
+    // คนไข้จัดฟัน: HN + เบอร์ตรงทะเบียนคนไข้ และ HN นั้นมีแถวในชีตจัดฟัน → อนุมัติอัตโนมัติ (ข้อมูลจัดฟันขึ้นทันทีโดยไม่ต้องรอพนักงาน)
+    var orthoAuto = {};
+    if (!auto && hnIn && matches.length) {
+      crmReadByName_('ortho').forEach(function (o) { var k = crmHN_(o.hn); if (k) orthoAuto[k] = true; });
+    }
+    var anyActive = auto;
     var created = [];
     if (!matches.length) {
       if (!existing.some(function (l) { return l.status === 'pending' && crmPhone_(l.inputPhone) === phone; })) {
@@ -1062,15 +1068,18 @@ function crmBindCore_(p) {
       return { ok: true, status: 'pending', matched: 0 };
     }
     matches.forEach(function (m) {
+      var auto = codeOk || (s.linkApproval === 'auto') || !!orthoAuto[crmHN_(m.hn)];
+      if (auto) anyActive = true;
+      var by = codeOk ? 'รหัสจัดฟัน' : (s.linkApproval === 'auto' ? 'อัตโนมัติ' : 'HN จัดฟัน');
       var already = existing.filter(function (l) { return crmHN_(l.hn) === crmHN_(m.hn) && l.status !== 'revoked'; })[0];
-      if (already) { if (auto && already.status === 'pending') crmUpdate_('links', already._row, { status: 'active', approvedBy: codeOk ? 'รหัสจัดฟัน' : 'อัตโนมัติ', approvedAt: now }); return; }
+      if (already) { if (auto && already.status === 'pending') crmUpdate_('links', already._row, { status: 'active', approvedBy: by, approvedAt: now }); return; }
       crmAppend_('links', { id: crmId_('LK'), lineUserId: u.userId, hn: m.hn, patName: m.name || m['ชื่อ'] || '', status: auto ? 'active' : 'pending',
-        source: codeOk ? 'ortho-code' : 'self', consent: 'TRUE', displayName: u.name, inputName: hnIn ? ('HN ' + p.hn) : p.name, inputPhone: p.phone, createdAt: now,
-        approvedBy: auto ? (codeOk ? 'รหัสจัดฟัน' : 'อัตโนมัติ') : '', approvedAt: auto ? now : '' });
+        source: codeOk ? 'ortho-code' : (orthoAuto[crmHN_(m.hn)] ? 'ortho-hn' : 'self'), consent: 'TRUE', displayName: u.name, inputName: hnIn ? ('HN ' + p.hn) : p.name, inputPhone: p.phone, createdAt: now,
+        approvedBy: auto ? by : '', approvedAt: auto ? now : '' });
       created.push(m.hn);
     });
     if (codeOk) { try { orthoSetLineId(crmHN_(matches[0].hn), u.userId, matches[0].name || ''); } catch (e) {} }
-    return { ok: true, status: auto ? 'active' : 'pending', matched: matches.length };
+    return { ok: true, status: anyActive ? 'active' : 'pending', matched: matches.length };
   } finally { lock.releaseLock(); }
 }
 function crmConsent_(p) {
