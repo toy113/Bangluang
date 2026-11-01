@@ -166,7 +166,7 @@
         <label class="switch"><input type="checkbox" id="consentToggle" onchange="setConsent(this.checked)"><span class="slider"></span></label></div>
       <p class="muted" id="pendingNote" style="margin-top:8px;display:none;"></p>
     </div>
-    <div class="foot-links"><a id="mainCall" href="tel:0959476759">📞 ติดต่อคลินิก</a><button onclick="openBind(true)">➕ ผูกสมาชิกครอบครัว</button></div>
+    <div class="foot-links"><a id="mainCall" href="tel:0959476759">📞 ติดต่อคลินิก</a></div>
   </div>
 </div>
 
@@ -259,7 +259,6 @@ function render(){
   $('pendingNote').textContent = d.pending.length ? ('มีคำขอผูกบัญชีเพิ่มรอคลินิกยืนยัน ' + d.pending.length + ' รายการ') : '';
   // โหมดระบบเดิม: ยังตั้งค่าการรับข้อความ/ผูกครอบครัวไม่ได้
   const consentCard = $('consentToggle').closest('.card'); if(consentCard) consentCard.classList.toggle('hide', LEGACY);
-  const famBtn = [...document.querySelectorAll('#mainView .foot-links button')].find(b=>/ครอบครัว/.test(b.textContent)); if(famBtn) famBtn.classList.toggle('hide', LEGACY);
   renderNext(p); renderHistory(p); renderOrtho(p);
   setTab(TAB);
   show('mainView');
