@@ -2848,11 +2848,25 @@ function crmKick_(){
   _crmKickT  = setTimeout(()=>{ crmCall({crm:'runNow'}).catch(()=>{}); }, 1500);   // รอบแรก: ทันทีหลังชีตเขียนเสร็จ
   _crmKickT2 = setTimeout(()=>{ crmCall({crm:'runNow'}).catch(()=>{}); }, 9000);   // รอบสำรอง: กรณีเซิร์ฟเวอร์ช้า (ไม่ส่งซ้ำ เพราะมี log กันซ้ำ)
 }
+// เปลี่ยนข้อมูลในเครื่องทันที (ไม่ต้องรอเซิร์ฟเวอร์) สำหรับคำสั่งที่รู้ผลแน่นอน
+function crmOptimistic(payload){
+  const d=CRM.data; if(!d) return;
+  const by=(payload.by||crmBy()), now=new Date().toLocaleString('sv-SE',{timeZone:'Asia/Bangkok'}).slice(0,19);
+  const find=(arr,id)=>(arr||[]).find(x=>String(x.id)===String(id));
+  if(payload.crm==='updateTask'){ const t=find(d.tasks,payload.id); if(t){ if(payload.status) t.status=payload.status; if(payload.resultNote!==undefined) t.resultNote=payload.resultNote; t.doneBy=by; t.updatedAt=now; } }
+  else if(['linkApprove','linkReject','linkRevoke'].includes(payload.crm)){ const l=find(d.links,payload.id); if(l){ l.status = payload.crm==='linkApprove'?'active':(payload.crm==='linkReject'?'rejected':'revoked'); if(payload.hn) l.hn=payload.hn; l.approvedBy=by; } }
+  else if(payload.crm==='caseNoteApprove'||payload.crm==='caseNoteReject'){ const n=find(d.casenotes,payload.id); if(n) n.status = payload.crm==='caseNoteApprove'?'approved':'rejected'; }
+}
 async function crmDo(payload, okMsg){
-  const r = await crmCall(payload);
+  crmOptimistic(payload); crmRender(); crmUpdateBadge();
+  const r = await crmCall(Object.assign({ withDash:1 }, payload));   // เซิร์ฟเวอร์ส่งแดชบอร์ดใหม่กลับมาในคำขอเดียว (ไม่ต้องโหลดซ้ำอีกรอบ)
   if(r && r.ok){ if(okMsg) showToast(okMsg); }
   else showToast('❌ '+((r&&r.error)||'ไม่สำเร็จ'),'error');
-  await crmLoad(true);
+  if(r && r.dash && r.dash.ok){
+    CRM.data = r.dash; CRM.stale = false;
+    try{ localStorage.setItem('bl_crm_cache', JSON.stringify(r.dash)); }catch(e){}
+    crmRender(); crmUpdateBadge();
+  } else crmLoad(true);   // เซิร์ฟเวอร์รุ่นเก่า/ผิดพลาด → โหลดใหม่เบื้องหลัง ไม่ต้องรอ
   return r;
 }
 
