@@ -378,7 +378,7 @@ function crmFlushMarks_(state) {
 
 /* ============================ LINKS ============================ */
 /* hn → [{lineUserId, consent}] (เฉพาะ active) รวมคนไข้จัดฟันที่ผูกไว้ในชีต ortho เดิม */
-function crmLinkMap_() {
+function crmLinkMap_(preLinks, preOrtho) {
   var map = {};
   function add(hn, uid, consent, name) {
     var k = crmHN_(hn);
@@ -387,10 +387,10 @@ function crmLinkMap_() {
     for (var i = 0; i < map[k].length; i++) if (map[k][i].lineUserId === uid) return;
     map[k].push({ lineUserId: uid, consent: consent, patName: name || '' });
   }
-  crmRead_('links').forEach(function (l) {
+  (preLinks || crmRead_('links')).forEach(function (l) {
     if (l.status === 'active') add(l.hn, l.lineUserId, String(l.consent).toUpperCase() !== 'FALSE', l.patName);
   });
-  crmReadByName_('ortho').forEach(function (o) { if (o.lineUserId) add(o.hn, o.lineUserId, true, o['ชื่อ']); });
+  (preOrtho || crmReadByName_('ortho')).forEach(function (o) { if (o.lineUserId) add(o.hn, o.lineUserId, true, o['ชื่อ']); });
   return map;
 }
 function crmUserHns_(uid) {
@@ -1032,31 +1032,47 @@ function crmConsent_(p) {
 function crmDashboard_() {
   var s = crmSettings_();
   var since = crmAddDays_(crmToday_(), -45);
-  var logAll = crmRead_('log');
   var stats = {};
-  logAll.forEach(function (r) {
-    if (!r.createdAt) return;
-    var m = String(r.createdAt).slice(0, 7);
-    stats[m] = stats[m] || { sent: 0, test: 0, failed: 0, byType: {} };
-    if (r.status === 'sent' || r.status === 'test' || r.status === 'failed') {
-      stats[m][r.status] += (r.status === 'failed') ? 1 : (+r.pushCount || 0);
-      if (r.status === 'sent') stats[m].byType[r.type] = (stats[m].byType[r.type] || 0) + (+r.pushCount || 0);
+  // log: อ่านค่าดิบรอบเดียว — นับสถิติทุกแถว แต่แปลงเป็น object เฉพาะแถวย้อนหลัง 45 วัน (เร็วกว่าแปลงทั้งชีตมาก)
+  crmSheet_('log');
+  var logRows = crmReadByNameWhere_(CRM_SHEET_NAMES.log, function (row, hdr) {
+    var ci = crmColIdx_(hdr, ['createdAt']), si = crmColIdx_(hdr, ['status']), ti = crmColIdx_(hdr, ['type']), pi = crmColIdx_(hdr, ['pushCount']);
+    if (ci < 0) return false;
+    var ca = String(row[ci] || ''), st = String(row[si] || '');
+    if (ca) {
+      var m = ca.slice(0, 7);
+      if (st === 'sent' || st === 'test' || st === 'failed') {
+        stats[m] = stats[m] || { sent: 0, test: 0, failed: 0, byType: {} };
+        var pc = (st === 'failed') ? 1 : (+row[pi] || 0);
+        stats[m][st] += pc;
+        if (st === 'sent') stats[m].byType[row[ti]] = (stats[m].byType[row[ti]] || 0) + (+row[pi] || 0);
+      }
     }
+    return ca.slice(0, 10) >= since && st !== 'done' && st !== 'seen';
   });
-  var log = logAll.filter(function (r) { return String(r.createdAt).slice(0, 10) >= since && r.status !== 'done' && r.status !== 'seen'; })
-    .map(function (r) { delete r._row; return r; }).slice(-2500);
+  var log = logRows.map(function (r) { delete r._row; return r; }).slice(-2500);
   var strip = function (rows) { return rows.map(function (r) { delete r._row; return r; }); };
+  var recent = function (key, col, from) {
+    crmSheet_(key);
+    return strip(crmReadByNameWhere_(CRM_SHEET_NAMES[key], function (row, hdr) { var i = crmColIdx_(hdr, [col]); return i >= 0 && String(row[i] || '').slice(0, 10) >= from; }));
+  };
   var tasks = crmRead_('tasks').filter(function (t) { return t.status === 'open' || String(t.updatedAt).slice(0, 10) >= crmAddDays_(crmToday_(), -60); });
-  var triggers = [];
-  try { triggers = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); }); } catch (e) {}
+  var triggers = null;
+  try { var cc = CacheService.getScriptCache().get('crm_trig'); if (cc) triggers = JSON.parse(cc); } catch (e) {}
+  if (!triggers) {
+    triggers = [];
+    try { triggers = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); }); } catch (e) {}
+    try { CacheService.getScriptCache().put('crm_trig', JSON.stringify(triggers), 300); } catch (e) {}
+  }
   var lastTick = null; try { lastTick = JSON.parse(crmProp_('CRM_LAST_TICK', 'null')); } catch (e) {}
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
+  var links = crmRead_('links'), orthoAll = crmReadByName_('ortho');
   return { ok: true, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
-    followups: strip(crmRead_('followups').filter(function (f) { return String(f.sentAt).slice(0, 10) >= since; })),
-    links: strip(crmRead_('links')), followers: strip(crmRead_('followers')), apt: strip(crmRead_('apt')),
-    casenotes: strip(crmRead_('casenotes').filter(function (n) { return String(n.createdAt).slice(0, 10) >= since; })),
+    followups: recent('followups', 'sentAt', since),
+    links: strip(links.slice()), followers: strip(crmRead_('followers')), apt: strip(crmRead_('apt')),
+    casenotes: recent('casenotes', 'createdAt', since),
     campaigns: strip(crmRead_('campaigns')), log: log, stats: stats, quota: quota, lastTick: lastTick,
-    linked: crmLinkMap_(), orthoActive: crmReadByName_('ortho').filter(function (o) { return !o['สถานะ'] || o['สถานะ'] === 'กำลังจัด'; }).map(function (o) { return crmHN_(o.hn); }),
+    linked: crmLinkMap_(links, orthoAll), orthoActive: orthoAll.filter(function (o) { return !o['สถานะ'] || o['สถานะ'] === 'กำลังจัด'; }).map(function (o) { return crmHN_(o.hn); }),
     tickInstalled: triggers.indexOf('crmTick') !== -1, liffUrl: crmLiffUrl_(''), richMenu: crmProp_('CRM_RICHMENU_ID', ''),
     tokenSet: !!crmToken_(), now: crmNow_() };
 }

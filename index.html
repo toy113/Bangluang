@@ -2774,13 +2774,17 @@ function crmSentOk(rows){ return rows.some(r=>r.status==='sent'||r.status==='tes
 async function crmLoad(force){
   if(CRM.loading) return;
   CRM.loading = true; CRM.err='';
-  if(!CRM.data) crmRender();
+  if(!CRM.data){
+    // cache-first: โชว์ข้อมูลรอบก่อนทันที แล้วค่อยรีเฟรชเบื้องหลัง (ไม่ต้องรอ Apps Script)
+    try{ const c = localStorage.getItem('bl_crm_cache'); if(c){ const cd = JSON.parse(c); if(cd && cd.ok){ CRM.data = cd; CRM.stale = true; } } }catch(e){}
+    crmRender();
+  }
   try{
     const res = await fetch(APPS_SCRIPT_URL+'?action=crmDashboard&_='+Date.now(), {cache:'no-store'});
     const txt = await res.text();
     let d=null; try{ d=JSON.parse(txt); }catch(e){}
     if(!d || !d.ok){ CRM.err = (d && d.error) ? d.error : 'backend_missing'; }
-    else { CRM.data = d; try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : ('0|'+Date.now())); }catch(e){} }
+    else { CRM.data = d; CRM.stale = false; try{ localStorage.setItem('bl_crm_cache', JSON.stringify(d)); }catch(e){ try{ localStorage.removeItem('bl_crm_cache'); }catch(e2){} } try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : ('0|'+Date.now())); }catch(e){} }
   }catch(e){ CRM.err = 'network'; }
   CRM.loading = false;
   crmRender();
