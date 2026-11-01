@@ -380,7 +380,7 @@ async function doBind(){
   $('bindBtn').disabled = true; $('bindBtn').textContent = 'กำลังส่งข้อมูล...';
   try{
     const d = await api({ action:'crmBind', hn, phone, code, consent: '1' });
-    if(d && d.ok){ await load(); }
+    if(d && d.ok){ if(d.portal && d.portal.ok){ DATA = d.portal; const ph = DATA.clinicPhone || CLINIC_PHONE_FALLBACK, tl = 'tel:'+ph.replace(/[^0-9+]/g,''); ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tl; }); $('bindPhone').textContent = ph; render(); } else { await load(); } }
     else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
   }catch(e){ console.error(e); err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }
   $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';

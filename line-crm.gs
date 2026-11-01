@@ -123,6 +123,36 @@ function crmCell_(v, col) {
   return String(v);
 }
 /* อ่านชีตใด ๆ เป็น array ของ object (+ _row = เลขแถวจริง) */
+// อ่านชีตแบบเร็ว: แปลงค่าเป็นข้อความเฉพาะแถวที่ test(raw, hdr) บอกว่าเอา (ข้ามการ format วันที่ของแถวอื่นทั้งหมด)
+function crmReadByNameWhere_(name, test) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sh) return [];
+  var lr = sh.getLastRow(), lc = sh.getLastColumn();
+  if (lr < 2 || lc < 1) return [];
+  var vals = sh.getRange(1, 1, lr, lc).getValues();
+  var hdr = vals[0], out = [];
+  for (var i = 1; i < vals.length; i++) {
+    var row = vals[i];
+    if (!test(row, hdr)) continue;
+    var o = { _row: i + 1 };
+    for (var c2 = 0; c2 < hdr.length; c2++) if (hdr[c2] !== '') o[hdr[c2]] = crmCell_(row[c2], hdr[c2]);
+    out.push(o);
+  }
+  return out;
+}
+function crmColIdx_(hdr, names) {
+  for (var j = 0; j < hdr.length; j++) if (names.indexOf(String(hdr[j])) !== -1) return j;
+  return -1;
+}
+function crmHnTest_(hnSet) {
+  var ix = null;
+  return function (row, hdr) {
+    if (ix === null) ix = crmColIdx_(hdr, ['hn', 'HN', 'Hn']);
+    if (ix < 0) return false;
+    var k = crmHN_(row[ix]);
+    return !!k && hnSet[k] === true;
+  };
+}
 function crmReadByName_(name) {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
   if (!sh) return [];
@@ -908,9 +938,10 @@ function crmPortal_(p) {
   orthoRows.forEach(function (o) { if (o.lineUserId === u.userId && !active[crmHN_(o.hn)]) active[crmHN_(o.hn)] = { hn: o.hn, name: o['ชื่อ'], consent: true }; });
   var keys = Object.keys(active);
   var today = crmToday_();
-  var apts = keys.length ? crmReadByName_('ตารางนัด') : [];
-  var treats = keys.length ? crmReadByName_('บันทึกการรักษา') : [];
-  var logs = keys.length ? crmReadByName_('ortho_log') : [];
+  var hnSet = {}; keys.forEach(function (k) { hnSet[k] = true; });
+  var apts = keys.length ? crmReadByNameWhere_('ตารางนัด', crmHnTest_(hnSet)) : [];
+  var treats = keys.length ? crmReadByNameWhere_('บันทึกการรักษา', crmHnTest_(hnSet)) : [];
+  var logs = keys.length ? crmReadByNameWhere_('ortho_log', crmHnTest_(hnSet)) : [];
   var patients = keys.map(function (k) {
     var a = active[k];
     var next = apts.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) >= today && ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ'].indexOf(x.status) === -1; })
@@ -933,6 +964,11 @@ function crmPortal_(p) {
   return { ok: true, user: { name: u.name }, patients: patients, pending: pending, clinicPhone: s.clinicPhone, clinicName: s.clinicName };
 }
 function crmBind_(p) {
+  var r = crmBindCore_(p);
+  if (r && r.ok) { try { r.portal = crmPortal_(p); } catch (e) {} }   // ส่งข้อมูลหน้าหลักกลับพร้อมกัน ลดการเรียกเซิร์ฟเวอร์ซ้ำ
+  return r;
+}
+function crmBindCore_(p) {
   var u = crmVerifyUser_(p);
   if (!u) return { ok: false, error: 'auth' };
   if (String(p.consent) !== '1') return { ok: false, error: 'consent_required' };
@@ -943,7 +979,10 @@ function crmBind_(p) {
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var s = crmSettings_(), now = crmNow_();
-    var pats = crmReadByName_('คนไข้');
+    var pats = crmReadByNameWhere_('คนไข้', function (row, hdr) {
+      var pi = crmColIdx_(hdr, ['phone', 'เบอร์โทร', 'เบอร์']);
+      return pi >= 0 && crmPhone_(row[pi]) === phone;
+    });
     var matches = pats.filter(function (r) {
       if (crmPhone_(r.phone || r['เบอร์โทร'] || r['เบอร์'] || '') !== phone) return false;
       if (hnIn) return crmHN_(r.hn) === hnIn;
