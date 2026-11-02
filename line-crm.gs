@@ -487,7 +487,7 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
   return bubble;
 }
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
-function crmInquiryNote_() { return { type: 'text', text: 'สอบถามเพิ่มเติม (ไลน์/โทร)', size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
+function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม (โทร. ' + String((s && s.clinicPhone) || '0959476759').replace(/[^0-9]/g, '') + '/พิมพ์ในแชทนี้ได้เลยค่ะ)', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
 function crmTelUri_(s) { return 'tel:' + String(s.clinicPhone || '').replace(/[^0-9+]/g, ''); }
 function crmAptMessage_(s, apt, kind) {
   var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '✅ ยืนยันการนัดหมาย');
@@ -499,7 +499,7 @@ function crmAptMessage_(s, apt, kind) {
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
   if (kind === 'remind') buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + apt.id, displayText: 'ยืนยันนัด' } });
   buttons.push({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '🔄 ขอเลื่อนนัด', data: 'apt|resched|' + apt.id, displayText: 'ขอเลื่อนนัด' } });
-  buttons.push(crmInquiryNote_());
+  buttons.push(crmInquiryNote_(s));
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
 }
@@ -513,7 +513,7 @@ function crmAptGroupMessage_(s, list) {
   var buttons = [
     { type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + ids, displayText: 'ยืนยันนัด' } },
     { type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '🔄 ขอเลื่อนนัด', data: 'apt|resched|' + ids, displayText: 'ขอเลื่อนนัด' } },
-    crmInquiryNote_()];
+    crmInquiryNote_(s)];
   return { type: 'flex', altText: 'เตือนนัดหมาย ' + crmThaiDate_(a0.date) + ' ' + list.length + ' นัด',
     contents: crmBubble_(s, '🔔 เตือนนัดหมาย', 'คุณ' + (a0.patName || '') + ' อย่าลืมนัดหมายของคุณนะคะ (' + list.length + ' นัดในวันเดียวกัน)', rows, buttons) };
 }
@@ -564,7 +564,7 @@ function crmReceiptMessage_(s, trs, extra) {
     rows.push({ type: 'text', text: 'มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ', wrap: true, size: 'xs', color: '#83627C', margin: 'md' });
   }
   var sub = 'คุณ' + (t0.patName || '') + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูรอยยิ้มของคุณค่ะ☺️';
-  var buttons = [crmInquiryNote_()];
+  var buttons = [crmInquiryNote_(s)];
   return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + (hasAfter ? ' และคำแนะนำหลังรักษา' : '') + ' ขอบคุณที่มาใช้บริการค่ะ',
     contents: crmBubble_(s, hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา', sub, rows, buttons, '#1D825C') };
 }
@@ -949,7 +949,7 @@ function crmWelcome_(s) {
   return { type: 'flex', altText: 'ยินดีต้อนรับสู่' + s.clinicName,
     contents: crmBubble_(s, 'ยินดีต้อนรับค่ะ 🦷', 'ผูกบัญชีคนไข้เพื่อดูนัดครั้งถัดไป ประวัติการรักษา และรับการแจ้งเตือนนัดทาง LINE', [],
       [{ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'uri', label: 'ผูกบัญชีคนไข้', uri: crmLiffUrl_('next') } },
-       crmInquiryNote_()]) };
+       crmInquiryNote_(s)]) };
 }
 function crmUpsertFollower_(uid, status) {
   if (!uid) return;
