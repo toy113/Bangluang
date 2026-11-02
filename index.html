@@ -9272,9 +9272,11 @@ async function loadOrthoData(force){
     const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
     const res = await fetch(url+'?action=orthoList',{cache:'no-store'});
     const d = await res.json();
-    if(d && d.ok && Array.isArray(d.rows)) orthoData = d.rows;
-  }catch(e){ console.warn('loadOrtho error',e); }
+    if(d && d.ok && Array.isArray(d.rows)){ orthoData = d.rows; _orthoErr = ''; }
+    else _orthoErr = 'เซิร์ฟเวอร์ตอบ: ' + String((d && (d.error||d.message)) || 'ไม่มีข้อมูล');
+  }catch(e){ console.warn('loadOrtho error',e); _orthoErr = 'เชื่อมต่อไม่ได้ (' + (e && e.message || e) + ')'; }
 }
+let _orthoErr = '';
 
 // นับครั้งจริงจาก ortho_log คำนวณไว้แล้วฝั่ง backend (orthoList) ติดมากับแถว — ไม่ต้องดึง log ทั้งชีตมานับฝั่งนี้
 function orthoVisitCount_(r){
@@ -9427,6 +9429,10 @@ async function renderOrthoPage(){
   rows.sort(orthoSortFn_(orthoSortKey));
   const countEl = document.getElementById('orthoCount');
   if(countEl) countEl.textContent = '('+rows.length+' คน)';
+  if(!rows.length && _orthoErr){
+    box.innerHTML = '<div style="padding:24px;text-align:center;color:#C0392B;">⚠️ โหลดข้อมูลจัดฟันไม่สำเร็จ<br><small>'+escapeHtml(_orthoErr)+'</small><br><button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="loadOrthoData(true).then(renderOrthoPage)">ลองใหม่</button></div>';
+    return;
+  }
   if(!rows.length){
     box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-light);">'+(orthoPskOnly ? '🎉 ไม่มีคนไข้จัดฟัน ปกส ที่ปีนี้ยังไม่ใช้สิทธิ' : 'ยังไม่มีคนไข้จัดฟัน — กด "+ เพิ่มคนไข้จัดฟัน"')+'</div>';
     return;
