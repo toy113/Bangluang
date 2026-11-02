@@ -569,6 +569,14 @@ select.form-control { cursor: pointer; }
 
 /* DOCTOR SHARE TABLE */
 .share-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
+.share-grid.share-list { display:flex; flex-direction:column; gap:8px; }
+.share-row { display:grid; grid-template-columns:minmax(150px,1.6fr) 70px repeat(3,minmax(90px,1fr)) 20px; gap:10px; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:12px; cursor:pointer; }
+.share-row:hover { border-color:var(--wine-light); box-shadow:0 2px 10px rgba(107,45,94,.1); }
+.share-row .n { font-weight:800; color:var(--wine-dark); }
+.share-row .k { font-size:10px; color:var(--text-light); font-weight:700; }
+.share-row .v { font-size:14px; font-weight:800; }
+.share-row.hd { background:transparent; border:none; box-shadow:none; cursor:default; padding:0 16px; }
+@media(max-width:700px){ .share-row { grid-template-columns:1fr 1fr 1fr; } .share-row .n{grid-column:1/-1;} .share-row.hd{display:none;} .share-row .arr{display:none;} }
 .share-card {
   background: #fff;
   border: 1.5px solid var(--border);
@@ -5880,6 +5888,30 @@ function buildShareGrid(rows){
   if(badge) badge.textContent = 'รายได้รวมทั้งหมด '+fmt(grandTotal);
   const chartRows = []; // เก็บข้อมูลต่อหมอไว้เทียบกันเป็นกราฟ นอกเหนือจากการ์ดเดี่ยวๆ ด้านล่าง
   _shareRows=rows; _shareDocList=docList;
+  // มุมมองรายวัน: แสดงเป็นรายการ และซ่อนหมอที่วันนั้นไม่มียอด
+  const dayList = (currentPeriod==='day');
+  el.classList.toggle('share-list', dayList);
+  if(dayList){
+    const shown = [];
+    docList.forEach((doc,docIdx)=>{
+      const dr=rows.filter(r=>r.docName===doc.name);
+      const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
+      if(!dr.length || tot<=0) return;
+      const share=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
+      shown.push({doc,docIdx,n:dr.length,tot,share,clinic:tot-share});
+    });
+    shown.forEach(x=>chartRows.push({name:x.doc.name, share:x.share, clinicShare:x.clinic}));
+    el.innerHTML = shown.length
+      ? '<div class="share-row hd"><span class="k">หมอ</span><span class="k">จำนวน</span><span class="k">รายได้รวม</span><span class="k">ส่วนแบ่งหมอ</span><span class="k">ส่วนแบ่งคลินิก</span><span></span></div>'
+        + shown.map(x=>`<div class="share-row" role="button" tabindex="0" onclick="openDoctorBreakdown(${x.docIdx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDoctorBreakdown(${x.docIdx});}">
+            <span class="n">${x.doc.emoji||'🦷'} ${x.doc.name}</span>
+            <span><span class="k" style="display:block;">จำนวน</span><span class="v">${x.n} ราย</span></span>
+            <span><span class="k" style="display:block;">รายได้รวม</span><span class="v" style="color:var(--wine-dark);">${fmt(x.tot)}</span></span>
+            <span><span class="k" style="display:block;">ส่วนแบ่งหมอ</span><span class="v" style="color:var(--gold);">${fmt(x.share)}</span></span>
+            <span><span class="k" style="display:block;">ส่วนแบ่งคลินิก</span><span class="v" style="color:var(--wine);">${fmt(x.clinic)}</span></span>
+            <span class="arr" style="color:var(--text-light);">›</span></div>`).join('')
+      : '<div style="padding:24px;text-align:center;color:var(--text-light);">วันนี้ยังไม่มียอดรายได้</div>';
+  } else
   el.innerHTML=docList.map((doc,docIdx)=>{
     const dr=rows.filter(r=>r.docName===doc.name);
     const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
