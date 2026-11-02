@@ -1476,7 +1476,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="page" id="page-ortho">
       <div class="card-box">
         <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
-          <div class="card-box-title">😬 คนไข้จัดฟัน <span id="orthoCount" style="color:var(--text-light);font-weight:600;font-size:13px;"></span></div>
+          <div class="card-box-title">😬 คนไข้จัดฟัน <span id="orthoCount" style="color:var(--text-light);font-weight:600;font-size:13px;"></span> <span id="orthoNoApptN" style="display:none;background:linear-gradient(135deg,#1E88FF,#0A4FD6);color:#fff;border-radius:20px;padding:3px 12px;font-size:13px;font-weight:800;box-shadow:0 2px 8px rgba(10,79,214,.45);margin-left:6px;vertical-align:middle;"></span></div>
           <div class="filter-row">
             <input class="form-control" id="orthoSearch" placeholder="ค้นหา HN / ชื่อ" oninput="renderOrthoPage()" style="height:36px;width:160px;">
             <select class="form-control" id="orthoStatusFilter" onchange="renderOrthoPage()" style="height:36px;width:140px;">
@@ -9429,6 +9429,11 @@ async function renderOrthoPage(){
   rows.sort(orthoSortFn_(orthoSortKey));
   const countEl = document.getElementById('orthoCount');
   if(countEl) countEl.textContent = '('+rows.length+' คน)';
+  const noApptEl = document.getElementById('orthoNoApptN');
+  if(noApptEl){
+    const nNo = orthoData.filter(x=> orthoEffStatus_(x)==='กำลังจัด' && orthoOverdue_(x) && !orthoHasUpcomingAppt_(x)).length;
+    noApptEl.textContent = '📵 ยังไม่มีนัด '+nNo+' คน'; noApptEl.style.display = nNo ? 'inline-block' : 'none';
+  }
   if(!rows.length && _orthoErr){
     box.innerHTML = '<div style="padding:24px;text-align:center;color:#C0392B;">⚠️ โหลดข้อมูลจัดฟันไม่สำเร็จ<br><small>'+escapeHtml(_orthoErr)+'</small><br><button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="loadOrthoData(true).then(renderOrthoPage)">ลองใหม่</button></div>';
     return;
@@ -9584,7 +9589,7 @@ function orthoCardHtml(r){
   const sc = orthoStatusColor_(status);
   const statusPill = `<span style="background:${sc.bg};color:${sc.color};border:1.5px solid ${sc.color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">${status}</span>`;
   const overduePill = overdue ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน ${ORTHO_OVERDUE_DAYS} วัน</span>` : '';
-  const noApptPill = (isActive && orthoOverdue_(r) && !orthoHasUpcomingAppt_(r)) ? `<span title="ไม่มาเกิน ${ORTHO_OVERDUE_DAYS} วัน และยังไม่มีนัดล่วงหน้า" style="background:#FFF4E5;color:#9A5B00;border:1.5px solid #F0A030;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">📵 ยังไม่นัด</span>` : '';
+  const noApptPill = (isActive && orthoOverdue_(r) && !orthoHasUpcomingAppt_(r)) ? `<span title="ไม่มาเกิน ${ORTHO_OVERDUE_DAYS} วัน และยังไม่มีนัดล่วงหน้า" style="background:linear-gradient(135deg,#1E88FF,#0A4FD6);color:#fff;border:1.5px solid #0A3FA8;border-radius:20px;padding:3px 11px;font-size:12.5px;font-weight:800;letter-spacing:.2px;box-shadow:0 2px 8px rgba(10,79,214,.45);">📵 ยังไม่มีนัด</span>` : '';
   const hasPsk = orthoHasPsk_(r);
   const pskPill = hasPsk ? `<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.38);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">🏛️ ปกส</span>` + (orthoPskPending_(r) ? `<span title="ปีนี้ยังไม่มีรายการรักษาที่จ่ายด้วยประกันสังคม" style="background:#FFF4E5;color:#9A5B00;border:1px solid #F0B25E;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:800;">⏳ ปีนี้ยังไม่ใช้สิทธิ</span>` : '') : '';
   let scaleLine = '';
