@@ -1227,10 +1227,10 @@ function crmBindCore_(p) {
       }
     }
     var existing = crmRead_('links').filter(function (l) { return l.lineUserId === u.userId; });
-    var auto = codeOk || (s.linkApproval === 'auto' && matches.length >= 1);
+    var auto = matches.length >= 1;   // HN + เบอร์ตรงทะเบียนคนไข้ = ผูกอัตโนมัติเสมอ (ไม่ตรง → รอพนักงาน)
     // คนไข้จัดฟัน: HN + เบอร์ตรงทะเบียนคนไข้ และ HN นั้นมีแถวในชีตจัดฟัน → อนุมัติอัตโนมัติ (ข้อมูลจัดฟันขึ้นทันทีโดยไม่ต้องรอพนักงาน)
     var orthoAuto = {};
-    if (!auto && hnIn && matches.length) {
+    if (hnIn && matches.length) {
       crmReadByName_('ortho').forEach(function (o) { var k = crmHN_(o.hn); if (k) orthoAuto[k] = true; });
     }
     var anyActive = auto;
@@ -1243,9 +1243,9 @@ function crmBindCore_(p) {
       return { ok: true, status: 'pending', matched: 0 };
     }
     matches.forEach(function (m) {
-      var auto = codeOk || (s.linkApproval === 'auto') || !!orthoAuto[crmHN_(m.hn)];
+      var auto = true;
       if (auto) anyActive = true;
-      var by = codeOk ? 'รหัสจัดฟัน' : (s.linkApproval === 'auto' ? 'อัตโนมัติ' : 'HN จัดฟัน');
+      var by = codeOk ? 'รหัสจัดฟัน' : (orthoAuto[crmHN_(m.hn)] ? 'HN จัดฟัน' : 'HN+เบอร์ตรง');
       var already = existing.filter(function (l) { return crmHN_(l.hn) === crmHN_(m.hn) && l.status !== 'revoked'; })[0];
       if (already) { if (auto && already.status === 'pending') crmUpdate_('links', already._row, { status: 'active', approvedBy: by, approvedAt: now }); return; }
       crmAppend_('links', { id: crmId_('LK'), lineUserId: u.userId, hn: m.hn, patName: m.name || m['ชื่อ'] || '', status: auto ? 'active' : 'pending',

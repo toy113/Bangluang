@@ -3482,7 +3482,7 @@ function crmViewLinks(){
     <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;"><div id="crmQr" style="width:132px;height:132px;"></div>
       <div style="flex:1;min-width:220px;"><div class="crm-pre" style="max-height:none;">${crmEsc(d.liffUrl||'')}?tab=next</div>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="crm-btn" onclick="crmCopy('${crmEsc(d.liffUrl||'')}?tab=next')">คัดลอกลิงก์</button></div>
-        <p class="crm-muted" style="margin-top:6px;">ตั้งโต๊ะที่เคาน์เตอร์ให้คนไข้สแกน → กรอกชื่อ+เบอร์ → พนักงานกดอนุมัติด้านล่าง${d.settings.linkApproval==='auto'?' (ตอนนี้ตั้งเป็นผูกอัตโนมัติเมื่อชื่อ+เบอร์ตรง)':''}</p></div></div></div>
+        <p class="crm-muted" style="margin-top:6px;">ตั้งโต๊ะที่เคาน์เตอร์ให้คนไข้สแกน → กรอกชื่อ+เบอร์ → พนักงานกดอนุมัติด้านล่าง (HN+เบอร์ตรง = ผูกอัตโนมัติ)</p></div></div></div>
   <div class="crm-card"><h4>⏳ รออนุมัติ (${pending.length})</h4><div class="crm-list">${pending.map(l=>`<div class="crm-item"><div class="main">
       <div class="nm">LINE: ${crmEsc(l.displayName||'-')} → ${l.hn?crmEsc(l.patName)+' <span class="crm-muted">HN '+crmEsc(l.hn)+'</span>':'<span class="crm-chip o">ไม่พบในรายชื่อ</span>'}</div>
       <div class="meta">กรอกมา: ${crmEsc(l.inputName||'')} · ${crmEsc(l.inputPhone||'')} · ${crmEsc(crmTs(l.createdAt))}</div>
@@ -3574,7 +3574,7 @@ function crmViewSettings(){
     </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
-      <div class="full"><label>การผูกบัญชีของคนไข้</label><select class="form-control" id="crmS_linkApproval"><option value="staff" ${s.linkApproval!=='auto'?'selected':''}>พนักงานต้องกดอนุมัติ (ปลอดภัยกว่า — แนะนำ)</option><option value="auto" ${s.linkApproval==='auto'?'selected':''}>ผูกอัตโนมัติเมื่อชื่อ+เบอร์ตรง</option></select></div>
+      <div class="full"><label>การผูกบัญชีของคนไข้</label><div class="crm-muted" style="padding:8px 0;">✅ ผูกอัตโนมัติเมื่อ <b>HN + เบอร์โทร</b> ตรงกับทะเบียนคนไข้ · ถ้าไม่ตรง จะเข้าคิวให้พนักงานอนุมัติ</div></div>
       <div class="full"><label>⭐ ให้คะแนนบริการ 0–5 หลังคนไข้ตอบ "ปกติดี" (เฉพาะถอนฟัน) · ได้ 5 ส่งลิงก์รีวิว · ได้ ≤3 สร้างงานโทรสอบถาม</label><div>${sw('ratingOn','เปิดถามคะแนนหลังถอนฟัน')}</div></div>
       <div class="full"><label>ลิงก์รีวิว Google (ขึ้นต้น https:// — เว้นว่าง = ขอบคุณเฉยๆ ไม่ส่งลิงก์)</label><input class="form-control" id="crmS_reviewUrl" value="${crmEsc(s.reviewUrl||'')}" placeholder="https://g.page/r/xxxx/review"></div>
       <div class="full"><label>ข้อความตอบรับเมื่อพบอาการฉุกเฉิน (ระบบสร้างงานด่วนเสมอ · เว้นว่าง = ไม่ตอบคนไข้)</label><textarea class="form-control" id="crmS_emergencyText">${crmEsc(s.emergencyText)}</textarea></div>
