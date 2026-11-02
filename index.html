@@ -8445,7 +8445,8 @@ function renderPatients(){
   grid.innerHTML = display.map(p=>{
     const hn = String(p.hn||'');
     const visits = getPatientVisitCount(hn);
-    const last = getLastVisit(hn);
+    const lastT = getPatientTreatments(hn)[0] || null;
+    const last = lastT ? lastT.date : null;
     const phone = String(p.phone||'');
     const lineId = String(p.lineId||'');
     const hasSso = p.sso===true || String(p.sso).toUpperCase()==='TRUE' || pskHas_(p.hn);
@@ -8469,9 +8470,11 @@ function renderPatients(){
       </div>
 
       <!-- visits -->
-      <div onclick="openPatientDetail('${hn}')" style="flex-shrink:0;text-align:right;cursor:pointer;margin-right:4px;">
-        <div style="background:var(--wine-pale);color:var(--wine);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;">🦷 ${visits} ครั้ง</div>
-        <div style="font-size:11px;color:var(--text-light);margin-top:3px;">${last?fmtDate(last):'ยังไม่มีประวัติ'}</div>
+      <div onclick="openPatientDetail('${hn}')" style="flex:0 1 270px;min-width:0;text-align:right;cursor:pointer;margin-right:4px;">
+        <div style="background:var(--wine-pale);color:var(--wine);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;display:inline-block;">🦷 ${visits} ครั้ง</div>
+        <div style="font-size:12px;color:var(--text-mid);margin-top:3px;font-weight:700;">${last?'ล่าสุด '+fmtDate(last):'ยังไม่มีประวัติ'}</div>
+        ${lastT?`<div style="font-size:12px;color:var(--text-dark);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_escHtml(lastT.proc||'')}">${_escHtml(lastT.proc||'—')}</div>
+        <div style="font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lastT.docName?'👨‍⚕️ '+_escHtml(lastT.docName):''}</div>`:''}
       </div>
 
       <!-- action buttons -->
