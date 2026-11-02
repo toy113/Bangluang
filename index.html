@@ -3139,7 +3139,7 @@ function crmMarkConfirmed(id){
 /* ---------- 3) เตือนนัด ---------- */
 function crmViewRemind(){
   const d=CRM.data, s=d.settings||{}, today=todayStr();
-  const od=+s.orthoDays||2, xd=+s.otherDays||1;
+  const od=+s.orthoDays||2, xd=+s.otherDays||2;
   const due=appointments.filter(a=>!['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status) && a.date===crmAddDays(today, crmIsOrtho(a)?od:xd))
     .sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   const withLine=due.filter(a=>crmHasLine(a.hn)), noLine=due.filter(a=>!crmHasLine(a.hn));

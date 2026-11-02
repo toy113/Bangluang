@@ -4,7 +4,7 @@
  *
  * ทำอะไรบ้าง
  *  - ผูกบัญชี LINE กับคนไข้ทุกคน (หน้า LIFF) + ยืนยันตัวตนด้วย LINE token ฝั่งเซิร์ฟเวอร์
- *  - ส่งยืนยันนัด / เตือนก่อนนัด (จัดฟัน 2 วัน, งานอื่น 1 วัน) พร้อมปุ่ม ยืนยัน / ขอเลื่อน / ติดต่อคลินิก
+ *  - ส่งยืนยันนัด / เตือนก่อนนัด (จัดฟัน 2 วัน, งานอื่น 2 วัน) พร้อมปุ่ม ยืนยัน / ขอเลื่อน / ติดต่อคลินิก
  *  - ขอเลื่อนนัด = สร้างงานให้พนักงาน (ไม่แตะตารางนัดจริง)
  *  - ส่งคำแนะนำหลังรักษา (เฉพาะ template ที่ทันตแพทย์อนุมัติแล้ว) + คำแนะนำพิเศษเฉพาะเคส
  *  - ถามอาการวันถัดไป 10:00 น. ปุ่มตอบตามหัตถการ, อาการฉุกเฉิน → สร้างงานด่วนให้พนักงาน + ตอบรับสั้น ๆ
@@ -50,7 +50,7 @@ var CRM_DEFAULT_SETTINGS = {
   testUserId: '',
   sendStart: '08:00', sendEnd: '20:00',
   confirmOn: true,
-  remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 1,
+  remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 2,
   orthoKeywords: 'จัดฟัน,ปรับเครื่องมือ,รีเทนเนอร์,ถอดเครื่องมือจัดฟัน',
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
   aftercareOn: true, aftercareDelayMin: 0,
@@ -738,7 +738,7 @@ function crmTickInner_() {
     }
     if (s.remindOn && hm >= s.remindHour) {
       var gk = crmHN_(a.hn) + '|' + a.date;
-      (remindGroups[gk] = remindGroups[gk] || []).push({ a: a, tg: tg, days: crmIsOrthoApt_(s, a, orthoActive) ? (+s.orthoDays || 2) : (+s.otherDays || 1) });
+      (remindGroups[gk] = remindGroups[gk] || []).push({ a: a, tg: tg, days: crmIsOrthoApt_(s, a, orthoActive) ? (+s.orthoDays || 2) : (+s.otherDays || 2) });
     }
   });
 
