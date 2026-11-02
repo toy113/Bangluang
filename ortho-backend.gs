@@ -344,8 +344,41 @@ function orthoPushLine_(to, messages) {
 function orthoTextMsg_(t) { return { type: 'text', text: t }; }
 
 /* ===================== UTIL ===================== */
-function orthoNormHN_(v) {
-  return String(v == null ? '' : v).trim().replace(/\s+/g, '').toUpperCase();
+function orthoNormHN_(v) {   // เทียบ HN โดยไม่สนขีด/ช่องว่าง: 64-3511 = 643511 (กันสร้างแถวซ้ำ)
+  return String(v == null ? '' : v).trim().replace(/[\s-]+/g, '').toUpperCase();
+}
+
+/* รวมแถวคนไข้จัดฟันที่ HN ซ้ำกัน (เช่น 64-3511 กับ 643511)
+   - orthoMergeDuplicatesPreview()  = ดูอย่างเดียว ไม่แก้อะไร (ดูผลที่ บันทึกการดำเนินการ)
+   - orthoMergeDuplicatesApply()    = รวมจริง: เก็บแถวที่ข้อมูลครบกว่า เติมช่องว่าง (เช่น lineUserId) จากแถวซ้ำ แล้วลบแถวซ้ำ */
+function orthoMergeDuplicatesPreview() { return orthoMergeDuplicates_(true); }
+function orthoMergeDuplicatesApply() { return orthoMergeDuplicates_(false); }
+function orthoMergeDuplicates_(dry) {
+  var sh = orthoGetSheet_(SHEET_ORTHO, ORTHO_HEADERS);
+  var data = sh.getDataRange().getValues();
+  if (data.length < 2) { Logger.log('ชีตว่าง'); return { ok: true, groups: 0 }; }
+  var head = data[0], hnCol = head.indexOf('hn');
+  var groups = {};
+  for (var r = 1; r < data.length; r++) {
+    var k = orthoNormHN_(data[r][hnCol]); if (!k) continue;
+    (groups[k] = groups[k] || []).push(r);
+  }
+  var toDelete = [], n = 0;
+  Object.keys(groups).forEach(function (k) {
+    var g = groups[k]; if (g.length < 2) return;
+    n++;
+    var filled = function (i) { return data[i].filter(function (c) { return c !== '' && c != null; }).length; };
+    g.sort(function (a, b) { return filled(b) - filled(a) || a - b; });
+    var keep = g[0], rest = g.slice(1);
+    Logger.log('HN ' + k + ': เก็บแถว ' + (keep + 1) + ' (' + data[keep][hnCol] + ' / ' + data[keep][head.indexOf('ชื่อ')] + ') · ' + (dry ? 'จะลบ' : 'ลบ') + ' แถว ' + rest.map(function (i) { return (i + 1) + ' (' + data[i][hnCol] + ')'; }).join(', '));
+    if (dry) return;
+    var merged = data[keep].slice();
+    rest.forEach(function (i) { head.forEach(function (h, c) { if ((merged[c] === '' || merged[c] == null) && data[i][c] !== '' && data[i][c] != null) merged[c] = data[i][c]; }); toDelete.push(i + 1); });
+    sh.getRange(keep + 1, 1, 1, head.length).setValues([merged]);
+  });
+  if (!dry) toDelete.sort(function (a, b) { return b - a; }).forEach(function (row) { sh.deleteRow(row); });
+  Logger.log(n ? ((dry ? 'พบ HN ซ้ำ ' : 'รวมแล้ว ') + n + ' กลุ่ม') : 'ไม่พบ HN ซ้ำ');
+  return { ok: true, groups: n, applied: !dry };
 }
 // เก็บเฉพาะตัวเลข, แปลง +66 / 66 ขึ้นต้น -> 0 ; เทียบ 9 หลักท้ายกันพลาด
 function orthoNormPhone_(v) {
