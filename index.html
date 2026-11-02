@@ -1109,10 +1109,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <option value="">— เลือกทันตแพทย์ —</option>
         <option value="toy">ทพ.สรวิศ สุภาพ</option>
         <option value="mind">ทพ.ภาคภูมิ สุนทราภิรมย์</option>
-        <option value="koi">ทพญ.พัทธนันท์ กฤินหอม</option>
+        <option value="koi">ทพญ.พัทธนันท์ กฐินหอม</option>
         <option value="pong">ทพ.สหพล หังสพฤกษ์</option>
         <option value="aim">ทพญ.วัจน์กร เสือดี</option>
-        <option value="khao">ทพ.สิรวิชญ์ พินิจรัตนพันธ์</option>
+        <option value="khao">ทพ.สิรวิชญ์ พินิจรัตน์พันธ์</option>
         <option value="part">หมอพาร์ท</option>
         <option value="ben">ทพญ.ภาสิริ ศิริรังษี</option>
       </select>
@@ -2418,16 +2418,16 @@ async function authApi(payload){
 // ============================================================
 //  DOCTORS & AUTH
 // ============================================================
-const DOC_ALIAS = {'หมอทอย':'ทพ.สรวิศ สุภาพ','หมอมายด์':'ทพ.ภาคภูมิ สุนทราภิรมย์','หมอก้อย':'ทพญ.พัทธนันท์ กฤินหอม','หมอข้าว':'ทพ.สิรวิชญ์ พินิจรัตนพันธ์','หมอป้อง':'ทพ.สหพล หังสพฤกษ์','หมอเบญ':'ทพญ.ภาสิริ ศิริรังษี','หมอเอม':'ทพญ.วัจน์กร เสือดี'};
+const DOC_ALIAS = {'หมอทอย':'ทพ.สรวิศ สุภาพ','หมอมายด์':'ทพ.ภาคภูมิ สุนทราภิรมย์','หมอก้อย':'ทพญ.พัทธนันท์ กฐินหอม','หมอข้าว':'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์','หมอป้อง':'ทพ.สหพล หังสพฤกษ์','หมอเบญ':'ทพญ.ภาสิริ ศิริรังษี','หมอเอม':'ทพญ.วัจน์กร เสือดี','ทพญ.พัทธนันท์ กฤินหอม':'ทพญ.พัทธนันท์ กฐินหอม','ทพ.สิรวิชญ์ พินิจรัตนพันธ์':'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์'};
 function docAlias(n){ return (n && DOC_ALIAS[n]) || n; }
 function aliasRows_(rows){ rows.forEach(r=>{ if(r && r.docName) r.docName = docAlias(r.docName); }); return rows; }
 const DOCTORS_DATA = [
   { id:'toy',   name:'ทพ.สรวิศ สุภาพ',  emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'ทพ.สรวิศ สุภาพ', licenseNo:'' },
   { id:'mind',  name:'ทพ.ภาคภูมิ สุนทราภิรมย์', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'ทพ.ภาคภูมิ สุนทราภิรมย์', licenseNo:'' },
-  { id:'koi',   name:'ทพญ.พัทธนันท์ กฤินหอม',  emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'ทพญ.พัทธนันท์ กฤินหอม', licenseNo:'' },
+  { id:'koi',   name:'ทพญ.พัทธนันท์ กฐินหอม',  emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'ทพญ.พัทธนันท์ กฐินหอม', licenseNo:'' },
   { id:'pong',  name:'ทพ.สหพล หังสพฤกษ์',  emoji:'📷', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'ทพ.สหพล หังสพฤกษ์', licenseNo:'' },
   { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
-  { id:'khao',  name:'ทพ.สิรวิชญ์ พินิจรัตนพันธ์',  emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#E5B80B', fullName:'ทพ.สิรวิชญ์ พินิจรัตนพันธ์', licenseNo:'' },
+  { id:'khao',  name:'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์',  emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#E5B80B', fullName:'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์', licenseNo:'' },
   { id:'part',  name:'หมอพาร์ท', emoji:'🔬', specialty:'รากฟันเทียม',      gender:'male',   share:50, color:'#C0392B', fullName:'', licenseNo:'' },
   { id:'ben',   name:'ทพญ.ภาสิริ ศิริรังษี',  emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#F27A0D', fullName:'ทพญ.ภาสิริ ศิริรังษี', licenseNo:'' },
 ];
