@@ -267,6 +267,7 @@ function crmRouteGet_(e) {
   try {
     if (a === 'crmPortal')    return ContentService.createTextOutput(crmPortalJson_(p)).setMimeType(ContentService.MimeType.JSON);
     if (a === 'crmLinked')    return ContentService.createTextOutput(crmLinkedJson_()).setMimeType(ContentService.MimeType.JSON);   // รายชื่อ HN ที่ผูก LINE แล้ว (ให้เว็บแสดงแบดจ์)
+    if (a === 'crmRateOpen')  return crmJson_(crmRateOpen_(p));   // ปุ่ม 5 ดาวในไลน์ (สาธารณะ ตรวจด้วยลายเซ็น k)
     if (a === 'crmBind')      return crmJson_(crmBind_(p));
     if (a === 'crmConsent')   return crmJson_(crmConsent_(p));
     if (a === 'crmDashboard') return ContentService.createTextOutput(crmDashboardJson_(p.fresh === '1')).setMimeType(ContentService.MimeType.JSON);
@@ -996,10 +997,30 @@ function crmRatingApplies_(s, fu) {
 }
 function crmRatingMessage_(s, fu) {
   var L = [['5', '5 ⭐ ดีมาก'], ['4', '4 ⭐ ดี'], ['3', '3 ⭐ พอใช้'], ['2', '2 ⭐ ควรปรับปรุง'], ['1', '1 ⭐ ไม่พอใจ'], ['0', '0 ⭐ แย่มาก']];
+  var directReview = /^https:\/\//i.test(String(s.reviewUrl || '').trim());   // 5 ดาว: เปิดหน้ารีวิวทันที (ผ่านหน้าบันทึกคะแนน rate.html)
   var btn = function (x) { return { type: 'button', height: 'sm', style: x[0] === '5' ? 'primary' : 'secondary', color: x[0] === '5' ? '#1D825C' : undefined,
-    action: { type: 'postback', label: x[1], data: 'rate|' + fu.id + '|' + x[0], displayText: x[1] } }; };
+    action: (x[0] === '5' && directReview) ? { type: 'uri', label: x[1], uri: crmRateUrl_(fu.id) }
+      : { type: 'postback', label: x[1], data: 'rate|' + fu.id + '|' + x[0], displayText: x[1] } }; };
   var btns = L.map(btn); btns.forEach(function (b) { if (b.color === undefined) delete b.color; });
   return { type: 'flex', altText: 'ให้คะแนนบริการครั้งนี้ 0-5', contents: crmBubble_(s, '⭐ ให้คะแนนบริการครั้งนี้', 'ความเห็นของคุณช่วยให้เราพัฒนาบริการค่ะ 🙏 กรุณาเลือกคะแนน 0–5', [], btns, '#1D825C') };
+}
+/* ลิงก์ปุ่ม 5 ดาว → หน้า rate.html บันทึกคะแนน 5 แล้วเด้งไปหน้ารีวิว (ลายเซ็นกันเดา id ของคนอื่น) */
+function crmRateSecret_() {
+  var pr = PropertiesService.getScriptProperties(), v = pr.getProperty('CRM_RATE_SECRET');
+  if (!v) { v = Utilities.getUuid() + Utilities.getUuid(); pr.setProperty('CRM_RATE_SECRET', v); }
+  return v;
+}
+function crmRateToken_(fuId) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature('rate|' + fuId, crmRateSecret_())).replace(/=+$/, '').slice(0, 22); }
+function crmRateUrl_(fuId) { return 'https://toy113.github.io/Bangluang/rate.html?fu=' + encodeURIComponent(fuId) + '&k=' + crmRateToken_(fuId); }
+function crmRateOpen_(p) {
+  var s = crmSettings_(), id = String(p.fu || ''), k = String(p.k || '');
+  if (!id || k !== crmRateToken_(id)) return { ok: false, error: 'bad_token' };
+  var url = String(s.reviewUrl || '').trim();
+  if (!/^https:\/\//i.test(url)) return { ok: false, error: 'no_review_url' };
+  var fr = crmFind_(crmRead_('followups'), 'id', id);
+  if (!fr) return { ok: false, error: 'not_found' };
+  if (String(fr.rating || '') === '') { crmUpdate_('followups', fr._row, { rating: '5', ratedAt: crmNow_() }); crmTouch_(); }
+  return { ok: true, url: url };
 }
 function crmReviewMessages_(s) {
   var url = String(s.reviewUrl || '').trim();
