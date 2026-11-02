@@ -501,7 +501,7 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
   return bubble;
 }
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
-function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม (โทร. ' + String((s && s.clinicPhone) || '0959476759').replace(/[^0-9]/g, '') + '/พิมพ์ในแชทนี้ได้เลยค่ะ)', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
+function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม\nโทร. ' + String((s && s.clinicPhone) || '0959476759').replace(/[^0-9]/g, '') + '\nพิมพ์ในแชทนี้ได้เลยค่ะ', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
 function crmTelUri_(s) { return 'tel:' + String(s.clinicPhone || '').replace(/[^0-9+]/g, ''); }
 function crmAptMessage_(s, apt, kind) {
   var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '✅ ยืนยันการนัดหมาย');
