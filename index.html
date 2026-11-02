@@ -3034,7 +3034,7 @@ function crmStatusBar(){
 /* ข้อความล่าสุดที่ระบบส่ง 2 รายการ (จาก log ที่โหลดมาแล้ว ไม่ต้องเรียกเซิร์ฟเวอร์เพิ่ม) */
 function crmLastSent(){
   const rows=(CRM.data.log||[]).filter(r=>r.status==='sent'||r.status==='test')
-    .sort((x,y)=>String(y.createdAt).localeCompare(String(x.createdAt))).slice(0,2);
+    .sort((x,y)=>String(y.createdAt).localeCompare(String(x.createdAt))).slice(0,5);
   if(!rows.length) return '';
   const today=todayStr();
   const li=rows.map(r=>{
@@ -3043,7 +3043,7 @@ function crmLastSent(){
     const ty=CRM_LOG_TYPE[r.type]||r.type||'';
     return `<div style="display:flex;gap:8px;align-items:baseline;"><span style="color:var(--text-light,#9a93a3);min-width:78px;">${crmEsc(when)}</span><b>${crmEsc(ty)}</b><span>${crmEsc(r.patName||r.hn||'')}</span></div>`;
   }).join('');
-  return `<div style="flex-basis:100%;border-top:1px dashed var(--border);margin-top:4px;padding-top:8px;display:grid;gap:3px;"><span style="font-size:11px;color:var(--text-light,#9a93a3);">ข้อความล่าสุดที่ระบบส่ง</span>${li}</div>`;
+  return `<div style="flex-basis:100%;border-top:1px dashed var(--border);margin-top:4px;padding-top:8px;display:grid;gap:3px;"><span style="font-size:11px;color:var(--text-light,#9a93a3);">ข้อความล่าสุดที่ระบบส่ง (5 รายการ)</span>${li}</div>`;
 }
 
 /* ---------- 1) ภาพรวมวันนี้ ---------- */
