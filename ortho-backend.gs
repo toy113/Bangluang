@@ -140,10 +140,14 @@ function orthoList() {
     if (l['ทำอะไร'] === 'เครื่องมือหลุด') looseCount[hn] = (looseCount[hn] || 0) + 1;
     else visitCount[hn] = (visitCount[hn] || 0) + 1;
   });
+  // คนที่ผูก LINE แล้วผ่านระบบ LINE CRM (ชีต crm_links) — ไม่ได้เก็บ lineUserId ไว้ในชีตจัดฟัน
+  var linked = {};
+  try { orthoSheetToObjects_('crm_links').forEach(function (l) { if (String(l.status) === 'active' && l.lineUserId) linked[orthoNormHN_(l.hn)] = true; }); } catch (e) {}
   rows.forEach(function (r) {
     var hn = String(r.hn);
     r._visitCount = visitCount[hn] || 0;
     r._looseCount = looseCount[hn] || 0;
+    r._lineLinked = !!(r.lineUserId || linked[orthoNormHN_(hn)]);
   });
   return { ok: true, rows: rows };
 }

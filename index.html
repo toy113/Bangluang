@@ -9589,8 +9589,8 @@ async function saveScaling(){
 function orthoCardHtml(r){
   const hnEsc = String(r.hn||'').replace(/'/g,"\\'");
   // ซ่อนบรรทัด "ยังไม่ผูก LINE" (แสดงเฉพาะคนที่ผูกแล้ว)
-  const bound = r.lineUserId
-    ? '<div style="font-size:11px;margin-top:3px;"><span style="color:var(--green);">🟢 ผูก LINE แล้ว</span></div>'
+  const bound = (r.lineUserId || r._lineLinked)
+    ? '<div style="font-size:11px;margin-top:3px;"><span style="color:var(--green);font-weight:700;">🟢 ผูก LINE แล้ว</span></div>'
     : '';
   const status = orthoEffStatus_(r);
   const isActive = status === 'กำลังจัด';
