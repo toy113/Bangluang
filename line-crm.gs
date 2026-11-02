@@ -52,6 +52,7 @@ var CRM_DEFAULT_SETTINGS = {
   confirmOn: true,
   remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 2,
   orthoKeywords: 'จัดฟัน,ปรับเครื่องมือ,รีเทนเนอร์,ถอดเครื่องมือจัดฟัน',
+  receiptWaitMin: 30,        // ยังไม่มียอดเงิน → รอกี่นาทีก่อนส่งสรุป (เผื่อพนักงานกรอกยอดทีหลังหมอ) · 0 = ไม่รอ
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
   aftercareOn: true, aftercareDelayMin: 0,
   followupOn: true, followupHour: '10:00',
@@ -535,6 +536,7 @@ function crmAptGroupMessage_(s, list) {
 function crmMoney_(n) { return '฿' + String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 // สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (+ คำแนะนำหลังรักษาในการ์ดเดียวกัน ถ้ามี template ที่อนุมัติแล้ว)
 // trs = รายการรักษา (อันเดียวหรือ array) · extra = { tpls: [...], notes: [...] } (ไม่บังคับ)
+function crmTreatAmt_(t) { return (+t.cash || 0) + (+t.transfer || 0) + (+t.sso || 0); }
 function crmReceiptMessage_(s, trs, extra) {
   var list = Object.prototype.toString.call(trs) === '[object Array]' ? trs : [trs];
   var t0 = list[0] || {};
@@ -578,10 +580,11 @@ function crmReceiptMessage_(s, trs, extra) {
     if (notes.length) rows.push({ type: 'text', text: '📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'), wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' });
     rows.push({ type: 'text', text: 'มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ', wrap: true, size: 'xs', color: '#83627C', margin: 'md' });
   }
-  var sub = 'คุณ' + (t0.patName || '') + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูรอยยิ้มของคุณค่ะ☺️';
+  var corrected = !!(extra && extra.corrected);
+  var sub = corrected ? ('คุณ' + (t0.patName || '') + '\nขออภัยในความคลาดเคลื่อนค่ะ คลินิกขอแก้ไขข้อมูลค่าใช้จ่ายดังนี้') : ('คุณ' + (t0.patName || '') + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูรอยยิ้มของคุณค่ะ☺️');
   var buttons = [crmInquiryNote_(s)];
   return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + (hasAfter ? ' และคำแนะนำหลังรักษา' : '') + ' ขอบคุณที่มาใช้บริการค่ะ',
-    contents: crmBubble_(s, hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา', sub, rows, buttons, '#1D825C') };
+    contents: crmBubble_(s, corrected ? '🧾 แก้ไขสรุปค่าใช้จ่าย' : (hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา'), sub, rows, buttons, '#1D825C') };
 }
 function crmAftercareMessages_(s, patName, date, tpls, notes) {
   var parts = ['คุณ' + (patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nคำแนะนำหลังการรักษา' + (date === crmToday_() ? 'วันนี้' : '') + ' (' + crmThaiDate_(date) + ')'];
@@ -789,6 +792,20 @@ function crmTickInner_() {
       var rowsR = s.receiptOn ? byHn[gk].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'receipt:' + t.id)); }) : [];
       var rowsA = s.aftercareOn ? byHn[gk].filter(function (t) { return !crmIsDone_(state, crmKey_(s, 'after:' + t.id)); }) : [];
       if (!rowsR.length && !rowsA.length) return;
+      // ยังไม่มียอดเงิน → รอสูงสุด receiptWaitMin นาที (นับจากที่เห็นรายการครั้งแรก) เผื่อพนักงานกรอกยอดทีหลังหมอ ไม่งั้นการ์ดจะเขียนว่า "ไม่มีค่าใช้จ่าย" ผิด
+      if (rowsR.length && (+s.receiptWaitMin) > 0) {
+        var recTot = 0; rowsR.forEach(function (t) { recTot += (+t.cash || 0) + (+t.transfer || 0) + (+t.sso || 0); });
+        if (recTot <= 0) {
+          var firstSeen = null;
+          rowsR.forEach(function (t) {
+            var sk = crmKey_(s, 'rseen:' + t.id);
+            if (!state.done[sk]) crmMark_(state, sk, 'seen', { hn: t.hn, patName: t.patName, refId: t.id }, 'seen', '');
+            var at = new Date(String(state.done[sk].createdAt).replace(' ', 'T') + '+07:00').getTime();
+            if (firstSeen === null || at < firstSeen) firstSeen = at;
+          });
+          if (Date.now() - firstSeen < (+s.receiptWaitMin) * 60000) return;
+        }
+      }
       var waiting = [];
       if (rowsA.length && +s.aftercareDelayMin > 0) {
         var ready = rowsA.filter(function (t) {
@@ -829,7 +846,7 @@ function crmTickInner_() {
         }
       });
       if (crmAllDone_(state, key, tg)) {
-        if (type === 'receipt') rowsR.forEach(function (t) { crmMark_(state, crmKey_(s, 'receipt:' + t.id), 'receipt', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', ''); });
+        if (type === 'receipt') rowsR.forEach(function (t) { crmMark_(state, crmKey_(s, 'receipt:' + t.id), 'receipt', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', 'amt=' + crmTreatAmt_(t)); });
         if (hasAfter) {
           rowsA.forEach(function (t) { crmMark_(state, crmKey_(s, 'after:' + t.id), 'aftercare', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', ''); });
           if (sentAny && !s.testMode) myNotes.forEach(function (n) { crmUpdate_('casenotes', n._row, { status: 'sent', sentAt: crmNow_() }); n.status = 'sent'; });
@@ -851,6 +868,22 @@ function crmTickInner_() {
       if (crmAllDone_(state, nk, tg)) crmMark_(state, nk, 'casenote', { hn: n.hn, refId: n.id }, 'done', '');
     });
   }
+
+  // 3.5) แก้ยอดหลังส่งสรุปไปแล้ว → สร้างงานแจ้งพนักงาน (ไม่ส่งหาคนไข้เอง) พนักงานเลือกส่งการ์ดแก้ไขหรือไม่ส่งก็ได้
+  treats.forEach(function (t) {
+    if (!t.id || !t.hn || t.status === 'ยกเลิก') return;
+    var dd = crmDateOnly_(t.date); if (dd < crmAddDays_(today, -3)) return;
+    var rr = state.done[crmKey_(s, 'receipt:' + t.id)];
+    if (!rr || String(rr.detail || '').indexOf('amt=') !== 0) return;      // ส่งสรุปก่อนมีระบบนี้ → ไม่มียอดอ้างอิง ข้าม
+    var was = +String(rr.detail).slice(4) || 0, cur = crmTreatAmt_(t);
+    if (was === cur) return;
+    var ck = crmKey_(s, 'amtchg:' + t.id + ':' + cur);
+    if (crmIsDone_(state, ck)) return;
+    crmCreateTask_({ type: 'amtchange', priority: 'normal', hn: t.hn, patName: t.patName, aptId: t.id, aptDate: dd, aptTime: String(cur),
+      detail: 'แก้ยอดหลังส่งสรุปให้คนไข้แล้ว: ' + crmMoney_(was) + ' → ' + crmMoney_(cur) + ' (' + (t.proc || '-') + ') — ต้องการส่งการ์ดแก้ไขให้คนไข้ไหม' });
+    crmMark_(state, ck, 'amtchg', { hn: t.hn, patName: t.patName, refId: t.id }, 'done', '');
+    summary.amtchange = (summary.amtchange || 0) + 1;
+  });
 
   // 4) ติดตามอาการวันถัดไป
   if (s.followupOn && hm >= s.followupHour) {
@@ -1414,7 +1447,7 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'receiptOn','aftercareOn','aftercareDelayMin','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
+        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
       ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
@@ -1457,6 +1490,20 @@ function crmStaffAction_(b) {
       crmSheet_('followups');
       var rf = crmFind_(crmRead_('followups'), 'id', b.id); if (!rf) return { ok: false, error: 'not_found' };
       crmUpdate_('followups', rf._row, { calledAt: now, calledBy: by, callNote: String(b.note || '').slice(0, 300) }); return { ok: true };
+    }
+    if (act === 'amtResend') {   // ส่งการ์ดแก้ไขยอดให้คนไข้ (จากงาน "แก้ยอดหลังส่งสรุป")
+      var tkA = crmFind_(crmRead_('tasks'), 'id', b.id); if (!tkA || tkA.type !== 'amtchange') return { ok: false, error: 'not_found' };
+      var trA = crmFind_(crmReadByName_('บันทึกการรักษา'), 'id', tkA.aptId); if (!trA) return { ok: false, error: 'ไม่พบรายการรักษานี้แล้ว' };
+      var sA = crmSettings_(), tgA = (crmLinkMap_()[crmHN_(trA.hn)] || []).filter(function (x) { return x.consent; });
+      if (!tgA.length) return { ok: false, error: 'คนไข้ไม่ได้ผูก LINE หรือปิดรับข้อความ — แจ้งทางโทรแทน' };
+      var cardA = crmReceiptMessage_(sA, trA, { corrected: true }), stA = { done: {}, fails: {} }, okA = false;
+      tgA.forEach(function (t) {
+        if (crmSend_(sA, stA, { key: 'amtfix:' + trA.id + ':' + now + ':' + t.lineUserId, type: 'receipt', hn: trA.hn, patName: trA.patName, lineUserId: t.lineUserId, refId: trA.id, detail: 'แก้ไขยอด' }, [cardA])) okA = true;
+      });
+      if (!okA) return { ok: false, error: 'ส่งไม่สำเร็จ (โควตาเต็มหรือ LINE ปฏิเสธ)' };
+      crmAppend_('log', { key: crmKey_(sA, 'receipt:' + trA.id), type: 'receipt', hn: trA.hn, patName: trA.patName, lineUserId: '', refId: trA.id, status: 'sent', detail: 'amt=' + crmTreatAmt_(trA), createdAt: now, pushCount: 0 });
+      crmUpdate_('tasks', tkA._row, { status: 'done', resultNote: 'ส่งการ์ดแก้ไขยอดให้คนไข้แล้ว', doneBy: by, updatedAt: now });
+      return { ok: true };
     }
     if (act === 'updateTask') {
       var r5 = crmFind_(crmRead_('tasks'), 'id', b.id); if (!r5) return { ok: false, error: 'not_found' };

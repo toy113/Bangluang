@@ -2832,7 +2832,7 @@ var CRM_SUBS = [
 ];
 var CRM_DOCTOR_SUBS = ['aftercare','followup','rating','tasks'];
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
-var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ' };
+var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป' };
 var CRM_LOG_TYPE = { confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
 
 function crmEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -3375,7 +3375,8 @@ function crmViewTasks(){
         <div class="meta">${crmEsc(crmTs(t.createdAt))}${t.status!=='open'?' · ปิดโดย '+crmEsc(t.doneBy||'')+(t.resultNote?' — '+crmEsc(t.resultNote):''):''}</div></div>
         <div class="acts">${ph?`<a class="crm-btn" href="${crmTel(ph)}">📞 ${crmEsc(ph)}</a>`:'<span class="crm-muted">ไม่มีเบอร์ (ตอบใน LINE OA Chat)</span>'}
           ${t.aptId && appointments.some(a=>String(a.id)===String(t.aptId))?`<button class="crm-btn" onclick="openEditApt('${crmEsc(t.aptId)}')">เปิดนัด</button>`:''}
-          ${t.status==='open'?`<button class="crm-btn g" onclick="crmCloseTask('${t.id}')">เสร็จแล้ว</button>`:`<button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'open'},'เปิดงานอีกครั้ง')">เปิดอีกครั้ง</button>`}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีงาน 🎉</div>'}</div></div>`;
+          ${t.type==='amtchange' && t.status==='open'?`<button class="crm-btn p" onclick="crmAmtResend('${t.id}')">📤 ส่งการ์ดแก้ไขยอด</button><button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'done',resultNote:'ไม่ส่งการ์ดแก้ไข'},'ปิดงานแล้ว (ไม่ส่ง)')">ไม่ต้องส่ง</button>`:''}
+          ${t.type==='amtchange'?'':(t.status==='open'?`<button class="crm-btn g" onclick="crmCloseTask('${t.id}')">เสร็จแล้ว</button>`:`<button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'open'},'เปิดงานอีกครั้ง')">เปิดอีกครั้ง</button>`)}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีงาน 🎉</div>'}</div></div>`;
 }
 function crmFuCalled(id){
   const note = window.prompt('ผลการโทรติดตาม (ไม่บังคับ) เช่น "ปกติดี" หรือ "ปวดเล็กน้อย นัดดูอาการ"', '');
@@ -3383,6 +3384,10 @@ function crmFuCalled(id){
   const f=((CRM.data&&CRM.data.followups)||[]).find(x=>String(x.id)===String(id));
   if(f){ f.calledAt = new Date().toLocaleString('sv-SE',{timeZone:'Asia/Bangkok'}).slice(0,16); f.calledBy = crmBy(); f.callNote = note; crmRender(); crmUpdateBadge(); }
   crmDo({crm:'fuCalled', id, note}, 'บันทึกการโทรแล้ว ✅');
+}
+function crmAmtResend(id){
+  if(!window.confirm('ส่งการ์ด "แก้ไขสรุปค่าใช้จ่าย" ให้คนไข้ทาง LINE ตอนนี้? (ใช้โควตา 1 ข้อความ)')) return;
+  crmDo({crm:'amtResend', id}, 'ส่งการ์ดแก้ไขแล้ว ✅');
 }
 function crmCloseTask(id){
   const note = window.prompt('ผลการติดต่อ (ไม่บังคับ) เช่น "เลื่อนเป็น 12 พ.ย. 14:00"', '');
@@ -3588,6 +3593,7 @@ function crmViewSettings(){
       ${inp('remindHour','เวลาส่งเตือนนัด','time')}${inp('followupHour','เวลาถามอาการวันถัดไป','time')}
       ${inp('orthoDays','งานจัดฟัน เตือนก่อน (วัน)','number')}${inp('otherDays','งานอื่น เตือนก่อน (วัน)','number')}
       <div class="full">${inp('orthoKeywords','คำที่ถือว่าเป็นนัดจัดฟัน (นอกเหนือจากคนไข้จัดฟันในระบบ)')}</div>
+      ${inp('receiptWaitMin','ถ้ายังไม่มียอดเงิน รอก่อนส่งสรุปการรักษา (นาที) — เผื่อพนักงานกรอกยอดทีหลัง · 0 = ไม่รอ','number')}
       ${inp('aftercareDelayMin','หน่วงส่ง Aftercare (นาที) — เผื่อเวลาเพิ่มคำแนะนำพิเศษ','number')}${inp('quotaGuard','หยุด push เมื่อโควตาเหลือ ≤','number')}
     </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
@@ -3606,7 +3612,7 @@ function crmViewSettings(){
       <div>${d.richMenu?'✅':'⬜'} rich menu ${crmEsc(d.richMenu||'(ยังไม่สร้าง — รัน crmSetupRichMenu())')}</div><div>🔗 LIFF: ${crmEsc(d.liffUrl||'')}</div></div></div>`;
 }
 function crmSaveSettings(){
-  const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
+  const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','receiptWaitMin','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
     'confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText'];
   const s={};
   keys.forEach(k=>{ const el=document.getElementById('crmS_'+k); if(!el) return; s[k]= el.type==='checkbox' ? el.checked : (el.type==='number' ? +el.value : el.value); });
