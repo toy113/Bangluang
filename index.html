@@ -8442,8 +8442,19 @@ function renderPatients(){
     return;
   }
 
+  // นัดถัดไปของแต่ละคน (จากตารางนัดหลัก + นัดจัดฟัน เลือกอันที่ใกล้สุด)
+  const _today = todayStr(), _nextApt = new Map();
+  appointments.forEach(a=>{
+    const k=normHN(a.hn); if(!k) return; const d=String(a.date||'').slice(0,10);
+    if(d>=_today && !['ยกเลิก','เสร็จสิ้น','เสร็จ'].includes(a.status) && (!_nextApt.has(k) || d<_nextApt.get(k).date)) _nextApt.set(k,{date:d,time:a.time||'',proc:a.proc||'',doc:a.docName||''});
+  });
+  try{ (orthoData||[]).forEach(o=>{
+    const k=normHN(o.hn), d=String(o['นัดถัดไป']||'').slice(0,10);
+    if(k && d>=_today && /^\d{4}-\d{2}-\d{2}$/.test(d) && (!_nextApt.has(k) || d<_nextApt.get(k).date)) _nextApt.set(k,{date:d,time:String(o['นัดถัดไปเวลา']||''),proc:'จัดฟัน',doc:o['หมอ']||''});
+  }); }catch(e){}
   grid.innerHTML = display.map(p=>{
     const hn = String(p.hn||'');
+    const nx = _nextApt.get(normHN(hn)) || null;
     const visits = getPatientVisitCount(hn);
     const lastT = getPatientTreatments(hn)[0] || null;
     const last = lastT ? lastT.date : null;
@@ -8475,6 +8486,7 @@ function renderPatients(){
         <div style="font-size:12px;color:var(--text-mid);margin-top:3px;font-weight:700;">${last?'ล่าสุด '+fmtDate(last):'ยังไม่มีประวัติ'}</div>
         ${lastT?`<div style="font-size:12px;color:var(--text-dark);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_escHtml(lastT.proc||'')}">${_escHtml(lastT.proc||'—')}</div>
         <div style="font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lastT.docName?'👨‍⚕️ '+_escHtml(lastT.docName):''}</div>`:''}
+        ${nx?`<div style="margin-top:4px;display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(135deg,#1E88FF,#0A4FD6);color:#fff;border-radius:20px;padding:2px 10px;font-size:11.5px;font-weight:800;" title="${_escHtml((nx.proc||'')+' '+(nx.doc||''))}">📆 นัดถัดไป ${fmtDate(nx.date)}${nx.time?' '+_escHtml(String(nx.time).replace(':','.'))+' น.':''}${nx.proc?' · '+_escHtml(nx.proc):''}</div>`:`<div style="margin-top:4px;font-size:11px;color:var(--text-light);">📆 ยังไม่มีนัด</div>`}
       </div>
 
       <!-- action buttons -->
