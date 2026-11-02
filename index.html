@@ -690,6 +690,8 @@ select.form-control { cursor: pointer; }
 .rc-log { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 2px 0; line-height: 1.5; }
 .rc-log-d { font-weight: 800; color: var(--wine); min-width: 38px; }
 .rc-note { color: var(--text-light); font-style: italic; }
+.line-badge { display:inline-block; margin-left:6px; font-size:10px; font-weight:700; line-height:1.6; padding:0 7px; border-radius:999px; background:rgba(6,199,85,.13); border:1px solid rgba(6,199,85,.45); color:#058a3c; white-space:nowrap; }
+.line-badge.off { background:rgba(150,150,150,.12); border-color:rgba(150,150,150,.4); color:#777; }
 .psk-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); color: #B26A00; white-space: nowrap; vertical-align: middle; }
 .rc-bar { height: 8px; border-radius: 4px; background: var(--wine-pale); overflow: hidden; margin-top: 8px; }
 .rc-bar > div { height: 100%; background: #16A085; border-radius: 4px; }
@@ -2665,6 +2667,7 @@ function verifyLogin(){
 // ============================================================
 function startApp(){
   loadLocal();
+  setTimeout(()=>{ try{ loadLineHns(true); }catch(e){} }, 600);
   // Save session so refresh doesn't log out
   { const prev = authSess();
     const tk = _authTok || (prev && prev.userId===currentUser.id ? { token:prev.token, exp:prev.exp } : null);
@@ -3749,7 +3752,7 @@ function renderAptList(today){
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${a.hn||'—'}</div>
-      <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${endoBadge(a)}</div></div>
+      <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
@@ -4712,6 +4715,33 @@ function refreshPskSet_(){
   _pskKeys = set;
 }
 function pskHas_(hn){ if(!_pskKeys) refreshPskSet_(); const k=normHN(hn); return !!k && _pskKeys.has(k); }
+/* แบดจ์ "ผูก LINE แล้ว" — HN ที่ผูกได้จาก Apps Script (action crmLinked) เก็บไว้ในเครื่องเพื่อแสดงทันที */
+var LINE_HNS = new Set(), LINE_BLOCKED = new Set(), _lineHnsAt = 0;
+try{ const c=JSON.parse(localStorage.getItem('bl_line_hns')||'null'); if(c){ LINE_HNS=new Set(c.h||[]); LINE_BLOCKED=new Set(c.b||[]); } }catch(e){}
+function lineBadge(o){
+  const k = o && o.hn ? normHN(o.hn) : '';
+  if(!k) return '';
+  if(LINE_HNS.has(k)) return '<span class="line-badge" title="ผูก LINE OA แล้ว">🟢 LINE</span>';
+  if(LINE_BLOCKED.has(k)) return '<span class="line-badge off" title="ผูก LINE แล้วแต่บล็อก/เลิกติดตาม OA">🚫 LINE</span>';
+  return '';
+}
+async function loadLineHns(force){
+  if(!force && Date.now()-_lineHnsAt < 120000) return;
+  _lineHnsAt = Date.now();
+  try{
+    const res = await fetch(APPS_SCRIPT_URL+'?action=crmLinked',{cache:'no-store'});
+    const d = await res.json();
+    if(!d || !d.ok) return;
+    LINE_HNS = new Set((d.hns||[]).map(normHN)); LINE_BLOCKED = new Set((d.blocked||[]).map(normHN));
+    try{ localStorage.setItem('bl_line_hns', JSON.stringify({h:[...LINE_HNS], b:[...LINE_BLOCKED]})); }catch(e){}
+    const act = document.querySelector('.page.active')?.id || '';
+    try{
+      if(act==='page-patients' && typeof renderPatients==='function') renderPatients();
+      else if(act==='page-home' && typeof renderHome==='function') renderHome();
+      else if(act==='page-schedule' && typeof renderSchedulePage==='function') renderSchedulePage();
+    }catch(e){}
+  }catch(e){ console.warn('loadLineHns',e); }
+}
 function pskBadge(o){
   return (o && pskHas_(o.hn)) ? '<span class="psk-badge" title="ใช้/มีสิทธิ์ประกันสังคม">🏛️ ปกส</span>' : '';
 }
@@ -7004,7 +7034,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -7492,7 +7522,7 @@ function renderSchedulePage(){
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
           <td class="text-caption hn-cell">${a.hn||'—'}</td>
-          <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${endoBadge(a)}</td>
+          <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
           <td>${docBadge(a.docName)}</td>
@@ -8473,6 +8503,7 @@ function renderPatients(){
           <span style="font-size:13px;font-weight:800;color:var(--wine);white-space:nowrap;">HN ${hn}</span>
           <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${p.name||'—'}</span>
           ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;">🏛️ ปกส</span>`:''}
+          ${lineBadge({hn})}
           ${phone?`<span style="font-size:12px;color:var(--text-mid);">📞 ${phone}</span>`:''}
           ${lineId?`<span style="font-size:12px;color:#06c755;">💬 ${lineId}</span>`:''}
         </div>

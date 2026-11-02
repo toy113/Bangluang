@@ -266,6 +266,7 @@ function crmRouteGet_(e) {
   if (a.indexOf('crm') !== 0) return null;
   try {
     if (a === 'crmPortal')    return ContentService.createTextOutput(crmPortalJson_(p)).setMimeType(ContentService.MimeType.JSON);
+    if (a === 'crmLinked')    return ContentService.createTextOutput(crmLinkedJson_()).setMimeType(ContentService.MimeType.JSON);   // รายชื่อ HN ที่ผูก LINE แล้ว (ให้เว็บแสดงแบดจ์)
     if (a === 'crmBind')      return crmJson_(crmBind_(p));
     if (a === 'crmConsent')   return crmJson_(crmConsent_(p));
     if (a === 'crmDashboard') return ContentService.createTextOutput(crmDashboardJson_(p.fresh === '1')).setMimeType(ContentService.MimeType.JSON);
@@ -403,6 +404,19 @@ function crmLinkMap_(preLinks, preOrtho, preFollowers) {
   });
   (preOrtho || crmReadByName_('ortho')).forEach(function (o) { if (o.lineUserId) add(o.hn, o.lineUserId, true, o['ชื่อ']); });
   return map;
+}
+/* HN ที่ผูก LINE แล้ว (เบา — ไม่ส่งชื่อ/เบอร์) cache ตามรุ่นข้อมูล CRM */
+function crmLinkedJson_() {
+  var c = CacheService.getScriptCache(), key = 'crm_lk_' + (c.get('crm_gen') || 'g0');
+  var hit = c.get(key); if (hit) return hit;
+  var map = crmLinkMap_(), hns = [], blocked = [];
+  Object.keys(map).forEach(function (k) {
+    var ok = map[k].some(function (x) { return !x.blocked; });
+    (ok ? hns : blocked).push(k);
+  });
+  var out = JSON.stringify({ ok: true, hns: hns, blocked: blocked });
+  try { c.put(key, out, 300); } catch (e) {}
+  return out;
 }
 function crmUserHns_(uid) {
   var hns = [];
