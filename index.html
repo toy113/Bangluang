@@ -328,6 +328,7 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
 .crm-nav-badge{margin-left:auto;background:#E74C3C;color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;line-height:20px;padding:0 6px;border-radius:10px;text-align:center;}
 .top-tab{position:relative;}
+.ortho-nav-badge{background:linear-gradient(135deg,#1E88FF,#0A4FD6);box-shadow:0 2px 6px rgba(10,79,214,.5);}
 .crm-nav-badge-top{position:absolute;top:2px;right:6px;margin:0;min-width:16px;height:16px;line-height:16px;font-size:10px;padding:0 4px;}
 .nav-item {
   display: flex; align-items: center; gap: 10px;
@@ -1193,7 +1194,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>สรุปรายได้</button>
       <button class="nav-item" onclick="showPage('stats')" id="nav-stats"><span class="nav-icon" style="font-size:17px;line-height:1;">📈</span>สถิติ</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8.5 13h7"/></svg></span>ค่าแลป</button>
-      <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>จัดฟัน</button>
+      <button class="nav-item" onclick="showPage('ortho')" id="nav-ortho" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>จัดฟัน<span class="crm-nav-badge ortho-nav-badge" id="orthoNavBadge" style="display:none;" title="ยังไม่มีนัด"></span></button>
       <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>ตั้งค่า</button>
 
     </div>
@@ -1239,7 +1240,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-stats" onclick="showPage('stats');setMobileNav('stats')"><span class="mn-icon">📈</span>สถิติ</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
-      <button class="top-tab" id="ttab-ortho" style="display:none;" onclick="showPage('ortho')"><span class="mn-icon">😬</span>จัดฟัน</button>
+      <button class="top-tab" id="ttab-ortho" style="display:none;" onclick="showPage('ortho')"><span class="mn-icon">😬</span>จัดฟัน<span class="crm-nav-badge crm-nav-badge-top ortho-nav-badge" id="orthoTopBadge" style="display:none;" title="ยังไม่มีนัด"></span></button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -2708,6 +2709,7 @@ function startApp(){
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
+  if(isManager && typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().catch(()=>{}); }, 800);   // โหลดเบื้องหลังเพื่อให้ตัวเลขที่เมนูจัดฟันขึ้นทันที
 
   // Show add buttons for manager only, hide for doctors
   ['btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome'].forEach(id=>{
@@ -9272,11 +9274,18 @@ async function loadOrthoData(force){
     const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
     const res = await fetch(url+'?action=orthoList',{cache:'no-store'});
     const d = await res.json();
-    if(d && d.ok && Array.isArray(d.rows)){ orthoData = d.rows; _orthoErr = ''; }
+    if(d && d.ok && Array.isArray(d.rows)){ orthoData = d.rows; _orthoErr = ''; orthoUpdateNavBadge_(); }
     else _orthoErr = 'เซิร์ฟเวอร์ตอบ: ' + String((d && (d.error||d.message)) || 'ไม่มีข้อมูล');
   }catch(e){ console.warn('loadOrtho error',e); _orthoErr = 'เชื่อมต่อไม่ได้ (' + (e && e.message || e) + ')'; }
 }
 let _orthoErr = '';
+function orthoNoApptCount_(){ return orthoData.filter(x=> orthoEffStatus_(x)==='กำลังจัด' && orthoOverdue_(x) && !orthoHasUpcomingAppt_(x)).length; }
+function orthoUpdateNavBadge_(){
+  try{
+    const n = orthoNoApptCount_();
+    ['orthoNavBadge','orthoTopBadge'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=n; el.style.display = n ? '' : 'none'; } });
+  }catch(e){}
+}
 
 // นับครั้งจริงจาก ortho_log คำนวณไว้แล้วฝั่ง backend (orthoList) ติดมากับแถว — ไม่ต้องดึง log ทั้งชีตมานับฝั่งนี้
 function orthoVisitCount_(r){
@@ -9431,7 +9440,7 @@ async function renderOrthoPage(){
   if(countEl) countEl.textContent = '('+rows.length+' คน)';
   const noApptEl = document.getElementById('orthoNoApptN');
   if(noApptEl){
-    const nNo = orthoData.filter(x=> orthoEffStatus_(x)==='กำลังจัด' && orthoOverdue_(x) && !orthoHasUpcomingAppt_(x)).length;
+    const nNo = orthoNoApptCount_(); orthoUpdateNavBadge_();
     noApptEl.textContent = '📵 ยังไม่มีนัด '+nNo+' คน'; noApptEl.style.display = nNo ? 'inline-block' : 'none';
   }
   if(!rows.length && _orthoErr){
