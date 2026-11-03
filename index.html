@@ -3305,6 +3305,33 @@ async function crmOrthoCameSave(){
   }catch(e){ console.error(e); showToast('บันทึกไม่สำเร็จ','error'); }
   _crmCameSaving=false;
 }
+// นัดปรับครั้งที่เท่าไร: นับจากครั้งที่มาแล้วจริงใน ortho_log (+1 ถ้ายังไม่ได้มาในวันนัดนั้น)
+function crmOrthoVisitNo(a){
+  const o=crmOrthoRec(a.hn); if(!o) return 0;
+  const n=orthoVisitCount_(o), came=String(o['ปรับล่าสุด']||'').slice(0,10)===a.date;
+  return came ? Math.max(n,1) : n+1;
+}
+// พิมพ์รายการนัดจัดฟันของวันนั้นให้หมอ (เปิดหน้าต่างใหม่แล้วสั่งพิมพ์)
+function crmOrthoPrint(d){
+  const list=crmOrthoAptList(d,d); if(!list.length){ showToast('ไม่มีนัดในวันนี้','error'); return; }
+  const E=crmEsc;
+  const rows=list.map((a,i)=>{
+    const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
+    const last=String(o['ปรับล่าสุด']||'').slice(0,10);
+    const info=[ o['แบบจัด']?E(o['แบบจัด']):'', last&&last!==d?'ปรับล่าสุด '+E(crmThaiShort(last)):'', loose?'หลุดสะสม '+loose+' ตัว':'', o['note']?E(o['note']):'' ].filter(Boolean).join(' · ');
+    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b><br><span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span></td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?'<br><span class="m">'+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
+  }).join('');
+  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>นัดจัดฟัน ${E(crmThaiShort(d))}</title>
+<style>@page{size:A4 landscape;margin:12mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px}
+h1{font-size:18px;margin:0 0 2px}.sub{color:#555;margin-bottom:10px}table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #999;padding:6px 7px;vertical-align:top}th{background:#eee;font-size:12px}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:11.5px}.note{width:22%;height:42px}
+tr{page-break-inside:avoid}</style></head><body>
+<h1>คลินิกทันตกรรมบางหลวง — นัดจัดฟัน ${E(crmThaiShort(d))}</h1><div class="sub">ทั้งหมด ${list.length} คน · พิมพ์เมื่อ ${E(new Date().toLocaleString('th-TH'))}</div>
+<table><tr><th>#</th><th>เวลา</th><th>คนไข้</th><th>ปรับครั้งที่</th><th>รายการนัด</th><th>ข้อมูลจากการ์ด</th><th>บันทึกหมอ</th></tr>${rows}</table>
+<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`;
+  const w=window.open('','_blank'); if(!w){ showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — กรุณาอนุญาต pop-up','error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
 function crmViewOrthoApts(){
   const today=todayStr();
   const ranges={ today:[today,today], tomorrow:[crmAddDays(today,1),crmAddDays(today,1)], week:[today,crmAddDays(today,7)], d14:[today,crmAddDays(today,14)], d30:[today,crmAddDays(today,30)] };
@@ -3342,12 +3369,12 @@ function crmViewOrthoApts(){
     const pend=arr.filter(a=>['wait','noline'].includes(crmOrthoState(a)));
     const copy = pend.length ? ` <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmCopy(${crmEsc(JSON.stringify(pend.map(a=>(a.time||'')+' '+(a.patName||'')+' HN '+(a.hn||'-')+' '+(crmPhoneOf(a.hn,a.phone)||''))))})">คัดลอกที่ยังไม่ยืนยัน</button>` : '';
     const head=`<tr><td colspan="3" style="background:var(--wine);color:#fff;font-weight:800;padding:8px 10px;border-bottom:0;">${crmEsc(crmThaiShort(d))}${d===today?' · วันนี้':''}
-        <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${(cnt.wait+cnt.noline)?` · ⏳${cnt.wait+cnt.noline}`:''}${cnt.move?` · 📅${cnt.move}`:''}</span>${copy?`<div style="margin-top:4px;">${copy}</div>`:''}</td></tr>`;
+        <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${(cnt.wait+cnt.noline)?` · ⏳${cnt.wait+cnt.noline}`:''}${cnt.move?` · 📅${cnt.move}`:''}</span><div style="margin-top:4px;">${copy} <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoPrint('${d}')">🖨 พิมพ์รายการให้หมอ</button></div></td></tr>`;
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
-          <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}</div>
+          <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${crmOrthoVisitNo(a)?` · <b style="color:var(--wine);">ปรับครั้งที่ ${crmOrthoVisitNo(a)}</b>`:''}</div>
           ${nextLine(a)}
           <div style="margin-top:3px;">${x[2]?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
         <td style="vertical-align:middle;">${came(a)}${nextBtn(a)}</td></tr>`; }).join('');
