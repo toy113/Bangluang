@@ -885,6 +885,15 @@ function crmTickInner_() {
     summary.amtchange = (summary.amtchange || 0) + 1;
   });
 
+  // 3.6) นัดที่ถูกเปลี่ยนสถานะเป็น "ยกเลิก" (ล่วงหน้า) และคนไข้เคยได้ข้อความนัดไปแล้ว → สร้างงานให้พนักงานเลือกส่งข้อความแจ้งยกเลิก (ไม่ส่งเอง)
+  apts.forEach(function (a) {
+    if (a._ortho || a.status !== 'ยกเลิก' || !a.id || !a.hn) return;
+    var dd = crmDateOnly_(a.date); if (!dd || dd < today) return;
+    if (dd === today && a.time && a.time <= hm) return;
+    if (!targets(a.hn).length) return;
+    if (crmCancelTask_(s, state, a, 'ยกเลิกนัดในตารางนัด')) summary.aptcancel = (summary.aptcancel || 0) + 1;
+  });
+
   // 4) ติดตามอาการวันถัดไป
   if (s.followupOn && hm >= s.followupHour) {
     var yday = crmAddDays_(today, -1), groups = {};
@@ -1015,6 +1024,43 @@ function crmUpsertFollower_(uid, status) {
   var p = crmApi_('get', '/v2/bot/profile/' + uid);
   crmAppend_('followers', { lineUserId: uid, displayName: (p.data && p.data.displayName) || '', pictureUrl: (p.data && p.data.pictureUrl) || '',
     status: status || 'follow', followedAt: status === 'follow' ? now : '', updatedAt: now, lastSeenAt: now });
+}
+/* ----- แจ้งยกเลิกนัด: สร้างงานให้พนักงานตัดสินใจ (ลบเพราะลงซ้ำ/พิมพ์ผิดไม่ควรแจ้งคนไข้) ----- */
+function crmCancelTask_(s, state, a, how) {
+  var dd = crmDateOnly_(a.date), key = crmKey_(s, 'cancel:' + a.id + ':' + dd);
+  if (state.done[key]) return false;
+  var informed = false, pre = [crmKey_(s, 'confirm:' + a.id + ':'), crmKey_(s, 'remind:' + a.id + ':')];
+  for (var k in state.done) {
+    var r = state.done[k]; if (r.status !== 'sent' && r.status !== 'test') continue;
+    if (k.indexOf(pre[0]) === 0 || k.indexOf(pre[1]) === 0) { informed = true; break; }
+  }
+  var ctx = { hn: a.hn, patName: a.patName, refId: a.id };
+  if (!informed) { crmMark_(state, key, 'aptcancel', ctx, 'skipped', 'คนไข้ยังไม่เคยได้รับข้อความนัดนี้'); return false; }
+  var tm = String(a.time || '').slice(0, 5);
+  crmCreateTask_({ type: 'aptcancel', priority: 'high', hn: a.hn, patName: a.patName, aptId: a.id, aptDate: dd, aptTime: tm,
+    detail: how + ' · นัดวันที่ ' + crmThaiDate_(dd) + (tm ? ' ' + tm + ' น.' : '') + ((a.proc || a.docName) ? ' (' + [a.proc, a.docName].filter(Boolean).join(' · ') + ')' : '')
+      + ' — คนไข้เคยได้รับข้อความนัดนี้แล้ว ต้องการส่งข้อความแจ้งยกเลิกทาง LINE ไหม? (ถ้าลบเพราะลงซ้ำ/พิมพ์ผิด ให้กด "ไม่ต้องแจ้ง")' });
+  crmMark_(state, key, 'aptcancel', ctx, 'done', how);
+  return true;
+}
+// เรียกจาก Code.gs ก่อนลบแถวนัดจริง (ลบแล้วระบบเห็นไม่ได้อีก)
+function crmOnAptRemoved_(id) {
+  var s = crmSettings_(); if (!s.enabled) return;
+  var a = crmFind_(crmReadByName_('ตารางนัด'), 'id', String(id));
+  if (!a || !a.hn || ['เสร็จสิ้น', 'เสร็จ', 'walk-in'].indexOf(a.status) !== -1) return;
+  var today = crmToday_(), dd = crmDateOnly_(a.date); if (!dd || dd < today) return;
+  if (dd === today && a.time && String(a.time).slice(0, 5) <= crmHM_()) return;
+  var tg = (crmLinkMap_()[crmHN_(a.hn)] || []).filter(function (x) { return x.consent; });
+  if (!tg.length) return;
+  var state = crmLogKeys_();
+  if (crmCancelTask_(s, state, a, 'ลบนัดออกจากตารางนัด')) { crmFlushMarks_(state); crmTouch_(); }
+  else crmFlushMarks_(state);
+}
+function crmCancelMessage_(s, task) {
+  var rows = [crmRow_('วัน', crmThaiDate_(task.aptDate))];
+  if (task.aptTime) rows.push(crmRow_('เวลา', task.aptTime + ' น.'));
+  return { type: 'flex', altText: 'แจ้งยกเลิกนัดหมาย ' + crmThaiDate_(task.aptDate),
+    contents: crmBubble_(s, '📌 แจ้งยกเลิกนัดหมาย', 'คุณ' + (task.patName || '') + ' คลินิกขอยกเลิกนัดหมายนี้ค่ะ หากต้องการนัดหมายใหม่ ติดต่อคลินิกได้เลยค่ะ', rows, [crmInquiryNote_(s)]) };
 }
 function crmCreateTask_(t) {
   var now = crmNow_();
@@ -1503,6 +1549,18 @@ function crmStaffAction_(b) {
       if (!okA) return { ok: false, error: 'ส่งไม่สำเร็จ (โควตาเต็มหรือ LINE ปฏิเสธ)' };
       crmAppend_('log', { key: crmKey_(sA, 'receipt:' + trA.id), type: 'receipt', hn: trA.hn, patName: trA.patName, lineUserId: '', refId: trA.id, status: 'sent', detail: 'amt=' + crmTreatAmt_(trA), createdAt: now, pushCount: 0 });
       crmUpdate_('tasks', tkA._row, { status: 'done', resultNote: 'ส่งการ์ดแก้ไขยอดให้คนไข้แล้ว', doneBy: by, updatedAt: now });
+      return { ok: true };
+    }
+    if (act === 'cancelSend') {   // ส่งข้อความแจ้งยกเลิกนัดให้คนไข้ (จากงาน "นัดถูกยกเลิก/ลบ")
+      var tkC = crmFind_(crmRead_('tasks'), 'id', b.id); if (!tkC || tkC.type !== 'aptcancel') return { ok: false, error: 'not_found' };
+      var sC = crmSettings_(), tgC = (crmLinkMap_()[crmHN_(tkC.hn)] || []).filter(function (x) { return x.consent; });
+      if (!tgC.length) return { ok: false, error: 'คนไข้ไม่ได้ผูก LINE หรือปิดรับข้อความ — แจ้งทางโทรแทน' };
+      var cardC = crmCancelMessage_(sC, { patName: tkC.patName, aptDate: crmDateOnly_(tkC.aptDate), aptTime: String(tkC.aptTime || '').slice(0, 5) }), stC = { done: {}, fails: {} }, okC = false;
+      tgC.forEach(function (t) {
+        if (crmSend_(sC, stC, { key: 'aptcancel:' + tkC.aptId + ':' + now + ':' + t.lineUserId, type: 'change', hn: tkC.hn, patName: tkC.patName, lineUserId: t.lineUserId, refId: tkC.aptId, detail: 'แจ้งยกเลิกนัด ' + crmDateOnly_(tkC.aptDate) }, [cardC])) okC = true;
+      });
+      if (!okC) return { ok: false, error: 'ส่งไม่สำเร็จ (โควตาเต็มหรือ LINE ปฏิเสธ)' };
+      crmUpdate_('tasks', tkC._row, { status: 'done', resultNote: 'ส่งข้อความแจ้งยกเลิกนัดให้คนไข้แล้ว', doneBy: by, updatedAt: now });
       return { ok: true };
     }
     if (act === 'updateTask') {

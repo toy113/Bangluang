@@ -427,7 +427,10 @@ function doPost(e) {
       if (sh) {
         var ids = gaIds_(sh);
         var i = ids.indexOf(String(data.data.id));
-        if (i > 0) sh.deleteRow(i + 1);
+        if (i > 0) {
+          if (data.data.type === 'appointments') { try { crmOnAptRemoved_(String(data.data.id)); } catch (eC) {} }   // สร้างงาน "แจ้งยกเลิกนัด" ก่อนแถวหาย
+          sh.deleteRow(i + 1);
+        }
       }
       return gaOk_(data.data.type);
     }
