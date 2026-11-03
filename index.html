@@ -2213,6 +2213,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group"><label>หมายเหตุ</label><input class="form-control" id="came-note" placeholder="ไม่บังคับ"></div>
     </div>
     <label class="checkbox-label" id="came-sendrow" style="margin-top:8px;font-weight:700;"><input type="checkbox" id="came-send" checked> <span id="came-sendtxt">ส่งสรุปรายการและราคาให้คนไข้ทาง LINE ทันที</span></label>
+    <label class="checkbox-label" id="came-carerow" style="margin-top:4px;font-weight:700;"><input type="checkbox" id="came-care" checked> แนบ "ข้อควรปฏิบัติ" (วิธีดูแลเครื่องมือ) ไปกับข้อความ</label>
     <div id="came-total" style="font-size:15px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:10px 12px;margin-top:8px;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalOrthoCame')">ยกเลิก</button>
@@ -3266,7 +3267,7 @@ async function crmOrthoCameSave(){
   if(!adj && !loose && !others.length && !extras.length){ showToast('กรุณาเลือกรายการอย่างน้อย 1 อย่าง','error'); return; }
   _crmCameSaving=true;
   try{
-    const sendLine=document.getElementById('came-send').checked && !document.getElementById('came-send').disabled;
+    const sendLine=document.getElementById('came-send').checked && !document.getElementById('came-send').disabled, careOn=document.getElementById('came-care').checked;
     const doc=document.getElementById('came-doc').value, userNote=document.getElementById('came-note').value.trim();
     const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
     const logs=[], lineItems=[]; let visits=orthoVisitCount_(r), looseN=orthoLooseCount_(r), money=adjFee;
@@ -3296,7 +3297,7 @@ async function crmOrthoCameSave(){
     closeModal('modalOrthoCame');
     showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':''));
     if(sendLine){
-      crmCall({crm:'orthoVisitSend', hn:r.hn, patName:r['ชื่อ']||'', date, doc, items:lineItems, by:crmBy()}).then(res=>{
+      crmCall({crm:'orthoVisitSend', hn:r.hn, patName:r['ชื่อ']||'', date, doc, items:lineItems, care:careOn, by:crmBy()}).then(res=>{
         if(res && res.ok && res.sent) showToast('ส่งสรุปให้คนไข้ทาง LINE แล้ว 📤');
         else if(res && res.ok) showToast('คนไข้ยังไม่ผูกไลน์ — ไม่ได้ส่งสรุป','error');
         else showToast('ส่งสรุปทาง LINE ไม่สำเร็จ: '+((res&&res.error)||'ไม่ทราบสาเหตุ'),'error');

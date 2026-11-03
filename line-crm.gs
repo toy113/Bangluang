@@ -1061,7 +1061,16 @@ function crmOnAptRemoved_(id) {
   if (crmCancelTask_(s, state, a, 'ลบนัดออกจากตารางนัด')) { crmFlushMarks_(state); crmTouch_(); }
   else crmFlushMarks_(state);
 }
-// สรุปการมาจัดฟัน: รายการ + ราคา (0 บาท = ฟรี) + ยอดรวม
+// ข้อควรปฏิบัติสำหรับคนไข้จัดฟัน (ข้อความเดียวกับหน้า "ข้อควรปฏิบัติ" ใน LIFF จัดฟัน)
+var CRM_ORTHO_CARE_ = [
+  'แปรงฟันหลังอาหารทุกมื้อ ใช้แปรงซอกฟัน/แปรงจัดฟันร่วมด้วย',
+  'หลีกเลี่ยงของแข็ง เหนียว และกัดของแข็งตรงๆ เช่น น้ำแข็ง กระดูก',
+  'ถ้าลวดหลุด/ทิ่มแก้ม ใช้ขี้ผึ้ง (wax) กดไว้ แล้วรีบติดต่อคลินิก',
+  'ใส่ยาง (elastic) ตามที่หมอสั่งอย่างสม่ำเสมอ',
+  'มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น',
+  'กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์เปลี่ยนเป็นชำระ 1,500 บาทจนกว่าจะเสร็จค่ะ'
+];
+// สรุปการมาจัดฟัน: รายการ + ราคา (0 บาท = ฟรี) + ยอดรวม (+ ข้อควรปฏิบัติ)
 function crmOrthoVisitMessage_(s, v) {
   var rows = [crmRow_('วัน', crmThaiDate_(v.date))];
   if (v.doc) rows.push(crmRow_('ทันตแพทย์', v.doc));
@@ -1072,6 +1081,11 @@ function crmOrthoVisitMessage_(s, v) {
   });
   rows.push({ type: 'separator', margin: 'md' });
   rows.push(crmRow_('รวม', total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'));
+  if (v.care) {
+    rows.push({ type: 'separator', margin: 'md' });
+    rows.push({ type: 'text', text: '📝 ข้อควรปฏิบัติ', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
+    CRM_ORTHO_CARE_.forEach(function (t, i) { rows.push({ type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17', margin: 'sm' }); });
+  }
   return { type: 'flex', altText: 'สรุปการมาจัดฟันวันนี้ ' + (total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'),
     contents: crmBubble_(s, '🦷 สรุปการมาจัดฟันวันนี้', 'ขอบคุณที่มาตามนัดค่ะ คุณ' + (v.patName || ''), rows, [crmInquiryNote_(s)]) };
 }
@@ -1595,7 +1609,7 @@ function crmStaffAction_(b) {
       if (!tgV.length) return { ok: true, sent: 0, reason: 'no_line' };
       var itemsV = (b.items || []).slice(0, 12).map(function (x) { return { name: String(x.name || '').slice(0, 60), price: (x.price === null || x.price === undefined) ? null : (+x.price || 0), note: String(x.note || '').slice(0, 60) }; });
       if (!itemsV.length) return { ok: false, error: 'no_items' };
-      var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60) });
+      var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60), care: b.care !== false });
       var stV = { done: {}, fails: {} }, nV = 0;
       tgV.forEach(function (t) {
         if (crmSend_(sV, stV, { key: 'orthovisit:' + hnV + ':' + crmDateOnly_(b.date) + ':' + now + ':' + t.lineUserId, type: 'receipt', hn: hnV, patName: b.patName || '', lineUserId: t.lineUserId, refId: 'ORTHOVISIT-' + crmHN_(hnV) + '-' + crmDateOnly_(b.date), detail: 'สรุปการมาจัดฟัน' }, [cardV])) nV++;
