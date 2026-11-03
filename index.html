@@ -3197,18 +3197,18 @@ function crmViewOrthoApts(){
         <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${cnt.wait?` · ⏳${cnt.wait}`:''}${cnt.move?` · 📅${cnt.move}`:''}${cnt.noline?` · ☎️${cnt.noline}`:''}</span>${copy?`<div style="margin-top:4px;">${copy}</div>`:''}</td></tr>`;
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
-        <td style="white-space:nowrap;font-weight:800;color:var(--wine);width:1%;">${crmEsc(a.time||'-')}</td>
+        <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${a.docName?' · '+crmEsc(a.docName):''}</div>
           <div style="margin-top:3px;"><span class="crm-chip ${x[1]}">${x[0]}</span></div></td>
-        <td style="width:1%;text-align:right;"><div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">${ph?`<a class="crm-btn" style="padding:4px 8px;text-align:center;" href="${crmTel(ph)}" title="${crmEsc(ph)}">📞 โทร</a>`:''}${came(a).replace(/ $/,'')}${!a._ortho && st!=='yes' ? `<button class="crm-btn g" style="padding:4px 8px;" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">✓ คอนเฟิร์ม</button>`:''}${a._ortho?`<button class="crm-btn" style="padding:4px 8px;" onclick="openOrthoHistory('${crmEsc(a.hn)}')">การ์ดจัดฟัน</button>`:`<button class="crm-btn" style="padding:4px 8px;" onclick="openEditApt('${crmEsc(a.id)}')">เปิดนัด</button>`}</div></td></tr>`; }).join('');
+        <td style="text-align:right;"><div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">${came(a).replace(/ $/,'')}${!a._ortho && st!=='yes' ? `<button class="crm-btn g" style="padding:4px 8px;" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">✓ คอนเฟิร์ม</button>`:''}${a._ortho?`<button class="crm-btn" style="padding:4px 8px;" onclick="openOrthoHistory('${crmEsc(a.hn)}')">การ์ดจัดฟัน</button>`:`<button class="crm-btn" style="padding:4px 8px;" onclick="openEditApt('${crmEsc(a.id)}')">เปิดนัด</button>`}</div></td></tr>`; }).join('');
     return head+rows;
   }).join('');
   return `<div class="crm-card"><h4>😬 นัดจัดฟัน — ยืนยันแล้วกี่คนจากกี่คน<span class="sp"></span>
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
       <div class="meta">รวม <b>${list.length}</b> คน · ✅ ยืนยัน ${tot.yes} · ⏳ รอยืนยัน ${tot.wait}${tot.move?` · 📅 ขอเลื่อน ${tot.move}`:''}${tot.noline?` · ☎️ ไม่มี LINE (ต้องโทร) ${tot.noline}`:''}</div>
       <p class="crm-muted" style="margin:6px 0 10px;">ยืนยัน = คนไข้กดยืนยันใน LINE หรือพนักงานตั้งสถานะเป็นคอนเฟิร์ม · ปุ่ม ✓ คอนเฟิร์ม = ตั้งสถานะนัดเป็นคอนเฟิร์ม (กรณีคนไข้ยืนยันทางโทร)</p>
-      ${dates.length?`<div class="crm-tablewrap"><table class="crm-table"><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th><th></th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
+      ${dates.length?`<div class="crm-tablewrap" style="overflow-x:hidden;"><table class="crm-table" style="word-break:break-word;table-layout:fixed;width:100%;"><colgroup><col style="width:52px"><col><col style="width:118px"></colgroup><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th><th></th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
 }
 function crmMarkConfirmed(id){
   const a=appointments.find(x=>String(x.id)===String(id)); if(!a) return;
