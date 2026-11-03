@@ -2956,12 +2956,13 @@ function renderCrmPage(){
 }
 function crmSetSub(s){ CRM.sub = s; crmRender(); const el=document.getElementById('page-crm'); if(el && el.scrollIntoView) window.scrollTo({top:0}); }
 // ถามอาการแล้วคนไข้ไม่ตอบเกิน 24 ชม. (ภายใน 7 วัน) และพนักงานยังไม่ได้โทรตาม
-function crmFuLate(f){
+// ถามอาการแล้วคนไข้ไม่ตอบเกิน 24 ชม. → ปิดเคสอัตโนมัติ (ไม่เตือน/ไม่ขึ้นตัวเลขแล้ว) — ถ้าคนไข้มาตอบทีหลัง ยังบันทึกคำตอบและสร้างงานตามปกติ
+function crmFuLate(f){ return false; }
+function crmFuAutoClosed(f){
   if(!f || f.answeredAt || f.calledAt || f.status==='test' || !f.sentAt) return false;
   const t = new Date(String(f.sentAt).replace(' ','T')+'+07:00').getTime();
   if(isNaN(t)) return false;
-  const h = (Date.now()-t)/3600000;
-  return h>=24 && h<=24*7;
+  return (Date.now()-t)/3600000 >= 24;
 }
 function crmCounts(){
   const d = CRM.data || {};
@@ -3388,18 +3389,18 @@ function crmSaveTpl(id){
 function crmViewFollowup(){
   const fus=(CRM.data.followups||[]).slice().sort((a,b)=>String(b.sentAt).localeCompare(String(a.sentAt)));
   const f=CRM.fuFilter;
-  const list=fus.filter(x=> f==='all' ? true : f==='none' ? !x.answeredAt : f==='late' ? crmFuLate(x) : ['severe','emergency','callback'].includes(x.answerKind));
-  const answered=fus.filter(x=>x.answeredAt).length, late=fus.filter(crmFuLate).length;
+  const list=fus.filter(x=> f==='all' ? true : f==='none' ? !x.answeredAt : f==='late' ? crmFuAutoClosed(x) : ['severe','emergency','callback'].includes(x.answerKind));
+  const answered=fus.filter(x=>x.answeredAt).length, late=fus.filter(crmFuAutoClosed).length;
   return `<div class="crm-card"><h4>🩺 ติดตามอาการวันถัดไป<span class="sp"></span>
-      <span class="crm-seg">${[['all','ทั้งหมด'],['care','ต้องดูแล'],['late','ไม่ตอบ >24 ชม.'+(late?' ('+late+')':'')],['none','ยังไม่ตอบ']].map(x=>`<button class="${f===x[0]?'on':''}" onclick="CRM.fuFilter='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
-    ${late && f!=='late'?`<div class="crm-alert o">⏰ คนไข้ไม่ตอบข้อความถามอาการเกิน 24 ชม. ${late} ราย — ควรโทรสอบถาม <button class="crm-btn" style="margin-left:6px" onclick="CRM.fuFilter='late';crmRender()">ดูรายชื่อ</button></div>`:''}
+      <span class="crm-seg">${[['all','ทั้งหมด'],['care','ต้องดูแล'],['late','ปิดอัตโนมัติ (ไม่ตอบ >24 ชม.)'+(late?' ('+late+')':'')],['none','ยังไม่ตอบ']].map(x=>`<button class="${f===x[0]?'on':''}" onclick="CRM.fuFilter='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
+    ${false?`<div class="crm-alert o">⏰ คนไข้ไม่ตอบข้อความถามอาการเกิน 24 ชม. ${late} ราย — ควรโทรสอบถาม <button class="crm-btn" style="margin-left:6px" onclick="CRM.fuFilter='late';crmRender()">ดูรายชื่อ</button></div>`:''}
     <p class="crm-muted" style="margin-bottom:8px;">45 วันล่าสุด: ส่ง ${fus.length} · ตอบ ${answered} (${fus.length?Math.round(answered/fus.length*100):0}%) — ระบบตอบด้วยข้อความที่ทันตแพทย์อนุมัติเท่านั้น ไม่มี AI วินิจฉัย</p>
     <div class="crm-list">${list.map(x=>{ const k=CRM_KIND[x.answerKind];
       return `<div class="crm-item ${x.answerKind==='emergency'?'urgent':(x.answerKind==='severe'?'high':'')}"><div class="main">
         <div class="nm">${crmEsc(x.patName||'')} <span class="crm-muted">HN ${crmEsc(x.hn||'')}</span> ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
-        <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:(crmFuLate(x)?'<span class="crm-chip r">⏰ ไม่ตอบเกิน 24 ชม.</span>':'<span class="crm-chip x">ยังไม่ตอบ</span>')}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}${x.calledAt?` <span class="crm-chip g">📞 โทรแล้ว ${crmEsc(crmTs(x.calledAt))}${x.calledBy?' · '+crmEsc(x.calledBy):''}</span>${x.callNote?` <span class="crm-muted">— ${crmEsc(x.callNote)}</span>`:''}`:''}</div></div>
-        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test'?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
+        <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:(crmFuAutoClosed(x)?'<span class="crm-chip x">🔒 ปิดเคสอัตโนมัติ (ไม่ตอบเกิน 24 ชม.)</span>':'<span class="crm-chip x">ยังไม่ตอบ</span>')}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}${x.calledAt?` <span class="crm-chip g">📞 โทรแล้ว ${crmEsc(crmTs(x.calledAt))}${x.calledBy?' · '+crmEsc(x.calledBy):''}</span>${x.callNote?` <span class="crm-muted">— ${crmEsc(x.callNote)}</span>`:''}`:''}</div></div>
+        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test' && !crmFuAutoClosed(x)?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
 }
 
 /* ---------- คะแนนบริการ (หลังถอนฟัน/ผ่าฟันคุด) แยกตามหมอ ---------- */
