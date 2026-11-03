@@ -1158,7 +1158,7 @@ function crmRatingMessage_(s, fu) {
     action: (x[0] === '5' && directReview) ? { type: 'uri', label: x[1], uri: crmRateUrl_(fu.id) }
       : { type: 'postback', label: x[1], data: 'rate|' + fu.id + '|' + x[0], displayText: x[1] } }; };
   var btns = L.map(btn); btns.forEach(function (b) { if (b.color === undefined) delete b.color; });
-  return { type: 'flex', altText: 'ให้คะแนนบริการครั้งนี้ 0-5', contents: crmBubble_(s, '⭐ ให้คะแนนบริการครั้งนี้', 'ความเห็นของคุณช่วยให้เราพัฒนาบริการค่ะ 🙏 กรุณาเลือกคะแนน 0–5', [], btns, '#1D825C') };
+  return { type: 'flex', altText: 'คลิกให้คะแนนบริการครั้งนี้ 0-5', contents: crmBubble_(s, '⭐ คลิกให้คะแนนบริการครั้งนี้', 'ความเห็นของคุณช่วยให้เราพัฒนาบริการค่ะ 🙏 กรุณาเลือกคะแนน 0–5', [], btns, '#1D825C') };
 }
 /* ลิงก์ปุ่ม 5 ดาว → หน้า rate.html บันทึกคะแนน 5 แล้วเด้งไปหน้ารีวิว (ลายเซ็นกันเดา id ของคนอื่น) */
 function crmRateSecret_() {
