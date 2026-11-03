@@ -3351,7 +3351,7 @@ function cameRecordTreatment_(o){
     hn:r.hn, patName:r['ชื่อ']||'', docName:o.doc||r['หมอ']||'', proc:names.join(', '),
     cash:String(cashAmt), transfer:String(transAmt), sso:'0',
     transferBank:transAmt>0?(document.getElementById('came-bank').value||''):'', company:'0',
-    note:'🦷 มาตามนัดจัดฟัน ครั้งที่ '+o.visitNo+(o.userNote?' · '+o.userNote:''), status:'เสร็จ',
+    note:'🦷 มาตามนัดจัดฟัน'+(o.adj?' ปรับครั้งที่ '+o.visitNo:'')+(o.userNote?' · '+o.userNote:''), status:'เสร็จ',
     docShare: dObj ? dObj.share : '', procPrices:JSON.stringify(pp)
   };
   applyXrayRule(t);
@@ -3393,7 +3393,7 @@ async function crmOrthoCameSave(){
       const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท');
       extras.filter(x=>x.price).forEach(x=>notes.push(x.name+' '+x.price.toLocaleString()+' บาท')); if(userNote) notes.push(userNote);
       logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':what, 'หมอ':doc, 'note':notes.join(' · ') });
-      if(String(r['ปรับล่าสุด']||'').slice(0,10)!==date) visits++;   // นับครั้งที่มาต่อวัน: วันเดียวกันเพิ่มรายการหลายรอบไม่นับครั้งที่เพิ่ม
+      if(adj && String(r['ปรับล่าสุด']||'').slice(0,10)!==date) visits++;   // นับเฉพาะครั้งที่ "ปรับเครื่องมือ" และนับต่อวัน
     }
     if(loose){
       const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1)));
@@ -3408,7 +3408,7 @@ async function crmOrthoCameSave(){
     row._visitCount=visits; row._looseCount=looseN;
     await Promise.all([ orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row}) ]);
     const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
-    let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits }); }catch(e){ console.error(e); trMsg='fail'; }
+    let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits, adj }); }catch(e){ console.error(e); trMsg='fail'; }
     closeModal('modalOrthoCame');
     showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
     if(trMsg==='nocaps') showToast('บันทึกประวัติจัดฟันแล้ว แต่ยังไม่ได้ลงบันทึกการรักษา/รายได้ — ต้องวาง line-crm.gs ฉบับล่าสุดก่อน','error');
