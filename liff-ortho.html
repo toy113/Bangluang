@@ -309,9 +309,11 @@ function renderOrtho(p){
   const loose = logs.filter(l=>l['ทำอะไร']==='เครื่องมือหลุด');
   const visits = logs.filter(l=>l['ทำอะไร']!=='เครื่องมือหลุด');
   let prog = '';
-  if(pr['แผนเดือน']==='28 ครั้ง'){
-    const pct = Math.min(100, Math.round(visits.length/28*100));
-    prog = `<div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="row"><span class="k">ความคืบหน้า</span><span class="v">${visits.length} / 28 ครั้ง</span></div>`;
+  const planM = String(pr['แผนเดือน']||'').match(/^(\d+)\s*ครั้ง$/);   // แผนแบบกำหนดจำนวนครั้ง เช่น 24 / 28 / 30 ครั้ง
+  if(planM){
+    const planN = +planM[1];
+    const pct = Math.min(100, Math.round(visits.length/planN*100));
+    prog = `<div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="row"><span class="k">ความคืบหน้า</span><span class="v">${visits.length} / ${planN} ครั้ง</span></div>`;
   } else {
     prog = `<div class="row"><span class="k">มาปรับเครื่องมือแล้ว</span><span class="v">${visits.length} ครั้ง</span></div><div class="row"><span class="k">แผนการชำระ</span><span class="v">ชำระครั้งละ 1,500 บาทจนเสร็จ</span></div>`;
   }
