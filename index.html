@@ -3433,10 +3433,32 @@ function crmOrthoVisitNo(a){
 }
 // สรุปงานจัดฟันของวันนั้นให้หมอ: ทำอะไรบ้าง ราคา และ DF → คัดลอกเป็นข้อความวางส่งไลน์ (รูปแบบเดียวกับ "Copy สรุปรายได้")
 // ใช้แถวบันทึกการรักษาที่ลงจากปุ่ม "มาตามนัด" (หมายเหตุมี "มาตามนัดจัดฟัน") ของวันนั้น แยกตามหมอ
-function crmOrthoDfSummary(d){
-  const rows=treatments.filter(t=>String(t.date||'').slice(0,10)===d && String(t.note||'').indexOf('มาตามนัดจัดฟัน')>=0 && t.status!=='ยกเลิก')
+function crmOrthoDfRows_(d){
+  return treatments.filter(t=>String(t.date||'').slice(0,10)===d && String(t.note||'').indexOf('มาตามนัดจัดฟัน')>=0 && t.status!=='ยกเลิก')
     .sort((a,b)=>String(a.docName||'').localeCompare(String(b.docName||''))||String(a.time||'').localeCompare(String(b.time||'')));
+}
+// ขั้นแรก: ถามว่าจ่ายเงินสดให้หมอแล้วเท่าไร (เว้นว่างได้) แล้วค่อยคัดลอกข้อความ
+function crmOrthoDfSummary(d){
+  const rows=crmOrthoDfRows_(d);
   if(!rows.length){ showToast('วันนี้ยังไม่มีงานจัดฟันที่บันทึกผ่านปุ่ม "มาตามนัด" (ต้องวาง line-crm.gs ฉบับล่าสุดก่อนระบบจึงลงบันทึกการรักษา)','error'); return; }
+  const docs=[]; rows.forEach(t=>{ const n=t.docName||'ไม่ระบุหมอ'; if(!docs.includes(n)) docs.push(n); });
+  const ex=document.getElementById('orthoDfModal'); if(ex) ex.remove();
+  const m=document.createElement('div'); m.id='orthoDfModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px;width:340px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,0.25);">'
+    +'<div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:4px;">📤 สรุปงานจัดฟัน + DF</div>'
+    +'<div style="font-size:12.5px;color:var(--text-light);margin-bottom:12px;">'+crmEsc(crmThaiShort(d))+' · กรอกเงินสดที่จ่ายให้หมอแล้ว (เว้นว่าง = ไม่แสดงบรรทัดนี้)</div>'
+    +docs.map((dn,i)=>'<div style="margin-bottom:10px;"><label style="display:block;font-size:13px;font-weight:700;color:var(--wine-dark);margin-bottom:5px;">💵 จ่ายเงินสดให้ '+crmEsc(dn)+' (บาท)</label>'
+      +'<input class="orthoDfPaid" data-i="'+i+'" type="number" inputmode="numeric" min="0" step="1" placeholder="ไม่จ่าย / เว้นว่าง" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;font-family:inherit;"></div>').join('')
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><button class="crm-btn" onclick="document.getElementById(\'orthoDfModal\').remove()">ยกเลิก</button>'
+    +'<button class="crm-btn p" onclick="crmOrthoDfCopy(\''+d+'\')">📋 คัดลอกข้อความ</button></div></div>';
+  m._docs=docs; document.body.appendChild(m);
+}
+function crmOrthoDfCopy(d){
+  const modal=document.getElementById('orthoDfModal'), docs=(modal&&modal._docs)||[], paid={};
+  if(modal) modal.querySelectorAll('.orthoDfPaid').forEach(i=>{ paid[docs[+i.dataset.i]]=Math.max(0,Math.round(+i.value||0)); });
+  if(modal) modal.remove();
+  const rows=crmOrthoDfRows_(d); if(!rows.length) return;
   const LINE='━'.repeat(16), baht=n=>'฿'+fmt(n), byDoc={};
   rows.forEach(t=>{ (byDoc[t.docName||'ไม่ระบุหมอ']=byDoc[t.docName||'ไม่ระบุหมอ']||[]).push(t); });
   const out=[];
@@ -3457,7 +3479,9 @@ function crmOrthoDfSummary(d){
       });
       tot+=totalPrice(t); df+=dfAmt(t,doc);
     });
-    out.push(LINE, '🧾 ยอดรวม  '+baht(tot), '✨ df รวม  '+baht(df)+'  ('+list.length+' ราย)', 'Bangluang Dental 🦷');
+    out.push(LINE, '🧾 ยอดรวม  '+baht(tot), '✨ df รวม  '+baht(Math.round(df))+'  ('+list.length+' ราย)');
+    const pc=paid[dn]||0; if(pc>0) out.push(LINE, '💵 จ่ายเงินสดให้'+dn+'แล้ว  '+baht(pc), '📌 df คงเหลือ  '+baht(Math.round(df)-pc));
+    out.push('Bangluang Dental 🦷');
   });
   crmCopy(out);
 }
