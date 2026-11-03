@@ -1061,6 +1061,20 @@ function crmOnAptRemoved_(id) {
   if (crmCancelTask_(s, state, a, 'ลบนัดออกจากตารางนัด')) { crmFlushMarks_(state); crmTouch_(); }
   else crmFlushMarks_(state);
 }
+// สรุปการมาจัดฟัน: รายการ + ราคา (0 บาท = ฟรี) + ยอดรวม
+function crmOrthoVisitMessage_(s, v) {
+  var rows = [crmRow_('วัน', crmThaiDate_(v.date))];
+  if (v.doc) rows.push(crmRow_('ทันตแพทย์', v.doc));
+  var total = 0;
+  v.items.forEach(function (x, i) {
+    total += x.price;
+    rows.push(crmRow_(i === 0 ? 'รายการ' : '', (i + 1) + '. ' + x.name + (x.note ? ' (' + x.note + ')' : '') + ' — ' + (x.price > 0 ? crmMoney_(x.price) : 'ฟรี')));
+  });
+  rows.push({ type: 'separator', margin: 'md' });
+  rows.push(crmRow_('รวม', total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'));
+  return { type: 'flex', altText: 'สรุปการมาจัดฟันวันนี้ ' + (total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'),
+    contents: crmBubble_(s, '🦷 สรุปการมาจัดฟันวันนี้', 'ขอบคุณที่มาตามนัดค่ะ คุณ' + (v.patName || ''), rows, [crmInquiryNote_(s)]) };
+}
 function crmCancelMessage_(s, task) {
   var rows = [crmRow_('วัน', crmThaiDate_(task.aptDate))];
   if (task.aptTime) rows.push(crmRow_('เวลา', task.aptTime + ' น.'));
@@ -1574,6 +1588,20 @@ function crmStaffAction_(b) {
       if (arow) crmUpdate_('apt', arow._row, { confirmedAt: now, lastAction: 'staff-confirm', updatedAt: now });
       else crmAppend_('apt', { aptId: aid, hn: b.hn || '', confirmedAt: now, lastAction: 'staff-confirm', updatedAt: now });
       crmTouch_(); return { ok: true };
+    }
+    if (act === 'orthoVisitSend') {   // สรุปการมาจัดฟันวันนี้ (รายการ + ราคา) ส่งให้คนไข้ทันทีหลังพนักงานกดบันทึก "มาตามนัด"
+      var hnV = String(b.hn || ''); if (!hnV) return { ok: false, error: 'missing_hn' };
+      var sV = crmSettings_(), tgV = (crmLinkMap_()[crmHN_(hnV)] || []).filter(function (x) { return x.consent; });
+      if (!tgV.length) return { ok: true, sent: 0, reason: 'no_line' };
+      var itemsV = (b.items || []).slice(0, 12).map(function (x) { return { name: String(x.name || '').slice(0, 60), price: +x.price || 0, note: String(x.note || '').slice(0, 60) }; });
+      if (!itemsV.length) return { ok: false, error: 'no_items' };
+      var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60) });
+      var stV = { done: {}, fails: {} }, nV = 0;
+      tgV.forEach(function (t) {
+        if (crmSend_(sV, stV, { key: 'orthovisit:' + hnV + ':' + crmDateOnly_(b.date) + ':' + now + ':' + t.lineUserId, type: 'receipt', hn: hnV, patName: b.patName || '', lineUserId: t.lineUserId, refId: 'ORTHOVISIT-' + crmHN_(hnV) + '-' + crmDateOnly_(b.date), detail: 'สรุปการมาจัดฟัน' }, [cardV])) nV++;
+      });
+      if (!nV) return { ok: false, error: 'ส่งไม่สำเร็จ (โควตาเต็มหรือ LINE ปฏิเสธ)' };
+      return { ok: true, sent: nV };
     }
     if (act === 'updateTask') {
       var r5 = crmFind_(crmRead_('tasks'), 'id', b.id); if (!r5) return { ok: false, error: 'not_found' };

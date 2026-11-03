@@ -2208,6 +2208,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group"><label>หมอ</label><select class="form-control" id="came-doc"></select></div>
       <div class="form-group"><label>หมายเหตุ</label><input class="form-control" id="came-note" placeholder="ไม่บังคับ"></div>
     </div>
+    <label class="checkbox-label" id="came-sendrow" style="margin-top:8px;font-weight:700;"><input type="checkbox" id="came-send" checked> <span id="came-sendtxt">ส่งสรุปรายการและราคาให้คนไข้ทาง LINE ทันที</span></label>
     <div id="came-total" style="font-size:15px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:10px 12px;margin-top:8px;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalOrthoCame')">ยกเลิก</button>
@@ -3220,6 +3221,9 @@ function crmOrthoCame(hn, date, doc){
   document.getElementById('came-note').value='';
   const sel=document.getElementById('came-doc'); sel.innerHTML=getDoctorOptions();
   const want=doc||r['หมอ']||(currentUser&&currentUser.name)||''; if(want) sel.value=want;
+  const hasL=crmHasLine(r.hn), cs=document.getElementById('came-send');
+  cs.checked=hasL; cs.disabled=!hasL;
+  document.getElementById('came-sendtxt').textContent = hasL ? 'ส่งสรุปรายการและราคาให้คนไข้ทาง LINE ทันที' : 'คนไข้ยังไม่ผูกไลน์ — ไม่ส่งสรุปทาง LINE';
   cameCalc(); document.getElementById('modalOrthoCame').classList.add('open');
 }
 // คิดเงินเหล็กหลุด: นับต่อจากที่หลุดมาแล้วในประวัติ (ฟรี 3 ตัวแรกตลอดการจัดฟัน ตัวต่อไปตัวละ 300)
@@ -3249,9 +3253,12 @@ async function crmOrthoCameSave(){
   if(!adj && !loose && !others.length){ showToast('กรุณาเลือกรายการอย่างน้อย 1 อย่าง','error'); return; }
   _crmCameSaving=true;
   try{
+    const sendLine=document.getElementById('came-send').checked && !document.getElementById('came-send').disabled;
     const doc=document.getElementById('came-doc').value, userNote=document.getElementById('came-note').value.trim();
     const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
-    const logs=[]; let visits=orthoVisitCount_(r), looseN=orthoLooseCount_(r), money=adjFee;
+    const logs=[], lineItems=[]; let visits=orthoVisitCount_(r), looseN=orthoLooseCount_(r), money=adjFee;
+    if(adj) lineItems.push({name:'ปรับเครื่องมือ', price:adjFee});
+    others.forEach(o=>lineItems.push({name:o, price:0, note:'ไม่คิดเพิ่ม'}));
     if(adj || others.length){
       const what=(adj?['ปรับเครื่องมือ']:[]).concat(others).join(', ');
       const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท'); if(userNote) notes.push(userNote);
@@ -3263,6 +3270,7 @@ async function crmOrthoCameSave(){
       for(let k=1;k<=q;k++){
         looseN++;
         const free=looseN<=ORTHO_LOOSE_FREE; if(!free) money+=ORTHO_LOOSE_FEE;
+        lineItems.push({name:'ติดเหล็กหลุด ตัวที่ '+looseN, price:free?0:ORTHO_LOOSE_FEE, note:free?'ฟรี':''});
         logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':'เครื่องมือหลุด', 'หมอ':doc, 'note':'หลุดตัวที่ '+looseN+' — '+(free?'ฟรี':'เก็บ '+ORTHO_LOOSE_FEE+' บาท')+(userNote&&!adj&&!others.length&&k===1?' · '+userNote:'') });
       }
     }
@@ -3272,6 +3280,13 @@ async function crmOrthoCameSave(){
     const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
     closeModal('modalOrthoCame');
     showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':''));
+    if(sendLine){
+      crmCall({crm:'orthoVisitSend', hn:r.hn, patName:r['ชื่อ']||'', date, doc, items:lineItems, by:crmBy()}).then(res=>{
+        if(res && res.ok && res.sent) showToast('ส่งสรุปให้คนไข้ทาง LINE แล้ว 📤');
+        else if(res && res.ok) showToast('คนไข้ยังไม่ผูกไลน์ — ไม่ได้ส่งสรุป','error');
+        else showToast('ส่งสรุปทาง LINE ไม่สำเร็จ: '+((res&&res.error)||'ไม่ทราบสาเหตุ'),'error');
+      }).catch(()=>showToast('ส่งสรุปทาง LINE ไม่สำเร็จ (ตรวจสอบว่าวาง line-crm.gs ฉบับล่าสุดแล้ว)','error'));
+    }
     crmRender();
     setTimeout(()=>{ if(typeof loadOrthoData==='function') loadOrthoData(true).then(()=>{ if(CRM.sub==='orthoapt') crmRender(); }).catch(()=>{}); },1500);
   }catch(e){ console.error(e); showToast('บันทึกไม่สำเร็จ','error'); }
