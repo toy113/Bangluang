@@ -3181,7 +3181,7 @@ function crmViewOrthoApts(){
   const list=crmOrthoAptList(r[0], r[1]);
   const days={}; list.forEach(a=>{ (days[a.date]=days[a.date]||[]).push(a); });
   const dates=Object.keys(days).sort();
-  const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w'], noline:['☎️ ต้องโทร','x'] };
+  const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w'], noline:['⏳ ยังไม่ยืนยัน','w'] };
   const tot={yes:0,move:0,wait:0,noline:0}; list.forEach(a=>tot[crmOrthoState(a)]++);
   const rowBg={ yes:'#F1FBF5', move:'#FEF6EA', wait:'', noline:'#F6F4F8' };
   const came=a=>{   // ปุ่ม "มาแล้ว" เฉพาะนัดที่ถึงวันแล้ว และคนไข้มีการ์ดจัดฟัน
@@ -3194,19 +3194,19 @@ function crmViewOrthoApts(){
     const pend=arr.filter(a=>['wait','noline'].includes(crmOrthoState(a)));
     const copy = pend.length ? ` <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmCopy(${crmEsc(JSON.stringify(pend.map(a=>(a.time||'')+' '+(a.patName||'')+' HN '+(a.hn||'-')+' '+(crmPhoneOf(a.hn,a.phone)||''))))})">คัดลอกที่ยังไม่ยืนยัน</button>` : '';
     const head=`<tr><td colspan="3" style="background:var(--wine);color:#fff;font-weight:800;padding:8px 10px;border-bottom:0;">${crmEsc(crmThaiShort(d))}${d===today?' · วันนี้':''}
-        <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${cnt.wait?` · ⏳${cnt.wait}`:''}${cnt.move?` · 📅${cnt.move}`:''}${cnt.noline?` · ☎️${cnt.noline}`:''}</span>${copy?`<div style="margin-top:4px;">${copy}</div>`:''}</td></tr>`;
+        <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${(cnt.wait+cnt.noline)?` · ⏳${cnt.wait+cnt.noline}`:''}${cnt.move?` · 📅${cnt.move}`:''}</span>${copy?`<div style="margin-top:4px;">${copy}</div>`:''}</td></tr>`;
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${a.docName?' · '+crmEsc(a.docName):''}</div>
-          <div style="margin-top:3px;"><span class="crm-chip ${x[1]}">${x[0]}</span></div></td>
+          <div style="margin-top:3px;"><span class="crm-chip ${x[1]}">${x[0]}</span> ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
         <td style="text-align:right;"><div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">${came(a).replace(/ $/,'')}${!a._ortho && st!=='yes' ? `<button class="crm-btn g" style="padding:4px 8px;" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">✓ คอนเฟิร์ม</button>`:''}${a._ortho?`<button class="crm-btn" style="padding:4px 8px;" onclick="openOrthoHistory('${crmEsc(a.hn)}')">การ์ดจัดฟัน</button>`:`<button class="crm-btn" style="padding:4px 8px;" onclick="openEditApt('${crmEsc(a.id)}')">เปิดนัด</button>`}</div></td></tr>`; }).join('');
     return head+rows;
   }).join('');
   return `<div class="crm-card"><h4>😬 นัดจัดฟัน — ยืนยันแล้วกี่คนจากกี่คน<span class="sp"></span>
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
-      <div class="meta">รวม <b>${list.length}</b> คน · ✅ ยืนยัน ${tot.yes} · ⏳ รอยืนยัน ${tot.wait}${tot.move?` · 📅 ขอเลื่อน ${tot.move}`:''}${tot.noline?` · ☎️ ไม่มี LINE (ต้องโทร) ${tot.noline}`:''}</div>
+      <div class="meta">รวม <b>${list.length}</b> คน · ✅ ยืนยัน ${tot.yes} · ⏳ ยังไม่ยืนยัน ${tot.wait+tot.noline}${tot.move?` · 📅 ขอเลื่อน ${tot.move}`:''} · 🟢 ผูกไลน์แล้ว ${list.filter(a=>crmHasLine(a.hn)).length}/${list.length}</div>
       <p class="crm-muted" style="margin:6px 0 10px;">ยืนยัน = คนไข้กดยืนยันใน LINE หรือพนักงานตั้งสถานะเป็นคอนเฟิร์ม · ปุ่ม ✓ คอนเฟิร์ม = ตั้งสถานะนัดเป็นคอนเฟิร์ม (กรณีคนไข้ยืนยันทางโทร)</p>
       ${dates.length?`<div class="crm-tablewrap" style="overflow-x:hidden;"><table class="crm-table" style="word-break:break-word;table-layout:fixed;width:100%;"><colgroup><col style="width:52px"><col><col style="width:118px"></colgroup><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th><th></th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
 }
