@@ -3182,7 +3182,8 @@ function crmViewOrthoApts(){
   const list=crmOrthoAptList(r[0], r[1]);
   const days={}; list.forEach(a=>{ (days[a.date]=days[a.date]||[]).push(a); });
   const dates=Object.keys(days).sort();
-  const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w'], noline:['⏳ ยังไม่ยืนยัน','w'] };
+  const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w','y'], noline:['⏳ ยังไม่ยืนยัน','w','y'] };
+  const YEL='background:#FFF1B8;color:#7A5600;border:1px solid #F2D060;';   // badge สีเหลือง = ยังไม่ยืนยัน
   const tot={yes:0,move:0,wait:0,noline:0}; list.forEach(a=>tot[crmOrthoState(a)]++);
   const rowBg={ yes:'#F1FBF5', move:'#FEF6EA', wait:'', noline:'#F6F4F8' };
   // ปุ่มเดียว "มาตามนัด": กดได้เมื่อถึงวันนัด (ก่อนวันนัดเป็นปุ่มเทา รอไว้) · บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟัน
@@ -3204,7 +3205,7 @@ function crmViewOrthoApts(){
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${a.docName?' · '+crmEsc(a.docName):''}</div>
-          <div style="margin-top:3px;"><span class="crm-chip ${x[1]}">${x[0]}</span> ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
+          <div style="margin-top:3px;"><span class="crm-chip ${x[1]}"${x[2]?` style="${YEL}"`:''}>${x[0]}</span> ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
         <td style="vertical-align:middle;">${came(a)}</td></tr>`; }).join('');
     return head+rows;
   }).join('');
