@@ -2199,6 +2199,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group" style="grid-column:1/-1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;">
         <label style="font-weight:800;">รายการอื่นวันนี้ (ใส่ราคาได้ · เว้นว่าง = ไม่คิดเงินในหน้านี้)</label>
         <div style="display:grid;gap:8px;margin-top:6px;">
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ใส่รีเทนเนอร์" onchange="cameCalc()"> ใส่รีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ทำรีเทนเนอร์" onchange="cameCalc()"> ทำรีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="พิมพ์ปาก" onchange="cameCalc()"> พิมพ์ปาก</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="X-ray" onchange="cameCalc()"> X-ray</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
@@ -2211,6 +2212,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     </div>
     <label class="checkbox-label" id="came-sendrow" style="margin-top:8px;font-weight:700;"><input type="checkbox" id="came-send" checked> <span id="came-sendtxt">ส่งสรุปรายการและราคาให้คนไข้ทาง LINE ทันที</span></label>
     <label class="checkbox-label" id="came-carerow" style="margin-top:4px;font-weight:700;"><input type="checkbox" id="came-care" checked> แนบ "ข้อควรปฏิบัติ" (วิธีดูแลเครื่องมือ) ไปกับข้อความ</label>
+    <div id="came-payrow" style="border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:8px;">
+      <label style="font-weight:800;">💰 ช่องทางชำระวันนี้ <span class="crm-muted" style="font-weight:500;">(ลงเป็นรายได้ในบันทึกการรักษาทันที)</span></label>
+      <div style="display:flex;gap:18px;margin-top:6px;">
+        <label class="checkbox-label"><input type="radio" name="came-pay" value="cash" checked onchange="cameCalc()"> 💵 เงินสด</label>
+        <label class="checkbox-label"><input type="radio" name="came-pay" value="transfer" onchange="cameCalc()"> 🏦 โอน</label>
+      </div>
+      <div id="came-bankwrap" style="display:none;margin-top:8px;"><div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">ธนาคารที่โอน <span style="color:#C0392B;">*</span></div><div class="contact-chips" id="came-bank-chips"></div><input type="hidden" id="came-bank"></div>
+    </div>
     <div id="came-total" style="font-size:15px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:10px 12px;margin-top:8px;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalOrthoCame')">ยกเลิก</button>
@@ -2491,7 +2500,7 @@ const DOCTORS_DATA = [
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
-const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
+const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ปรับเครื่องมือ','ติดเครื่องมือ','ติดเหล็กหลุด','ปักหมุด','ทำรีเทนเนอร์','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
 
 const PROC_COLORS = {
   'ขูดหินปูน':    '#2980B9',
@@ -2512,6 +2521,11 @@ const PROC_COLORS = {
   'เกลารากฟัน':  '#2471A3',
   'รากฟันเทียม': '#922B21',
   'จัดฟัน':      '#6C3483',
+  'ปรับเครื่องมือ':'#7D3C98',
+  'ติดเครื่องมือ':'#884EA0',
+  'ติดเหล็กหลุด':'#A569BD',
+  'ปักหมุด':'#6C3483',
+  'ทำรีเทนเนอร์':'#8E44AD',
   'ถอดเครื่องมือจัดฟัน':'#9B59B6',
   'ฟอกสีฟัน':    '#F1C40F',
   'ครอบฟัน':      '#BA4A00',
@@ -3221,6 +3235,7 @@ function crmOrthoCame(hn, date, doc){
   document.getElementById('came-loose').checked=false; document.getElementById('came-looseqty').value=1;
   document.querySelectorAll('.came-other,.came-ex').forEach(c=>c.checked=false); document.querySelectorAll('.came-exfee').forEach(c=>c.value='');
   document.getElementById('came-note').value='';
+  { const pc=document.querySelector('input[name="came-pay"][value="cash"]'); if(pc) pc.checked=true; setCameBank(''); }
   const sel=document.getElementById('came-doc'); sel.innerHTML=getDoctorOptions();
   const want=doc||r['หมอ']||(currentUser&&currentUser.name)||''; if(want) sel.value=want;
   const hasL=crmHasLine(r.hn), cs=document.getElementById('came-send');
@@ -3240,8 +3255,31 @@ function cameExtras(){   // รายการอื่นที่ติ๊ก:
     return { name:c.dataset.name, price:(v&&v>0)?v:null };
   }).filter(Boolean);
 }
+function cameBuildBankChips_(){
+  const wrap=document.getElementById('came-bank-chips'); if(!wrap || wrap.children.length) return;
+  TRANSFER_BANKS.forEach(b=>{
+    const btn=document.createElement('button'); btn.type='button'; btn.className='contact-chip'; btn.dataset.v=b.k;
+    btn.innerHTML='<span class="bank-chip-dot" style="background:'+b.c+'"></span>'+b.k;
+    btn.addEventListener('click',()=>{ const el=document.getElementById('came-bank'); setCameBank(el.value===b.k?'':b.k); });
+    wrap.appendChild(btn);
+  });
+}
+function setCameBank(v){
+  cameBuildBankChips_();
+  const el=document.getElementById('came-bank'); if(!el) return; el.value=v||'';
+  document.querySelectorAll('#came-bank-chips .contact-chip').forEach(b=>b.classList.toggle('active', b.dataset.v===el.value));
+}
+function cameMoney_(r){   // ยอดรวมวันนี้จากรายการที่ติ๊ก (ปรับเครื่องมือ + เหล็กหลุดที่เก็บเงิน + รายการอื่นที่ใส่ราคา)
+  const adj=document.getElementById('came-adj').checked, loose=document.getElementById('came-loose').checked;
+  let m=adj?(+document.getElementById('came-adjfee').value||0):0;
+  if(loose){ const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1))); m+=cameLoosePlan(r,q).fee; }
+  return m+cameExtras().reduce((t,x)=>t+(x.price||0),0);
+}
 function cameCalc(){
   const r=crmOrthoRec(document.getElementById('came-hn').value); if(!r) return;
+  { const m=cameMoney_(r), isT=(document.querySelector('input[name="came-pay"]:checked')||{}).value==='transfer';
+    document.getElementById('came-payrow').style.display = m>0 ? '' : 'none';
+    document.getElementById('came-bankwrap').style.display = (m>0 && isT) ? '' : 'none'; cameBuildBankChips_(); }
   const adj=document.getElementById('came-adj').checked, loose=document.getElementById('came-loose').checked;
   document.getElementById('came-looserow').style.display=loose?'':'none';
   const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
@@ -3254,6 +3292,41 @@ function cameCalc(){
   const exFee=cameExtras().reduce((t,x)=>t+(x.price||0),0);
   document.getElementById('came-total').textContent='รวมวันนี้ '+(adjFee+lf+exFee).toLocaleString()+' บาท'+((adj||loose||cameExtras().length)?'':' (ยังไม่ได้เลือกรายการ)');
 }
+// มาตามนัด → ลงบันทึกการรักษา (รายได้ + DF ต่อรายการ) และปิดนัดตารางนัดวันเดียวกัน
+// ลงเฉพาะเมื่อ line-crm.gs ฉบับใหม่พร้อม (caps.orthoTreat) เพราะต้องข้ามการส่งใบเสร็จ/ติดตามอาการอัตโนมัติของแถวนี้ ไม่งั้นคนไข้ได้ข้อความซ้ำ
+function cameRecordTreatment_(o){
+  if(!(CRM.data && CRM.data.caps && CRM.data.caps.orthoTreat)) return 'nocaps';
+  const r=o.r, pp={}, names=[];
+  o.lineItems.forEach(it=>{
+    const nm=String(it.name).replace(/\s*ตัวที่\s*\d+$/,'');
+    if(!(nm in pp)) names.push(nm);
+    pp[nm]=(pp[nm]||0)+(+it.price||0);
+  });
+  if(!names.length) return 'skip';
+  const isT=(document.querySelector('input[name="came-pay"]:checked')||{}).value==='transfer', money=Math.round(o.money||0);
+  const dObj=doctors.find(d=>d.name===o.doc);
+  const t={
+    id:'orth-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), date:o.date, time:new Date().toTimeString().slice(0,5),
+    hn:r.hn, patName:r['ชื่อ']||'', docName:o.doc||r['หมอ']||'', proc:names.join(', '),
+    cash:String(isT?0:money), transfer:String(isT?money:0), sso:'0',
+    transferBank:(isT&&money>0)?(document.getElementById('came-bank').value||''):'', company:'0',
+    note:'🦷 มาตามนัดจัดฟัน ครั้งที่ '+o.visitNo+(o.userNote?' · '+o.userNote:''), status:'เสร็จ',
+    docShare: dObj ? dObj.share : '', procPrices:JSON.stringify(pp)
+  };
+  applyXrayRule(t);
+  treatments.push(t);
+  const done=appointments.filter(a=>{
+    const sameHn=t.hn && a.hn && String(a.hn).trim()===String(t.hn).trim();
+    return a.date===t.date && sameHn && (!t.docName||!a.docName||a.docName===t.docName) && !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status);
+  });
+  done.forEach(a=>{ a.status='เสร็จสิ้น'; });
+  saveLocal();
+  try{ renderHome(); renderTreatPage(); }catch(e){}
+  markPendingSync('treatments', t);
+  syncToSheet('treatments', t).then(()=>setTimeout(syncAll,2000)).catch(()=>showToast('⚠️ ลงบันทึกการรักษาไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ','error'));
+  done.forEach(a=>{ markPendingSync('appointments', a); syncToSheet('appointments', a).catch(()=>showToast('⚠️ เปลี่ยนสถานะนัดในเครื่องแล้ว แต่ sync ไม่สำเร็จ','error')); });
+  return 'ok';
+}
 async function crmOrthoCameSave(){
   if(_crmCameSaving) return;
   const hn=document.getElementById('came-hn').value, date=document.getElementById('came-date').value;
@@ -3262,6 +3335,7 @@ async function crmOrthoCameSave(){
   const others=Array.from(document.querySelectorAll('.came-other:checked')).map(c=>c.value);
   const extras=cameExtras();
   if(!adj && !loose && !others.length && !extras.length){ showToast('กรุณาเลือกรายการอย่างน้อย 1 อย่าง','error'); return; }
+  if(cameMoney_(r)>0 && (document.querySelector('input[name="came-pay"]:checked')||{}).value==='transfer' && !document.getElementById('came-bank').value){ showToast('กรุณาเลือกธนาคารที่โอน','error'); return; }
   _crmCameSaving=true;
   try{
     const sendLine=document.getElementById('came-send').checked && !document.getElementById('came-send').disabled, careOn=document.getElementById('came-care').checked;
@@ -3291,8 +3365,11 @@ async function crmOrthoCameSave(){
     row._visitCount=visits; row._looseCount=looseN;
     await Promise.all([ orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row}) ]);
     const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
+    let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits }); }catch(e){ console.error(e); trMsg='fail'; }
     closeModal('modalOrthoCame');
-    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':''));
+    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
+    if(trMsg==='nocaps') showToast('บันทึกประวัติจัดฟันแล้ว แต่ยังไม่ได้ลงบันทึกการรักษา/รายได้ — ต้องวาง line-crm.gs ฉบับล่าสุดก่อน','error');
+    else if(trMsg==='fail') showToast('บันทึกประวัติจัดฟันแล้ว แต่ลงบันทึกการรักษาไม่สำเร็จ — กรุณาลงเองในหน้าบันทึกการรักษา','error');
     if(sendLine){
       crmCall({crm:'orthoVisitSend', hn:r.hn, patName:r['ชื่อ']||'', date, doc, items:lineItems, care:careOn, by:crmBy()}).then(res=>{
         if(res && res.ok && res.sent) showToast('ส่งสรุปให้คนไข้ทาง LINE แล้ว 📤');
@@ -6095,7 +6172,7 @@ function openDoctorBreakdown(idx){
   const share=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
   // รายที่ % ส่วนแบ่งที่บันทึกไว้ ไม่ตรงกับ % ปัจจุบันของหมอ (ยกเว้นรายที่เข้ากฎ X-Ray ซึ่งตั้งใจให้เป็น 0)
   const curPct=+doc.share||0;
-  const isOff=r=>!xrayRuleApplies(r) && !drugRuleApplies(r) && Math.abs(docSharePct(r,doc)-curPct)>0.001;
+  const isOff=r=>!xrayRuleApplies(r) && !drugRuleApplies(r) && !itemDfParts(r).items.length && Math.abs(docSharePct(r,doc)-curPct)>0.001;
   const offRows=dr.filter(isOff);
   const offExtra=offRows.reduce((s,r)=>s+dfBase(r)*(docSharePct(r,doc)-curPct)/100,0);
 
@@ -6168,7 +6245,7 @@ function openDoctorBreakdown(idx){
         <div class="dbk-case-meta">${showDate?fmtDate(r.date)+' · ':''}${_escHtml(r.time||'')}</div>
         <div>${procBadge(r.proc)}</div>
       </div>
-      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(dfAmt(r,doc))}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':drugRuleApplies(r)?'0% · จ่ายยา':(xrayMixedPrice(r)>0?(+docSharePct(r,doc))+'% · ไม่รวม X-Ray '+fmt(xrayMixedPrice(r)):(+docSharePct(r,doc))+'%')}</span></small>${(isManager&&isOff(r)&&canEditTreat(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
+      <div class="dbk-case-amt">${fmt(totalPrice(r))}<small>หมอ ${fmt(dfAmt(r,doc))}<span class="dbk-pct${isOff(r)?' dbk-pct-off':''}">${xrayRuleApplies(r)?'0% · กฎ X-Ray':drugRuleApplies(r)?'0% · จ่ายยา':itemDfParts(r).items.length?itemDfParts(r).items.map(i=>i.name+' '+i.rate+'%').join(' · '):(xrayMixedPrice(r)>0?(+docSharePct(r,doc))+'% · ไม่รวม X-Ray '+fmt(xrayMixedPrice(r)):(+docSharePct(r,doc))+'%')}</span></small>${(isManager&&isOff(r)&&canEditTreat(r))?`<button class="dbk-edit" onclick="dbkEditCase(${ci})">✏️ แก้ไข</button>`:''}</div>
     </div>`).join('');
   }
   document.getElementById('dbk-body').innerHTML=html;
@@ -8471,8 +8548,27 @@ function xrayMixedPrice(t){
   let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
   return parts.filter(_isXrayProc).reduce((n,x)=>n+(+pp[x]||0),0);
 }
-function dfBase(t){ return Math.max(0, totalPrice(t) - xrayMixedPrice(t)); }
-function dfAmt(t, doc){ return dfBase(t) * docSharePct(t, doc) / 100; }
+// อัตราส่วนแบ่งหมอ (DF) ต่อรายการ — งานจัดฟัน: ปรับ/ติดเครื่องมือ/ติดเหล็กหลุด/ปักหมุด/ใส่รีเทนเนอร์ 80% · พิมพ์ปาก 50% · X-Ray 0% (กฎ X-Ray ด้านบน)
+// รายการนอกตารางนี้ใช้ % ปกติของหมอ · ใช้กับรายการที่ลงตั้งแต่ itemDfStart() เป็นต้นไป (รายการเก่าไม่ถูกคิดย้อนหลัง) แก้อัตราได้ที่นี่ที่เดียว
+const ITEM_DF_RATES = { 'ปรับเครื่องมือ':80, 'ติดเครื่องมือ':80, 'ติดเหล็กหลุด':80, 'ปักหมุด':80, 'ใส่รีเทนเนอร์':80, 'พิมพ์ปาก':50 };
+function itemDfStart(){ return '2026-11-03'; }
+function itemDfParts(t){
+  const out = { base:0, df:0, items:[] };
+  const d = String((t&&t.date)||'').slice(0,10);
+  if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=itemDfStart())) return out;
+  const parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!parts.some(x=>ITEM_DF_RATES[x]!==undefined)) return out;
+  let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
+  parts.forEach(x=>{
+    if(ITEM_DF_RATES[x]===undefined) return;
+    const price = pp[x]!==undefined ? (+pp[x]||0) : (parts.length===1 ? totalPrice(t) : null);   // ลงรวมหลายรายการแต่ไม่มีราคาแยก → คิด % ปกติทั้งใบ
+    if(price===null) return;
+    out.items.push({ name:x, price, rate:ITEM_DF_RATES[x] }); out.base += price; out.df += price*ITEM_DF_RATES[x]/100;
+  });
+  return out;
+}
+function dfBase(t){ return Math.max(0, totalPrice(t) - xrayMixedPrice(t) - itemDfParts(t).base); }
+function dfAmt(t, doc){ return dfBase(t) * docSharePct(t, doc) / 100 + itemDfParts(t).df; }
 function applyXrayRule(t){
   if(xrayRuleApplies(t)){ t.docShare = 0; }   // X-Ray อย่างเดียว: DF = 0 (ไม่บังคับหมอแล้ว)
   else if(drugRuleApplies(t)){ t.docShare = 0; }
@@ -9077,9 +9173,9 @@ function doSendIncome(periodLabel){
     text += `${i+1}. ${t.patName||'—'}${timeStr}${pctTag}\n`;
     if(xrayRuleApplies(t)){
       text += `     ${procList.join(', ')}  ${baht(price)}  (ไม่คิด df)\n`;
-    } else if(priced.length && (xrayMixedPrice(t)>0 || priced.length===procList.length)){
+    } else if(priced.length && (xrayMixedPrice(t)>0 || itemDfParts(t).items.length || priced.length===procList.length)){
       let used = 0;
-      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `     ${x}  ${baht(+pp[x]||0)}${_isXrayProc(x)?'  (ไม่คิด df)':''}\n`; });
+      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `     ${x}  ${baht(+pp[x]||0)}${_isXrayProc(x)?'  (ไม่คิด df)':(ITEM_DF_RATES[x]!==undefined && itemDfParts(t).items.length?'  (df '+ITEM_DF_RATES[x]+'%)':'')}\n`; });
       const rest = procList.filter(x=>pp[x]===undefined);
       if(rest.length) text += `     ${rest.join(', ')}  ${baht(Math.max(0,price-used))}\n`;
     } else {

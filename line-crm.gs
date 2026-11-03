@@ -719,7 +719,8 @@ function crmTickInner_() {
   var links = crmLinkMap_();
   var orthoAll = crmReadByName_('ortho');
   var apts = crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), orthoAll);
-  var treats = crmReadByName_('บันทึกการรักษา');
+  // แถวที่ลงอัตโนมัติจากปุ่ม "มาตามนัด" (จัดฟัน) ส่งสรุปให้คนไข้ไปแล้วทาง orthoVisitSend → ไม่ส่งใบเสร็จ/คำแนะนำ/ติดตามอาการซ้ำ
+  var treats = crmReadByName_('บันทึกการรักษา').filter(function (t) { return String(t.note || '').indexOf('มาตามนัดจัดฟัน') < 0; });
   var orthoActive = {};
   orthoAll.forEach(function (o) { if (!o['สถานะ'] || o['สถานะ'] === 'กำลังจัด') orthoActive[crmHN_(o.hn)] = true; });
   var closed = ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ', 'walk-in'];
@@ -1508,7 +1509,7 @@ function crmDashboard_() {
   var lastTick = null; try { lastTick = JSON.parse(crmProp_('CRM_LAST_TICK', 'null')); } catch (e) {}
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
   var links = crmRead_('links'), orthoAll = crmReadByName_('ortho'), followersAll = crmRead_('followers');
-  return { ok: true, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
+  return { ok: true, caps: { orthoTreat: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
     followups: recentRated('followups', 'sentAt', since, crmAddDays_(crmToday_(), -400)),
     links: strip(links.slice()), followers: strip(followersAll.slice()), apt: strip(crmRead_('apt')),
     casenotes: recent('casenotes', 'createdAt', since),
