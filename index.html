@@ -3283,6 +3283,7 @@ function camePayVals_(){ return { cash:Math.max(0,+document.getElementById('came
 function camePayCheck_(m){
   const v=camePayVals_(), box=document.getElementById('came-paycheck'), diff=m-(v.cash+v.transfer);
   document.getElementById('came-bankwrap').style.display = (m>0 && v.transfer>0) ? '' : 'none';
+  if(m>0 && v.transfer>0 && !document.getElementById('came-bank').value) setCameBank('ttb');   // ธนาคารเริ่มต้น = ttb (เปลี่ยนได้)
   if(m<=0){ box.innerHTML=''; return; }
   box.innerHTML = diff===0 ? '<span style="color:#1D825C;font-weight:700;">✓ รวมตรงกับยอดวันนี้</span>' : '<span style="color:#C0392B;font-weight:700;">⚠️ เงินสด + โอน ต้องรวมเป็น '+m.toLocaleString()+' บาท (ต่างกัน '+Math.abs(diff).toLocaleString()+')</span>';
 }
