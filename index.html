@@ -3204,7 +3204,7 @@ function crmViewOrthoApts(){
       return `<tr style="background:${rowBg[st]};">
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
-          <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${a.docName?' · '+crmEsc(a.docName):''}</div>
+          <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}</div>
           <div style="margin-top:3px;"><span class="crm-chip ${x[1]}"${x[2]?` style="${YEL}"`:''}>${x[0]}</span> ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
         <td style="vertical-align:middle;">${came(a)}</td></tr>`; }).join('');
     return head+rows;
