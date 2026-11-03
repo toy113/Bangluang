@@ -134,13 +134,17 @@ function orthoGetByLineId(lineUserId) {
 function orthoList() {
   var rows = orthoSheetToObjects_(SHEET_ORTHO);
   var logs = orthoSheetToObjects_(SHEET_ORTHO_LOG);
-  var visitCount = {}, looseCount = {}, lastLog = {};
+  var visitCount = {}, looseCount = {}, lastLog = {}, visitDays = {};
   logs.forEach(function (l) {
     var hn = String(l.hn);
     var ld = String(l['วันที่'] || '').slice(0, 10);   // วันล่าสุดจากประวัติจริง (กันคอลัมน์ ปรับล่าสุด ค้างเก่า)
     if (/^\d{4}-\d{2}-\d{2}$/.test(ld) && (!lastLog[hn] || ld > lastLog[hn])) lastLog[hn] = ld;
     if (l['ทำอะไร'] === 'เครื่องมือหลุด') looseCount[hn] = (looseCount[hn] || 0) + 1;
-    else visitCount[hn] = (visitCount[hn] || 0) + 1;
+    else {
+      // นับเป็น "ครั้งที่มา" ต่อวัน: วันเดียวกันลงหลายรายการ (เช่น ปรับเครื่องมือ + เพิ่มพิมพ์ปาก) ไม่นับเพิ่ม
+      var vk = hn + '|' + (ld || ('row' + visitCount[hn]));
+      if (!visitDays[vk]) { visitDays[vk] = true; visitCount[hn] = (visitCount[hn] || 0) + 1; }
+    }
   });
   // คนที่ผูก LINE แล้วผ่านระบบ LINE CRM (ชีต crm_links) — ไม่ได้เก็บ lineUserId ไว้ในชีตจัดฟัน
   var linked = {};

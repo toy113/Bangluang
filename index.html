@@ -3393,7 +3393,7 @@ async function crmOrthoCameSave(){
       const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท');
       extras.filter(x=>x.price).forEach(x=>notes.push(x.name+' '+x.price.toLocaleString()+' บาท')); if(userNote) notes.push(userNote);
       logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':what, 'หมอ':doc, 'note':notes.join(' · ') });
-      visits++;
+      if(String(r['ปรับล่าสุด']||'').slice(0,10)!==date) visits++;   // นับครั้งที่มาต่อวัน: วันเดียวกันเพิ่มรายการหลายรอบไม่นับครั้งที่เพิ่ม
     }
     if(loose){
       const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1)));
@@ -3519,9 +3519,17 @@ function crmViewOrthoApts(){
   const tot={yes:0,move:0,wait:0,noline:0}; list.forEach(a=>tot[crmOrthoState(a)]++);
   const rowBg={ yes:'#F1FBF5', move:'#FEF6EA', wait:'', noline:'#F6F4F8' };
   // ปุ่มเดียว "มาตามนัด": กดได้เมื่อถึงวันนัด (ก่อนวันนัดเป็นปุ่มเทา รอไว้) · บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟัน
+  // สิ่งที่บันทึกไว้แล้ววันนี้ (จากบันทึกการรักษาที่ลงโดยปุ่มมาตามนัด) — ให้เห็นว่ากดไปแล้วได้อะไร
+  const cameDoneLine=a=>{
+    const rows=(typeof treatments!=='undefined'?treatments:[]).filter(t=>String(t.date||'').slice(0,10)===a.date && crmHN(t.hn)===crmHN(a.hn) && String(t.note||'').indexOf('มาตามนัดจัดฟัน')>=0 && t.status!=='ยกเลิก');
+    if(!rows.length) return '';
+    const sum={}; rows.forEach(t=>{ let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){} String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{ sum[x]=(sum[x]||0)+(+pp[x]||0); }); });
+    const tot=rows.reduce((n,t)=>n+totalPrice(t),0);
+    return '<div style="font-size:11px;color:#1D6B44;margin-top:4px;line-height:1.35;text-align:left;">บันทึกแล้ว: '+Object.keys(sum).map(k=>crmEsc(k)+(sum[k]?' '+sum[k].toLocaleString():'')).join(' · ')+' <b>รวม '+tot.toLocaleString()+'</b></div>';
+  };
   const came=a=>{
     const o=crmOrthoRec(a.hn), base='width:100%;padding:6px 4px;font-size:12px;white-space:normal;line-height:1.25;';
-    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;text-align:center;">🦷 มาแล้ว</span><button class="crm-btn" style="${base}margin-top:6px;" title="บันทึกรายการเพิ่มของวันนี้ (เช่น ลืมลงเหล็กหลุด/พิมพ์ปาก)" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}',true)">+ เพิ่มรายการ</button>`;
+    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}<button class="crm-btn" style="${base}margin-top:6px;" title="บันทึกรายการเพิ่มของวันนี้ (เช่น ลืมลงเหล็กหลุด/พิมพ์ปาก)" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}',true)">+ เพิ่มรายการ</button>`;
     if(!o) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="ไม่มีการ์ดจัดฟันของคนไข้นี้ (ไม่มี HN หรือ HN ไม่ตรง)">มาตามนัด</button>`;
     if(a.date>today) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="กดได้เมื่อถึงวันนัด">มาตามนัด</button>`;
     return `<button class="crm-btn p" style="${base}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button>`;
