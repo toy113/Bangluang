@@ -3529,7 +3529,7 @@ function crmViewOrthoApts(){
   };
   const came=a=>{
     const o=crmOrthoRec(a.hn), base='width:100%;padding:6px 4px;font-size:12px;white-space:normal;line-height:1.25;';
-    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}<button class="crm-btn" style="${base}margin-top:6px;" title="บันทึกรายการเพิ่มของวันนี้ (เช่น ลืมลงเหล็กหลุด/พิมพ์ปาก)" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}',true)">+ เพิ่มรายการ</button>`;
+    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
     if(!o) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="ไม่มีการ์ดจัดฟันของคนไข้นี้ (ไม่มี HN หรือ HN ไม่ตรง)">มาตามนัด</button>`;
     if(a.date>today) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="กดได้เมื่อถึงวันนัด">มาตามนัด</button>`;
     return `<button class="crm-btn p" style="${base}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button>`;
