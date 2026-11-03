@@ -8565,6 +8565,8 @@ function xrayMixedPrice(t){
 // หมอเริ่มต้นของงานจัดฟันกลุ่มนี้ = หมอเอม (เปลี่ยนได้ในฟอร์มเสมอ)
 const ORTHO_DEFAULT_DOC_ITEMS = ['ปรับเครื่องมือ','ติดเครื่องมือ','ติดเหล็กหลุด','ปักหมุด'];
 function orthoDefaultDoc_(){ return docAlias('หมอเอม'); }
+// รายการที่ใช้อัตราพิเศษเฉพาะหมอคนนั้น: พิมพ์ปาก 50% เฉพาะหมอเอม · หมอคนอื่นคิดตาม % ปกติของหมอนั้น
+const ITEM_DF_ONLY_DOC = { 'พิมพ์ปาก':'หมอเอม' };
 const ITEM_DF_RATES = { 'ปรับเครื่องมือ':80, 'ติดเครื่องมือ':80, 'ติดเหล็กหลุด':80, 'ปักหมุด':80, 'ใส่รีเทนเนอร์':80, 'พิมพ์ปาก':50 };
 function itemDfStart(){ return '2026-11-03'; }
 function itemDfParts(t){
@@ -8576,6 +8578,7 @@ function itemDfParts(t){
   let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
   parts.forEach(x=>{
     if(ITEM_DF_RATES[x]===undefined) return;
+    if(ITEM_DF_ONLY_DOC[x] && t.docName!==docAlias(ITEM_DF_ONLY_DOC[x])) return;
     const price = pp[x]!==undefined ? (+pp[x]||0) : (parts.length===1 ? totalPrice(t) : null);   // ลงรวมหลายรายการแต่ไม่มีราคาแยก → คิด % ปกติทั้งใบ
     if(price===null) return;
     out.items.push({ name:x, price, rate:ITEM_DF_RATES[x] }); out.base += price; out.df += price*ITEM_DF_RATES[x]/100;
@@ -9190,7 +9193,7 @@ function doSendIncome(periodLabel){
       text += `     ${procList.join(', ')}  ${baht(price)}  (ไม่คิด df)\n`;
     } else if(priced.length && (xrayMixedPrice(t)>0 || itemDfParts(t).items.length || priced.length===procList.length)){
       let used = 0;
-      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `     ${x}  ${baht(+pp[x]||0)}${_isXrayProc(x)?'  (ไม่คิด df)':(ITEM_DF_RATES[x]!==undefined && itemDfParts(t).items.length?'  (df '+ITEM_DF_RATES[x]+'%)':'')}\n`; });
+      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `     ${x}  ${baht(+pp[x]||0)}${_isXrayProc(x)?'  (ไม่คิด df)':(itemDfParts(t).items.some(i=>i.name===x)?'  (df '+ITEM_DF_RATES[x]+'%)':'')}\n`; });
       const rest = procList.filter(x=>pp[x]===undefined);
       if(rest.length) text += `     ${rest.join(', ')}  ${baht(Math.max(0,price-used))}\n`;
     } else {
