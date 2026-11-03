@@ -1834,7 +1834,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>หมอ</label>
-        <select class="form-control" id="treat-doc"></select>
+        <select class="form-control" id="treat-doc" onchange="_treatDocTouched=true"></select>
       </div>
       <div class="form-group" id="treat-share-wrap" style="display:none;">
         <label>ส่วนแบ่งหมอเฉพาะรายการนี้ (%) <span style="font-size:11px;color:var(--text-light);font-weight:400;">— ค่าเริ่มต้น = % ที่ตั้งไว้ของหมอคนนั้น แก้เฉพาะรายการนี้ได้</span></label>
@@ -3237,7 +3237,7 @@ function crmOrthoCame(hn, date, doc){
   document.getElementById('came-note').value='';
   { const pc=document.querySelector('input[name="came-pay"][value="cash"]'); if(pc) pc.checked=true; setCameBank(''); }
   const sel=document.getElementById('came-doc'); sel.innerHTML=getDoctorOptions();
-  const want=doc||r['หมอ']||(currentUser&&currentUser.name)||''; if(want) sel.value=want;
+  const want=orthoDefaultDoc_()||doc||r['หมอ']||(currentUser&&currentUser.name)||''; if(want) sel.value=want;
   const hasL=crmHasLine(r.hn), cs=document.getElementById('came-send');
   cs.checked=hasL; cs.disabled=!hasL;
   document.getElementById('came-sendtxt').textContent = hasL ? 'ส่งสรุปรายการและราคาให้คนไข้ทาง LINE ทันที' : 'คนไข้ยังไม่ผูกไลน์ — ไม่ส่งสรุปทาง LINE';
@@ -4712,6 +4712,7 @@ function openAddTreat(t=null){
   const treatHint = document.getElementById('treat-hn-hint');
   if(treatHint) treatHint.innerHTML = '';
   if(t?.hn) autoFillPatient(t.hn, 'treat');
+  _treatDocTouched=false;
   document.getElementById('treat-doc').value = t?.docName || (isManager ? (docAlias(localStorage.getItem('bl_last_doc')) || doctors[0]?.name) : currentUser.name);
   const shareWrap = document.getElementById('treat-share-wrap');
   const shareInput = document.getElementById('treat-share');
@@ -8342,6 +8343,16 @@ function closeTreatProcDropdown(){
   if(dd) dd.style.display = 'none';
 }
 
+// เลือกรายการจัดฟันกลุ่ม ปรับ/ติดเครื่องมือ/ติดเหล็กหลุด/ปักหมุด ในฟอร์มบันทึกการรักษาใหม่ → ตั้งหมอเป็นหมอเอมให้ (ถ้ายังไม่ได้เลือกหมอเอง · ไม่ทับตอนเปิดฟอร์มจากนัด/แก้ไข)
+let _procProgrammatic=false, _treatDocTouched=false;
+function treatAutoDocFor_(selected){
+  if(_procProgrammatic || _treatDocTouched) return;
+  const docEl=document.getElementById('treat-doc'), idEl=document.getElementById('treat-id');
+  if(!docEl || (idEl && idEl.value)) return;
+  if(!selected.some(x=>ORTHO_DEFAULT_DOC_ITEMS.includes(x))) return;
+  const want=orthoDefaultDoc_(); if(!want || docEl.value===want || ![...docEl.options].some(o=>o.value===want)) return;
+  docEl.value=want; if(typeof syncShareDefault_==='function') syncShareDefault_();
+}
 function updateProcDisplay(){
   const dd = document.getElementById('treat-proc-dropdown');
   const display = document.getElementById('treat-proc-display');
@@ -8351,6 +8362,7 @@ function updateProcDisplay(){
 
   const selected = [...dd.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value);
   hidden.value = selected.join(',');
+  try{ treatAutoDocFor_(selected); }catch(e){}
 
   // update display
   const tags = display.querySelectorAll('.proc-tag');
@@ -8415,7 +8427,7 @@ function setProcSelected(procs){
   dd.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.checked = list.includes(cb.value);
   });
-  updateProcDisplay();
+  _procProgrammatic=true; try{ updateProcDisplay(); } finally { _procProgrammatic=false; }
 }
 
 function getProcSelected(){
@@ -8550,6 +8562,9 @@ function xrayMixedPrice(t){
 }
 // อัตราส่วนแบ่งหมอ (DF) ต่อรายการ — งานจัดฟัน: ปรับ/ติดเครื่องมือ/ติดเหล็กหลุด/ปักหมุด/ใส่รีเทนเนอร์ 80% · พิมพ์ปาก 50% · X-Ray 0% (กฎ X-Ray ด้านบน)
 // รายการนอกตารางนี้ใช้ % ปกติของหมอ · ใช้กับรายการที่ลงตั้งแต่ itemDfStart() เป็นต้นไป (รายการเก่าไม่ถูกคิดย้อนหลัง) แก้อัตราได้ที่นี่ที่เดียว
+// หมอเริ่มต้นของงานจัดฟันกลุ่มนี้ = หมอเอม (เปลี่ยนได้ในฟอร์มเสมอ)
+const ORTHO_DEFAULT_DOC_ITEMS = ['ปรับเครื่องมือ','ติดเครื่องมือ','ติดเหล็กหลุด','ปักหมุด'];
+function orthoDefaultDoc_(){ return docAlias('หมอเอม'); }
 const ITEM_DF_RATES = { 'ปรับเครื่องมือ':80, 'ติดเครื่องมือ':80, 'ติดเหล็กหลุด':80, 'ปักหมุด':80, 'ใส่รีเทนเนอร์':80, 'พิมพ์ปาก':50 };
 function itemDfStart(){ return '2026-11-03'; }
 function itemDfParts(t){
