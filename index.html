@@ -10333,6 +10333,7 @@ async function saveReschedule(){
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalReschedule');
   showToast('นัดสำเร็จ');
+  crmKick_(); // สั่งรอบส่ง LINE CRM ทันที → ข้อความยืนยัน/เปลี่ยนนัดถึงคนไข้ภายในไม่กี่วินาที (เดิมต้องรอรอบอัตโนมัติ 10 นาที)
   renderOrthoPage();
   try{ if(typeof CRM!=='undefined' && CRM.sub==='orthoapt' && CRM.data) crmRender(); }catch(e){}
   _reschedSaving = false;
