@@ -3258,7 +3258,7 @@ async function crmOrthoCameSave(){
     const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
     const logs=[], lineItems=[]; let visits=orthoVisitCount_(r), looseN=orthoLooseCount_(r), money=adjFee;
     if(adj) lineItems.push({name:'ปรับเครื่องมือ', price:adjFee});
-    others.forEach(o=>lineItems.push({name:o, price:0, note:'ไม่คิดเพิ่ม'}));
+    others.forEach(o=>lineItems.push({name:o, price:null}));
     if(adj || others.length){
       const what=(adj?['ปรับเครื่องมือ']:[]).concat(others).join(', ');
       const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท'); if(userNote) notes.push(userNote);
@@ -3270,7 +3270,7 @@ async function crmOrthoCameSave(){
       for(let k=1;k<=q;k++){
         looseN++;
         const free=looseN<=ORTHO_LOOSE_FREE; if(!free) money+=ORTHO_LOOSE_FEE;
-        lineItems.push({name:'ติดเหล็กหลุด ตัวที่ '+looseN, price:free?0:ORTHO_LOOSE_FEE, note:free?'ฟรี':''});
+        lineItems.push({name:'ติดเหล็กหลุด ตัวที่ '+looseN, price:free?0:ORTHO_LOOSE_FEE});
         logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':'เครื่องมือหลุด', 'หมอ':doc, 'note':'หลุดตัวที่ '+looseN+' — '+(free?'ฟรี':'เก็บ '+ORTHO_LOOSE_FEE+' บาท')+(userNote&&!adj&&!others.length&&k===1?' · '+userNote:'') });
       }
     }

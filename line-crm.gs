@@ -1067,8 +1067,8 @@ function crmOrthoVisitMessage_(s, v) {
   if (v.doc) rows.push(crmRow_('ทันตแพทย์', v.doc));
   var total = 0;
   v.items.forEach(function (x, i) {
-    total += x.price;
-    rows.push(crmRow_(i === 0 ? 'รายการ' : '', (i + 1) + '. ' + x.name + (x.note ? ' (' + x.note + ')' : '') + ' — ' + (x.price > 0 ? crmMoney_(x.price) : 'ฟรี')));
+    if (x.price !== null) total += x.price;
+    rows.push(crmRow_(i === 0 ? 'รายการ' : '', (i + 1) + '. ' + x.name + (x.note ? ' (' + x.note + ')' : '') + (x.price === null ? '' : ' — ' + (x.price > 0 ? crmMoney_(x.price) : 'ฟรี'))));
   });
   rows.push({ type: 'separator', margin: 'md' });
   rows.push(crmRow_('รวม', total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'));
@@ -1593,7 +1593,7 @@ function crmStaffAction_(b) {
       var hnV = String(b.hn || ''); if (!hnV) return { ok: false, error: 'missing_hn' };
       var sV = crmSettings_(), tgV = (crmLinkMap_()[crmHN_(hnV)] || []).filter(function (x) { return x.consent; });
       if (!tgV.length) return { ok: true, sent: 0, reason: 'no_line' };
-      var itemsV = (b.items || []).slice(0, 12).map(function (x) { return { name: String(x.name || '').slice(0, 60), price: +x.price || 0, note: String(x.note || '').slice(0, 60) }; });
+      var itemsV = (b.items || []).slice(0, 12).map(function (x) { return { name: String(x.name || '').slice(0, 60), price: (x.price === null || x.price === undefined) ? null : (+x.price || 0), note: String(x.note || '').slice(0, 60) }; });
       if (!itemsV.length) return { ok: false, error: 'no_items' };
       var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60) });
       var stV = { done: {}, fails: {} }, nV = 0;
