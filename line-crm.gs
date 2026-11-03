@@ -640,6 +640,49 @@ function crmTick() {
   }
   finally { lock.releaseLock(); }
 }
+/* ส่งข้อความยืนยันนัดเฉพาะคนไข้ 1 คนทันที (ใช้หลังพนักงานลงนัด) — เร็วกว่า crmTick ทั้งรอบมาก
+   เพราะไม่อ่านชีตบันทึกการรักษาทั้งชีต/ติดตามอาการ/เตือนนัด และไม่เรียก API โควต้า (ใช้ค่าโควต้าที่แคชไว้) · กุญแจกันส่งซ้ำชุดเดียวกับ crmTickInner_ */
+function crmConfirmOne_(hn) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(8000)) return { ok: false, error: 'busy' };
+  try {
+    var s = crmSettings_(), summary = { confirm: 0, skipped: [] };
+    if (!s.enabled) { summary.skipped.push('disabled'); return summary; }
+    if (s.testMode && !s.testUserId) { summary.skipped.push('no_test_user'); return summary; }
+    if (!s.confirmOn) { summary.skipped.push('confirm_off'); return summary; }
+    var hm = crmHM_(), today = crmToday_();
+    if (hm < s.sendStart || hm >= s.sendEnd) { summary.skipped.push('outside_window'); return summary; }
+    var k = crmHN_(hn); if (!k) { summary.skipped.push('no_hn'); return summary; }
+    var budget = 20, qc = null;
+    try { var qs = CacheService.getScriptCache().get('crm_quota'); if (qs) qc = JSON.parse(qs); } catch (e) {}
+    if (qc && qc.remaining !== null && qc.remaining !== undefined) budget = Math.min(budget, Math.max(0, qc.remaining - (+s.quotaGuard || 0)));
+    if (budget <= 0) { summary.skipped.push('quota'); return summary; }
+    var links = crmLinkMap_();
+    var tg = (links[k] || []).filter(function (x) { return x.consent; });
+    if (!tg.length) { summary.skipped.push('no_line'); return summary; }
+    var hnSet = {}; hnSet[k] = true;
+    var orthoAll = crmReadByName_('ortho').filter(function (o) { return crmHN_(o.hn) === k; });
+    var apts = crmAptsWithOrtho_(crmReadByNameWhere_('ตารางนัด', crmHnTest_(hnSet)), orthoAll);
+    var state = crmLogKeys_(); state.pushBudget = budget;
+    var closed = ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ', 'walk-in'];
+    apts.forEach(function (a) {
+      a.date = crmDateOnly_(a.date);
+      if (!a.id || !a.date || a.date < today || closed.indexOf(a.status) !== -1) return;
+      if (a.date === today && a.time && a.time <= hm) return;
+      var ck = crmKey_(s, 'confirm:' + a.id + ':' + a.date + ':' + (a.time || ''));
+      if (crmIsDone_(state, ck)) return;
+      var prefix = crmKey_(s, 'confirm:' + a.id + ':'), changed = false;
+      for (var kk in state.done) if (kk.indexOf(prefix) === 0 && kk.indexOf(ck) !== 0) { changed = true; break; }
+      tg.forEach(function (t) {
+        if (crmSend_(s, state, { key: ck + '>' + t.lineUserId, type: 'confirm', hn: a.hn, patName: a.patName, lineUserId: t.lineUserId, refId: a.id, detail: a.date + ' ' + (a.time || '') },
+          [crmAptMessage_(s, a, changed ? 'change' : 'confirm')])) summary.confirm++;
+      });
+      if (crmAllDone_(state, ck, tg)) crmMark_(state, ck, 'confirm', { hn: a.hn, patName: a.patName, refId: a.id }, 'done', '');
+    });
+    crmFlushMarks_(state);
+    return summary;
+  } finally { lock.releaseLock(); }
+}
 /* ย้ายแถว crm_log ที่เก่ากว่า keepDays วันไปชีต crm_log_archive · เก็บสถิติรายเดือนของแถวที่ย้ายไว้ใน Script Properties (CRM_LOG_STATS) ให้ dashboard ยังเห็นครบ
    ยกเว้น: แถว "ยืนยันนัด" ของนัดที่ยังไม่ถึงวัน (ต้องใช้กันส่งยืนยันซ้ำ) */
 function crmArchiveLog_(keepDays) {
@@ -1509,7 +1552,7 @@ function crmDashboard_() {
   var lastTick = null; try { lastTick = JSON.parse(crmProp_('CRM_LAST_TICK', 'null')); } catch (e) {}
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
   var links = crmRead_('links'), orthoAll = crmReadByName_('ortho'), followersAll = crmRead_('followers');
-  return { ok: true, caps: { orthoTreat: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
+  return { ok: true, caps: { orthoTreat: true, confirmOne: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
     followups: recentRated('followups', 'sentAt', since, crmAddDays_(crmToday_(), -400)),
     links: strip(links.slice()), followers: strip(followersAll.slice()), apt: strip(crmRead_('apt')),
     casenotes: recent('casenotes', 'createdAt', since),
@@ -1651,6 +1694,7 @@ function crmStaffAction_(b) {
     }
     if (act === 'campaignSend') return crmCampaignSend_(b, by);
     if (act === 'sendTest') return crmSendTest_(b);
+    if (act === 'confirmOne') { lock.releaseLock(); lock = null; return { ok: true, result: crmConfirmOne_(b.hn) }; }
     if (act === 'runNow') { lock.releaseLock(); lock = null; return { ok: true, result: crmTick() }; }
     if (act === 'baseline') return { ok: true, marked: crmBaseline_(crmSettings_()) };
     if (act === 'refreshQuota') return { ok: true, quota: crmQuota_(true) };

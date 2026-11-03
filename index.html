@@ -2977,6 +2977,27 @@ async function crmCall(payload){
   }
 }
 // สั่งรอบส่งของ LINE CRM ทันทีหลังบันทึกนัด (รวมหลายครั้งติดกันเป็นครั้งเดียว) · ไม่ทำอะไรถ้า CRM ปิดหรือยังไม่ติดตั้ง
+// ลงนัดจัดฟันแล้วสั่งส่งทันที + รายงานผลให้พนักงานเห็น (ไม่ต้องเดาว่าทำไมไลน์ไม่ไป)
+async function crmKickReport_(hn){
+  try{ const v=(localStorage.getItem('bl_crm_en')||'').split('|'); if(v[0]==='0' && Date.now()-(+v[1]||0) < 180000) return; }catch(e){}
+  clearTimeout(_crmKickT); clearTimeout(_crmKickT2);
+  try{
+    const fast=!!(CRM.data&&CRM.data.caps&&CRM.data.caps.confirmOne);   // เส้นทางเร็ว: ส่งยืนยันเฉพาะคนไข้คนนี้ (ต้องวาง line-crm.gs ฉบับล่าสุด) · ไม่งั้นสั่งรอบเต็มเหมือนเดิม
+    const res=await crmCall(fast?{crm:'confirmOne', hn}:{crm:'runNow'});
+    const r=res&&res.result, sk=(r&&r.skipped)||[], st=(CRM.data&&CRM.data.settings)||{};
+    const linked=(typeof crmHasLine==='function') ? crmHasLine(hn) : true;
+    if(r && (r.confirm||0)>0){
+      showToast(st.testMode ? 'โหมดทดสอบ: ส่งข้อความยืนยันนัดไปที่บัญชีทดสอบ (ไม่ถึงคนไข้)' : 'ส่งข้อความยืนยันนัดให้คนไข้ทาง LINE แล้ว ✅');
+    } else if(sk.includes('disabled')) showToast('ไม่ได้ส่งไลน์: ระบบ LINE CRM ปิดอยู่ในตั้งค่า','error');
+    else if(sk.includes('outside_window')) showToast('ไม่ได้ส่งไลน์: นอกเวลาส่งข้อความ ('+(st.sendStart||'08:00')+'–'+(st.sendEnd||'20:00')+')','error');
+    else if(sk.includes('quota')) showToast('ไม่ได้ส่งไลน์: โควต้าข้อความ LINE เดือนนี้ใกล้หมด/หมดแล้ว','error');
+    else if(sk.includes('no_test_user')) showToast('ไม่ได้ส่งไลน์: เปิดโหมดทดสอบไว้แต่ยังไม่ได้ใส่บัญชีทดสอบ','error');
+    else if(sk.includes('no_line')||!linked) showToast('ไม่ได้ส่งไลน์: คนไข้ยังไม่ผูกไลน์ (หรือยังไม่ได้อนุมัติการผูก/ปิดรับข้อความ)','error');
+    else if(sk.includes('confirm_off')) showToast('ไม่ได้ส่งไลน์: สวิตช์ "ยืนยันนัด" ปิดอยู่ในตั้งค่า','error');
+    else if(st.confirmOn===false) showToast('ไม่ได้ส่งไลน์: สวิตช์ "ยืนยันนัด" ปิดอยู่ในตั้งค่า','error');
+    else showToast('ไม่ได้ส่งไลน์: ไม่มีข้อความยืนยันที่ต้องส่ง (อาจส่งไปแล้ว นัดซ้ำกับตารางนัด หรือคนไข้ปิดรับข้อความ)','error');
+  }catch(e){ showToast('สั่งส่งไลน์ไม่สำเร็จ ('+(e&&e.message||'เชื่อมต่อไม่ได้')+') — ระบบจะส่งในรอบอัตโนมัติถัดไป','error'); }
+}
 let _crmKickT = null, _crmKickT2 = null;
 function crmKick_(){
   // ข้ามเฉพาะเมื่อเพิ่งรู้ว่า CRM ปิดอยู่ (ภายใน 3 นาที) — ไม่ใช้ค่าเก่าค้างข้ามเครื่อง (เปิดระบบจากอีกเครื่องแล้วเครื่องนี้ต้องส่งได้ทันที)
@@ -10333,7 +10354,7 @@ async function saveReschedule(){
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalReschedule');
   showToast('นัดสำเร็จ');
-  crmKick_(); // สั่งรอบส่ง LINE CRM ทันที → ข้อความยืนยัน/เปลี่ยนนัดถึงคนไข้ภายในไม่กี่วินาที (เดิมต้องรอรอบอัตโนมัติ 10 นาที)
+  crmKickReport_(hn); // สั่งรอบส่ง LINE CRM ทันที แล้วบอกผลบนหน้าจอ (ส่งแล้ว / ไม่ส่งเพราะอะไร)
   renderOrthoPage();
   try{ if(typeof CRM!=='undefined' && CRM.sub==='orthoapt' && CRM.data) crmRender(); }catch(e){}
   _reschedSaving = false;
