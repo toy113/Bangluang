@@ -314,7 +314,10 @@ function renderOrtho(p){
   const retained = pr['วันใส่รีเทนเนอร์'] && daysUntil(String(pr['วันใส่รีเทนเนอร์']).slice(0,10)) <= 0;
   const overdue = !retained && since !== null && since > 60;
   const loose = logs.filter(l=>l['ทำอะไร']==='เครื่องมือหลุด');
-  const visits = logs.filter(l=>l['ทำอะไร']!=='เครื่องมือหลุด');
+  // ครั้งที่ปรับเครื่องมือ = วันที่มีรายการ "ปรับ" (นับต่อวัน) — มาแค่พิมพ์ปาก/ใส่รีเทนเนอร์ ฯลฯ ไม่นับเป็นเลขปรับ
+  const dOf = l=>String(l['วันที่']||'').slice(0,10);
+  const adjDates = Array.from(new Set(logs.filter(l=>l['ทำอะไร']!=='เครื่องมือหลุด' && String(l['ทำอะไร']||'').indexOf('ปรับ')>=0).map(dOf))).sort();
+  const visits = adjDates;
   let prog = '';
   const planM = String(pr['แผนเดือน']||'').match(/^(\d+)\s*ครั้ง$/);   // แผนแบบกำหนดจำนวนครั้ง เช่น 24 / 28 / 30 ครั้ง
   if(planM){
@@ -324,13 +327,19 @@ function renderOrtho(p){
   } else {
     prog = `<div class="row"><span class="k">มาปรับเครื่องมือแล้ว</span><span class="v">${visits.length} ครั้ง</span></div><div class="row"><span class="k">แผนการชำระ</span><span class="v">ชำระครั้งละ 1,500 บาทจนเสร็จ</span></div>`;
   }
-  let vno = visits.length;
-  const tl = logs.length ? logs.map(l=>{
-    const isLoose = l['ทำอะไร']==='เครื่องมือหลุด';
-    return `<div class="tl-item">${isLoose?'':`<div class="tl-visitno">ครั้งที่ ${vno--}</div>`}<div class="tl-date">${esc(thaiDateFull(l['วันที่']))}</div>
-      <div class="tl-do">${esc(l['ทำอะไร']||'—')}</div>
-      <div class="tl-sub">${l['ลวด']?`<span class="pill">ลวด ${esc(l['ลวด'])}</span>`:''}${l['ยาง']?`<span class="pill">ยาง ${esc(l['ยาง'])}</span>`:''}${l['หมอ']?`<span class="pill">${esc(l['หมอ'])}</span>`:''}</div>
-      ${l['note']?`<div class="tl-sub">${esc(l['note'])}</div>`:''}</div>`;
+  // ประวัติ: รวมเป็นการ์ดต่อวัน (ล่าสุดอยู่บน) · ไม่แสดงชื่อหมอ · เหล็กหลุดของวันเดียวกันรวมเป็นบรรทัดเดียว
+  const byDay = {};
+  logs.forEach(l=>{ const d = dOf(l) || '-'; (byDay[d] = byDay[d] || []).push(l); });
+  const tl = logs.length ? Object.keys(byDay).sort().reverse().map(d=>{
+    const rows = byDay[d], no = adjDates.indexOf(d) + 1;
+    const items = rows.filter(l=>l['ทำอะไร']!=='เครื่องมือหลุด').map(l=>
+      `<div class="tl-do">${esc(l['ทำอะไร']||'—')}</div>`
+      + ((l['ลวด']||l['ยาง']) ? `<div class="tl-sub">${l['ลวด']?`<span class="pill">ลวด ${esc(l['ลวด'])}</span>`:''}${l['ยาง']?`<span class="pill">ยาง ${esc(l['ยาง'])}</span>`:''}</div>` : '')
+      + (l['note'] ? `<div class="tl-sub">${esc(l['note'])}</div>` : '')).join('');
+    const lz = rows.filter(l=>l['ทำอะไร']==='เครื่องมือหลุด').map(l=>{ const m=String(l['note']||'').match(/หลุดตัวที่\s*(\d+)\s*[—-]\s*(ฟรี|เก็บ\s*[\d,]+\s*บาท)/); return m?{n:+m[1],t:m[2].replace(/\s+/g,' ')}:{n:0,t:String(l['note']||'')}; });
+    const lg = {}; lz.forEach(x=>{ (lg[x.t]=lg[x.t]||[]).push(x.n); });
+    const looseTxt = Object.keys(lg).sort((x,y)=>(x==='ฟรี'?0:1)-(y==='ฟรี'?0:1)).map(t=>{ const ns=lg[t].filter(Boolean).sort((a,b)=>a-b); return `<div class="tl-do">เครื่องมือหลุด${ns.length?' ตัวที่ '+ns.join(', '):''}${t?' — '+esc(t):''}</div>`; }).join('');
+    return `<div class="tl-item">${no?`<div class="tl-visitno">ปรับครั้งที่ ${no}</div>`:''}<div class="tl-date">${esc(thaiDateFull(d))}</div>${items}${looseTxt}</div>`;
   }).join('') : '<p class="muted">ยังไม่มีบันทึก</p>';
   $('panel-ortho').innerHTML = `
     <div class="overdue-banner" style="display:${overdue?'block':'none'}">⚠️ คุณไม่ได้มาปรับเครื่องมือ ${since} วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาปรับเครื่องมือ</div>
