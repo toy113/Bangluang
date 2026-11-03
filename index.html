@@ -2175,6 +2175,47 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalOrthoCame">
+  <div class="modal-box">
+    <div class="modal-title">✔ <span id="came-title">มาตามนัด</span></div>
+    <button class="modal-close" onclick="closeModal('modalOrthoCame')" aria-label="ปิดหน้าต่าง">×</button>
+    <input type="hidden" id="came-hn"><input type="hidden" id="came-date">
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>วันที่มา</label><div id="came-datetxt" style="font-weight:800;color:var(--wine);"></div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;">
+        <label class="checkbox-label" style="font-weight:800;"><input type="checkbox" id="came-adj" checked onchange="cameCalc()"> 🦷 ปรับเครื่องมือ</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">ค่าบริการ <input type="number" class="form-control" id="came-adjfee" value="1500" min="0" step="50" style="width:110px;" oninput="cameCalc()"> บาท</div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;">
+        <label class="checkbox-label" style="font-weight:800;"><input type="checkbox" id="came-loose" onchange="cameCalc()"> 🔧 ติดเหล็กหลุด</label>
+        <div id="came-looserow" style="display:none;margin-top:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">จำนวนที่หลุด <input type="number" class="form-control" id="came-looseqty" value="1" min="1" max="20" style="width:80px;" oninput="cameCalc()"> ตัว</div>
+          <div id="came-loosehint" style="font-size:12.5px;color:var(--text-mid);margin-top:6px;"></div>
+        </div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>อื่นๆ ที่ทำวันนี้ (ไม่คิดเงินในหน้านี้)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 14px;">
+          <label class="checkbox-label"><input type="checkbox" class="came-other" value="พิมพ์ปาก"> พิมพ์ปาก</label>
+          <label class="checkbox-label"><input type="checkbox" class="came-other" value="ขูดหินปูน"> ขูดหินปูน</label>
+          <label class="checkbox-label"><input type="checkbox" class="came-other" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="came-other" value="ปักหมุด"> ปักหมุด</label>
+          <label class="checkbox-label"><input type="checkbox" class="came-other" value="X-ray"> X-ray</label>
+        </div>
+      </div>
+      <div class="form-group"><label>หมอ</label><select class="form-control" id="came-doc"></select></div>
+      <div class="form-group"><label>หมายเหตุ</label><input class="form-control" id="came-note" placeholder="ไม่บังคับ"></div>
+    </div>
+    <div id="came-total" style="font-size:15px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:10px 12px;margin-top:8px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalOrthoCame')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="crmOrthoCameSave()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalLoose">
   <div class="modal-box">
     <div class="modal-title">🔧 <span id="looseModalTitle">เครื่องมือหลุด</span></div>
@@ -3167,19 +3208,70 @@ function crmOrthoConfirm(id){
   crmDo({crm:'aptConfirm', aptId:String(id), hn:a.hn||''}, 'ตั้งเป็นยืนยันแล้ว ✅');
 }
 let _crmCameSaving=false;
-async function crmOrthoCame(hn, date, doc){
-  if(_crmCameSaving) return;
+const ORTHO_ADJ_FEE=1500, ORTHO_LOOSE_FEE=300, ORTHO_LOOSE_FREE=3;   // ปรับเครื่องมือ 1,500 · เหล็กหลุดฟรี 3 ตัวแรก ตัวต่อไปตัวละ 300
+function crmOrthoCame(hn, date, doc){
   const r=crmOrthoRec(hn); if(!r){ showToast('ไม่พบการ์ดจัดฟันของคนไข้นี้','error'); return; }
-  if(!window.confirm('บันทึก "ปรับเครื่องมือ" ให้ '+(r['ชื่อ']||hn)+' วันที่ '+date+' ?')) return;
+  document.getElementById('came-title').textContent='มาตามนัด — '+(r['ชื่อ']||hn);
+  document.getElementById('came-hn').value=r.hn; document.getElementById('came-date').value=date;
+  document.getElementById('came-datetxt').textContent=crmThaiShort(date);
+  document.getElementById('came-adj').checked=true; document.getElementById('came-adjfee').value=ORTHO_ADJ_FEE;
+  document.getElementById('came-loose').checked=false; document.getElementById('came-looseqty').value=1;
+  document.querySelectorAll('.came-other').forEach(c=>c.checked=false);
+  document.getElementById('came-note').value='';
+  const sel=document.getElementById('came-doc'); sel.innerHTML=getDoctorOptions();
+  const want=doc||r['หมอ']||(currentUser&&currentUser.name)||''; if(want) sel.value=want;
+  cameCalc(); document.getElementById('modalOrthoCame').classList.add('open');
+}
+// คิดเงินเหล็กหลุด: นับต่อจากที่หลุดมาแล้วในประวัติ (ฟรี 3 ตัวแรกตลอดการจัดฟัน ตัวต่อไปตัวละ 300)
+function cameLoosePlan(r, qty){
+  const done=orthoLooseCount_(r), freeLeft=Math.max(0,ORTHO_LOOSE_FREE-done), free=Math.min(qty,freeLeft), paid=qty-free;
+  return { done, free, paid, fee: paid*ORTHO_LOOSE_FEE };
+}
+function cameCalc(){
+  const r=crmOrthoRec(document.getElementById('came-hn').value); if(!r) return;
+  const adj=document.getElementById('came-adj').checked, loose=document.getElementById('came-loose').checked;
+  document.getElementById('came-looserow').style.display=loose?'':'none';
+  const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
+  let lf=0, hint='';
+  if(loose){
+    const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1))), p=cameLoosePlan(r,q); lf=p.fee;
+    hint='หลุดมาแล้ว '+p.done+' ตัว (ฟรี '+ORTHO_LOOSE_FREE+' ตัวแรก) → ครั้งนี้ '+q+' ตัว: '+(p.free?'ฟรี '+p.free+' ตัว':'')+(p.free&&p.paid?' + ':'')+(p.paid?'เก็บ '+p.paid+' ตัว × '+ORTHO_LOOSE_FEE+' = '+lf.toLocaleString()+' บาท':'');
+  }
+  document.getElementById('came-loosehint').textContent=hint;
+  document.getElementById('came-total').textContent='รวมวันนี้ '+(adjFee+lf).toLocaleString()+' บาท'+((adj||loose)?'':' (ยังไม่ได้เลือกรายการ)');
+}
+async function crmOrthoCameSave(){
+  if(_crmCameSaving) return;
+  const hn=document.getElementById('came-hn').value, date=document.getElementById('came-date').value;
+  const r=crmOrthoRec(hn); if(!r) return;
+  const adj=document.getElementById('came-adj').checked, loose=document.getElementById('came-loose').checked;
+  const others=Array.from(document.querySelectorAll('.came-other:checked')).map(c=>c.value);
+  if(!adj && !loose && !others.length){ showToast('กรุณาเลือกรายการอย่างน้อย 1 อย่าง','error'); return; }
   _crmCameSaving=true;
   try{
-    const log={ hn:r.hn, 'วันที่':date, 'ทำอะไร':'ปรับเครื่องมือ', 'หมอ': doc || r['หมอ'] || (currentUser&&currentUser.name) || '', 'note':'' };
-    const visits=orthoVisitCount_(r)+1;
-    const row=Object.assign({}, r, { 'ปรับล่าสุด':date, 'ครั้งที่มาแล้ว':visits });
-    row._visitCount=visits;
-    await Promise.all([ orthoPost({action:'orthoLogAdd', log}), orthoPost({action:'orthoSave', row}) ]);
+    const doc=document.getElementById('came-doc').value, userNote=document.getElementById('came-note').value.trim();
+    const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
+    const logs=[]; let visits=orthoVisitCount_(r), looseN=orthoLooseCount_(r), money=adjFee;
+    if(adj || others.length){
+      const what=(adj?['ปรับเครื่องมือ']:[]).concat(others).join(', ');
+      const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท'); if(userNote) notes.push(userNote);
+      logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':what, 'หมอ':doc, 'note':notes.join(' · ') });
+      visits++;
+    }
+    if(loose){
+      const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1)));
+      for(let k=1;k<=q;k++){
+        looseN++;
+        const free=looseN<=ORTHO_LOOSE_FREE; if(!free) money+=ORTHO_LOOSE_FEE;
+        logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':'เครื่องมือหลุด', 'หมอ':doc, 'note':'หลุดตัวที่ '+looseN+' — '+(free?'ฟรี':'เก็บ '+ORTHO_LOOSE_FEE+' บาท')+(userNote&&!adj&&!others.length&&k===1?' · '+userNote:'') });
+      }
+    }
+    const row=Object.assign({}, r, { 'ปรับล่าสุด':date, 'ครั้งที่มาแล้ว':visits, 'หลุดกี่ครั้ง':looseN });
+    row._visitCount=visits; row._looseCount=looseN;
+    await Promise.all([ orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row}) ]);
     const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
-    showToast('บันทึกปรับเครื่องมือแล้ว ✅ (ครั้งที่ '+visits+')');
+    closeModal('modalOrthoCame');
+    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':''));
     crmRender();
     setTimeout(()=>{ if(typeof loadOrthoData==='function') loadOrthoData(true).then(()=>{ if(CRM.sub==='orthoapt') crmRender(); }).catch(()=>{}); },1500);
   }catch(e){ console.error(e); showToast('บันทึกไม่สำเร็จ','error'); }
@@ -9976,7 +10068,7 @@ async function openOrthoHistory(hn){
     box.innerHTML = summary + logs.map(l=>{
       const m = meta.get(l)||{};
       const badge = m.loose
-        ? '<span style="background:#FDEDEC;color:#922B21;border-radius:20px;padding:1px 9px;font-size:11px;font-weight:800;">🔧 หลุดครั้งที่ '+m.no+'</span>'
+        ? '<span style="background:#FDEDEC;color:#922B21;border-radius:20px;padding:1px 9px;font-size:11px;font-weight:800;">🔧 หลุดครั้งที่ '+m.no+'</span><span style="background:'+(m.no<=3?'#D5F5E3':'#FDEBD0')+';color:'+(m.no<=3?'#1D6B44':'#A04000')+';border-radius:20px;padding:1px 9px;font-size:11px;font-weight:800;">'+(m.no<=3?'ฟรี':'เก็บ 300 บาท')+'</span>'
         : '<span style="background:var(--wine);color:#fff;border-radius:20px;padding:1px 10px;font-size:11px;font-weight:800;">ครั้งที่ '+m.no+'</span>';
       const gap = (!m.loose && m.gapDays!=null && m.gapDays>0) ? '<span style="font-size:11px;color:var(--text-light);">ห่างครั้งก่อน '+gapText(m.gapDays)+'</span>' : '';
       return `
