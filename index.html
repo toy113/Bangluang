@@ -2437,7 +2437,7 @@ function docAlias(n){ return (n && DOC_ALIAS[n]) || n; }
 function aliasRows_(rows){ rows.forEach(r=>{ if(r && r.docName) r.docName = docAlias(r.docName); }); return rows; }
 const DOCTORS_DATA = [
   { id:'toy',   name:'ทพ.สรวิศ สุภาพ',  emoji:'🦷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#9B59B6', fullName:'ทพ.สรวิศ สุภาพ', licenseNo:'' },
-  { id:'mind',  name:'ทพ.ภาคภูมิ สุนทราภิรมย์', emoji:'😎', specialty:'จัดฟัน',           gender:'female', share:50, color:'#E91E8C', fullName:'ทพ.ภาคภูมิ สุนทราภิรมย์', licenseNo:'' },
+  { id:'mind',  name:'ทพ.ภาคภูมิ สุนทราภิรมย์', emoji:'😎', specialty:'อดนอน',             gender:'female', share:50, color:'#E91E8C', fullName:'ทพ.ภาคภูมิ สุนทราภิรมย์', licenseNo:'' },
   { id:'koi',   name:'ทพญ.พัทธนันท์ กฐินหอม',  emoji:'🌸', specialty:'รักษารากฟัน',      gender:'female', share:50, color:'#16A085', fullName:'ทพญ.พัทธนันท์ กฐินหอม', licenseNo:'' },
   { id:'pong',  name:'ทพ.สหพล หังสพฤกษ์',  emoji:'📷', specialty:'ผ่าตัดช่องปาก',    gender:'male',   share:50, color:'#2471A3', fullName:'ทพ.สหพล หังสพฤกษ์', licenseNo:'' },
   { id:'aim',   name:'ทพญ.วัจน์กร เสือดี',   emoji:'💫', specialty:'ทันตกรรมเด็ก',     gender:'female', share:50, color:'#D35400', fullName:'', licenseNo:'' },
