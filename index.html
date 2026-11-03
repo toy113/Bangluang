@@ -2214,10 +2214,11 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <label class="checkbox-label" id="came-carerow" style="margin-top:4px;font-weight:700;"><input type="checkbox" id="came-care" checked> แนบ "ข้อควรปฏิบัติ" (วิธีดูแลเครื่องมือ) ไปกับข้อความ</label>
     <div id="came-payrow" style="border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:8px;">
       <label style="font-weight:800;">💰 ช่องทางชำระวันนี้ <span class="crm-muted" style="font-weight:500;">(ลงเป็นรายได้ในบันทึกการรักษาทันที)</span></label>
-      <div style="display:flex;gap:18px;margin-top:6px;">
-        <label class="checkbox-label"><input type="radio" name="came-pay" value="cash" checked onchange="cameCalc()"> 💵 เงินสด</label>
-        <label class="checkbox-label"><input type="radio" name="came-pay" value="transfer" onchange="cameCalc()"> 🏦 โอน</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;">
+        <div><div style="font-size:12.5px;font-weight:700;margin-bottom:3px;">💵 เงินสด (บาท)</div><input type="number" min="0" step="1" class="form-control" id="came-cash" placeholder="0" oninput="cameSplit('cash')"></div>
+        <div><div style="font-size:12.5px;font-weight:700;margin-bottom:3px;">🏦 โอน (บาท)</div><input type="number" min="0" step="1" class="form-control" id="came-transfer" placeholder="0" oninput="cameSplit('transfer')"></div>
       </div>
+      <div id="came-paycheck" style="font-size:12.5px;margin-top:6px;"></div>
       <div id="came-bankwrap" style="display:none;margin-top:8px;"><div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">ธนาคารที่โอน <span style="color:#C0392B;">*</span></div><div class="contact-chips" id="came-bank-chips"></div><input type="hidden" id="came-bank"></div>
     </div>
     <div id="came-total" style="font-size:15px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:10px 12px;margin-top:8px;"></div>
@@ -3256,7 +3257,7 @@ function crmOrthoCame(hn, date, doc, again){
   document.getElementById('came-loose').checked=false; document.getElementById('came-looseqty').value=1;
   document.querySelectorAll('.came-other,.came-ex').forEach(c=>c.checked=false); document.querySelectorAll('.came-exfee').forEach(c=>c.value='');
   document.getElementById('came-note').value='';
-  { const pc=document.querySelector('input[name="came-pay"][value="cash"]'); if(pc) pc.checked=true; setCameBank(''); }
+  _cameManualPay=false; document.getElementById('came-cash').value=''; document.getElementById('came-transfer').value=''; setCameBank('');
   const sel=document.getElementById('came-doc'); sel.innerHTML=getDoctorOptions();
   const want=orthoDefaultDoc_()||doc||r['หมอ']||(currentUser&&currentUser.name)||''; if(want) sel.value=want;
   const hasL=crmHasLine(r.hn), cs=document.getElementById('came-send');
@@ -3275,6 +3276,23 @@ function cameExtras(){   // รายการอื่นที่ติ๊ก:
     const f=c.closest('div').querySelector('.came-exfee'), v=f&&f.value!==''?(+f.value||0):null;
     return { name:c.dataset.name, price:(v&&v>0)?v:null };
   }).filter(Boolean);
+}
+// ชำระแบบผสม: พิมพ์เงินสด → ช่องโอนเติมส่วนที่เหลือให้ (และกลับกัน) · ต้องรวมเท่ากับยอดวันนี้ · มียอดโอนต้องเลือกธนาคาร
+let _cameManualPay=false;
+function camePayVals_(){ return { cash:Math.max(0,+document.getElementById('came-cash').value||0), transfer:Math.max(0,+document.getElementById('came-transfer').value||0) }; }
+function camePayCheck_(m){
+  const v=camePayVals_(), box=document.getElementById('came-paycheck'), diff=m-(v.cash+v.transfer);
+  document.getElementById('came-bankwrap').style.display = (m>0 && v.transfer>0) ? '' : 'none';
+  if(m<=0){ box.innerHTML=''; return; }
+  box.innerHTML = diff===0 ? '<span style="color:#1D825C;font-weight:700;">✓ รวมตรงกับยอดวันนี้</span>' : '<span style="color:#C0392B;font-weight:700;">⚠️ เงินสด + โอน ต้องรวมเป็น '+m.toLocaleString()+' บาท (ต่างกัน '+Math.abs(diff).toLocaleString()+')</span>';
+}
+function cameSplit(which){
+  const r=crmOrthoRec(document.getElementById('came-hn').value); if(!r) return;
+  _cameManualPay=true;
+  const m=cameMoney_(r), cEl=document.getElementById('came-cash'), tEl=document.getElementById('came-transfer');
+  if(which==='cash'){ const c=Math.min(m,Math.max(0,+cEl.value||0)); tEl.value = m-c>0 ? m-c : ''; }
+  else { const t=Math.min(m,Math.max(0,+tEl.value||0)); cEl.value = m-t>0 ? m-t : ''; }
+  camePayCheck_(m);
 }
 function cameBuildBankChips_(){
   const wrap=document.getElementById('came-bank-chips'); if(!wrap || wrap.children.length) return;
@@ -3298,9 +3316,10 @@ function cameMoney_(r){   // ยอดรวมวันนี้จากรา
 }
 function cameCalc(){
   const r=crmOrthoRec(document.getElementById('came-hn').value); if(!r) return;
-  { const m=cameMoney_(r), isT=(document.querySelector('input[name="came-pay"]:checked')||{}).value==='transfer';
+  { const m=cameMoney_(r);
     document.getElementById('came-payrow').style.display = m>0 ? '' : 'none';
-    document.getElementById('came-bankwrap').style.display = (m>0 && isT) ? '' : 'none'; cameBuildBankChips_(); }
+    if(!_cameManualPay){ document.getElementById('came-cash').value = m>0 ? m : ''; document.getElementById('came-transfer').value=''; }   // ยังไม่แยกเอง → เงินสดทั้งยอด
+    camePayCheck_(m); cameBuildBankChips_(); }
   const adj=document.getElementById('came-adj').checked, loose=document.getElementById('came-loose').checked;
   document.getElementById('came-looserow').style.display=loose?'':'none';
   const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
@@ -3324,13 +3343,13 @@ function cameRecordTreatment_(o){
     pp[nm]=(pp[nm]||0)+(+it.price||0);
   });
   if(!names.length) return 'skip';
-  const isT=(document.querySelector('input[name="came-pay"]:checked')||{}).value==='transfer', money=Math.round(o.money||0);
+  const money=Math.round(o.money||0), pv=camePayVals_(), cashAmt=money>0?pv.cash:0, transAmt=money>0?pv.transfer:0;
   const dObj=doctors.find(d=>d.name===o.doc);
   const t={
     id:'orth-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), date:o.date, time:new Date().toTimeString().slice(0,5),
     hn:r.hn, patName:r['ชื่อ']||'', docName:o.doc||r['หมอ']||'', proc:names.join(', '),
-    cash:String(isT?0:money), transfer:String(isT?money:0), sso:'0',
-    transferBank:(isT&&money>0)?(document.getElementById('came-bank').value||''):'', company:'0',
+    cash:String(cashAmt), transfer:String(transAmt), sso:'0',
+    transferBank:transAmt>0?(document.getElementById('came-bank').value||''):'', company:'0',
     note:'🦷 มาตามนัดจัดฟัน ครั้งที่ '+o.visitNo+(o.userNote?' · '+o.userNote:''), status:'เสร็จ',
     docShare: dObj ? dObj.share : '', procPrices:JSON.stringify(pp)
   };
@@ -3356,7 +3375,9 @@ async function crmOrthoCameSave(){
   const others=Array.from(document.querySelectorAll('.came-other:checked')).map(c=>c.value);
   const extras=cameExtras();
   if(!adj && !loose && !others.length && !extras.length){ showToast('กรุณาเลือกรายการอย่างน้อย 1 อย่าง','error'); return; }
-  if(cameMoney_(r)>0 && (document.querySelector('input[name="came-pay"]:checked')||{}).value==='transfer' && !document.getElementById('came-bank').value){ showToast('กรุณาเลือกธนาคารที่โอน','error'); return; }
+  { const m=cameMoney_(r), pv=camePayVals_();
+    if(m>0 && pv.cash+pv.transfer!==m){ showToast('เงินสด + โอน ต้องรวมเป็น '+m.toLocaleString()+' บาท','error'); return; }
+    if(m>0 && pv.transfer>0 && !document.getElementById('came-bank').value){ showToast('กรุณาเลือกธนาคารที่โอน','error'); return; } }
   _crmCameSaving=true;
   try{
     const sendLine=document.getElementById('came-send').checked && !document.getElementById('came-send').disabled, careOn=document.getElementById('came-care').checked;
