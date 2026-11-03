@@ -73,6 +73,11 @@ function crmSettings_() {
   var raw = PropertiesService.getScriptProperties().getProperty('CRM_SETTINGS');
   var s = {};
   try { s = raw ? JSON.parse(raw) : {}; } catch (e) { s = {}; }
+  // ย้ายค่าครั้งเดียว: เตือนนัดล่วงหน้า 2 วันทุกประเภท (ค่าเดิมที่เคยบันทึกไว้เป็น 1 วัน) — หลังจากนี้ปรับเองในตั้งค่าได้ตามปกติ
+  if (raw && s.remind2dMigrated !== true) {
+    s.orthoDays = 2; s.otherDays = 2; s.remind2dMigrated = true;
+    try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
+  }
   var out = {};
   for (var k in CRM_DEFAULT_SETTINGS) out[k] = (s[k] === undefined) ? CRM_DEFAULT_SETTINGS[k] : s[k];
   for (var k2 in s) if (out[k2] === undefined) out[k2] = s[k2];
