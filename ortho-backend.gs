@@ -134,9 +134,11 @@ function orthoGetByLineId(lineUserId) {
 function orthoList() {
   var rows = orthoSheetToObjects_(SHEET_ORTHO);
   var logs = orthoSheetToObjects_(SHEET_ORTHO_LOG);
-  var visitCount = {}, looseCount = {};
+  var visitCount = {}, looseCount = {}, lastLog = {};
   logs.forEach(function (l) {
     var hn = String(l.hn);
+    var ld = String(l['วันที่'] || '').slice(0, 10);   // วันล่าสุดจากประวัติจริง (กันคอลัมน์ ปรับล่าสุด ค้างเก่า)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ld) && (!lastLog[hn] || ld > lastLog[hn])) lastLog[hn] = ld;
     if (l['ทำอะไร'] === 'เครื่องมือหลุด') looseCount[hn] = (looseCount[hn] || 0) + 1;
     else visitCount[hn] = (visitCount[hn] || 0) + 1;
   });
@@ -147,6 +149,8 @@ function orthoList() {
     var hn = String(r.hn);
     r._visitCount = visitCount[hn] || 0;
     r._looseCount = looseCount[hn] || 0;
+    var cur = String(r['ปรับล่าสุด'] || '').slice(0, 10);
+    if (lastLog[hn] && (!/^\d{4}-\d{2}-\d{2}$/.test(cur) || lastLog[hn] > cur)) r['ปรับล่าสุด'] = lastLog[hn];   // ใช้วันล่าสุดตามประวัติ ถ้ามาใหม่กว่าที่บันทึกในการ์ด
     r._lineLinked = !!(r.lineUserId || linked[orthoNormHN_(hn)]);
   });
   return { ok: true, rows: rows };
