@@ -3152,6 +3152,27 @@ function crmOrthoState(a){
   if((rec && rec.confirmedAt) || a.status==='คอนเฟิร์ม') return 'yes';
   return crmHasLine(a.hn) ? 'wait' : 'noline';
 }
+// นัดจัดฟัน: คนไข้มาแล้ว → บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟันในคลิกเดียว (เหมือนปุ่มบันทึกการรักษาในหน้าจัดฟัน)
+function crmOrthoRec(hn){ const k=crmHN(hn); return (typeof orthoData!=='undefined' && orthoData||[]).find(o=>crmHN(o.hn)===k) || null; }
+let _crmCameSaving=false;
+async function crmOrthoCame(hn, date, doc){
+  if(_crmCameSaving) return;
+  const r=crmOrthoRec(hn); if(!r){ showToast('ไม่พบการ์ดจัดฟันของคนไข้นี้','error'); return; }
+  if(!window.confirm('บันทึก "ปรับเครื่องมือ" ให้ '+(r['ชื่อ']||hn)+' วันที่ '+date+' ?')) return;
+  _crmCameSaving=true;
+  try{
+    const log={ hn:r.hn, 'วันที่':date, 'ทำอะไร':'ปรับเครื่องมือ', 'หมอ': doc || r['หมอ'] || (currentUser&&currentUser.name) || '', 'note':'' };
+    const visits=orthoVisitCount_(r)+1;
+    const row=Object.assign({}, r, { 'ปรับล่าสุด':date, 'ครั้งที่มาแล้ว':visits });
+    row._visitCount=visits;
+    await Promise.all([ orthoPost({action:'orthoLogAdd', log}), orthoPost({action:'orthoSave', row}) ]);
+    const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
+    showToast('บันทึกปรับเครื่องมือแล้ว ✅ (ครั้งที่ '+visits+')');
+    crmRender();
+    setTimeout(()=>{ if(typeof loadOrthoData==='function') loadOrthoData(true).then(()=>{ if(CRM.sub==='orthoapt') crmRender(); }).catch(()=>{}); },1500);
+  }catch(e){ console.error(e); showToast('บันทึกไม่สำเร็จ','error'); }
+  _crmCameSaving=false;
+}
 function crmViewOrthoApts(){
   const today=todayStr();
   const ranges={ today:[today,today], tomorrow:[crmAddDays(today,1),crmAddDays(today,1)], week:[today,crmAddDays(today,7)], d14:[today,crmAddDays(today,14)], d30:[today,crmAddDays(today,30)] };
@@ -3163,6 +3184,11 @@ function crmViewOrthoApts(){
   const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w'], noline:['☎️ ต้องโทร','x'] };
   const tot={yes:0,move:0,wait:0,noline:0}; list.forEach(a=>tot[crmOrthoState(a)]++);
   const rowBg={ yes:'#F1FBF5', move:'#FEF6EA', wait:'', noline:'#F6F4F8' };
+  const came=a=>{   // ปุ่ม "มาแล้ว" เฉพาะนัดที่ถึงวันแล้ว และคนไข้มีการ์ดจัดฟัน
+    const o=crmOrthoRec(a.hn); if(!o || a.date>today) return '';
+    if(String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return '<span class="crm-chip g" style="white-space:nowrap;">🦷 บันทึกแล้ว</span> ';
+    return `<button class="crm-btn p" style="padding:4px 8px;" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาปรับเครื่องมือ</button> `;
+  };
   const body=dates.map(d=>{
     const arr=days[d], cnt={yes:0,move:0,wait:0,noline:0}; arr.forEach(a=>cnt[crmOrthoState(a)]++);
     const pend=arr.filter(a=>['wait','noline'].includes(crmOrthoState(a)));
@@ -3175,7 +3201,7 @@ function crmViewOrthoApts(){
         <td><b>${crmEsc(a.patName||'')}</b><div class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</div></td>
         <td style="font-size:12px;">${crmEsc(a.proc||'-')}${a.docName?`<div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.docName)}</div>`:''}</td>
         <td><span class="crm-chip ${x[1]}" style="white-space:nowrap;">${x[0]}</span></td>
-        <td style="white-space:nowrap;text-align:right;">${ph?`<a class="crm-btn" style="padding:4px 8px;" href="${crmTel(ph)}" title="${crmEsc(ph)}">📞</a> `:''}${!a._ortho && st!=='yes' ? `<button class="crm-btn g" style="padding:4px 8px;" title="ตั้งเป็นคอนเฟิร์ม" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">✓</button> `:''}${a._ortho?`<button class="crm-btn" style="padding:4px 8px;" onclick="openOrthoHistory('${crmEsc(a.hn)}')">การ์ด</button>`:`<button class="crm-btn" style="padding:4px 8px;" onclick="openEditApt('${crmEsc(a.id)}')">เปิด</button>`}</td></tr>`; }).join('');
+        <td style="white-space:nowrap;text-align:right;">${ph?`<a class="crm-btn" style="padding:4px 8px;" href="${crmTel(ph)}" title="${crmEsc(ph)}">📞</a> `:''}${!a._ortho && st!=='yes' ? `<button class="crm-btn g" style="padding:4px 8px;" title="ตั้งเป็นคอนเฟิร์ม" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">✓</button> `:''}${came(a)}${a._ortho?`<button class="crm-btn" style="padding:4px 8px;" onclick="openOrthoHistory('${crmEsc(a.hn)}')">การ์ด</button>`:`<button class="crm-btn" style="padding:4px 8px;" onclick="openEditApt('${crmEsc(a.id)}')">เปิด</button>`}</td></tr>`; }).join('');
     return head+rows;
   }).join('');
   return `<div class="crm-card"><h4>😬 นัดจัดฟัน — ยืนยันแล้วกี่คนจากกี่คน<span class="sp"></span>
