@@ -2157,6 +2157,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ทำรีเทนเนอร์"> ทำรีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปักหมุด"> ปักหมุด</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
@@ -2195,14 +2196,17 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div id="came-loosehint" style="font-size:12.5px;color:var(--text-mid);margin-top:6px;"></div>
         </div>
       </div>
-      <div class="form-group" style="grid-column:1/-1;">
-        <label>อื่นๆ ที่ทำวันนี้ (ไม่คิดเงินในหน้านี้)</label>
-        <div style="display:flex;flex-wrap:wrap;gap:8px 14px;">
-          <label class="checkbox-label"><input type="checkbox" class="came-other" value="พิมพ์ปาก"> พิมพ์ปาก</label>
+      <div class="form-group" style="grid-column:1/-1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;">
+        <label style="font-weight:800;">รายการอื่นวันนี้ (ใส่ราคาได้ · เว้นว่าง = ไม่คิดเงินในหน้านี้)</label>
+        <div style="display:grid;gap:8px;margin-top:6px;">
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ทำรีเทนเนอร์" onchange="cameCalc()"> ทำรีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="พิมพ์ปาก" onchange="cameCalc()"> พิมพ์ปาก</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="X-ray" onchange="cameCalc()"> X-ray</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;">
           <label class="checkbox-label"><input type="checkbox" class="came-other" value="ขูดหินปูน"> ขูดหินปูน</label>
           <label class="checkbox-label"><input type="checkbox" class="came-other" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
           <label class="checkbox-label"><input type="checkbox" class="came-other" value="ปักหมุด"> ปักหมุด</label>
-          <label class="checkbox-label"><input type="checkbox" class="came-other" value="X-ray"> X-ray</label>
         </div>
       </div>
       <div class="form-group"><label>หมอ</label><select class="form-control" id="came-doc"></select></div>
@@ -3217,7 +3221,7 @@ function crmOrthoCame(hn, date, doc){
   document.getElementById('came-datetxt').textContent=crmThaiShort(date);
   document.getElementById('came-adj').checked=true; document.getElementById('came-adjfee').value=ORTHO_ADJ_FEE;
   document.getElementById('came-loose').checked=false; document.getElementById('came-looseqty').value=1;
-  document.querySelectorAll('.came-other').forEach(c=>c.checked=false);
+  document.querySelectorAll('.came-other,.came-ex').forEach(c=>c.checked=false); document.querySelectorAll('.came-exfee').forEach(c=>c.value='');
   document.getElementById('came-note').value='';
   const sel=document.getElementById('came-doc'); sel.innerHTML=getDoctorOptions();
   const want=doc||r['หมอ']||(currentUser&&currentUser.name)||''; if(want) sel.value=want;
@@ -3231,6 +3235,13 @@ function cameLoosePlan(r, qty){
   const done=orthoLooseCount_(r), freeLeft=Math.max(0,ORTHO_LOOSE_FREE-done), free=Math.min(qty,freeLeft), paid=qty-free;
   return { done, free, paid, fee: paid*ORTHO_LOOSE_FEE };
 }
+function cameExtras(){   // รายการอื่นที่ติ๊ก: ชื่อ + ราคา (null = ไม่คิดเงิน)
+  return Array.from(document.querySelectorAll('.came-ex')).map(c=>{
+    if(!c.checked) return null;
+    const f=c.closest('div').querySelector('.came-exfee'), v=f&&f.value!==''?(+f.value||0):null;
+    return { name:c.dataset.name, price:(v&&v>0)?v:null };
+  }).filter(Boolean);
+}
 function cameCalc(){
   const r=crmOrthoRec(document.getElementById('came-hn').value); if(!r) return;
   const adj=document.getElementById('came-adj').checked, loose=document.getElementById('came-loose').checked;
@@ -3242,7 +3253,8 @@ function cameCalc(){
     hint='หลุดมาแล้ว '+p.done+' ตัว (ฟรี '+ORTHO_LOOSE_FREE+' ตัวแรก) → ครั้งนี้ '+q+' ตัว: '+(p.free?'ฟรี '+p.free+' ตัว':'')+(p.free&&p.paid?' + ':'')+(p.paid?'เก็บ '+p.paid+' ตัว × '+ORTHO_LOOSE_FEE+' = '+lf.toLocaleString()+' บาท':'');
   }
   document.getElementById('came-loosehint').textContent=hint;
-  document.getElementById('came-total').textContent='รวมวันนี้ '+(adjFee+lf).toLocaleString()+' บาท'+((adj||loose)?'':' (ยังไม่ได้เลือกรายการ)');
+  const exFee=cameExtras().reduce((t,x)=>t+(x.price||0),0);
+  document.getElementById('came-total').textContent='รวมวันนี้ '+(adjFee+lf+exFee).toLocaleString()+' บาท'+((adj||loose||cameExtras().length)?'':' (ยังไม่ได้เลือกรายการ)');
 }
 async function crmOrthoCameSave(){
   if(_crmCameSaving) return;
@@ -3250,7 +3262,8 @@ async function crmOrthoCameSave(){
   const r=crmOrthoRec(hn); if(!r) return;
   const adj=document.getElementById('came-adj').checked, loose=document.getElementById('came-loose').checked;
   const others=Array.from(document.querySelectorAll('.came-other:checked')).map(c=>c.value);
-  if(!adj && !loose && !others.length){ showToast('กรุณาเลือกรายการอย่างน้อย 1 อย่าง','error'); return; }
+  const extras=cameExtras();
+  if(!adj && !loose && !others.length && !extras.length){ showToast('กรุณาเลือกรายการอย่างน้อย 1 อย่าง','error'); return; }
   _crmCameSaving=true;
   try{
     const sendLine=document.getElementById('came-send').checked && !document.getElementById('came-send').disabled;
@@ -3258,10 +3271,12 @@ async function crmOrthoCameSave(){
     const adjFee=adj?(+document.getElementById('came-adjfee').value||0):0;
     const logs=[], lineItems=[]; let visits=orthoVisitCount_(r), looseN=orthoLooseCount_(r), money=adjFee;
     if(adj) lineItems.push({name:'ปรับเครื่องมือ', price:adjFee});
+    extras.forEach(x=>{ lineItems.push({name:x.name, price:x.price}); money+=x.price||0; });
     others.forEach(o=>lineItems.push({name:o, price:null}));
-    if(adj || others.length){
-      const what=(adj?['ปรับเครื่องมือ']:[]).concat(others).join(', ');
-      const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท'); if(userNote) notes.push(userNote);
+    if(adj || others.length || extras.length){
+      const what=(adj?['ปรับเครื่องมือ']:[]).concat(extras.map(x=>x.name), others).join(', ');
+      const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท');
+      extras.filter(x=>x.price).forEach(x=>notes.push(x.name+' '+x.price.toLocaleString()+' บาท')); if(userNote) notes.push(userNote);
       logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':what, 'หมอ':doc, 'note':notes.join(' · ') });
       visits++;
     }
@@ -3271,7 +3286,7 @@ async function crmOrthoCameSave(){
         looseN++;
         const free=looseN<=ORTHO_LOOSE_FREE; if(!free) money+=ORTHO_LOOSE_FEE;
         lineItems.push({name:'ติดเหล็กหลุด ตัวที่ '+looseN, price:free?0:ORTHO_LOOSE_FEE});
-        logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':'เครื่องมือหลุด', 'หมอ':doc, 'note':'หลุดตัวที่ '+looseN+' — '+(free?'ฟรี':'เก็บ '+ORTHO_LOOSE_FEE+' บาท')+(userNote&&!adj&&!others.length&&k===1?' · '+userNote:'') });
+        logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':'เครื่องมือหลุด', 'หมอ':doc, 'note':'หลุดตัวที่ '+looseN+' — '+(free?'ฟรี':'เก็บ '+ORTHO_LOOSE_FEE+' บาท')+(userNote&&!adj&&!others.length&&!extras.length&&k===1?' · '+userNote:'') });
       }
     }
     const row=Object.assign({}, r, { 'ปรับล่าสุด':date, 'ครั้งที่มาแล้ว':visits, 'หลุดกี่ครั้ง':looseN });
