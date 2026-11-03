@@ -2932,7 +2932,8 @@ function crmOptimistic(payload){
   const d=CRM.data; if(!d) return;
   const by=(payload.by||crmBy()), now=new Date().toLocaleString('sv-SE',{timeZone:'Asia/Bangkok'}).slice(0,19);
   const find=(arr,id)=>(arr||[]).find(x=>String(x.id)===String(id));
-  if(payload.crm==='updateTask'){ const t=find(d.tasks,payload.id); if(t){ if(payload.status) t.status=payload.status; if(payload.resultNote!==undefined) t.resultNote=payload.resultNote; t.doneBy=by; t.updatedAt=now; } }
+  if(payload.crm==='aptConfirm'){ d.apt=d.apt||[]; let ar=d.apt.find(x=>String(x.aptId)===String(payload.aptId)); if(!ar){ ar={aptId:payload.aptId,hn:payload.hn}; d.apt.push(ar); } ar.confirmedAt=now; ar.lastAction='staff-confirm'; }
+  else if(payload.crm==='updateTask'){ const t=find(d.tasks,payload.id); if(t){ if(payload.status) t.status=payload.status; if(payload.resultNote!==undefined) t.resultNote=payload.resultNote; t.doneBy=by; t.updatedAt=now; } }
   else if(['linkApprove','linkReject','linkRevoke'].includes(payload.crm)){ const l=find(d.links,payload.id); if(l){ l.status = payload.crm==='linkApprove'?'active':(payload.crm==='linkReject'?'rejected':'revoked'); if(payload.hn) l.hn=payload.hn; l.approvedBy=by; } }
   else if(payload.crm==='caseNoteApprove'||payload.crm==='caseNoteReject'){ const n=find(d.casenotes,payload.id); if(n) n.status = payload.crm==='caseNoteApprove'?'approved':'rejected'; }
 }
@@ -3155,6 +3156,16 @@ function crmOrthoState(a){
 }
 // นัดจัดฟัน: คนไข้มาแล้ว → บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟันในคลิกเดียว (เหมือนปุ่มบันทึกการรักษาในหน้าจัดฟัน)
 function crmOrthoRec(hn){ const k=crmHN(hn); return (typeof orthoData!=='undefined' && orthoData||[]).find(o=>crmHN(o.hn)===k) || null; }
+// แอดมินตั้งนัดจัดฟันเป็น "ยืนยัน" เอง (คนไข้ยืนยันทางโทร/แชท) — นัดในตารางนัดเปลี่ยนสถานะเป็นคอนเฟิร์มด้วย
+function crmOrthoConfirm(id){
+  const list=crmOrthoAptList('2000-01-01','2999-12-31'), a=list.find(x=>String(x.id)===String(id)); if(!a) return;
+  if(!window.confirm('ตั้งนัดของ '+(a.patName||'')+' ('+crmThaiShort(a.date)+' '+(a.time||'')+') เป็น "ยืนยันแล้ว" ?')) return;
+  if(!a._ortho){
+    const ap=appointments.find(x=>String(x.id)===String(id));
+    if(ap){ ap.status='คอนเฟิร์ม'; saveLocal(); syncToSheet('appointments', ap).catch(()=>showToast('บันทึกสถานะนัดไม่สำเร็จ','error')); }
+  }
+  crmDo({crm:'aptConfirm', aptId:String(id), hn:a.hn||''}, 'ตั้งเป็นยืนยันแล้ว ✅');
+}
 let _crmCameSaving=false;
 async function crmOrthoCame(hn, date, doc){
   if(_crmCameSaving) return;
@@ -3182,8 +3193,8 @@ function crmViewOrthoApts(){
   const list=crmOrthoAptList(r[0], r[1]);
   const days={}; list.forEach(a=>{ (days[a.date]=days[a.date]||[]).push(a); });
   const dates=Object.keys(days).sort();
-  const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w','y'], noline:['⏳ ยังไม่ยืนยัน','w','y'] };
-  const YEL='background:#FFF1B8;color:#7A5600;border:1px solid #F2D060;';   // badge สีเหลือง = ยังไม่ยืนยัน
+  const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w','y'], noline:['⏳ ยังไม่ยืนยัน','w','r'] };
+  const SKIN={ y:'background:#FFF1B8;color:#7A5600;border:1px solid #F2D060;', r:'background:#FDE2E2;color:#B3261E;border:1px solid #F3A8A3;' };   // เหลือง = รอยืนยัน (ผูกไลน์แล้ว) · แดง = ยังไม่ยืนยัน (ไม่ได้ผูกไลน์)
   const tot={yes:0,move:0,wait:0,noline:0}; list.forEach(a=>tot[crmOrthoState(a)]++);
   const rowBg={ yes:'#F1FBF5', move:'#FEF6EA', wait:'', noline:'#F6F4F8' };
   // ปุ่มเดียว "มาตามนัด": กดได้เมื่อถึงวันนัด (ก่อนวันนัดเป็นปุ่มเทา รอไว้) · บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟัน
@@ -3205,14 +3216,14 @@ function crmViewOrthoApts(){
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}</div>
-          <div style="margin-top:3px;"><span class="crm-chip ${x[1]}"${x[2]?` style="${YEL}"`:''}>${x[0]}</span> ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
+          <div style="margin-top:3px;">${x[2]?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
         <td style="vertical-align:middle;">${came(a)}</td></tr>`; }).join('');
     return head+rows;
   }).join('');
   return `<div class="crm-card"><h4>😬 นัดจัดฟัน — ยืนยันแล้วกี่คนจากกี่คน<span class="sp"></span>
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
       <div class="meta">รวม <b>${list.length}</b> คน · ✅ ยืนยัน ${tot.yes} · ⏳ ยังไม่ยืนยัน ${tot.wait+tot.noline}${tot.move?` · 📅 ขอเลื่อน ${tot.move}`:''} · 🟢 ผูกไลน์แล้ว ${list.filter(a=>crmHasLine(a.hn)).length}/${list.length}</div>
-      <p class="crm-muted" style="margin:6px 0 10px;">ยืนยัน = คนไข้กดยืนยันใน LINE · ปุ่ม "มาตามนัด" กดได้เมื่อถึงวันนัด เพื่อบันทึกปรับเครื่องมือลงการ์ดจัดฟัน</p>
+      <p class="crm-muted" style="margin:6px 0 10px;">ยืนยัน = คนไข้กดยืนยันใน LINE · แตะป้าย <b>เหลือง/แดง</b> เพื่อตั้งเป็น "ยืนยัน" เอง (เช่น คนไข้ยืนยันทางโทร) · ปุ่ม "มาตามนัด" กดได้เมื่อถึงวันนัด เพื่อบันทึกปรับเครื่องมือลงการ์ดจัดฟัน</p>
       ${dates.length?`<div class="crm-tablewrap" style="overflow-x:hidden;"><table class="crm-table" style="overflow-wrap:anywhere;word-break:break-word;table-layout:fixed;width:100%;"><colgroup><col style="width:52px"><col><col style="width:92px"></colgroup><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th><th></th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
 }
 function crmMarkConfirmed(id){

@@ -1563,6 +1563,13 @@ function crmStaffAction_(b) {
       crmUpdate_('tasks', tkC._row, { status: 'done', resultNote: 'ส่งข้อความแจ้งยกเลิกนัดให้คนไข้แล้ว', doneBy: by, updatedAt: now });
       return { ok: true };
     }
+    if (act === 'aptConfirm') {   // แอดมินตั้งนัดเป็น "ยืนยันแล้ว" เอง (คนไข้ยืนยันทางโทร/แชท) — ใช้ได้กับนัดจัดฟันที่ไม่อยู่ในตารางนัดด้วย
+      var aid = String(b.aptId || ''); if (!aid) return { ok: false, error: 'missing_id' };
+      var arow = crmFind_(crmRead_('apt'), 'aptId', aid);
+      if (arow) crmUpdate_('apt', arow._row, { confirmedAt: now, lastAction: 'staff-confirm', updatedAt: now });
+      else crmAppend_('apt', { aptId: aid, hn: b.hn || '', confirmedAt: now, lastAction: 'staff-confirm', updatedAt: now });
+      crmTouch_(); return { ok: true };
+    }
     if (act === 'updateTask') {
       var r5 = crmFind_(crmRead_('tasks'), 'id', b.id); if (!r5) return { ok: false, error: 'not_found' };
       crmUpdate_('tasks', r5._row, { status: b.status || r5.status, resultNote: b.resultNote !== undefined ? b.resultNote : r5.resultNote, doneBy: by, updatedAt: now }); return { ok: true };
