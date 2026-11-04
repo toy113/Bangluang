@@ -4612,7 +4612,7 @@ function contactBadge(v){
   return `<span title="ช่องทางติดต่อ: ${CONTACT_CHANNELS[v]}" style="display:inline-block;white-space:nowrap;font-size:10px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:999px;background:${m.c}1F;border:1px solid ${m.c}55;color:${m.c};color:color-mix(in srgb,${m.c} 80%,#000);">${m.t}</span>`;
 }
 function contactTag(v){ const b=contactBadge(v); return b ? `<div style="margin-top:2px;">${b}</div>` : ''; }
-function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=null){
+function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=null, prefillOrtho=false){
   _editAptId = apt ? apt.id : null;
   _prefillSlot = (!apt && prefillTime) ? prefillTime : null;
   _editAptOrigTime = apt ? (apt.time||null) : null; // เก็บเวลาเดิมไว้ลบ slot
@@ -4644,6 +4644,10 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=nul
     document.querySelectorAll('#apt-proc-options input[type=checkbox]').forEach(cb=>{
       if(procs.includes(cb.value)) cb.checked=true;
     });
+    updateProcLabel();
+  }
+  if(!apt && prefillOrtho){   // กด +นัด ใน slot สีส้ม (วันจัดฟัน) → ติ๊กรายการ "จัดฟัน" ให้
+    document.querySelectorAll('#apt-proc-options input[type=checkbox]').forEach(cb=>{ if(cb.value==='จัดฟัน') cb.checked=true; });
     updateProcLabel();
   }
   document.getElementById('apt-proc-dropdown').style.display='none';
@@ -7670,7 +7674,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
         <div style="flex:1;"></div>
         ${blocked
           ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" aria-label="เปิดช่องเวลานี้" style="font-size:10px;min-height:26px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;color:#555;">เปิด</button>`
-          : `<button onclick="openAddApt(null,'${date}','${slot}','${dparam}')" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
+          : `<button onclick="openAddApt(null,'${date}','${slot}','${orthoFree?String((doctors.find(d=>d.id==='aim')||{}).name||dparam).replace(/'/g,''):dparam}'${orthoFree?',true':''})" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
              <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" aria-label="เว้นว่างช่องเวลานี้" style="font-size:12px;min-width:26px;min-height:26px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
         }
         <button onclick="schRemoveSlot('${date}','${slot}','${dparam}')" title="ลบช่องเวลานี้" aria-label="ลบช่องเวลานี้" style="font-size:10px;min-width:22px;min-height:26px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;display:inline;">✕</button>
