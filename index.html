@@ -1511,10 +1511,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <button class="btn btn-primary btn-sm" id="btnAddOrtho" onclick="openOrthoForm()">+ เพิ่มคนไข้จัดฟัน</button>
           </div>
         </div>
-        <div id="orthoCalendarBox" style="display:none;padding:14px;border-bottom:1px solid var(--border);">
+        <div id="orthoCalendarBox" style="padding:12px 14px;border-bottom:1px solid var(--border);max-width:520px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <button class="btn btn-ghost btn-sm" onclick="orthoCalShift(-1)">←</button>
-            <strong id="orthoCalLabel">—</strong>
+            <strong id="orthoCalLabel" style="font-size:14px;">—</strong>
             <button class="btn btn-ghost btn-sm" onclick="orthoCalShift(1)">→</button>
           </div>
           <div id="orthoCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;"></div>
@@ -9935,7 +9935,7 @@ function orthoLooseCount_(r){
 
 /* ===================== ปฏิทินนัด ===================== */
 let orthoCalDate = new Date();
-let orthoCalSelectedDay = null;
+let orthoCalSelectedDay = (typeof todayStr==='function') ? todayStr() : null;
 
 function toggleOrthoCalendar(){
   const box = document.getElementById('orthoCalendarBox');
@@ -9991,7 +9991,10 @@ function renderOrthoCalendar(){
   const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   document.getElementById('orthoCalLabel').textContent = monthNames[m]+' '+(y+543);
 
-  const apptMap = orthoApptsByDate_();
+  // นัดจัดฟันทั้งหมดของเดือน = นัดจากการ์ดจัดฟัน + นัดในตารางนัดที่เป็นงานจัดฟัน (ชุดเดียวกับแท็บ LINE CRM > นัดจัดฟัน)
+  const _p2 = n=>String(n).padStart(2,'0'), _dim = new Date(y, m+1, 0).getDate();
+  const apptMap = {};
+  try{ crmOrthoAptList(y+'-'+_p2(m+1)+'-01', y+'-'+_p2(m+1)+'-'+_p2(_dim)).forEach(a=>{ (apptMap[a.date]=apptMap[a.date]||[]).push(a); }); }catch(e){}
   const firstDay = new Date(y, m, 1);
   const startWeekday = firstDay.getDay();
   const daysInMonth = new Date(y, m+1, 0).getDate();
@@ -10005,7 +10008,7 @@ function renderOrthoCalendar(){
     const count = (apptMap[dateStr]||[]).length;
     const isToday = dateStr === todayS;
     const isSel = dateStr === orthoCalSelectedDay;
-    html += `<div onclick="orthoCalSelectDay('${dateStr}')" style="cursor:pointer;padding:6px 2px;border-radius:8px;${isSel?'background:var(--wine);color:#fff;':isToday?'background:var(--wine-pale);':''}">
+    html += `<div onclick="orthoCalSelectDay('${dateStr}')" style="cursor:pointer;padding:4px 2px;border-radius:8px;min-height:34px;${isSel?'background:var(--wine);color:#fff;':isToday?'background:var(--wine-pale);':''}">
       ${day}
       ${count>0?`<div style="font-size:9px;font-weight:700;${isSel?'color:#fff;':'color:var(--wine);'}">●${count}</div>`:''}
     </div>`;
@@ -10015,25 +10018,33 @@ function renderOrthoCalendar(){
   const detailBox = document.getElementById('orthoCalDayDetail');
   if(!orthoCalSelectedDay){ detailBox.innerHTML=''; return; }
   const dsel = orthoCalSelectedDay;
-  const sortedList = (apptMap[dsel] || []).slice()
-    .sort((a,b)=> String(a['นัดถัดไปเวลา']||'').localeCompare(String(b['นัดถัดไปเวลา']||'')));
-  const lines = orthoBuildDayLines_(dsel);
-  if(!lines.length){
+  const dayList = orthoDayList_(dsel);
+  if(!dayList.length){
     detailBox.innerHTML = `<div style="color:var(--text-light);font-size:13px;">ไม่มีนัดวันที่ ${orthoThaiDateShort_(dsel)}</div>`;
     return;
   }
-  const rows = lines.map((line,i)=>{
-    const hnEsc = String(sortedList[i].hn||'').replace(/'/g,"\\'");
+  const rows = dayList.map((a,i)=>{
+    const hnEsc = String(a.hn||'').replace(/'/g,"\\'"), hasCard = a.hn && crmOrthoRec(a.hn);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);">
-      <span style="font-size:12.5px;flex:1;">${line}</span>
-      <button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}','${dsel}')" style="flex-shrink:0;">➕ บันทึก</button>
+      <span style="font-size:12.5px;flex:1;">${escapeHtml(orthoDayLine_(a,i))}</span>
+      ${(hasCard && !isViewOnlyUser())?`<button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}','${dsel}')" style="flex-shrink:0;">➕ บันทึก</button>`:''}
     </div>`;
   }).join('');
   detailBox.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
-        <strong style="font-size:13px;">รายชื่อนัดวันที่ ${orthoThaiDateShort_(dsel)} (${lines.length} คน)</strong>
+        <strong style="font-size:13px;">รายชื่อนัดวันที่ ${orthoThaiDateShort_(dsel)} (${dayList.length} คน)</strong>
         <button class="btn btn-ghost btn-sm" onclick="orthoCopyDayList('${dsel}')">📋 Copy</button>
       </div>
       <div style="background:#faf7fb;border:1px solid var(--border);border-radius:8px;padding:4px 10px;">${rows}</div>`;
+}
+
+// รายการนัดจัดฟันของวันเดียว (การ์ดจัดฟัน + ตารางนัด) เรียงตามเวลา และบรรทัดข้อความของแต่ละคน
+function orthoDayList_(d){
+  let list=[]; try{ list=crmOrthoAptList(d,d); }catch(e){}
+  return list.slice().sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+}
+function orthoDayLine_(a,i){
+  const o=(a.hn && crmOrthoRec(a.hn))||{}, code=o['รหัสประจำตัว']||'', no=crmOrthoVisitNo(a);
+  return (i+1)+'. '+(a.time?a.time+' - ':'')+(code?code+' ':'')+(a.patName||'')+(no?' - ครั้งที่ '+no:'')+(a.proc?' - '+a.proc:'')+(orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?' [💳 ชำระจนเสร็จ]':'');
 }
 
 function orthoCalSelectDay(dateStr){
@@ -10042,7 +10053,7 @@ function orthoCalSelectDay(dateStr){
 }
 
 async function orthoCopyDayList(dateStr){
-  const lines = orthoBuildDayLines_(dateStr);
+  const lines = orthoDayList_(dateStr).map((a,i)=>orthoDayLine_(a,i));
   const text = 'นัดวันที่ '+orthoThaiDateShort_(dateStr)+'\n'+lines.join('\n');
   try{
     await navigator.clipboard.writeText(text);
@@ -10067,6 +10078,7 @@ async function renderOrthoPage(){
   const q = (document.getElementById('orthoSearch')?.value||'').trim().toLowerCase();
   const statusFilter = document.getElementById('orthoStatusFilter')?.value || '';
   const overdueOnly = document.getElementById('orthoOverdueFilter')?.checked;
+  try{ const cb=document.getElementById('orthoCalendarBox'); if(cb && cb.style.display!=='none') renderOrthoCalendar(); }catch(e){}
   orthoBuildPsk_(); // แผนที่ ปกส / ขูดหินปูน / ใช้สิทธิปีนี้ สร้างใหม่ทุกครั้งที่วาดรายการ
   let rows = orthoData.slice();
   if(statusFilter) rows = rows.filter(r=> orthoEffStatus_(r) === statusFilter);
