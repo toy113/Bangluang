@@ -1504,7 +1504,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน <span id="orthoOverdueDays">50</span> วัน
             </label>
             <button type="button" class="ortho-chip" id="orthoPskChip" onclick="toggleOrthoPskFilter()" aria-pressed="false" title="คนไข้ที่มี ปกส แต่ปีนี้ยังไม่ได้ใช้สิทธิประกันสังคม">🏛️ ปกส ปีนี้ยังไม่ใช้สิทธิ <span id="orthoPskChipN">0</span></button>
-            <select class="form-control" id="orthoPayFilter" onchange="renderOrthoPage()" aria-label="กลุ่มการชำระ" style="height:36px;width:170px;"><option value="">ทุกกลุ่มการชำระ</option><option value="ชำระ 28 ครั้ง">ชำระ 28 ครั้ง</option><option value="ชำระจนกว่าจะเสร็จ">ชำระจนกว่าจะเสร็จ</option><option value="อื่นๆ">อื่นๆ</option><option value="__none">ยังไม่ระบุ</option></select>
+            <select class="form-control" id="orthoPayFilter" onchange="renderOrthoPage()" aria-label="กลุ่มการชำระ" style="height:36px;width:170px;"><option value="">ทุกกลุ่มการชำระ</option><option value="ชำระ 28 ครั้ง">ชำระ 28 ครั้ง</option><option value="ชำระจนเสร็จ">ชำระจนเสร็จ</option><option value="อื่นๆ">อื่นๆ</option><option value="__none">ยังไม่ระบุ</option></select>
             <select class="form-control" id="orthoSortSel" onchange="setOrthoSort(this.value)" aria-label="เรียงลำดับ" style="height:36px;width:200px;"></select>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
             <button class="btn btn-ghost btn-sm" onclick="toggleOrthoCalendar()">📅 ปฏิทินนัด</button>
@@ -2081,7 +2081,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>รูปแบบการชำระ</label>
-        <select class="form-control" id="ortho-paygrp"><option value="">— ยังไม่ระบุ —</option><option>ชำระ 28 ครั้ง</option><option>ชำระจนกว่าจะเสร็จ</option><option>อื่นๆ</option></select>
+        <select class="form-control" id="ortho-paygrp"><option value="">— ยังไม่ระบุ —</option><option>ชำระ 28 ครั้ง</option><option>ชำระจนเสร็จ</option><option>อื่นๆ</option></select>
       </div>
       <div class="form-group">
         <label>แบบที่จัด</label>
@@ -3201,7 +3201,7 @@ function crmViewToday(){
 function crmAptLineChips(a){
   const d=CRM.data, rec=(d.apt||[]).find(x=>String(x.aptId)===String(a.id));
   const out=[];
-  if(orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE) out.push('<span class="crm-chip b">💳 ชำระจนกว่าจะเสร็จ</span>');
+  if(orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE) out.push('<span class="crm-chip b">💳 ชำระจนเสร็จ</span>');
   if(!crmHasLine(a.hn)) out.push(crmLinked(a.hn).some(x=>x.blocked) ? '<span class="crm-chip r">🚫 บล็อก LINE OA</span>' : '<span class="crm-chip x">ไม่มี LINE</span>');
   else {
     if(crmSentOk(crmLogFor('confirm',a.id))) out.push('<span class="crm-chip w">ส่งยืนยันแล้ว</span>');
@@ -3533,7 +3533,7 @@ function crmOrthoPrint(d){
     const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
     const last=String(o['ปรับล่าสุด']||'').slice(0,10);
     const info=[ o['แบบจัด']?E(o['แบบจัด']):'', last&&last!==d?'ปรับล่าสุด '+E(crmThaiShort(last)):'', loose?'หลุดสะสม '+loose+' ตัว':'', o['note']?E(o['note']):'' ].filter(Boolean).join(' · ');
-    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b><br><span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span>${orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?'<br><span class="m" style="color:#1F5F8B;font-weight:700;">💳 ชำระจนกว่าจะเสร็จ</span>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?'<br><span class="m">'+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
+    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b><br><span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span>${orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?'<br><span class="m" style="color:#1F5F8B;font-weight:700;">💳 ชำระจนเสร็จ</span>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?'<br><span class="m">'+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
   }).join('');
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>นัดจัดฟัน ${E(crmThaiShort(d))}</title>
 <style>@page{size:A4 landscape;margin:12mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px}
@@ -5246,13 +5246,13 @@ async function loadLineHns(force){
     }catch(e){}
   }catch(e){ console.warn('loadLineHns',e); }
 }
-// คนไข้จัดฟันที่เลือกกลุ่ม "ชำระจนกว่าจะเสร็จ" → แสดงแบดจ์นี้ทุกที่ที่มีชื่อคนไข้ (ต้องโหลดข้อมูลจัดฟันแล้ว: ผู้จัดการ/หมอเอม)
-const ORTHO_PAY_UNTIL_DONE = 'ชำระจนกว่าจะเสร็จ';
+// คนไข้จัดฟันที่เลือกกลุ่ม "ชำระจนเสร็จ" → แสดงแบดจ์นี้ทุกที่ที่มีชื่อคนไข้ (ต้องโหลดข้อมูลจัดฟันแล้ว: ผู้จัดการ/หมอเอม)
+const ORTHO_PAY_UNTIL_DONE = 'ชำระจนเสร็จ';
 function orthoPayOf_(hn){
   const k=crmHN(hn); if(!k || typeof orthoData==='undefined' || !orthoData) return '';
-  const o=orthoData.find(x=>crmHN(x.hn)===k); return o ? String(o['รูปแบบชำระ']||'').trim() : '';
+  const o=orthoData.find(x=>crmHN(x.hn)===k); const v=o ? String(o['รูปแบบชำระ']||'').trim() : ''; return v==='ชำระจนกว่าจะเสร็จ' ? ORTHO_PAY_UNTIL_DONE : v;   // รองรับค่าเดิมที่เคยบันทึกด้วยคำเก่า
 }
-function orthoPayBadge(o){ return (o && orthoPayOf_(o.hn)===ORTHO_PAY_UNTIL_DONE) ? '<span class="opay-badge" title="คนไข้จัดฟัน — ชำระจนกว่าจะเสร็จ">💳 ชำระจนกว่าจะเสร็จ</span>' : ''; }
+function orthoPayBadge(o){ return (o && orthoPayOf_(o.hn)===ORTHO_PAY_UNTIL_DONE) ? '<span class="opay-badge" title="คนไข้จัดฟัน — ชำระจนเสร็จ">💳 ชำระจนเสร็จ</span>' : ''; }
 function pskBadge(o){
   return (o && pskHas_(o.hn)) ? '<span class="psk-badge" title="ใช้/มีสิทธิ์ประกันสังคม">🏛️ ปกส</span>' : '';
 }
@@ -9975,7 +9975,7 @@ function orthoBuildDayLines_(dateStr){
     const weeksSinceLast = (lastD && !isNaN(lastD)) ? Math.round((apptD-lastD)/86400000/7) : null;
     return (i+1)+'. '+
       (r['นัดถัดไปเวลา'] ? r['นัดถัดไปเวลา']+' - ' : '')+
-      (r['ชื่อ']||'')+' ('+code+')'+(String(r['รูปแบบชำระ']||'').trim()===ORTHO_PAY_UNTIL_DONE?' [💳 ชำระจนกว่าจะเสร็จ]':'')+' - '+
+      (r['ชื่อ']||'')+' ('+code+')'+(orthoPayOf_(r.hn)===ORTHO_PAY_UNTIL_DONE?' [💳 ชำระจนเสร็จ]':'')+' - '+
       'ครั้งที่ '+visitNo+
       (weeksSinceLast!==null ? ' - ห่างครั้งก่อน '+weeksSinceLast+' สัปดาห์' : '')+
       ' - เครื่องมือหลุดไปแล้ว '+looseCount+' ครั้ง';
@@ -10068,7 +10068,7 @@ async function renderOrthoPage(){
   if(statusFilter) rows = rows.filter(r=> orthoEffStatus_(r) === statusFilter);
   if(overdueOnly) rows = rows.filter(orthoOverdue_);
   const payF = document.getElementById('orthoPayFilter')?.value || '';
-  if(payF) rows = rows.filter(r=> payF==='__none' ? !String(r['รูปแบบชำระ']||'').trim() : String(r['รูปแบบชำระ']||'').trim()===payF);
+  if(payF) rows = rows.filter(r=> payF==='__none' ? !orthoPayOf_(r.hn) : orthoPayOf_(r.hn)===payF);
   if(q) rows = rows.filter(r=> String(r.hn||'').toLowerCase().includes(q) || String(r['ชื่อ']||'').toLowerCase().includes(q));
   orthoSyncSortSel_();
   // ชิป "ปกส ปีนี้ยังไม่ใช้สิทธิ": นับจากรายการที่ผ่านตัวกรองอื่นแล้ว และกรองเมื่อเปิดชิป
@@ -10286,7 +10286,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-hn-hint').innerHTML = '';
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
   document.getElementById('ortho-idcode').value = r?.['รหัสประจำตัว'] || 'A-';
-  document.getElementById('ortho-paygrp').value = r?.['รูปแบบชำระ'] || '';
+  document.getElementById('ortho-paygrp').value = orthoPayOf_(r?.hn) || '';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '28 ครั้ง';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
