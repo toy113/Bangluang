@@ -3533,16 +3533,20 @@ function crmOrthoPrint(d){
     const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
     const last=String(o['ปรับล่าสุด']||'').slice(0,10);
     const info=[ o['แบบจัด']?E(o['แบบจัด']):'', last&&last!==d?'ปรับล่าสุด '+E(crmThaiShort(last)):'', loose?'หลุดสะสม '+loose+' ตัว':'', o['note']?E(o['note']):'' ].filter(Boolean).join(' · ');
-    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b><br><span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span>${orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?'<br><span class="m" style="color:#1F5F8B;font-weight:700;">💳 ชำระจนเสร็จ</span>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?'<br><span class="m">'+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
+    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b> <span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span>${orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?' <span class="m" style="color:#1F5F8B;font-weight:700;">💳 ชำระจนเสร็จ</span>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?' <span class="m">· '+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
   }).join('');
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>นัดจัดฟัน ${E(crmThaiShort(d))}</title>
-<style>@page{size:A4 landscape;margin:12mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px}
-h1{font-size:18px;margin:0 0 2px}.sub{color:#555;margin-bottom:10px}table{width:100%;border-collapse:collapse}
-th,td{border:1px solid #999;padding:6px 7px;vertical-align:top}th{background:#eee;font-size:12px}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:11.5px}.note{width:22%;height:42px}
+<style>@page{size:A4 portrait;margin:8mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px;margin:0}
+h1{font-size:1.4em;margin:0 0 2px}.sub{color:#555;margin-bottom:.6em;font-size:.9em}table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #999;padding:.3em .45em;vertical-align:top}td{height:2.2em}th{background:#eee;font-size:.92em}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:.88em}.note{width:20%}
 tr{page-break-inside:avoid}</style></head><body>
 <h1>คลินิกทันตกรรมบางหลวง — นัดจัดฟัน ${E(crmThaiShort(d))}</h1><div class="sub">ทั้งหมด ${list.length} คน · พิมพ์เมื่อ ${E(new Date().toLocaleString('th-TH'))}</div>
 <table><tr><th>#</th><th>เวลา</th><th>คนไข้</th><th>ปรับครั้งที่</th><th>รายการนัด</th><th>ข้อมูลจากการ์ด</th><th>บันทึกหมอ</th></tr>${rows}</table>
-<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>`;
+<script>
+/* ย่อขนาดตัวอักษรอัตโนมัติให้ทั้งรายการพอดี 1 แผ่น A4 แนวตั้ง (ใหญ่สุด 13px ลงไปถึง 5.5px) */
+function fit(){ var max=1035; for(var f=13; f>=5.5; f-=0.5){ document.body.style.fontSize=f+'px'; if(document.body.scrollHeight<=max) break; } }
+window.onload=function(){ fit(); setTimeout(function(){window.print()},300); };
+<\/script></body></html>`;
   const w=window.open('','_blank'); if(!w){ showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — กรุณาอนุญาต pop-up','error'); return; }
   w.document.open(); w.document.write(html); w.document.close();
 }
