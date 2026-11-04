@@ -2941,7 +2941,7 @@ function crmOrthoAptBadge(r){
 function crmSentOk(rows){ return rows.some(r=>r.status==='sent'||r.status==='test'); }
 
 async function crmLoad(force){
-  if(CRM.loading) return;
+  if(CRM.loading){ if(force) CRM.reload=true; return; }
   CRM.loading = true; CRM.err='';
   if(!CRM.data){
     // cache-first: โชว์ข้อมูลรอบก่อนทันที แล้วค่อยรีเฟรชเบื้องหลัง (ไม่ต้องรอ Apps Script)
@@ -2956,6 +2956,7 @@ async function crmLoad(force){
     else { CRM.data = d; CRM.stale = false; try{ localStorage.setItem('bl_crm_cache', JSON.stringify(d)); }catch(e){ try{ localStorage.removeItem('bl_crm_cache'); }catch(e2){} } try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : ('0|'+Date.now())); }catch(e){} }
   }catch(e){ CRM.err = 'network'; }
   CRM.loading = false;
+  if(CRM.reload){ CRM.reload=false; crmLoad(true); return; }   // มีการบันทึกระหว่างโหลด → โหลดซ้ำเพื่อไม่ให้ข้อมูลเก่าทับ
   crmRender(); crmUpdateBadge();
 }
 // เรียก action ฝั่ง CRM: ลอง POST แบบอ่านผลได้ก่อน ถ้าเบราว์เซอร์บล็อก ค่อยส่งแบบ no-cors แล้วโหลดข้อมูลใหม่
@@ -3016,17 +3017,22 @@ function crmOptimistic(payload){
   else if(payload.crm==='updateTask'){ const t=find(d.tasks,payload.id); if(t){ if(payload.status) t.status=payload.status; if(payload.resultNote!==undefined) t.resultNote=payload.resultNote; t.doneBy=by; t.updatedAt=now; } }
   else if(['linkApprove','linkReject','linkRevoke'].includes(payload.crm)){ const l=find(d.links,payload.id); if(l){ l.status = payload.crm==='linkApprove'?'active':(payload.crm==='linkReject'?'rejected':'revoked'); if(payload.hn) l.hn=payload.hn; l.approvedBy=by; } }
   else if(payload.crm==='caseNoteApprove'||payload.crm==='caseNoteReject'){ const n=find(d.casenotes,payload.id); if(n) n.status = payload.crm==='caseNoteApprove'?'approved':'rejected'; }
+  else if(payload.crm==='approveTemplate'){ const t=find(d.templates,payload.id); if(t){ t.status='approved'; t.approvedBy=by; t.approvedAt=now; } }
+  else if(payload.crm==='setTemplateStatus'){ const t=find(d.templates,payload.id); if(t){ t.status = payload.status==='disabled'?'disabled':'draft'; if(t.status==='draft') t.approvedBy=''; } }
+  else if(payload.crm==='deleteTemplate'){ d.templates=(d.templates||[]).filter(x=>String(x.id)!==String(payload.id)); }
+  else if(payload.crm==='saveTemplate' && payload.template && payload.template.id){ const t=find(d.templates,payload.template.id), n=payload.template; if(t){
+    const fu=n.followupEnabled?'TRUE':'FALSE';
+    const med = t.aftercareText!==n.aftercareText || (t.followupQuestion||'')!==(n.followupQuestion||'') || (t.followupOptions||'[]')!==(n.followupOptions||'[]') || t.procKeywords!==n.procKeywords;
+    Object.assign(t,{name:n.name,priority:n.priority,procKeywords:n.procKeywords,aftercareText:n.aftercareText,followupEnabled:fu,followupQuestion:n.followupQuestion,followupOptions:n.followupOptions});
+    if(med){ t.status='draft'; t.approvedBy=''; t.approvedAt=''; t.version=(+t.version||1)+1; } } }
+  else if(payload.crm==='saveSettings' && payload.settings){ d.settings=Object.assign(d.settings||{}, payload.settings); }
 }
 async function crmDo(payload, okMsg){
   crmOptimistic(payload); crmRender(); crmUpdateBadge();
-  const r = await crmCall(Object.assign({ withDash:1 }, payload));   // เซิร์ฟเวอร์ส่งแดชบอร์ดใหม่กลับมาในคำขอเดียว (ไม่ต้องโหลดซ้ำอีกรอบ)
+  const r = await crmCall(payload);   // ไม่รอเซิร์ฟเวอร์คำนวณแดชบอร์ดใหม่ (ช้า) — หน้าจอถูกอัปเดตแล้วแบบ optimistic, รีเฟรชข้อมูลจริงเบื้องหลัง
   if(r && r.ok){ if(okMsg) showToast(okMsg); }
   else showToast('❌ '+((r&&r.error)||'ไม่สำเร็จ'),'error');
-  if(r && r.dash && r.dash.ok){
-    CRM.data = r.dash; CRM.stale = false;
-    try{ localStorage.setItem('bl_crm_cache', JSON.stringify(r.dash)); }catch(e){}
-    crmRender(); crmUpdateBadge();
-  } else crmLoad(true);   // เซิร์ฟเวอร์รุ่นเก่า/ผิดพลาด → โหลดใหม่เบื้องหลัง ไม่ต้องรอ
+  crmLoad(true);   // เบื้องหลัง ไม่บล็อกหน้าจอ
   return r;
 }
 
