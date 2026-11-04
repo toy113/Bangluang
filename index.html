@@ -2788,7 +2788,10 @@ function startApp(){
   if(isOrthoOnlyUser()) ['nav-ortho','ttab-ortho'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; });   // หมอเอมเห็นเมนูจัดฟันด้วย
   // แท็บสถิติ: เห็นเฉพาะ ทพ.สรวิศ (id 'toy')
   ['nav-stats','ttab-stats','mnav-stats'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = canSeeStats() ? '' : 'none'; });
-  if((isManager||isOrthoOnlyUser()) && typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().catch(()=>{}); }, 800);   // โหลดเบื้องหลังเพื่อให้ตัวเลขที่เมนูจัดฟันขึ้นทันที
+  if(isManager||isOrthoOnlyUser()){
+    try{ if(!orthoData.length){ const c=JSON.parse(localStorage.getItem('bl_ortho_cache')||'null'); if(Array.isArray(c)) orthoData=c; } }catch(e){}   // แคชรอบก่อน: โชว์รายการจัดฟันได้ทันที
+    if(typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().catch(()=>{}); }, 100);
+  }   // โหลดเบื้องหลังเพื่อให้ตัวเลขที่เมนูจัดฟันขึ้นทันที
 
   // Show add buttons for manager only, hide for doctors
   ['btnAddAptHome','btnAddTreat','btnAddLab','btnAddAptSchedule','btnAddTreatHome'].forEach(id=>{
@@ -9860,16 +9863,22 @@ let _reschedSaving = false;
 let _qlogSaving = false;
 let _retainerSaving = false;
 
+let _orthoLoadP = null;
 async function loadOrthoData(force){
+  // กำลังโหลดอยู่: ถ้าไม่บังคับ ให้รอผลรอบเดิม (เดิมคืนค่าทันทีทำให้หน้าจัดฟันวาดรายการว่างระหว่างโหลด) · ถ้าบังคับ (เพิ่งบันทึก) รอรอบเดิมจบก่อนแล้วโหลดใหม่
+  if(_orthoLoadP){ if(!force) return _orthoLoadP; try{ await _orthoLoadP; }catch(e){} }
   if(_orthoLoaded && !force) return;
   _orthoLoaded = true; // กัน retry loop ถ้า fetch ล้มเหลว
-  try{
-    const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
-    const res = await fetch(url+'?action=orthoList',{cache:'no-store'});
-    const d = await res.json();
-    if(d && d.ok && Array.isArray(d.rows)){ orthoData = d.rows; _orthoErr = ''; orthoUpdateNavBadge_(); }
-    else _orthoErr = 'เซิร์ฟเวอร์ตอบ: ' + String((d && (d.error||d.message)) || 'ไม่มีข้อมูล');
-  }catch(e){ console.warn('loadOrtho error',e); _orthoErr = 'เชื่อมต่อไม่ได้ (' + (e && e.message || e) + ')'; }
+  _orthoLoadP = (async()=>{
+    try{
+      const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
+      const res = await fetch(url+'?action=orthoList',{cache:'no-store'});
+      const d = await res.json();
+      if(d && d.ok && Array.isArray(d.rows)){ orthoData = d.rows; _orthoErr = ''; orthoUpdateNavBadge_(); try{ localStorage.setItem('bl_ortho_cache', JSON.stringify(d.rows)); }catch(e){ try{ localStorage.removeItem('bl_ortho_cache'); }catch(e2){} } }
+      else _orthoErr = 'เซิร์ฟเวอร์ตอบ: ' + String((d && (d.error||d.message)) || 'ไม่มีข้อมูล');
+    }catch(e){ console.warn('loadOrtho error',e); _orthoErr = 'เชื่อมต่อไม่ได้ (' + (e && e.message || e) + ')'; }
+  })().finally(()=>{ _orthoLoadP = null; });
+  return _orthoLoadP;
 }
 let _orthoErr = '';
 function orthoNoApptCount_(){ return orthoData.filter(x=> orthoEffStatus_(x)==='กำลังจัด' && orthoOverdue_(x) && !orthoHasUpcomingAppt_(x)).length; }
@@ -10010,9 +10019,14 @@ async function orthoCopyDayList(dateStr){
 async function renderOrthoPage(){
   const box = document.getElementById('orthoList');
   if(!box) return;
-  if(!_orthoLoaded){
-    box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light);">กำลังโหลด...</div>';
-    await loadOrthoData();
+  if(!_orthoLoaded || _orthoLoadP){
+    if(!orthoData.length){
+      box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-light);">⏳ กำลังโหลดข้อมูลจัดฟัน...</div>';
+      await loadOrthoData();
+    } else {
+      // มีข้อมูลจากรอบก่อน (แคช) → โชว์ทันที แล้ววาดใหม่เมื่อโหลดข้อมูลล่าสุดเสร็จ
+      loadOrthoData().then(()=>{ const pg=document.getElementById('page-ortho'); if(pg && pg.classList.contains('active')) renderOrthoPage(); }).catch(()=>{});
+    }
   }
   const q = (document.getElementById('orthoSearch')?.value||'').trim().toLowerCase();
   const statusFilter = document.getElementById('orthoStatusFilter')?.value || '';
