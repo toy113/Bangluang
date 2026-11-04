@@ -2783,6 +2783,8 @@ function startApp(){
     const el=document.getElementById(id);
     if(el) el.style.display = isManager ? '' : 'none';
   });
+  // หมอเอม: ซ่อนหน้าหลัก/เคสต่อเนื่อง/ค่าแลป (เห็นแค่ CRM นัดจัดฟัน · บันทึกการรักษา · สรุปรายได้)
+  ['nav-home','ttab-home','mnav-home','nav-endo','ttab-endo','mnav-endo','nav-lab','ttab-lab','mnav-lab'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = isOrthoOnlyUser() ? 'none' : ''; });
   // แท็บสถิติ: เห็นเฉพาะ ทพ.สรวิศ (id 'toy')
   ['nav-stats','ttab-stats','mnav-stats'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = canSeeStats() ? '' : 'none'; });
   if(isManager && typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().catch(()=>{}); }, 800);   // โหลดเบื้องหลังเพื่อให้ตัวเลขที่เมนูจัดฟันขึ้นทันที
@@ -2803,6 +2805,7 @@ function startApp(){
   let lastPage = localStorage.getItem('bl_lastPage') || 'home';
   // ถ้าหมอ restore ไปหน้า manager-only ให้ redirect ไปหน้าหลักแทน
   if(!isManager && managerOnlyPages.includes(lastPage)) lastPage = 'home';
+  if(isOrthoOnlyUser() && !ORTHO_ONLY_PAGES.includes(lastPage)) lastPage = 'treatment';
   showPage(lastPage);
   // ล็อกอินครั้งแรกที่ยังไม่มี cache เลย (treatments/appointments ว่างเปล่า) ตารางจะโชว์ "ไม่มีรายการ"
   // ทั้งที่จริงกำลังโหลดอยู่ — โชว์ overlay คลุมไว้จนกว่า sync ครั้งแรกจะเสร็จ
@@ -2890,7 +2893,10 @@ var CRM_SUBS = [
   ['followup','🩺','ติดตามอาการ'], ['rating','⭐','คะแนนบริการ'], ['tasks','📞','งานโทรกลับ'], ['old','🗂️','คนไข้เก่า'], ['sso','🏛️','แคมเปญประกันสังคม'],
   ['links','🔗','LINE Connections'], ['report','📊','รายงานและต้นทุน'], ['settings','⚙️','ตั้งค่า']
 ];
-var CRM_DOCTOR_SUBS = ['rating'];
+// หมอเอม (id 'aim') เห็นเฉพาะ: LINE CRM > นัดจัดฟัน · บันทึกการรักษา · สรุปรายได้
+function isOrthoOnlyUser(){ return !!(currentUser && !isManager && currentUser.id==='aim'); }
+const ORTHO_ONLY_PAGES = ['treatment','income','crm'];
+function crmDoctorSubs(){ return isOrthoOnlyUser() ? ['orthoapt'] : ['rating']; }
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
 var CRM_LOG_TYPE = { confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
@@ -3038,7 +3044,7 @@ async function crmDo(payload, okMsg){
 }
 
 function renderCrmPage(){
-  if(!isManager && !CRM_DOCTOR_SUBS.includes(CRM.sub)) CRM.sub = CRM_DOCTOR_SUBS[0];
+  if(!isManager && !crmDoctorSubs().includes(CRM.sub)) CRM.sub = crmDoctorSubs()[0];
   crmRender();
   crmLoad();
 }
@@ -3085,7 +3091,7 @@ function crmRender(){
   const subsEl = document.getElementById('crmSubs');
   const c = crmCounts();
   const badge = { tasks:c.tasks, links:c.linksPending, aftercare:c.tplDraft, followup:(c.fuAlert||0)+(c.fuLate||0) };
-  const subs = CRM_SUBS.filter(s=>isManager || CRM_DOCTOR_SUBS.includes(s[0]));
+  const subs = CRM_SUBS.filter(s=>isManager || crmDoctorSubs().includes(s[0]));
   subsEl.innerHTML = subs.map(s=>`<button class="${CRM.sub===s[0]?'on':''}" onclick="crmSetSub('${s[0]}')">${s[1]} ${s[2]}${badge[s[0]]?`<span class="n">${badge[s[0]]}</span>`:''}</button>`).join('');
   if(!CRM.data){
     if(CRM.loading) { el.innerHTML = '<div class="crm-empty">กำลังโหลดข้อมูล LINE CRM...</div>'; return; }
@@ -4102,6 +4108,7 @@ function crmCloseModal(){ const m=document.getElementById('crmModal'); if(m) m.c
 function canSeeStats(){ return !!(currentUser && currentUser.id==='toy'); }
 function showPage(p){
   if(p==='stats' && !canSeeStats()) p='home';
+  if(isOrthoOnlyUser() && !ORTHO_ONLY_PAGES.includes(p)) p='treatment';
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
