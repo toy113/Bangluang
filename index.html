@@ -3245,7 +3245,7 @@ function crmViewApts(){
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน']].map(x=>`<button class="${CRM.aptRange===x[0]?'on':''}" onclick="CRM.aptRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
     <p class="crm-muted" style="margin-bottom:10px;">คนไข้กด "ยืนยันนัด" ใน LINE → ระบบไม่แก้ตารางนัดเอง กด "ตั้งเป็นคอนเฟิร์ม" เพื่ออัปเดตสถานะในตารางนัด · นัดจัดฟัน (ป้าย จัดฟัน) ดูสถานะจากป้าย ✅ คนไข้ยืนยัน ได้เลย และขึ้นที่การ์ดในหน้าจัดฟันด้วย</p>
     <div class="crm-list">${list.map(a=>`<div class="crm-item"><div class="main">
-        <div class="nm">${crmEsc(a.time||'')} · ${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
+        <div class="nm">${crmEsc(a.time||'')} · ${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
         <div class="meta">${crmEsc(crmThaiShort(a.date))} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} · สถานะ: <b>${crmEsc(a.status||'-')}</b>${crmIsOrtho(a)?' · <span class="crm-chip b">จัดฟัน</span>':''}</div>
         <div>${crmAptLineChips(a)}</div></div>
       <div class="acts">${!a._ortho && confirmed.has(String(a.id)) && a.status!=='คอนเฟิร์ม' ? `<button class="crm-btn g" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">ตั้งเป็นคอนเฟิร์ม</button>`:''}
@@ -3643,7 +3643,7 @@ function crmViewRemind(){
     .sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   const withLine=due.filter(a=>crmHasLine(a.hn)), noLine=due.filter(a=>!crmHasLine(a.hn));
   const recent=(d.log||[]).filter(r=>r.type==='remind' && r.status!=='done').slice(-40).reverse();
-  const row=a=>`<div class="crm-item"><div class="main"><div class="nm">${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
+  const row=a=>`<div class="crm-item"><div class="main"><div class="nm">${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
      <div class="meta">${crmEsc(crmThaiShort(a.date))} ${crmEsc(a.time||'')} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} ${crmIsOrtho(a)?'<span class="crm-chip b">จัดฟัน '+od+' วัน</span>':'<span class="crm-chip w">'+xd+' วัน</span>'}</div><div>${crmAptLineChips(a)}</div></div>
      <div class="acts">${crmPhoneOf(a.hn,a.phone)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(a.hn,a.phone))}">📞 ${crmEsc(crmPhoneOf(a.hn,a.phone))}</a>`:'<span class="crm-muted">ไม่มีเบอร์</span>'}</div></div>`;
   return `<div class="crm-card"><h4>🔔 รอบเตือนวันนี้ (${crmEsc(s.remindHour||'10:00')} น.)<span class="sp"></span><span class="crm-chip w">จัดฟันก่อน ${od} วัน · งานอื่นก่อน ${xd} วัน</span></h4>
@@ -3658,7 +3658,7 @@ function crmLogTable(rows){
   if(!rows.length) return '<div class="crm-empty">ยังไม่มี</div>';
   const st={ sent:['ส่งแล้ว','g'], test:['ทดสอบ','o'], failed:['ล้มเหลว','r'], baseline:['ข้าม (มีก่อนเปิดระบบ)','x'], skipped:['ข้าม','x'] };
   return `<div class="crm-tablewrap"><table class="crm-table"><tr><th>เวลา</th><th>ประเภท</th><th>คนไข้</th><th>สถานะ</th><th>รายละเอียด</th></tr>${rows.map(r=>{ const x=st[r.status]||[r.status,'x'];
-    return `<tr><td>${crmEsc(crmTs(r.createdAt))}</td><td>${crmEsc(CRM_LOG_TYPE[r.type]||r.type)}</td><td>${crmEsc(r.patName||'')} ${r.hn?'<span class="crm-muted">'+crmEsc(r.hn)+'</span>':''}</td><td><span class="crm-chip ${x[1]}">${crmEsc(x[0])}</span></td><td class="crm-muted">${crmEsc(r.detail||'')}</td></tr>`; }).join('')}</table></div>`;
+    return `<tr><td>${crmEsc(crmTs(r.createdAt))}</td><td>${crmEsc(CRM_LOG_TYPE[r.type]||r.type)}</td><td>${ocTag_(r.hn,r.patName)}${crmEsc(r.patName||'')} ${r.hn?'<span class="crm-muted">'+crmEsc(r.hn)+'</span>':''}</td><td><span class="crm-chip ${x[1]}">${crmEsc(x[0])}</span></td><td class="crm-muted">${crmEsc(r.detail||'')}</td></tr>`; }).join('')}</table></div>`;
 }
 function crmCopy(lines){
   const text=Array.isArray(lines)?lines.join('\n'):String(lines);
@@ -3685,7 +3685,7 @@ function crmViewAftercare(){
   const notes=d.casenotes||[];
   const pendingNotes=notes.filter(n=>n.status==='pending');
   return `
-  ${pendingNotes.length?`<div class="crm-card"><h4>📝 คำแนะนำพิเศษรออนุมัติ (${pendingNotes.length})</h4><div class="crm-list">${pendingNotes.map(n=>`<div class="crm-item"><div class="main"><div class="nm">${crmEsc(n.patName||'')} <span class="crm-muted">HN ${crmEsc(n.hn||'')}</span></div>
+  ${pendingNotes.length?`<div class="crm-card"><h4>📝 คำแนะนำพิเศษรออนุมัติ (${pendingNotes.length})</h4><div class="crm-list">${pendingNotes.map(n=>`<div class="crm-item"><div class="main"><div class="nm">${ocTag_(n.hn,n.patName)}${crmEsc(n.patName||'')} <span class="crm-muted">HN ${crmEsc(n.hn||'')}</span></div>
      <div class="crm-pre" style="margin-top:6px;">${crmEsc(n.text)}</div><div class="meta">เขียนโดย ${crmEsc(n.author||'')} · ${crmEsc(crmTs(n.createdAt))}</div></div>
      <div class="acts"><button class="crm-btn g" onclick="crmApproveNote('${n.id}')">อนุมัติ (ทันตแพทย์)</button><button class="crm-btn r" onclick="crmDo({crm:'caseNoteReject',id:'${n.id}'},'ไม่อนุมัติแล้ว')">ไม่อนุมัติ</button></div></div>`).join('')}</div></div>`:''}
   <div class="crm-card"><h4>🩹 วันนี้: คนไข้ที่รักษาเสร็จ (${todays.length})<span class="sp"></span>${!s.aftercareOn?'<span class="crm-chip r">Aftercare ปิดอยู่</span>':''}</h4>
@@ -3694,7 +3694,7 @@ function crmViewAftercare(){
       const m=crmTplMatches(t.proc), ok=m.filter(x=>x.status==='approved');
       const sent=crmSentOk(crmLogFor('aftercare',t.id));
       const myNotes=notes.filter(n=>String(n.treatId)===String(t.id));
-      return `<div class="crm-item"><div class="main"><div class="nm">${crmEsc(t.patName||'')} <span class="crm-muted">HN ${crmEsc(t.hn)}</span></div>
+      return `<div class="crm-item"><div class="main"><div class="nm">${ocTag_(t.hn,t.patName)}${crmEsc(t.patName||'')} <span class="crm-muted">HN ${crmEsc(t.hn)}</span></div>
         <div class="meta">${crmEsc(t.time||'')} · ${crmEsc(t.proc||'-')} · ${crmEsc(t.docName||'')}</div>
         <div>${!crmHasLine(t.hn)?'<span class="crm-chip x">ไม่มี LINE</span>':''}${sent?'<span class="crm-chip g">ส่งคำแนะนำแล้ว</span>':''}
           ${ok.map(x=>`<span class="crm-chip w">${crmEsc(x.name)}</span>`).join('')}${!m.length?'<span class="crm-chip x">ไม่มี template</span>':(!ok.length?'<span class="crm-chip o">template ยังไม่อนุมัติ</span>':'')}
@@ -3824,7 +3824,7 @@ function crmViewFollowup(){
     <p class="crm-muted" style="margin-bottom:8px;">45 วันล่าสุด: ส่ง ${fus.length} · ตอบ ${answered} (${fus.length?Math.round(answered/fus.length*100):0}%) — ระบบตอบด้วยข้อความที่ทันตแพทย์อนุมัติเท่านั้น ไม่มี AI วินิจฉัย</p>
     <div class="crm-list">${list.map(x=>{ const k=CRM_KIND[x.answerKind];
       return `<div class="crm-item ${x.answerKind==='emergency'?'urgent':(x.answerKind==='severe'?'high':'')}"><div class="main">
-        <div class="nm">${crmEsc(x.patName||'')} <span class="crm-muted">HN ${crmEsc(x.hn||'')}</span> ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
+        <div class="nm">${ocTag_(x.hn,x.patName)}${crmEsc(x.patName||'')} <span class="crm-muted">HN ${crmEsc(x.hn||'')}</span> ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
         <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:(crmFuAutoClosed(x)?'<span class="crm-chip x">🔒 ปิดเคสอัตโนมัติ (ไม่ตอบเกิน 24 ชม.)</span>':'<span class="crm-chip x">ยังไม่ตอบ</span>')}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}${x.calledAt?` <span class="crm-chip g">📞 โทรแล้ว ${crmEsc(crmTs(x.calledAt))}${x.calledBy?' · '+crmEsc(x.calledBy):''}</span>${x.callNote?` <span class="crm-muted">— ${crmEsc(x.callNote)}</span>`:''}`:''}</div></div>
         <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test' && !crmFuAutoClosed(x)?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
@@ -3864,7 +3864,7 @@ function crmViewRating(){
       <div class="crm-list">${names.map(n=>{ const o=by[n], mx=Math.max(...o.dist);
         return `<div class="crm-item"><div class="main"><div class="nm">${crmEsc(n)} <span class="crm-chip ${o.sum/o.n>=4.5?'g':(o.sum/o.n>=3.5?'o':'r')}">⭐ ${(o.sum/o.n).toFixed(2)}</span> <span class="crm-muted">${o.n} คำตอบ</span></div>
           <div style="margin-top:6px;">${[5,4,3,2,1,0].map(i=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:2px 0;"><span style="width:18px;">${i}⭐</span>${bar(o.dist[i],mx,i>=4?'#1D825C':(i===3?'#E67E22':'#C0392B'))}<span style="width:24px;text-align:right;">${o.dist[i]}</span></div>`).join('')}</div></div></div>`; }).join('')||'<div class="crm-empty">ยังไม่มีคะแนนในช่วงนี้</div>'}</div></div>
-    ${low.length?`<div class="crm-card"><h4>⚠️ คะแนนต่ำล่าสุด (≤3)</h4><div class="crm-list">${low.map(f=>`<div class="crm-item high"><div class="main"><div class="nm">⭐ ${f.r}/5 · ${crmEsc(f.patName||'')} <span class="crm-muted">HN ${crmEsc(f.hn||'')}</span></div><div class="meta">${crmEsc(f.proc||'')} · ${crmEsc(f.doc)} · ${crmEsc(crmTs(f.ratedAt))}</div></div></div>`).join('')}</div></div>`:''}`;
+    ${low.length?`<div class="crm-card"><h4>⚠️ คะแนนต่ำล่าสุด (≤3)</h4><div class="crm-list">${low.map(f=>`<div class="crm-item high"><div class="main"><div class="nm">⭐ ${f.r}/5 · ${ocTag_(f.hn,f.patName)}${crmEsc(f.patName||'')} <span class="crm-muted">HN ${crmEsc(f.hn||'')}</span></div><div class="meta">${crmEsc(f.proc||'')} · ${crmEsc(f.doc)} · ${crmEsc(crmTs(f.ratedAt))}</div></div></div>`).join('')}</div></div>`:''}`;
 }
 
 /* ---------- 6) งานโทรกลับ ---------- */
@@ -3878,7 +3878,7 @@ function crmViewTasks(){
     <p class="crm-muted" style="margin-bottom:8px;">คำขอเลื่อนนัดไม่เปลี่ยนตารางนัดเอง — พนักงานโทรยืนยันกับคนไข้ แล้วแก้นัดในตารางนัดตามปกติ</p>
     <div class="crm-list">${list.map(t=>{ const ph=crmPhoneOf(t.hn);
       return `<div class="crm-item ${t.priority==='urgent'?'urgent':(t.priority==='high'?'high':'')}"><div class="main">
-        <div class="nm">${crmEsc(CRM_TASK_TYPE[t.type]||t.type)} · ${crmEsc(t.patName||'ไม่ทราบชื่อ')} <span class="crm-muted">${t.hn?'HN '+crmEsc(t.hn):''}</span></div>
+        <div class="nm">${crmEsc(CRM_TASK_TYPE[t.type]||t.type)} · ${ocTag_(t.hn,t.patName)}${crmEsc(t.patName||'ไม่ทราบชื่อ')} <span class="crm-muted">${t.hn?'HN '+crmEsc(t.hn):''}</span></div>
         <div class="meta">${crmEsc(t.detail||'')}${t.preference?` · สะดวก: <b>${crmEsc(t.preference)}</b>`:''}</div>
         <div class="meta">${crmEsc(crmTs(t.createdAt))}${t.status!=='open'?' · ปิดโดย '+crmEsc(t.doneBy||'')+(t.resultNote?' — '+crmEsc(t.resultNote):''):''}</div></div>
         <div class="acts">${ph?`<a class="crm-btn" href="${crmTel(ph)}">📞 ${crmEsc(ph)}</a>`:'<span class="crm-muted">ไม่มีเบอร์ (ตอบใน LINE OA Chat)</span>'}
@@ -4273,7 +4273,7 @@ function renderAptList(today){
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${hnWithOrtho_(a.hn,a.patName,a.orthoCode)}</div>
-      <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
+      <div><div style="font-weight:600">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
@@ -4420,7 +4420,7 @@ function treatRow(t){
   return `<tr style="${docRowStyle(t.docName)}">
     <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
     <td class="text-caption hn-cell">${hnWithOrtho_(t.hn,t.patName)}</td>
-    <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
+    <td style="font-weight:600">${ocTag_(t.hn,t.patName)}${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
     <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -6110,7 +6110,7 @@ function renderTreatPage(){
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
       <td class="text-caption hn-cell">${hnWithOrtho_(t.hn,t.patName)}</td>
-      <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
+      <td style="font-weight:600">${ocTag_(t.hn,t.patName)}${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
       <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -6688,7 +6688,7 @@ function renderFollowup(){
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:14px;color:var(--wine-dark);">
-              ${p.hn} · ${p.patName||'—'}
+              ${p.hn} · ${ocTag_(p.hn,p.patName)}${p.patName||'—'}
             </div>
             <div style="font-size:12px;color:var(--text-light);margin-top:2px;">
               ${p.phone?`📞 ${p.phone} · `:''}หมอ: ${p.docName||'—'} · มา ${p.visits} ครั้ง
@@ -6770,7 +6770,7 @@ function renderLabPage(){
       <tr>
         <td>${fmtDate(l.date)}</td>
         <td class="text-caption hn-cell">${l.hn||'—'}</td>
-        <td style="font-weight:600">${l.patName}</td>
+        <td style="font-weight:600">${ocTag_(l.hn,l.patName)}${l.patName}</td>
         <td>${l.work}</td>
         <td><span class="lab-badge ${labBadgeClass(l.lab)}">${l.lab}</span></td>
         <td style="font-weight:700;color:var(--wine-dark)">${fmt(+l.price||0)}</td>
@@ -8117,7 +8117,7 @@ function renderSchedulePage(){
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
           <td class="text-caption hn-cell">${hnWithOrtho_(a.hn,a.patName,a.orthoCode)}</td>
-          <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
+          <td style="font-weight:600;">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
           <td>${docBadge(a.docName)}</td>
@@ -8443,6 +8443,9 @@ function hnWithOrtho_(hn, name, explicit){
   const h=hn||'—', code=orthoCodeOf_(hn, name, explicit);
   return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;">🦷 '+code+'</div>' : h;
 }
+// รหัสจัดฟันหน้าชื่อ (HTML / ข้อความล้วน) — ว่างถ้าไม่มี
+function ocTag_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?'<b style="color:var(--wine);font-weight:800;">'+String(c).replace(/[<>&"]/g,'')+'</b> ':''; }
+function ocPlain_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?c+' ':''; }
 function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
 function orthoCodeClean_(v){ v=String(v||'').trim(); return (v==='A-')?'':v; }
 function fmtOrthoDigits(input){ const d=String(input.value||'').replace(/\D/g,''); input.value = d ? 'A-'+d : ''; }
@@ -9201,7 +9204,7 @@ function renderPatients(){
       <div onclick="openPatientDetail('${hn}')" style="flex:1;min-width:0;cursor:pointer;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
           <span style="font-size:13px;font-weight:800;color:var(--wine);white-space:nowrap;">HN ${hn}</span>
-          <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${p.name||'—'}</span>
+          <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${ocTag_(p.hn,p.name,p.orthoCode)}${p.name||'—'}</span>
           ${hasSso?`<span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;">🏛️ ปกส</span>`:''}
           ${lineBadge({hn})}
           ${phone?`<span style="font-size:12px;color:var(--text-mid);">📞 ${phone}</span>`:''}
@@ -9512,7 +9515,7 @@ function doSendIncome(periodLabel){
     // เคสที่ % df ต่างจากอัตราปกติของหมอ (และไม่ใช่ X-Ray ล้วนที่มีป้ายอยู่แล้ว) แสดงกำกับไว้
     const casePct = docSharePct(t, doc), defPct = doc ? +doc.share : 50;
     const pctTag = (price>0 && !xrayRuleApplies(t) && casePct!==defPct) ? ` ${DOT} df ${casePct}%` : '';
-    text += `${i+1}. ${t.patName||'—'}${timeStr}${pctTag}\n`;
+    text += `${i+1}. ${ocPlain_(t.hn,t.patName)}${t.patName||'—'}${timeStr}${pctTag}\n`;
     if(xrayRuleApplies(t)){
       text += `     ${procList.join(', ')}  ${baht(price)}  (ไม่คิด df)\n`;
     } else if(priced.length && (xrayMixedPrice(t)>0 || itemDfParts(t).items.length || priced.length===procList.length)){
@@ -9568,7 +9571,7 @@ function doSendSummary(date, dayName, dd, mon, yy){
   const tm = a => a.time ? String(a.time).replace(':','.') + ' น.' : '—';
   const line1 = a => {
     const procs = Array.isArray(a.proc) ? a.proc.join(', ') : (a.proc||'');
-    let o = `🕘 ${tm(a)}  ${a.patName||'—'}\n`;
+    let o = `🕘 ${tm(a)}  ${ocPlain_(a.hn,a.patName,a.orthoCode)}${a.patName||'—'}\n`;
     if(procs) o += `     🦷 ${procs}\n`;
     return o;
   };
@@ -9916,7 +9919,7 @@ function renderRecallLong_(){
 
       <div style="flex:1;min-width:180px;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-          <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${p.name||'—'}</span>
+          <span style="font-size:15px;font-weight:800;color:var(--text-dark);">${ocTag_(p.hn,p.name,p.orthoCode)}${p.name||'—'}</span>
           <span style="background:rgba(243,156,18,0.15);color:#c07800;border:1px solid rgba(243,156,18,0.3);border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;">🏛️ ปกส</span>
           ${isUrgent ? `<span style="background:#C0392B;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">🚨 เกิน 20 เดือน</span>` : ''}
         </div>
