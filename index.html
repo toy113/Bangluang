@@ -10069,9 +10069,12 @@ function renderOrthoCalendar(){
     const count = (apptMap[dateStr]||[]).length;
     const isToday = dateStr === todayS;
     const isSel = dateStr === orthoCalSelectedDay;
-    html += `<div onclick="orthoCalSelectDay('${dateStr}')" style="cursor:pointer;padding:4px 2px;border-radius:8px;min-height:34px;${isSel?'background:var(--wine);color:#fff;':isToday?'background:var(--wine-pale);':''}">
-      ${day}
-      ${count>0?`<div style="font-size:9px;font-weight:700;${isSel?'color:#fff;':'color:var(--wine);'}">●${count}</div>`:''}
+    const heat = count>=20 ? '#E3B8D6' : count>=8 ? '#EDCFE4' : '#F6E3F0';   // ยิ่งนัดเยอะ ยิ่งเข้ม
+    const bgStyle = isSel ? 'background:var(--wine);color:#fff;' : count>0 ? `background:${heat};color:var(--wine-dark);font-weight:800;border:1.5px solid #C99BBE;` : isToday ? 'background:var(--wine-pale);' : 'color:var(--text-mid);';
+    const todayRing = (isToday && !isSel) ? 'box-shadow:0 0 0 2px var(--wine) inset;' : '';
+    html += `<div onclick="orthoCalSelectDay('${dateStr}')" style="cursor:pointer;padding:4px 2px;border-radius:10px;min-height:40px;box-sizing:border-box;${bgStyle}${todayRing}">
+      <div style="${count>0?'font-size:15px;':''}">${day}</div>
+      ${count>0?`<div style="display:inline-block;margin-top:2px;min-width:18px;padding:0 6px;border-radius:9px;font-size:10.5px;font-weight:800;line-height:16px;${isSel?'background:#fff;color:var(--wine);':'background:var(--wine);color:#fff;'}">${count}</div>`:''}
     </div>`;
   }
   document.getElementById('orthoCalGrid').innerHTML = html;
