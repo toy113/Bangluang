@@ -1754,7 +1754,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>รหัสจัดฟัน <span style="font-weight:400;color:var(--wine-mid);font-size:12px;">(ไม่บังคับ)</span></label>
-        <input class="form-control" id="apt-ortho" placeholder="เช่น A-123" maxlength="10" oninput="fmtIdCode(this)">
+        <input class="form-control" id="apt-ortho" placeholder="พิมพ์เฉพาะตัวเลข เช่น 123" inputmode="numeric" maxlength="10" oninput="fmtOrthoDigits(this)">
       </div>
       <div class="form-group">
         <label>ชื่อ-สกุล</label>
@@ -2409,7 +2409,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group form-control-full">
         <label>รหัสจัดฟัน <span style="font-weight:400;color:var(--wine-mid);font-size:12px;">(ไม่บังคับ)</span></label>
-        <input class="form-control" id="editPat-ortho" placeholder="เช่น A-123" maxlength="10" oninput="fmtIdCode(this)">
+        <input class="form-control" id="editPat-ortho" placeholder="พิมพ์เฉพาะตัวเลข เช่น 123" inputmode="numeric" maxlength="10" oninput="fmtOrthoDigits(this)">
       </div>
       <div class="form-group">
         <label>Line ID</label>
@@ -2447,7 +2447,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group form-control-full">
         <label>รหัสจัดฟัน <span style="font-weight:400;color:var(--wine-mid);font-size:12px;">(ไม่บังคับ)</span></label>
-        <input class="form-control" id="newPat-ortho" placeholder="เช่น A-123" maxlength="10" oninput="fmtIdCode(this)">
+        <input class="form-control" id="newPat-ortho" placeholder="พิมพ์เฉพาะตัวเลข เช่น 123" inputmode="numeric" maxlength="10" oninput="fmtOrthoDigits(this)">
       </div>
       <div class="form-group">
         <label>Line ID</label>
@@ -8374,6 +8374,7 @@ function hnWithOrtho_(hn){
 }
 function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
 function orthoCodeClean_(v){ v=String(v||'').trim(); return (v==='A-')?'':v; }
+function fmtOrthoDigits(input){ const d=String(input.value||'').replace(/\D/g,''); input.value = d ? 'A-'+d : ''; }
 function fmtIdCode(input){
   input.value = input.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
 }
