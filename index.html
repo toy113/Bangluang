@@ -3534,8 +3534,8 @@ function crmViewOrthoApts(){
     return '<div style="font-size:11px;color:#1D6B44;margin-top:4px;line-height:1.35;text-align:left;">บันทึกแล้ว: '+Object.keys(sum).map(k=>crmEsc(k)+(sum[k]?' '+sum[k].toLocaleString():'')).join(' · ')+' <b>รวม '+tot.toLocaleString()+'</b></div>';
   };
   const came=a=>{
-    const o=crmOrthoRec(a.hn), base='width:100%;padding:6px 4px;font-size:12px;white-space:normal;line-height:1.25;';
-    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
+    const o=crmOrthoRec(a.hn), base='width:100%;box-sizing:border-box;padding:6px 4px;font-size:12px;white-space:normal;line-height:1.25;';
+    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;box-sizing:border-box;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
     if(!o) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="ไม่มีการ์ดจัดฟันของคนไข้นี้ (ไม่มี HN หรือ HN ไม่ตรง)">มาตามนัด</button>`;
     if(a.date>today) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="กดได้เมื่อถึงวันนัด">มาตามนัด</button>`;
     return `<button class="crm-btn p" style="${base}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button>`;
@@ -3550,7 +3550,7 @@ function crmViewOrthoApts(){
   };
   const nextBtn=a=>{
     const o=crmOrthoRec(a.hn); if(!o) return '';
-    return `<button class="crm-btn" style="width:100%;padding:6px 4px;font-size:12px;margin-top:6px;white-space:normal;line-height:1.25;" onclick="openReschedule('${crmEsc(o.hn)}')">📅 นัดถัดไป</button>`;
+    return `<button class="crm-btn" style="width:100%;box-sizing:border-box;padding:6px 4px;font-size:12px;margin-top:6px;white-space:normal;line-height:1.25;" onclick="openReschedule('${crmEsc(o.hn)}')">📅 นัดถัดไป</button>`;
   };
   const body=dates.map(d=>{
     const arr=days[d], cnt={yes:0,move:0,wait:0,noline:0}; arr.forEach(a=>cnt[crmOrthoState(a)]++);
