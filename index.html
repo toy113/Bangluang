@@ -7532,20 +7532,14 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const dow = d.getDay();
   const _realApts = appointments.filter(a=>a.date===date);
   // นัดจัดฟันจากการ์ดจัดฟัน (นัดถัดไป) ที่ยังไม่มีในตารางนัด → แสดงรวมที่นี่ด้วย (อ่านอย่างเดียว กดไปการ์ดจัดฟัน)
-  let _virt = []; try{ _virt = crmOrthoAptList(date,date).filter(a=>a._ortho); }catch(e){}
+  let _virt = []; try{ const _aim=(doctors.find(d=>d.id==='aim')||{}).name||''; _virt = crmOrthoAptList(date,date).filter(a=>a._ortho).map(a=>Object.assign(a,{docName:a.docName||_aim})); }catch(e){}
   const dayApts = _realApts.concat(_virt).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const isToday = date===todayStr();
   const bg = DAY_BG_PASTEL[dow];
   const fg = DAY_FG_PASTEL[dow];
   const borderStyle = isToday ? 'box-shadow:0 0 0 3px #FFD700, 0 2px 12px rgba(0,0,0,0.15);' : '';
 
-  // นัดจัดฟันจากการ์ดไม่นับเป็น "หมอ" ของวัน: ถ้าชื่อหมอตรงคอลัมน์ไหนใส่คอลัมน์นั้น ไม่งั้นใส่คอลัมน์แรก
-  function inDoc_(a, filterDoc){
-    if(!a._ortho) return a.docName===filterDoc;
-    const dl = Object.keys(_realApts.reduce((m,x)=>{ if(x.docName) m[x.docName]=1; return m; },{}));
-    const tgt = dl.includes(a.docName) ? a.docName : dl[0];
-    return tgt===filterDoc;
-  }
+  function inDoc_(a, filterDoc){ return a.docName===filterDoc; }   // นัดจัดฟันจากการ์ดใช้ชื่อหมอจัดฟันของการ์ด → แยกคอลัมน์จากหมออีกคนตามปกติ
   // slots ต่อหมอ = sch_slots ของหมอคนนั้น + เวลานัดของหมอคนนั้น (doc='' = หมอเดี่ยว/แชร์)
   function slotsForDoc(filterDoc){
     const saved = getSchSlots(date, filterDoc);
@@ -7556,7 +7550,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 
   // หมอที่มีไม่คอนเฟิร์ม
   const docSet = {};
-  _realApts.forEach(a=>{ if(a.docName) docSet[a.docName]=(docSet[a.docName]||0)+1; });
+  dayApts.forEach(a=>{ if(a.docName) docSet[a.docName]=(docSet[a.docName]||0)+1; });
   const docList = Object.keys(docSet);
   const has2Docs = docList.length >= 2;
 
