@@ -3103,7 +3103,7 @@ function crmRender(){
   }
   const fn = { today:crmViewToday, apts:crmViewApts, orthoapt:crmViewOrthoApts, remind:crmViewRemind, aftercare:crmViewAftercare, followup:crmViewFollowup, rating:crmViewRating, tasks:crmViewTasks,
     old:crmViewOld, sso:crmViewSso, links:crmViewLinks, report:crmViewReport, settings:crmViewSettings }[CRM.sub] || crmViewToday;
-  try { el.innerHTML = crmStatusBar() + fn(); }
+  try { el.innerHTML = (isManager ? crmStatusBar() : '') + fn(); }   // แถบสถานะ ส่งจริง/โควตา/ข้อความล่าสุด: เฉพาะ ทพ.สรวิศ และผู้จัดการ
   catch(e){ console.error(e); el.innerHTML = '<div class="crm-alert r">แสดงผลไม่สำเร็จ: '+crmEsc(e.message)+'</div>'; }
   if(CRM.sub==='links') crmDrawQr();
 }
