@@ -1506,7 +1506,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <select class="form-control" id="orthoSortSel" onchange="setOrthoSort(this.value)" aria-label="เรียงลำดับ" style="height:36px;width:200px;"></select>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
             <button class="btn btn-ghost btn-sm" onclick="toggleOrthoCalendar()">📅 ปฏิทินนัด</button>
-            <button class="btn btn-primary btn-sm" onclick="openOrthoForm()">+ เพิ่มคนไข้จัดฟัน</button>
+            <button class="btn btn-primary btn-sm" id="btnAddOrtho" onclick="openOrthoForm()">+ เพิ่มคนไข้จัดฟัน</button>
           </div>
         </div>
         <div id="orthoCalendarBox" style="display:none;padding:14px;border-bottom:1px solid var(--border);">
@@ -2785,6 +2785,7 @@ function startApp(){
   });
   // หมอเอม: ซ่อนหน้าหลัก/เคสต่อเนื่อง/ค่าแลป (เห็นแค่ CRM นัดจัดฟัน · บันทึกการรักษา · สรุปรายได้)
   ['nav-home','ttab-home','mnav-home','nav-endo','ttab-endo','mnav-endo','nav-lab','ttab-lab','mnav-lab'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = isOrthoOnlyUser() ? 'none' : ''; });
+  { const ba=document.getElementById('btnAddOrtho'); if(ba) ba.style.display = isViewOnlyUser() ? 'none' : ''; }
   if(isOrthoOnlyUser()) ['nav-ortho','ttab-ortho'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; });   // หมอเอมเห็นเมนูจัดฟันด้วย
   // แท็บสถิติ: เห็นเฉพาะ ทพ.สรวิศ (id 'toy')
   ['nav-stats','ttab-stats','mnav-stats'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = canSeeStats() ? '' : 'none'; });
@@ -2900,6 +2901,8 @@ var CRM_SUBS = [
 // หมอเอม (id 'aim') เห็นเฉพาะ: จัดฟัน · LINE CRM > นัดจัดฟัน · บันทึกการรักษา · สรุปรายได้
 function isOrthoOnlyUser(){ return !!(currentUser && !isManager && currentUser.id==='aim'); }
 const ORTHO_ONLY_PAGES = ['treatment','income','crm','ortho'];
+function isViewOnlyUser(){ return isOrthoOnlyUser(); }   // หมอเอม: ดูอย่างเดียวในส่วนจัดฟัน (ไม่มีปุ่มบันทึก/เพิ่ม/แก้ไข)
+function viewOnlyBlock_(){ if(isViewOnlyUser()){ showToast('บัญชีนี้ดูข้อมูลได้อย่างเดียว','error'); return true; } return false; }
 function crmDoctorSubs(){ return isOrthoOnlyUser() ? ['orthoapt'] : ['rating']; }
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
@@ -3265,6 +3268,7 @@ function crmOrthoState(a){
 function crmOrthoRec(hn){ const k=crmHN(hn); return (typeof orthoData!=='undefined' && orthoData||[]).find(o=>crmHN(o.hn)===k) || null; }
 // แอดมินตั้งนัดจัดฟันเป็น "ยืนยัน" เอง (คนไข้ยืนยันทางโทร/แชท) — นัดในตารางนัดเปลี่ยนสถานะเป็นคอนเฟิร์มด้วย
 function crmOrthoConfirm(id){
+  if(viewOnlyBlock_()) return;
   const list=crmOrthoAptList('2000-01-01','2999-12-31'), a=list.find(x=>String(x.id)===String(id)); if(!a) return;
   if(!window.confirm('ตั้งนัดของ '+(a.patName||'')+' ('+crmThaiShort(a.date)+' '+(a.time||'')+') เป็น "ยืนยันแล้ว" ?')) return;
   if(!a._ortho){
@@ -3276,6 +3280,7 @@ function crmOrthoConfirm(id){
 let _crmCameSaving=false;
 const ORTHO_ADJ_FEE=1500, ORTHO_LOOSE_FEE=300, ORTHO_LOOSE_FREE=3;   // ปรับเครื่องมือ 1,500 · เหล็กหลุดฟรี 3 ตัวแรก ตัวต่อไปตัวละ 300
 function crmOrthoCame(hn, date, doc, again){
+  if(viewOnlyBlock_()) return;
   const r=crmOrthoRec(hn); if(!r){ showToast('ไม่พบการ์ดจัดฟันของคนไข้นี้','error'); return; }
   document.getElementById('came-title').textContent=(again?'เพิ่มรายการวันนี้ — ':'มาตามนัด — ')+(r['ชื่อ']||hn);
   document.getElementById('came-hn').value=r.hn; document.getElementById('came-date').value=date;
@@ -3557,6 +3562,7 @@ function crmViewOrthoApts(){
   const came=a=>{
     const o=crmOrthoRec(a.hn), base='flex:1 1 110px;box-sizing:border-box;padding:7px 6px;font-size:12px;white-space:normal;line-height:1.25;';
     if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;flex:1 1 110px;box-sizing:border-box;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
+    if(isViewOnlyUser()) return '';
     if(!o) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="ไม่มีการ์ดจัดฟันของคนไข้นี้ (ไม่มี HN หรือ HN ไม่ตรง)">มาตามนัด</button>`;
     if(a.date>today) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="กดได้เมื่อถึงวันนัด">มาตามนัด</button>`;
     return `<button class="crm-btn p" style="${base}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button>`;
@@ -3570,6 +3576,7 @@ function crmViewOrthoApts(){
     return '';
   };
   const nextBtn=a=>{
+    if(isViewOnlyUser()) return '';
     const o=crmOrthoRec(a.hn); if(!o) return '';
     return `<button class="crm-btn" style="flex:1 1 110px;box-sizing:border-box;padding:7px 6px;font-size:12px;white-space:normal;line-height:1.25;" onclick="openReschedule('${crmEsc(o.hn)}')">📅 นัดถัดไป</button>`;
   };
@@ -3584,7 +3591,7 @@ function crmViewOrthoApts(){
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}${(()=>{ const oc=a.hn?crmOrthoRec(a.hn):null, code=oc&&oc['รหัสประจำตัว']; return code?' · <b style="color:var(--wine);">'+crmEsc(code)+'</b>':''; })()}</span>
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${crmOrthoVisitNo(a)?` · <b style="color:var(--wine);">ปรับครั้งที่ ${crmOrthoVisitNo(a)}</b>`:''}</div>
           ${nextLine(a)}
-          <div style="margin-top:3px;">${x[2]?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${a._hnFromCode?'<span class="crm-chip o" title="นัดในตารางนัดยังไม่มี HN จึงยังไม่ส่งไลน์ — ใส่ HN ในนัดนี้เพื่อให้ส่งไลน์ยืนยัน/เตือนได้">จับคู่จากรหัส · นัดไม่มี HN</span>':(crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>')}</div>
+          <div style="margin-top:3px;">${(x[2]&&!isViewOnlyUser())?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${a._hnFromCode?'<span class="crm-chip o" title="นัดในตารางนัดยังไม่มี HN จึงยังไม่ส่งไลน์ — ใส่ HN ในนัดนี้เพื่อให้ส่งไลน์ยืนยัน/เตือนได้">จับคู่จากรหัส · นัดไม่มี HN</span>':(crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>')}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:stretch;margin-top:8px;">${came(a)}${nextBtn(a)}</div>
 </td></tr>`; }).join('');
     return head+rows;
@@ -10243,17 +10250,18 @@ function orthoCardHtml(r){
         ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
       </div>
     </div>
-    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+    ${isViewOnlyUser()?'':`<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
       <button class="btn btn-ghost btn-sm" onclick="openQuickLog('${hnEsc}')">⚡ ประวัติปรับเครื่องมือ</button>
       <button class="btn btn-ghost btn-sm" onclick="openReschedule('${hnEsc}')">📅 นัดถัดไป</button>
       <button class="btn btn-ghost btn-sm" onclick="openRetainer('${hnEsc}')">🦷 ใส่รีเทนเนอร์</button>
       <button class="btn btn-ghost btn-sm" onclick="openLooseModal('${hnEsc}')">🔧 เครื่องมือหลุด</button>
-    </div>
+    </div>`}
   </div>`;
 }
 
 function openOrthoForm(hn){
+  if(viewOnlyBlock_()) return;
   const r = hn ? orthoData.find(x=> String(x.hn)===String(hn)) : null;
   document.getElementById('orthoModalTitle').textContent = r ? 'แก้ไขข้อมูลจัดฟัน' : 'เพิ่มคนไข้จัดฟัน';
   document.getElementById('ortho-doc').innerHTML = getDoctorOptions();
@@ -10422,6 +10430,7 @@ async function openOrthoHistory(hn){
 }
 
 function openLooseModal(hn){
+  if(viewOnlyBlock_()) return;
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('looseModalTitle').textContent = 'เครื่องมือหลุด — '+(r?.['ชื่อ']||hn);
   document.getElementById('loose-hn').value = hn;
@@ -10472,6 +10481,7 @@ function reschedQuickSync(){
   document.querySelectorAll('.resched-q').forEach(b=>{ const on=parts.includes(b.dataset.q); b.classList.toggle('btn-primary',on); b.classList.toggle('btn-ghost',!on); });
 }
 function openReschedule(hn){
+  if(viewOnlyBlock_()) return;
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('reschedModalTitle').textContent = 'ลงนัด — '+(r?.['ชื่อ']||hn);
   document.getElementById('resched-hn').value = hn;
@@ -10488,6 +10498,7 @@ function openReschedule(hn){
 }
 
 async function saveReschedule(){
+  if(viewOnlyBlock_()) return;
   if(_reschedSaving) return;
   const hn = document.getElementById('resched-hn').value;
   if(!hn) return;
@@ -10510,6 +10521,7 @@ async function saveReschedule(){
 }
 
 function openRetainer(hn){
+  if(viewOnlyBlock_()) return;
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('retainerModalTitle').textContent = 'วันใส่รีเทนเนอร์ — '+(r?.['ชื่อ']||hn);
   document.getElementById('retainer-hn').value = hn;
@@ -10552,6 +10564,7 @@ function addQuickLogSlot(){
 }
 
 async function openQuickLog(hn){
+  if(viewOnlyBlock_()) return;
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('qlogModalTitle').textContent = 'ประวัติการรักษา — '+(r?.['ชื่อ']||hn);
   document.getElementById('qlog-hn').value = hn;
