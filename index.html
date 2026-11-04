@@ -1753,6 +1753,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div id="apt-hn-hint" style="font-size:11px;margin-top:4px;min-height:16px;"></div>
       </div>
       <div class="form-group">
+        <label>รหัสจัดฟัน <span style="font-weight:400;color:var(--wine-mid);font-size:12px;">(ไม่บังคับ)</span></label>
+        <input class="form-control" id="apt-ortho" placeholder="เช่น A-123" maxlength="10" oninput="fmtIdCode(this)">
+      </div>
+      <div class="form-group">
         <label>ชื่อ-สกุล</label>
         <input class="form-control" id="apt-name" placeholder="ชื่อผู้ป่วย" oninput="autoFillByName(this.value,'apt')">
       </div>
@@ -2403,6 +2407,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>เบอร์โทรศัพท์</label>
         <input class="form-control" id="editPat-phone" type="tel" placeholder="0xx-xxx-xxxx" inputmode="numeric" maxlength="12" oninput="fmtPhone(this)">
       </div>
+      <div class="form-group form-control-full">
+        <label>รหัสจัดฟัน <span style="font-weight:400;color:var(--wine-mid);font-size:12px;">(ไม่บังคับ)</span></label>
+        <input class="form-control" id="editPat-ortho" placeholder="เช่น A-123" maxlength="10" oninput="fmtIdCode(this)">
+      </div>
       <div class="form-group">
         <label>Line ID</label>
         <input class="form-control" id="editPat-line" placeholder="Line ID">
@@ -2436,6 +2444,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group">
         <label>เบอร์โทรศัพท์</label>
         <input class="form-control" id="newPat-phone" type="tel" placeholder="0xx-xxx-xxxx" inputmode="numeric" maxlength="12" oninput="fmtPhone(this)">
+      </div>
+      <div class="form-group form-control-full">
+        <label>รหัสจัดฟัน <span style="font-weight:400;color:var(--wine-mid);font-size:12px;">(ไม่บังคับ)</span></label>
+        <input class="form-control" id="newPat-ortho" placeholder="เช่น A-123" maxlength="10" oninput="fmtIdCode(this)">
       </div>
       <div class="form-group">
         <label>Line ID</label>
@@ -4606,6 +4618,7 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=nul
   document.getElementById('apt-date').value = apt?.date || prefillDate || todayStr();
   
   document.getElementById('apt-hn').value   = apt?.hn || '';
+  { const _o=document.getElementById('apt-ortho'); if(_o){ const _p=apt?.hn?patients.find(p=>normHN(p.hn)===normHN(apt.hn)):null; _o.value=_p?.orthoCode||''; } }
   document.getElementById('apt-name').value = apt?.patName || '';
   document.getElementById('apt-phone').value= apt?.phone || '';
   setAptContact(apt?.contactChannel || '');
@@ -4682,12 +4695,22 @@ function saveApt(){
     note: document.getElementById('apt-note').value,
   };
   if(!apt.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); _aptSaving=false; return; }
+  const _aptOrtho = orthoCodeClean_(document.getElementById('apt-ortho')?.value);
+  if(!orthoCodeOk_(_aptOrtho)){ showToast('รหัสจัดฟันรูปแบบ A-123 (หรือเว้นว่างได้)','error'); _aptSaving=false; return; }
   // บันทึกหมอล่าสุด
   if(isManager && apt.docName) localStorage.setItem('bl_last_doc', apt.docName);
   const idx = appointments.findIndex(a=>String(a.id)===String(apt.id));
   if(idx>-1) appointments[idx]=apt; else appointments.push(apt);
   saveLocal();
 
+  // ถ้ากรอกรหัสจัดฟัน → เก็บในข้อมูลคนไข้ (ถ้ามี HN นี้ในรายชื่อ)
+  if(apt.hn && _aptOrtho){
+    const _pt = patients.find(p=>normHN(p.hn)===normHN(String(apt.hn).trim()));
+    if(_pt && _pt.orthoCode !== _aptOrtho){
+      _pt.orthoCode = _aptOrtho; cachePatients();
+      pushPatientToSheet(Object.assign({}, _pt)).catch(()=>{});
+    }
+  }
   // ถ้ากรอกเบอร์ใหม่ → อัปเดตใน patients และ sync Sheet ทันที
   if(apt.hn && apt.phone){
     const normHn = String(apt.hn).trim();
@@ -4696,7 +4719,7 @@ function saveApt(){
       pat.phone = apt.phone;
       syncToSheet('patients', {
         hn: pat.hn, name: pat.name, phone: apt.phone,
-        lineId: pat.lineId||'', sso: pat.sso?'TRUE':'FALSE', addedAt: pat.addedAt||''
+        lineId: pat.lineId||'', sso: pat.sso?'TRUE':'FALSE', addedAt: pat.addedAt||'', orthoCode: pat.orthoCode||''
       });
       showToast('อัปเดตเบอร์โทรใน รายชื่อคนไข้ แล้ว ✅');
     }
@@ -8341,6 +8364,8 @@ function fmtTime24(input){
   input.value = v;
 }
 
+function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
+function orthoCodeClean_(v){ v=String(v||'').trim(); return (v==='A-')?'':v; }
 function fmtIdCode(input){
   input.value = input.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
 }
@@ -8424,6 +8449,7 @@ function autoFillByPhone(rawPhone, prefix){
 }
 
 function autoFillPatient(hn, prefix){
+  if(prefix==='apt'){ const _o=document.getElementById('apt-ortho'), _p=patients.find(p=>String(p.hn||'').trim()===String(hn||'').trim()); if(_o && _p && _p.orthoCode && !_o.value) _o.value=_p.orthoCode; }
   const hint = document.getElementById(prefix+'-hn-hint');
   if(!hn || String(hn).trim().length < 1){
     if(hint) hint.innerHTML = '';
@@ -8906,7 +8932,7 @@ function pushPatientToSheet(rec){
 function _patSame_(a,b){
   const n = v=>String(v==null?'':v).trim();
   const sso = v=>(v===true||String(v).toUpperCase()==='TRUE');
-  return n(a.name)===n(b.name) && n(a.phone).replace(/\D/g,'').slice(-9)===n(b.phone).replace(/\D/g,'').slice(-9) && n(a.lineId)===n(b.lineId) && sso(a.sso)===sso(b.sso);
+  return n(a.name)===n(b.name) && n(a.phone).replace(/\D/g,'').slice(-9)===n(b.phone).replace(/\D/g,'').slice(-9) && n(a.lineId)===n(b.lineId) && sso(a.sso)===sso(b.sso) && n(a.orthoCode)===n(b.orthoCode);
 }
 function deletePatientFromSheet(hn){
   return syncToSheet('delete_patient', { hn: String(hn) });
@@ -8942,6 +8968,7 @@ function loadPatientsFromSheet(sheetData){
     .map(p=>({
       ...p,
       hn: String(p.hn),
+      orthoCode: String(p['รหัสจัดฟัน']||p.orthoCode||'').trim(),
       sso: (String(p.sso||'').toUpperCase()==='TRUE' || p.sso===true)
     }));
   if(pendingPatients.size){
@@ -9094,6 +9121,7 @@ function openAddPatient(){
   document.getElementById('newPat-phone').value = '';
   document.getElementById('newPat-line').value = '';
   document.getElementById('newPat-sso').checked = false;
+  document.getElementById('newPat-ortho').value = '';
   document.getElementById('modalAddPatient').classList.add('open');
   setTimeout(()=>document.getElementById('newPat-name').focus(),100);
 }
@@ -9105,10 +9133,12 @@ function saveNewPatient(){
   const phone = document.getElementById('newPat-phone').value.trim();
   const lineId= document.getElementById('newPat-line').value.trim();
   const sso   = document.getElementById('newPat-sso').checked;
+  const orthoCode = orthoCodeClean_(document.getElementById('newPat-ortho').value);
   if(!hn)  { showToast('กรุณากรอก HN','error'); return; }
   if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
+  if(!orthoCodeOk_(orthoCode)){ showToast('รหัสจัดฟันรูปแบบ A-123 (หรือเว้นว่างได้)','error'); return; }
 
-  const rec = { hn, name, phone, lineId, sso, addedAt: todayStr() };
+  const rec = { hn, name, phone, lineId, sso, orthoCode, addedAt: todayStr() };
   const idx = patients.findIndex(p=>String(p.hn)===hn);
   if(idx>-1) patients[idx]=rec; else patients.push(rec);
   cachePatients();
@@ -9130,6 +9160,7 @@ function openEditPatient(hn){
   document.getElementById('editPat-name').value  = p.name  || '';
   document.getElementById('editPat-phone').value = p.phone || '';
   document.getElementById('editPat-line').value  = p.lineId|| '';
+  document.getElementById('editPat-ortho').value = p.orthoCode || '';
   document.getElementById('editPat-sso').checked = p.sso===true || String(p.sso).toUpperCase()==='TRUE';
   document.getElementById('modalEditPatient').classList.add('open');
   setTimeout(()=>document.getElementById('editPat-name').focus(),100);
@@ -9142,11 +9173,13 @@ function saveEditPatient(){
   const phone = document.getElementById('editPat-phone').value.trim();
   const lineId= document.getElementById('editPat-line').value.trim();
   const sso   = document.getElementById('editPat-sso').checked;
+  const orthoCode = orthoCodeClean_(document.getElementById('editPat-ortho').value);
   if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
+  if(!orthoCodeOk_(orthoCode)){ showToast('รหัสจัดฟันรูปแบบ A-123 (หรือเว้นว่างได้)','error'); return; }
 
   const idx = patients.findIndex(p=>String(p.hn)===hn);
   const addedAt = idx>-1 ? (patients[idx].addedAt||todayStr()) : todayStr();
-  const rec = { hn, name, phone, lineId, sso, addedAt };
+  const rec = { hn, name, phone, lineId, sso, orthoCode, addedAt };
   if(idx>-1) patients[idx]=rec; else patients.push(rec);
   cachePatients();
   closeEditPatient();

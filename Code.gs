@@ -475,7 +475,8 @@ function doPost(e) {
         var hns = gaIds_(sh);
         var i = hns.indexOf(String(r.hn));
         var addedAt = r.addedAt ? String(r.addedAt) : '';
-        var row = [String(r.hn||''), String(r.name||''), String(r.phone||''), String(r.lineId||''), r.sso?'TRUE':'FALSE', addedAt];
+        var row = [String(r.hn||''), String(r.name||''), String(r.phone||''), String(r.lineId||''), r.sso?'TRUE':'FALSE', addedAt, String(r.orthoCode||'')];
+        if (String(sh.getRange(1,7).getValue()||'') === '') sh.getRange(1,7).setValue('รหัสจัดฟัน');
         if (i < 1) {
           sh.appendRow(row);
           if (addedAt) sh.getRange(sh.getLastRow(),6).setNumberFormat('@STRING@').setValue(addedAt);
