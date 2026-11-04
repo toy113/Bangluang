@@ -7572,7 +7572,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${orthoCodeOf_(a.hn)?`<span style="color:var(--wine);font-weight:800;">🦷 ${orthoCodeOf_(a.hn)}</span> · `:''}${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -8364,6 +8364,12 @@ function fmtTime24(input){
   input.value = v;
 }
 
+function orthoCodeOf_(hn){
+  if(!hn) return ''; const k=crmHN(hn);
+  const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) return String(p.orthoCode).replace(/[<>&]/g,'');
+  if(typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && /^A-\d+$/.test(String(x['รหัสประจำตัว']||''))); if(o) return o['รหัสประจำตัว']; }
+  return '';
+}
 // แสดง HN คู่กับรหัสจัดฟัน (ถ้ามี)
 function hnWithOrtho_(hn){
   const h=hn||'—'; if(!hn) return h;
