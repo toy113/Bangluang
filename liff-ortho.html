@@ -255,7 +255,8 @@ function render(){
   }
   if(CUR >= d.patients.length) CUR = 0;
   const p = d.patients[CUR];
-  $('m-name').textContent = 'คุณ' + (p.name||'');
+  const ocode = p.ortho && p.ortho.profile && String(p.ortho.profile['รหัสประจำตัว']||'').trim();   // รหัสจัดฟัน แสดงต่อท้ายชื่อ (เฉพาะคนไข้ที่มีการ์ดจัดฟัน)
+  $('m-name').innerHTML = esc('คุณ' + (p.name||'')) + (ocode ? ` <span style="font-size:13px;font-weight:700;background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;margin-left:4px;white-space:nowrap;">🦷 ${esc(ocode)}</span>` : '');
   $('m-meta').textContent = 'HN ' + (p.hn||'-');
   $('m-people').innerHTML = d.patients.length > 1 ? d.patients.map((x,i)=>`<button class="${i===CUR?'on':''}" onclick="CUR=${i};render()">${esc(String(x.name||'').split(' ')[0])}</button>`).join('') : '';
   $('consentToggle').checked = d.patients.every(x=>x.consent);
