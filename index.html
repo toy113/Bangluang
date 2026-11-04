@@ -3652,6 +3652,7 @@ function crmViewAftercare(){
           ${String(t.followupEnabled).toUpperCase()==='TRUE'?`<div class="crm-pre" style="margin-top:6px;">${crmEsc(t.followupQuestion)}\n\n${opts.map(o=>'• '+o.label+' ['+(CRM_KIND[o.kind]||[o.kind])[0]+']'+(o.kind==='emergency'?' → งานด่วนให้พนักงาน':(o.reply?' → '+o.reply:''))).join('\n')}</div>`:''}</details></div>
         <div class="acts">${t.status!=='approved'&&t.status!=='disabled'?`<button class="crm-btn g" onclick="crmApproveTpl('${t.id}')">อนุมัติ (ทันตแพทย์)</button>`:''}
           ${isManager?`<button class="crm-btn" onclick="crmEditTpl('${t.id}')">แก้ไข</button>`:''}
+          ${isManager?`<button class="crm-btn ${String(t.followupEnabled).toUpperCase()==='TRUE'?'r':'p'}" onclick="crmToggleFu('${t.id}')">${String(t.followupEnabled).toUpperCase()==='TRUE'?'ปิดถามอาการ':'เปิดถามอาการ'}</button>`:''}
           <button class="crm-btn" onclick="crmDo({crm:'sendTest',kind:'aftercare',templateId:'${t.id}'},'ส่งตัวอย่างไปบัญชีทดสอบแล้ว')">ส่งตัวอย่าง</button>
           ${isManager?(t.status==='disabled'?`<button class="crm-btn" onclick="crmDo({crm:'setTemplateStatus',id:'${t.id}',status:'draft'},'เปิดใช้งานแล้ว (ต้องอนุมัติใหม่)')">เปิดใช้</button>`:`<button class="crm-btn r" onclick="crmDo({crm:'setTemplateStatus',id:'${t.id}',status:'disabled'},'ปิดใช้งานแล้ว')">ปิดใช้</button>`):''}</div></div>`;
     }).join('')||'<div class="crm-empty">ยังไม่มี template — รัน crmSetup() เพื่อสร้างร่างเริ่มต้น</div>'}</div></div>
@@ -3722,6 +3723,15 @@ function crmEditTpl(id){
     <div class="foot">${id?`<button class="crm-btn r" style="margin-right:auto" onclick="if(confirm('ลบ template นี้?')){crmCloseModal();crmDo({crm:'deleteTemplate',id:'${t.id}'},'ลบแล้ว');}">ลบ</button>`:''}
       <button class="crm-btn" onclick="crmCloseModal()">ยกเลิก</button><button class="crm-btn p" onclick="crmSaveTpl('${id||''}')">บันทึก</button></div>`);
   crmTplOptsRender();
+}
+/* สลับ "ถามอาการวันถัดไป" ของ template ได้ทันที (ไม่แตะข้อความ จึงไม่ต้องอนุมัติใหม่) */
+function crmToggleFu(id){
+  const t=(CRM.data.templates||[]).find(x=>x.id===id); if(!t) return;
+  const on=String(t.followupEnabled).toUpperCase()!=='TRUE';
+  const tpl={ id:t.id, name:t.name, priority:+t.priority||50, procKeywords:t.procKeywords, aftercareText:t.aftercareText,
+    followupEnabled:on, followupQuestion:t.followupQuestion||'', followupOptions:t.followupOptions||'[]' };
+  t.followupEnabled = on?'TRUE':'FALSE';   // แสดงผลทันที
+  crmDo({crm:'saveTemplate', template:tpl}, on?'เปิดถามอาการวันถัดไปแล้ว ✅':'ปิดถามอาการวันถัดไปแล้ว');
 }
 function crmTplOptsRender(){
   const el=document.getElementById('crmTplOpts'); if(!el) return;
