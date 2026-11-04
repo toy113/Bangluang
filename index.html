@@ -2890,7 +2890,7 @@ var CRM_SUBS = [
   ['followup','🩺','ติดตามอาการ'], ['rating','⭐','คะแนนบริการ'], ['tasks','📞','งานโทรกลับ'], ['old','🗂️','คนไข้เก่า'], ['sso','🏛️','แคมเปญประกันสังคม'],
   ['links','🔗','LINE Connections'], ['report','📊','รายงานและต้นทุน'], ['settings','⚙️','ตั้งค่า']
 ];
-var CRM_DOCTOR_SUBS = ['aftercare','followup','rating','tasks'];
+var CRM_DOCTOR_SUBS = ['rating'];
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
 var CRM_LOG_TYPE = { confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
@@ -3038,7 +3038,7 @@ async function crmDo(payload, okMsg){
 }
 
 function renderCrmPage(){
-  if(!isManager && !CRM_DOCTOR_SUBS.includes(CRM.sub)) CRM.sub = 'aftercare';
+  if(!isManager && !CRM_DOCTOR_SUBS.includes(CRM.sub)) CRM.sub = CRM_DOCTOR_SUBS[0];
   crmRender();
   crmLoad();
 }
