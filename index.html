@@ -10102,35 +10102,35 @@ function renderOrthoCalendar(){
 
 // แถบช่วงเวลาของวัน (15 นาที): ช่วงที่ยังไม่มีนัดจัดฟัน = "ว่าง" · จำนวนนัดไม่จำกัด จึงแสดงเป็นจำนวนคนต่อช่วง
 // ช่วงเวลาแสดง = เวลาทำการของวันนั้นตามตั้งค่า Slot (แล้วแต่วัน) ขยายให้คลุมนัดที่มีอยู่นอกเวลา
+const ORTHO_HOUR_CAP = 6;   // รับนัดจัดฟันได้ไม่เกินกี่คนต่อชั่วโมง
 function orthoSlotStrip_(dsel, list){
   const toMin = t=>{ const m=String(t||'').match(/^(\d{1,2}):(\d{2})/); return m ? (+m[1])*60+(+m[2]) : null; };
   const dow = new Date(dsel+'T00:00:00').getDay();
   let cfg = null; try{ cfg = (loadDaySlotConfig()||[]).find(d=>d.dow===dow); }catch(e){}
-  const buckets = {}; let noTime = 0;
-  list.forEach(a=>{ const mm=toMin(a.time); if(mm==null){ noTime++; return; } const b=Math.floor(mm/15)*15; (buckets[b]=buckets[b]||[]).push(a.patName||''); });
-  const keys = Object.keys(buckets).map(Number);
+  const hours = {}; let noTime = 0;
+  list.forEach(a=>{ const mm=toMin(a.time); if(mm==null){ noTime++; return; } const h=Math.floor(mm/60); (hours[h]=hours[h]||[]).push((a.time||'')+' '+(a.patName||'')); });
+  const keys = Object.keys(hours).map(Number);
   let from = cfg && cfg.open ? toMin(cfg.start) : null, to = cfg && cfg.open ? toMin(cfg.end) : null;
-  if(from==null){ from = keys.length ? Math.min(...keys) : 13*60; to = keys.length ? Math.max(...keys)+15 : 17*60; }
-  if(keys.length){ from = Math.min(from, Math.min(...keys)); to = Math.max(to, Math.max(...keys)+15); }
-  const h0 = Math.floor(from/60), h1 = Math.ceil(to/60);
-  let free = 0, total = 0, rows = '';
+  if(from==null){ from = keys.length ? Math.min(...keys)*60 : 13*60; to = keys.length ? (Math.max(...keys)+1)*60 : 17*60; }
+  if(keys.length){ from = Math.min(from, Math.min(...keys)*60); to = Math.max(to, (Math.max(...keys)+1)*60); }
+  const h0 = Math.floor(from/60), h1 = Math.ceil(to/60), CAP = ORTHO_HOUR_CAP;
   const pad = n=>String(n).padStart(2,'0');
+  let rows = '', openH = 0;
   for(let h=h0; h<h1; h++){
-    let cells = '';
-    for(let q=0; q<4; q++){
-      const b = h*60+q*15; if(b<from-14 || b>=to) { cells += '<div style="flex:1;"></div>'; continue; }
-      const names = buckets[b]||[], n = names.length; total++;
-      const label = pad(h)+':'+pad(q*15);
-      if(!n){ free++; cells += `<div title="${label} ว่าง" style="flex:1;text-align:center;border:1px dashed #7CC49A;background:#F1FBF5;color:#1D6B44;border-radius:6px;padding:3px 0;font-size:11px;font-weight:700;">:${pad(q*15)} ว่าง</div>`; }
-      else { const bg = n>=3 ? '#F5C2BD' : (n===2 ? '#FFE3A8' : '#FFF1B8'), fg = n>=3 ? '#8E2A22' : '#7A5600';
-        cells += `<div title="${escapeHtml(label+' — '+names.join(', '))}" style="flex:1;text-align:center;background:${bg};color:${fg};border-radius:6px;padding:3px 0;font-size:11px;font-weight:700;">:${pad(q*15)} · ${n} คน</div>`; }
-    }
-    rows += `<div style="display:flex;align-items:center;gap:4px;margin-top:3px;"><span style="width:38px;font-size:11px;font-weight:800;color:var(--wine);text-align:right;flex-shrink:0;">${pad(h)}:00</span>${cells}</div>`;
+    const names = hours[h]||[], n = names.length;
+    let bg, fg, lab;
+    if(n>CAP){ bg='#FDE2E2'; fg='#C0392B'; lab='เกินคิว'; }
+    else if(n===CAP){ bg='#F8C9C9'; fg='#B03030'; lab='เต็ม'; }
+    else if(n>=4){ bg='#FFE2B0'; fg='#A8630A'; lab='เหลือน้อย'; openH++; }
+    else if(n>=1){ bg='#FFF1BD'; fg='#8A6D00'; lab='ว่างบางส่วน'; openH++; }
+    else { bg='#E6F6EA'; fg='#1E7A3C'; lab='ว่างทั้งชั่วโมง'; openH++; }
+    rows += `<div title="${escapeHtml(names.join(', '))}" style="display:flex;align-items:center;background:${bg};border-radius:12px;padding:7px 12px;margin:5px 0;"><div style="font-weight:800;font-size:15px;width:54px;color:var(--wine-dark);">${pad(h)}:00</div><div style="flex:1;font-size:13px;font-weight:700;color:${fg};">${lab}</div><div style="text-align:right;"><span style="font-size:22px;font-weight:800;color:${fg};line-height:1;">${n}</span><span style="font-size:12px;color:${fg};"> / ${CAP}</span></div></div>`;
   }
   const closed = cfg && !cfg.open ? ' · <b style="color:#B3261E;">วันนี้คลินิกปิดตามตั้งค่า</b>' : '';
-  return `<div style="margin:0 0 10px;padding:8px 8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;">
-    <div style="font-size:12.5px;font-weight:800;color:var(--wine-dark);">🕒 ช่วงเวลาของวัน <span style="font-weight:600;color:var(--text-mid);">— ว่าง ${free} จาก ${total} ช่วง (ช่วงละ 15 นาที)${closed}</span></div>
-    <div style="font-size:10.5px;color:var(--text-light);margin:2px 0 4px;">เขียว = ว่าง · เหลือง = 1–2 คน · แดง = 3 คนขึ้นไป · เวลาตามตั้งค่า Slot ของแต่ละวัน${noTime?' · มี '+noTime+' นัดที่ไม่ระบุเวลา':''}</div>
+  const nt = noTime ? ` · <b>${noTime} นัดไม่ระบุเวลา</b>` : '';
+  return `<div style="margin:0 0 10px;padding:10px 10px 8px;border:1px solid var(--border);border-radius:12px;background:#fff;">
+    <div style="font-size:14px;font-weight:800;color:var(--wine-dark);">🕒 ช่วงเวลาของวัน <span style="font-weight:600;font-size:12px;color:var(--text-mid);">— รับได้ ${CAP} คน/ชั่วโมง · ยังรับได้ ${openH} จาก ${h1-h0} ชั่วโมง</span></div>
+    <div style="font-size:11px;color:var(--text-light);margin:2px 0 6px;">ตัวเลข = จำนวนนัดจัดฟันในชั่วโมงนั้น${closed}${nt}</div>
     ${rows}</div>`;
 }
 
