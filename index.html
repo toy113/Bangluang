@@ -2270,15 +2270,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ปักหมุด"> ปักหมุด</label>
-          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
-          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="อุดฟัน"> อุดฟัน</label>
-          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="BK หลุด"> BK หลุด</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="X-ray"> X-ray</label>
         </div>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
         <label>หมายเหตุนัด</label>
-        <input class="form-control" id="resched-note" placeholder="หมายเหตุสำหรับนัดนี้">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;"><button type="button" class="btn btn-ghost btn-sm resched-q" data-q="ขูดหินปูน" onclick="reschedQuick(this)">ขูดหินปูน</button><button type="button" class="btn btn-ghost btn-sm resched-q" data-q="อุดฟัน" onclick="reschedQuick(this)">อุดฟัน</button><button type="button" class="btn btn-ghost btn-sm resched-q" data-q="BK หลุด" onclick="reschedQuick(this)">BK หลุด</button></div>
+        <input class="form-control" id="resched-note" placeholder="หมายเหตุสำหรับนัดนี้" oninput="reschedQuickSync()">
       </div>
     </div>
     <div class="modal-footer">
@@ -10428,6 +10426,18 @@ async function saveLoose(){
   _looseSaving = false;
 }
 
+const RESCHED_QUICK=['ขูดหินปูน','อุดฟัน','BK หลุด'];
+// ปุ่มลัดในหมายเหตุนัด: กดเพื่อเติม/เอาออกจากข้อความหมายเหตุ (เลือกได้หลายอัน)
+function reschedQuick(btn){
+  const el=document.getElementById('resched-note'), q=btn.dataset.q;
+  let parts=el.value.split(/\s*·\s*/).map(x=>x.trim()).filter(Boolean);
+  if(parts.includes(q)) parts=parts.filter(x=>x!==q); else parts.unshift(q);
+  el.value=parts.join(' · '); reschedQuickSync();
+}
+function reschedQuickSync(){
+  const parts=document.getElementById('resched-note').value.split(/\s*·\s*/).map(x=>x.trim());
+  document.querySelectorAll('.resched-q').forEach(b=>{ const on=parts.includes(b.dataset.q); b.classList.toggle('btn-primary',on); b.classList.toggle('btn-ghost',!on); });
+}
 function openReschedule(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('reschedModalTitle').textContent = 'ลงนัด — '+(r?.['ชื่อ']||hn);
@@ -10437,6 +10447,10 @@ function openReschedule(hn){
   document.getElementById('resched-note').value = r?.['หมายเหตุนัดถัดไป'] || '';
   const sel = String(r?.['รายการนัดถัดไป']||'').split(',').map(s=>s.trim());
   document.querySelectorAll('.resched-do-chk').forEach(c=> c.checked = sel.includes(c.value));
+  // รายการเดิมที่เคยเลือกเป็นช่องติ๊ก (ขูดหินปูน/อุดฟัน/BK หลุด) → ย้ายมาอยู่ในหมายเหตุ ไม่ให้หาย
+  const nEl=document.getElementById('resched-note');
+  RESCHED_QUICK.forEach(q=>{ if(sel.includes(q) && nEl.value.indexOf(q)<0) nEl.value = q+(nEl.value?' · '+nEl.value:''); });
+  reschedQuickSync();
   document.getElementById('modalReschedule').classList.add('open');
 }
 
