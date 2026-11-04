@@ -7356,13 +7356,17 @@ function _writeDeletedMap(date, map){
     localStorage.setItem('bl_deleted_slots', JSON.stringify(all));
   }catch(e){}
 }
-function getSchSlots(date, doc){
+// หมอเอม (ทพญ.วัจน์กร) ใช้ slot ตั้งต้นทุก 15 นาที (10:00–18:00 เว้นพักเที่ยง 12:30–13:00)
+const AIM_DEFAULT_SLOTS = (()=>{ const o=[]; for(let m=600;m<=1080;m+=15){ if(m===750||m===765) continue; o.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return o; })();
+function isAimDoc_(name){ const a=(typeof doctors!=='undefined'?doctors:[]).find(d=>d.id==='aim'); return !!(a && name && String(name)===String(a.name)); }
+function getSchSlots(date, doc, defDoc){
   try {
     const dk = doc || '';
     const map = _slotMap(date);
     const del = (_deletedMap(date)[dk]) || [];
     const saved = map[dk];
-    const base = (saved!=null) ? new Set([...DEFAULT_SLOTS, ...saved]) : new Set(DEFAULT_SLOTS);
+    const DEF = isAimDoc_(defDoc!=null?defDoc:doc) ? AIM_DEFAULT_SLOTS : DEFAULT_SLOTS;
+    const base = (saved!=null) ? new Set([...DEF, ...saved]) : new Set(DEF);
     return [...base].filter(s=>!del.includes(s)).sort();
   } catch(e){ return [...DEFAULT_SLOTS]; }
 }
@@ -7569,7 +7573,8 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   function inDoc_(a, filterDoc){ return a.docName===filterDoc; }   // นัดจัดฟันจากการ์ดใช้ชื่อหมอจัดฟันของการ์ด → แยกคอลัมน์จากหมออีกคนตามปกติ
   // slots ต่อหมอ = sch_slots ของหมอคนนั้น + เวลานัดของหมอคนนั้น (doc='' = หมอเดี่ยว/แชร์)
   function slotsForDoc(filterDoc){
-    const saved = getSchSlots(date, filterDoc);
+    const _only = [...new Set(dayApts.map(a=>a.docName).filter(Boolean))];
+    const saved = getSchSlots(date, filterDoc, filterDoc || (_only.length===1 ? _only[0] : ''));
     const aptS = dayApts.filter(a=> !filterDoc || inDoc_(a, filterDoc))
                         .map(a=>String(a.time||'').slice(0,5)).filter(Boolean);
     return [...new Set([...saved, ...aptS])].sort();
