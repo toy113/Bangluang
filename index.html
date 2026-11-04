@@ -10019,8 +10019,9 @@ function renderOrthoCalendar(){
   if(!orthoCalSelectedDay){ detailBox.innerHTML=''; return; }
   const dsel = orthoCalSelectedDay;
   const dayList = orthoDayList_(dsel);
+  const slotStrip = orthoSlotStrip_(dsel, dayList);
   if(!dayList.length){
-    detailBox.innerHTML = `<div style="color:var(--text-light);font-size:13px;">ไม่มีนัดวันที่ ${orthoThaiDateShort_(dsel)}</div>`;
+    detailBox.innerHTML = `<div style="color:var(--text-light);font-size:13px;margin-bottom:8px;">ไม่มีนัดวันที่ ${orthoThaiDateShort_(dsel)}</div>${slotStrip}`;
     return;
   }
   const rows = dayList.map((a,i)=>{
@@ -10034,7 +10035,42 @@ function renderOrthoCalendar(){
         <strong style="font-size:13px;">รายชื่อนัดวันที่ ${orthoThaiDateShort_(dsel)} (${dayList.length} คน)</strong>
         <button class="btn btn-ghost btn-sm" onclick="orthoCopyDayList('${dsel}')">📋 Copy</button>
       </div>
+      ${slotStrip}
       <div style="background:#faf7fb;border:1px solid var(--border);border-radius:8px;padding:4px 10px;">${rows}</div>`;
+}
+
+// แถบช่วงเวลาของวัน (15 นาที): ช่วงที่ยังไม่มีนัดจัดฟัน = "ว่าง" · จำนวนนัดไม่จำกัด จึงแสดงเป็นจำนวนคนต่อช่วง
+// ช่วงเวลาแสดง = เวลาทำการของวันนั้นตามตั้งค่า Slot (แล้วแต่วัน) ขยายให้คลุมนัดที่มีอยู่นอกเวลา
+function orthoSlotStrip_(dsel, list){
+  const toMin = t=>{ const m=String(t||'').match(/^(\d{1,2}):(\d{2})/); return m ? (+m[1])*60+(+m[2]) : null; };
+  const dow = new Date(dsel+'T00:00:00').getDay();
+  let cfg = null; try{ cfg = (loadDaySlotConfig()||[]).find(d=>d.dow===dow); }catch(e){}
+  const buckets = {}; let noTime = 0;
+  list.forEach(a=>{ const mm=toMin(a.time); if(mm==null){ noTime++; return; } const b=Math.floor(mm/15)*15; (buckets[b]=buckets[b]||[]).push(a.patName||''); });
+  const keys = Object.keys(buckets).map(Number);
+  let from = cfg && cfg.open ? toMin(cfg.start) : null, to = cfg && cfg.open ? toMin(cfg.end) : null;
+  if(from==null){ from = keys.length ? Math.min(...keys) : 13*60; to = keys.length ? Math.max(...keys)+15 : 17*60; }
+  if(keys.length){ from = Math.min(from, Math.min(...keys)); to = Math.max(to, Math.max(...keys)+15); }
+  const h0 = Math.floor(from/60), h1 = Math.ceil(to/60);
+  let free = 0, total = 0, rows = '';
+  const pad = n=>String(n).padStart(2,'0');
+  for(let h=h0; h<h1; h++){
+    let cells = '';
+    for(let q=0; q<4; q++){
+      const b = h*60+q*15; if(b<from-14 || b>=to) { cells += '<div style="flex:1;"></div>'; continue; }
+      const names = buckets[b]||[], n = names.length; total++;
+      const label = pad(h)+':'+pad(q*15);
+      if(!n){ free++; cells += `<div title="${label} ว่าง" style="flex:1;text-align:center;border:1px dashed #7CC49A;background:#F1FBF5;color:#1D6B44;border-radius:6px;padding:3px 0;font-size:11px;font-weight:700;">:${pad(q*15)} ว่าง</div>`; }
+      else { const bg = n>=3 ? '#F5C2BD' : (n===2 ? '#FFE3A8' : '#FFF1B8'), fg = n>=3 ? '#8E2A22' : '#7A5600';
+        cells += `<div title="${escapeHtml(label+' — '+names.join(', '))}" style="flex:1;text-align:center;background:${bg};color:${fg};border-radius:6px;padding:3px 0;font-size:11px;font-weight:700;">:${pad(q*15)} · ${n} คน</div>`; }
+    }
+    rows += `<div style="display:flex;align-items:center;gap:4px;margin-top:3px;"><span style="width:38px;font-size:11px;font-weight:800;color:var(--wine);text-align:right;flex-shrink:0;">${pad(h)}:00</span>${cells}</div>`;
+  }
+  const closed = cfg && !cfg.open ? ' · <b style="color:#B3261E;">วันนี้คลินิกปิดตามตั้งค่า</b>' : '';
+  return `<div style="margin:0 0 10px;padding:8px 8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;">
+    <div style="font-size:12.5px;font-weight:800;color:var(--wine-dark);">🕒 ช่วงเวลาของวัน <span style="font-weight:600;color:var(--text-mid);">— ว่าง ${free} จาก ${total} ช่วง (ช่วงละ 15 นาที)${closed}</span></div>
+    <div style="font-size:10.5px;color:var(--text-light);margin:2px 0 4px;">เขียว = ว่าง · เหลือง = 1–2 คน · แดง = 3 คนขึ้นไป · เวลาตามตั้งค่า Slot ของแต่ละวัน${noTime?' · มี '+noTime+' นัดที่ไม่ระบุเวลา':''}</div>
+    ${rows}</div>`;
 }
 
 // รายการนัดจัดฟันของวันเดียว (การ์ดจัดฟัน + ตารางนัด) เรียงตามเวลา และบรรทัดข้อความของแต่ละคน
