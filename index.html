@@ -2809,7 +2809,7 @@ function startApp(){
   ['nav-stats','ttab-stats','mnav-stats'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = canSeeStats() ? '' : 'none'; });
   if(isManager||isOrthoOnlyUser()){
     try{ if(!orthoData.length){ const c=JSON.parse(localStorage.getItem('bl_ortho_cache')||'null'); if(Array.isArray(c)) orthoData=c; } }catch(e){}   // แคชรอบก่อน: โชว์รายการจัดฟันได้ทันที
-    if(typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().catch(()=>{}); }, 100);
+    if(typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().then(()=>{ try{ if(document.getElementById('schSlotView') && document.getElementById('schSlotView').offsetParent!==null) renderSchedulePage(); }catch(e){} }).catch(()=>{}); }, 100);
   }   // โหลดเบื้องหลังเพื่อให้ตัวเลขที่เมนูจัดฟันขึ้นทันที
 
   // Show add buttons for manager only, hide for doctors
@@ -7530,23 +7530,33 @@ function renderScheduleDay(){
 function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const d = new Date(date+'T00:00:00');
   const dow = d.getDay();
-  const dayApts = appointments.filter(a=>a.date===date).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const _realApts = appointments.filter(a=>a.date===date);
+  // นัดจัดฟันจากการ์ดจัดฟัน (นัดถัดไป) ที่ยังไม่มีในตารางนัด → แสดงรวมที่นี่ด้วย (อ่านอย่างเดียว กดไปการ์ดจัดฟัน)
+  let _virt = []; try{ _virt = crmOrthoAptList(date,date).filter(a=>a._ortho); }catch(e){}
+  const dayApts = _realApts.concat(_virt).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const isToday = date===todayStr();
   const bg = DAY_BG_PASTEL[dow];
   const fg = DAY_FG_PASTEL[dow];
   const borderStyle = isToday ? 'box-shadow:0 0 0 3px #FFD700, 0 2px 12px rgba(0,0,0,0.15);' : '';
 
+  // นัดจัดฟันจากการ์ดไม่นับเป็น "หมอ" ของวัน: ถ้าชื่อหมอตรงคอลัมน์ไหนใส่คอลัมน์นั้น ไม่งั้นใส่คอลัมน์แรก
+  function inDoc_(a, filterDoc){
+    if(!a._ortho) return a.docName===filterDoc;
+    const dl = Object.keys(_realApts.reduce((m,x)=>{ if(x.docName) m[x.docName]=1; return m; },{}));
+    const tgt = dl.includes(a.docName) ? a.docName : dl[0];
+    return tgt===filterDoc;
+  }
   // slots ต่อหมอ = sch_slots ของหมอคนนั้น + เวลานัดของหมอคนนั้น (doc='' = หมอเดี่ยว/แชร์)
   function slotsForDoc(filterDoc){
     const saved = getSchSlots(date, filterDoc);
-    const aptS = dayApts.filter(a=> !filterDoc || a.docName===filterDoc)
+    const aptS = dayApts.filter(a=> !filterDoc || inDoc_(a, filterDoc))
                         .map(a=>String(a.time||'').slice(0,5)).filter(Boolean);
     return [...new Set([...saved, ...aptS])].sort();
   }
 
   // หมอที่มีไม่คอนเฟิร์ม
   const docSet = {};
-  dayApts.forEach(a=>{ if(a.docName) docSet[a.docName]=(docSet[a.docName]||0)+1; });
+  _realApts.forEach(a=>{ if(a.docName) docSet[a.docName]=(docSet[a.docName]||0)+1; });
   const docList = Object.keys(docSet);
   const has2Docs = docList.length >= 2;
 
@@ -7562,12 +7572,22 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 
   function getSlotApts(slot, filterDoc){
     return dayApts.filter(a=>{
-      if(filterDoc && a.docName!==filterDoc) return false;
+      if(filterDoc && !inDoc_(a, filterDoc)) return false;
       return String(a.time||'').slice(0,5) === slot;
     });
   }
 
   function aptCard(a){
+    if(a._ortho){
+      const hnE = String(a.hn||'').replace(/'/g,"\\'");
+      return `<div style="background:#E8F0FE;border-left:3px solid #1E6FD9;border-radius:6px;padding:4px 7px;margin-top:3px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+          <span style="font-weight:700;color:#1E4FA0;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orthoCodeOf_(a.hn,a.patName)?`<span style="font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName)}</span> · `:'🦷 '}${a.hn?`${a.hn} · `:''}${_escHtml(a.patName||'—')}</span>
+          <button onclick="event.stopPropagation();openOrthoHistory('${hnE}')" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:700;color:#1E4FA0;cursor:pointer;flex-shrink:0;">การ์ดจัดฟัน</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--text-mid);margin-top:2px;">นัดจากการ์ดจัดฟัน · ${_escHtml(a.proc||'นัดจัดฟัน')}</div>
+      </div>`;
+    }
     const sc = STATUS_COLOR[a.status]||'#999';
     const safeId = String(a.id).replace(/"/g,'');
     return `<div style="background:${sc}12;border-left:3px solid ${sc};border-radius:6px;
