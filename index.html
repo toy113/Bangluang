@@ -3539,11 +3539,11 @@ function crmViewOrthoApts(){
     if(!rows.length) return '';
     const sum={}; rows.forEach(t=>{ let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){} String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{ sum[x]=(sum[x]||0)+(+pp[x]||0); }); });
     const tot=rows.reduce((n,t)=>n+totalPrice(t),0);
-    return '<div style="font-size:11px;color:#1D6B44;margin-top:4px;line-height:1.35;text-align:left;">บันทึกแล้ว: '+Object.keys(sum).map(k=>crmEsc(k)+(sum[k]?' '+sum[k].toLocaleString():'')).join(' · ')+' <b>รวม '+tot.toLocaleString()+'</b></div>';
+    return '<div style="font-size:11px;color:#1D6B44;flex:1 1 100%;line-height:1.35;text-align:left;">บันทึกแล้ว: '+Object.keys(sum).map(k=>crmEsc(k)+(sum[k]?' '+sum[k].toLocaleString():'')).join(' · ')+' <b>รวม '+tot.toLocaleString()+'</b></div>';
   };
   const came=a=>{
-    const o=crmOrthoRec(a.hn), base='width:100%;box-sizing:border-box;padding:6px 4px;font-size:12px;white-space:normal;line-height:1.25;';
-    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;box-sizing:border-box;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
+    const o=crmOrthoRec(a.hn), base='flex:1 1 110px;box-sizing:border-box;padding:7px 6px;font-size:12px;white-space:normal;line-height:1.25;';
+    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;flex:1 1 110px;box-sizing:border-box;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
     if(!o) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="ไม่มีการ์ดจัดฟันของคนไข้นี้ (ไม่มี HN หรือ HN ไม่ตรง)">มาตามนัด</button>`;
     if(a.date>today) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="กดได้เมื่อถึงวันนัด">มาตามนัด</button>`;
     return `<button class="crm-btn p" style="${base}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button>`;
@@ -3558,12 +3558,12 @@ function crmViewOrthoApts(){
   };
   const nextBtn=a=>{
     const o=crmOrthoRec(a.hn); if(!o) return '';
-    return `<button class="crm-btn" style="width:100%;box-sizing:border-box;padding:6px 4px;font-size:12px;margin-top:6px;white-space:normal;line-height:1.25;" onclick="openReschedule('${crmEsc(o.hn)}')">📅 นัดถัดไป</button>`;
+    return `<button class="crm-btn" style="flex:1 1 110px;box-sizing:border-box;padding:7px 6px;font-size:12px;white-space:normal;line-height:1.25;" onclick="openReschedule('${crmEsc(o.hn)}')">📅 นัดถัดไป</button>`;
   };
   const body=dates.map(d=>{
     const arr=days[d], cnt={yes:0,move:0,wait:0,noline:0}; arr.forEach(a=>cnt[crmOrthoState(a)]++);
     const pend=arr.filter(a=>['wait','noline'].includes(crmOrthoState(a)));
-    const head=`<tr><td colspan="3" style="background:var(--wine);color:#fff;font-weight:800;padding:8px 10px;border-bottom:0;">${crmEsc(crmThaiShort(d))}${d===today?' · วันนี้':''}
+    const head=`<tr><td colspan="2" style="background:var(--wine);color:#fff;font-weight:800;padding:8px 10px;border-bottom:0;">${crmEsc(crmThaiShort(d))}${d===today?' · วันนี้':''}
         <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${(cnt.wait+cnt.noline)?` · ⏳${cnt.wait+cnt.noline}`:''}${cnt.move?` · 📅${cnt.move}`:''}</span><div style="margin-top:4px;"><button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoPrint('${d}')">🖨 พิมพ์รายการให้หมอ</button>${d<=today?` <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoDfSummary('${d}')">📤 สรุปงาน+DF (ส่งไลน์)</button>`:''}</div></td></tr>`;
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
@@ -3571,15 +3571,16 @@ function crmViewOrthoApts(){
         <td><b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${crmOrthoVisitNo(a)?` · <b style="color:var(--wine);">ปรับครั้งที่ ${crmOrthoVisitNo(a)}</b>`:''}</div>
           ${nextLine(a)}
-          <div style="margin-top:3px;">${x[2]?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div></td>
-        <td style="vertical-align:middle;">${came(a)}${nextBtn(a)}</td></tr>`; }).join('');
+          <div style="margin-top:3px;">${x[2]?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>'}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:stretch;margin-top:8px;">${came(a)}${nextBtn(a)}</div>
+</td></tr>`; }).join('');
     return head+rows;
   }).join('');
   return `<div class="crm-card"><h4>😬 นัดจัดฟัน — ยืนยันแล้วกี่คนจากกี่คน<span class="sp"></span>
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
       <div class="meta">รวม <b>${list.length}</b> คน · ✅ ยืนยัน ${tot.yes} · ⏳ ยังไม่ยืนยัน ${tot.wait+tot.noline}${tot.move?` · 📅 ขอเลื่อน ${tot.move}`:''} · 🟢 ผูกไลน์แล้ว ${list.filter(a=>crmHasLine(a.hn)).length}/${list.length}</div>
       <p class="crm-muted" style="margin:6px 0 10px;">ยืนยัน = คนไข้กดยืนยันใน LINE · แตะป้าย <b>เหลือง/แดง</b> เพื่อตั้งเป็น "ยืนยัน" เอง (เช่น คนไข้ยืนยันทางโทร) · ปุ่ม "มาตามนัด" กดได้เมื่อถึงวันนัด เพื่อบันทึกปรับเครื่องมือลงการ์ดจัดฟัน</p>
-      ${dates.length?`<div class="crm-tablewrap" style="overflow-x:hidden;"><table class="crm-table" style="overflow-wrap:anywhere;word-break:break-word;table-layout:fixed;width:100%;"><colgroup><col style="width:52px"><col><col style="width:92px"></colgroup><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th><th></th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
+      ${dates.length?`<div class="crm-tablewrap" style="overflow-x:hidden;"><table class="crm-table" style="overflow-wrap:anywhere;word-break:break-word;table-layout:fixed;width:100%;"><colgroup><col style="width:52px"><col></colgroup><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
 }
 function crmMarkConfirmed(id){
   const a=appointments.find(x=>String(x.id)===String(id)); if(!a) return;
