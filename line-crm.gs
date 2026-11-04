@@ -48,6 +48,9 @@ var CRM_DEFAULT_SETTINGS = {
   enabled: false,            // สวิตช์หลัก — ปิดไว้จนกว่าจะทดสอบ+อนุมัติครบ
   testMode: true,            // โหมดทดสอบ: ทุกข้อความ push ไปหา testUserId คนเดียว
   testUserId: '',
+  staffNotifyOn: false,       // แจ้งแอดมินทาง LINE เมื่อคนไข้ขอเลื่อนนัด / ฉุกเฉิน / ขอให้โทรกลับ
+  staffNotifyIds: '',         // lineUserId ของแอดมิน (คั่นด้วย ,) — ต้องเพิ่มเพื่อน LINE OA และทักแชทก่อน 1 ครั้ง
+  staffNotifyTypes: 'reschedule,emergency,callback',
   sendStart: '08:00', sendEnd: '20:00',
   confirmOn: true,
   remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 2,
@@ -1192,7 +1195,32 @@ function crmCreateTask_(t) {
     lineUserId: t.lineUserId || '', aptId: t.aptId || '', aptDate: t.aptDate || '', aptTime: t.aptTime || '', detail: t.detail || '',
     preference: '', createdAt: now, updatedAt: now, doneBy: '', resultNote: '' };
   crmAppend_('tasks', task);
+  try { crmNotifyStaff_(crmSettings_(), task); } catch (eN) { Logger.log('crmNotifyStaff_ ' + eN); }
   return task;
+}
+// ---- แจ้งแอดมินทาง LINE (push เข้า LINE ส่วนตัวของแอดมิน) ----
+var CRM_STAFF_LABEL = { reschedule: '📅 คนไข้ขอเลื่อนนัด', emergency: '🚨 อาการฉุกเฉิน', callback: '📞 ขอให้คลินิกโทรกลับ' };
+function crmNotifyStaff_(s, task, force) {
+  if (!force && !(s.staffNotifyOn === true || s.staffNotifyOn === 'true' || s.staffNotifyOn === 'TRUE')) return 0;
+  if (!force && crmSplitList_(s.staffNotifyTypes || 'reschedule,emergency,callback').indexOf(task.type) === -1) return 0;
+  var ids = crmSplitList_(s.staffNotifyIds); if (!ids.length) return 0;
+  if (task.type !== 'emergency') {   // ฉุกเฉินส่งเสมอ · อย่างอื่นหยุดเมื่อโควตาหมด
+    var q = crmQuota_(); if (q && q.remaining !== null && q.remaining !== undefined && q.remaining <= 0) return 0;
+  }
+  var lines = [(CRM_STAFF_LABEL[task.type] || ('🔔 ' + task.type)) + (task.priority === 'urgent' ? ' (ด่วน)' : (task.priority === 'high' ? ' (สำคัญ)' : ''))];
+  lines.push('คุณ' + (task.patName || 'ไม่ทราบชื่อ') + (task.hn ? ' · HN ' + task.hn : ' · ยังไม่ผูก HN'));
+  if (task.aptDate) lines.push('นัดเดิม: ' + crmThaiDate_(task.aptDate) + (task.aptTime ? ' ' + task.aptTime + ' น.' : ''));
+  if (task.detail) lines.push(String(task.detail).slice(0, 300));
+  lines.push('➡️ เปิดแอปคลินิก › LINE CRM › งานโทรกลับ');
+  if (s.testMode) lines.unshift('🧪 (โหมดทดสอบ)');
+  var n = 0;
+  ids.forEach(function (to) {
+    var res = crmApi_('post', '/v2/bot/message/push', { to: to, messages: [crmText_(lines.join('\n'))] });
+    var ok = res.code === 200; if (ok) n++;
+    crmAppend_('log', { key: 'staff:' + task.id + ':' + to, type: 'staff', hn: task.hn || '', patName: task.patName || '', lineUserId: to, refId: task.id,
+      status: ok ? 'sent' : 'failed', detail: ok ? (task.type + ' → แอดมิน') : ('HTTP ' + res.code + ' ' + String(res.text || '').slice(0, 150)), createdAt: crmNow_(), pushCount: ok ? 1 : 0 });
+  });
+  return n;
 }
 function crmRatingApplies_(s, fu) {
   if (!(s.ratingOn === true || s.ratingOn === 'true' || s.ratingOn === 'TRUE')) return false;
@@ -1618,14 +1646,20 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText'];
+        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
-      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
+      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);
       if (s.enabled && (!old.enabled || old.testMode !== s.testMode)) baseline = crmBaseline_(s);
       return { ok: true, baseline: baseline };
+    }
+    if (act === 'staffNotifyTest') {   // ปุ่ม "ส่งทดสอบ" ในตั้งค่า — ส่งถึงแอดมินที่เลือกไว้ทันที
+      var sT = crmSettings_();
+      if (!crmSplitList_(sT.staffNotifyIds).length) return { ok: false, error: 'ยังไม่ได้เลือกบัญชีแอดมิน (เลือกแล้วกดบันทึกก่อน)' };
+      var nT = crmNotifyStaff_(sT, { id: 'TEST-' + Date.now(), type: 'reschedule', priority: 'normal', patName: 'ทดสอบ ระบบ', hn: '00-00000', aptDate: crmToday_(), aptTime: '10:00', detail: 'ข้อความทดสอบการแจ้งเตือนแอดมิน' }, true);
+      return nT ? { ok: true, sent: nT } : { ok: false, error: 'ส่งไม่สำเร็จ — ตรวจว่าแอดมินเพิ่มเพื่อน LINE OA แล้ว' };
     }
     if (act === 'approveEmergency') {
       var s2 = crmSettings_(); s2.emergencyApprovedBy = by; s2.emergencyApprovedAt = now; crmSaveSettingsRaw_(s2); return { ok: true };
