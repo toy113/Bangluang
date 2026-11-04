@@ -693,6 +693,7 @@ select.form-control { cursor: pointer; }
 .rc-note { color: var(--text-light); font-style: italic; }
 .line-badge { display:inline-block; margin-left:6px; font-size:10px; font-weight:700; line-height:1.6; padding:0 7px; border-radius:999px; background:rgba(6,199,85,.13); border:1px solid rgba(6,199,85,.45); color:#058a3c; white-space:nowrap; }
 .line-badge.off { background:rgba(150,150,150,.12); border-color:rgba(150,150,150,.4); color:#777; }
+.opay-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: #EAF3FB; border: 1px solid #BCD6EA; color: #1F5F8B; white-space: nowrap; vertical-align: middle; }
 .psk-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; line-height: 1.6; padding: 0 7px; border-radius: 999px; background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); color: #B26A00; white-space: nowrap; vertical-align: middle; }
 .rc-bar { height: 8px; border-radius: 4px; background: var(--wine-pale); overflow: hidden; margin-top: 8px; }
 .rc-bar > div { height: 100%; background: #16A085; border-radius: 4px; }
@@ -3200,6 +3201,7 @@ function crmViewToday(){
 function crmAptLineChips(a){
   const d=CRM.data, rec=(d.apt||[]).find(x=>String(x.aptId)===String(a.id));
   const out=[];
+  if(orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE) out.push('<span class="crm-chip b">💳 ชำระจนกว่าจะเสร็จ</span>');
   if(!crmHasLine(a.hn)) out.push(crmLinked(a.hn).some(x=>x.blocked) ? '<span class="crm-chip r">🚫 บล็อก LINE OA</span>' : '<span class="crm-chip x">ไม่มี LINE</span>');
   else {
     if(crmSentOk(crmLogFor('confirm',a.id))) out.push('<span class="crm-chip w">ส่งยืนยันแล้ว</span>');
@@ -3288,6 +3290,7 @@ function crmOrthoCame(hn, date, doc, again){
   if(viewOnlyBlock_()) return;
   const r=crmOrthoRec(hn); if(!r){ showToast('ไม่พบการ์ดจัดฟันของคนไข้นี้','error'); return; }
   document.getElementById('came-title').textContent=(again?'เพิ่มรายการวันนี้ — ':'มาตามนัด — ')+(r['ชื่อ']||hn);
+  document.getElementById('came-title').insertAdjacentHTML('beforeend', orthoPayBadge({hn}));
   document.getElementById('came-hn').value=r.hn; document.getElementById('came-date').value=date;
   document.getElementById('came-datetxt').textContent=crmThaiShort(date);
   document.getElementById('came-adj').checked=!again; document.getElementById('came-adjfee').value=ORTHO_ADJ_FEE;   // again = วันนี้บันทึกมาแล้ว → เพิ่มรายการอื่น ไม่ติ๊กปรับเครื่องมือซ้ำ
@@ -3530,7 +3533,7 @@ function crmOrthoPrint(d){
     const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
     const last=String(o['ปรับล่าสุด']||'').slice(0,10);
     const info=[ o['แบบจัด']?E(o['แบบจัด']):'', last&&last!==d?'ปรับล่าสุด '+E(crmThaiShort(last)):'', loose?'หลุดสะสม '+loose+' ตัว':'', o['note']?E(o['note']):'' ].filter(Boolean).join(' · ');
-    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b><br><span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span></td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?'<br><span class="m">'+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
+    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b><br><span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span>${orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?'<br><span class="m" style="color:#1F5F8B;font-weight:700;">💳 ชำระจนกว่าจะเสร็จ</span>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?'<br><span class="m">'+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
   }).join('');
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>นัดจัดฟัน ${E(crmThaiShort(d))}</title>
 <style>@page{size:A4 landscape;margin:12mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px}
@@ -3593,7 +3596,7 @@ function crmViewOrthoApts(){
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
-        <td>${(()=>{ const oc=a.hn?crmOrthoRec(a.hn):null, code=oc&&oc['รหัสประจำตัว']; return code?'<b style="color:var(--wine);">'+crmEsc(code)+'</b> ':''; })()}<b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>
+        <td>${(()=>{ const oc=a.hn?crmOrthoRec(a.hn):null, code=oc&&oc['รหัสประจำตัว']; return code?'<b style="color:var(--wine);">'+crmEsc(code)+'</b> ':''; })()}<b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>${orthoPayBadge(a)}
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${crmOrthoVisitNo(a)?` · <b style="color:var(--wine);">ปรับครั้งที่ ${crmOrthoVisitNo(a)}</b>`:''}</div>
           ${nextLine(a)}
           <div style="margin-top:3px;">${(x[2]&&!isViewOnlyUser())?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${a._hnFromCode?'<span class="crm-chip o" title="นัดในตารางนัดยังไม่มี HN จึงยังไม่ส่งไลน์ — ใส่ HN ในนัดนี้เพื่อให้ส่งไลน์ยืนยัน/เตือนได้">จับคู่จากรหัส · นัดไม่มี HN</span>':(crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>')}</div>
@@ -4252,7 +4255,7 @@ function renderAptList(today){
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${a.hn||'—'}</div>
-      <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
+      <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
@@ -4399,7 +4402,7 @@ function treatRow(t){
   return `<tr style="${docRowStyle(t.docName)}">
     <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
     <td class="text-caption hn-cell">${t.hn||'—'}</td>
-    <td style="font-weight:600">${t.patName}${pskBadge(t)}${endoBadge(t)}</td>
+    <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
     <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -5243,6 +5246,13 @@ async function loadLineHns(force){
     }catch(e){}
   }catch(e){ console.warn('loadLineHns',e); }
 }
+// คนไข้จัดฟันที่เลือกกลุ่ม "ชำระจนกว่าจะเสร็จ" → แสดงแบดจ์นี้ทุกที่ที่มีชื่อคนไข้ (ต้องโหลดข้อมูลจัดฟันแล้ว: ผู้จัดการ/หมอเอม)
+const ORTHO_PAY_UNTIL_DONE = 'ชำระจนกว่าจะเสร็จ';
+function orthoPayOf_(hn){
+  const k=crmHN(hn); if(!k || typeof orthoData==='undefined' || !orthoData) return '';
+  const o=orthoData.find(x=>crmHN(x.hn)===k); return o ? String(o['รูปแบบชำระ']||'').trim() : '';
+}
+function orthoPayBadge(o){ return (o && orthoPayOf_(o.hn)===ORTHO_PAY_UNTIL_DONE) ? '<span class="opay-badge" title="คนไข้จัดฟัน — ชำระจนกว่าจะเสร็จ">💳 ชำระจนกว่าจะเสร็จ</span>' : ''; }
 function pskBadge(o){
   return (o && pskHas_(o.hn)) ? '<span class="psk-badge" title="ใช้/มีสิทธิ์ประกันสังคม">🏛️ ปกส</span>' : '';
 }
@@ -6066,7 +6076,7 @@ function renderTreatPage(){
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
       <td class="text-caption hn-cell">${t.hn||'—'}</td>
-      <td style="font-weight:600">${t.patName}${pskBadge(t)}${endoBadge(t)}</td>
+      <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
       <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -7535,7 +7545,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -8023,7 +8033,7 @@ function renderSchedulePage(){
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
           <td class="text-caption hn-cell">${a.hn||'—'}</td>
-          <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
+          <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
           <td>${docBadge(a.docName)}</td>
@@ -9965,7 +9975,7 @@ function orthoBuildDayLines_(dateStr){
     const weeksSinceLast = (lastD && !isNaN(lastD)) ? Math.round((apptD-lastD)/86400000/7) : null;
     return (i+1)+'. '+
       (r['นัดถัดไปเวลา'] ? r['นัดถัดไปเวลา']+' - ' : '')+
-      (r['ชื่อ']||'')+' ('+code+') - '+
+      (r['ชื่อ']||'')+' ('+code+')'+(String(r['รูปแบบชำระ']||'').trim()===ORTHO_PAY_UNTIL_DONE?' [💳 ชำระจนกว่าจะเสร็จ]':'')+' - '+
       'ครั้งที่ '+visitNo+
       (weeksSinceLast!==null ? ' - ห่างครั้งก่อน '+weeksSinceLast+' สัปดาห์' : '')+
       ' - เครื่องมือหลุดไปแล้ว '+looseCount+' ครั้ง';
@@ -10388,6 +10398,7 @@ async function saveOrthoLog(){
 async function openOrthoHistory(hn){
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('historyModalTitle').textContent = 'ประวัติการรักษา — '+(r?.['ชื่อ']||hn);
+  document.getElementById('historyModalTitle').insertAdjacentHTML('beforeend', orthoPayBadge({hn}));
   const box = document.getElementById('ortho-history-list');
   box.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:20px;">กำลังโหลด...</p>';
   document.getElementById('modalOrthoHistory').classList.add('open');
@@ -10493,6 +10504,7 @@ function openReschedule(hn){
   if(viewOnlyBlock_()) return;
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('reschedModalTitle').textContent = 'ลงนัด — '+(r?.['ชื่อ']||hn);
+  document.getElementById('reschedModalTitle').insertAdjacentHTML('beforeend', orthoPayBadge({hn}));
   document.getElementById('resched-hn').value = hn;
   document.getElementById('resched-date').value = r?.['นัดถัดไป'] || '';
   document.getElementById('resched-time').value = r?.['นัดถัดไปเวลา'] || '';
