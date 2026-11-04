@@ -4270,7 +4270,7 @@ function renderAptList(today){
   const rowHtml = a=>`
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
-      <div class="text-caption">${a.hn||'—'}</div>
+      <div class="text-caption">${hnWithOrtho_(a.hn)}</div>
       <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
@@ -4417,7 +4417,7 @@ function renderTreatList(treats){
 function treatRow(t){
   return `<tr style="${docRowStyle(t.docName)}">
     <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
-    <td class="text-caption hn-cell">${t.hn||'—'}</td>
+    <td class="text-caption hn-cell">${hnWithOrtho_(t.hn)}</td>
     <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
@@ -6102,7 +6102,7 @@ function renderTreatPage(){
   const rowHtml=t=>`
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
-      <td class="text-caption hn-cell">${t.hn||'—'}</td>
+      <td class="text-caption hn-cell">${hnWithOrtho_(t.hn)}</td>
       <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
@@ -8059,7 +8059,7 @@ function renderSchedulePage(){
         <tr>
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
-          <td class="text-caption hn-cell">${a.hn||'—'}</td>
+          <td class="text-caption hn-cell">${hnWithOrtho_(a.hn)}</td>
           <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
@@ -8364,6 +8364,14 @@ function fmtTime24(input){
   input.value = v;
 }
 
+// แสดง HN คู่กับรหัสจัดฟัน (ถ้ามี)
+function hnWithOrtho_(hn){
+  const h=hn||'—'; if(!hn) return h;
+  const k=crmHN(hn); let code='';
+  const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) code=p.orthoCode;
+  if(!code && typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && /^A-\d+$/.test(String(x['รหัสประจำตัว']||''))); if(o) code=o['รหัสประจำตัว']; }
+  return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;">🦷 '+String(code).replace(/[<>&]/g,'')+'</div>' : h;
+}
 function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
 function orthoCodeClean_(v){ v=String(v||'').trim(); return (v==='A-')?'':v; }
 function fmtIdCode(input){
