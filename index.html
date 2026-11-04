@@ -1563,6 +1563,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input type="date" class="form-control" id="schDate" onchange="renderScheduleDay()" style="height:36px;width:160px;font-weight:700;color:var(--wine-dark);">
         <button onclick="schChangeDay(1)" class="btn btn-ghost" style="padding:6px 12px;font-size:18px;">›</button>
         <button onclick="schGoToday()" class="btn btn-ghost" style="height:36px;font-size:13px;">วันนี้</button>
+        <button id="schOrthoBtn" onclick="schToggleOrtho()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--border);" title="แสดงเฉพาะวันที่มีนัดจัดฟัน">🦷 เฉพาะวันที่มีงานจัดฟัน</button>
         <button onclick="schResetSlots()" class="btn btn-ghost" style="display:none;height:36px;font-size:12px;color:var(--text-light);" title="รีเซ็ต slot เป็นค่าเริ่มต้น 10:00-18:00">↺ Reset Slots</button>
         <div style="flex:1;"></div>
         <button onclick="copyDaySummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">📋 ส่งสรุปนัด</button>
@@ -7285,9 +7286,32 @@ function schResetSlots(){
   renderScheduleDay();
   showToast('รีเซ็ต slot สำเร็จ');
 }
+let _schOrthoOnly = false;
+// วันที่มีงานจัดฟัน (นัดจัดฟันในตารางนัด + นัดถัดไปจากการ์ดจัดฟัน) เริ่มจาก from (รวมวันนั้น)
+function orthoDaysFrom_(from, n, dir){
+  dir = dir||1;
+  const toS = d=>toDateStr(d);
+  const a = new Date(from+'T12:00:00'), b = new Date(from+'T12:00:00'); b.setDate(b.getDate()+120*dir);
+  const lo = dir>0 ? from : toS(b), hi = dir>0 ? toS(b) : from;
+  let set = new Set(); try{ crmOrthoAptList(lo,hi).forEach(x=>set.add(x.date)); }catch(e){}
+  const arr = [...set].sort();
+  return dir>0 ? arr.slice(0,n) : arr.slice(-n);
+}
+function schToggleOrtho(){
+  _schOrthoOnly = !_schOrthoOnly;
+  const el = document.getElementById('schDate');
+  if(_schOrthoOnly){ const f = orthoDaysFrom_(el.value||todayStr(),1)[0]; if(f) el.value = f; }
+  renderScheduleDay();
+}
 function schChangeDay(delta){
   const el = document.getElementById('schDate');
   const cur = el.value || todayStr();
+  if(_schOrthoOnly){
+    const nd = delta>0 ? orthoDaysFrom_(toDateStr(new Date(new Date(cur+'T12:00:00').getTime()+86400000)),1)[0]
+                       : orthoDaysFrom_(toDateStr(new Date(new Date(cur+'T12:00:00').getTime()-86400000)),1,-1)[0];
+    if(nd){ el.value = nd; renderScheduleDay(); } else showToast('ไม่พบวันที่มีงานจัดฟันเพิ่ม');
+    return;
+  }
   const d = new Date(cur + 'T12:00:00');
   d.setDate(d.getDate() + delta);
   el.value = toDateStr(d);
@@ -7478,12 +7502,16 @@ function renderScheduleDay(){
   const d4 = new Date(date1 + 'T12:00:00'); d4.setDate(d4.getDate()+3);
   const date4 = toDateStr(d4);
 
+  let _schDates = [date1,date2,date3,date4];
+  if(_schOrthoOnly){ _schDates = orthoDaysFrom_(date1, 4); }
+  const _ob=document.getElementById('schOrthoBtn');
+  if(_ob){ _ob.style.background = _schOrthoOnly?'var(--wine)':''; _ob.style.color = _schOrthoOnly?'#fff':''; }
   const DAY_NAMES_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   const DAY_BG_PASTEL = ['#FFACAC','#FFE08A','#FFB3DE','#A8E6BC','#FFD0A0','#A8D8F0','#C9B8F0'];
   const DAY_FG_PASTEL = ['#7B2020','#6B4A00','#7B2060','#1A6B40','#7B4000','#1A4A7B','#3D1A7B'];
 
   // Stat strip — รวม 2 วัน
-  const allApts2Days = appointments.filter(a=>a.date===date1||a.date===date2||a.date===date3||a.date===date4);
+  const allApts2Days = appointments.filter(a=>_schDates.includes(a.date));
   const statsEl = document.getElementById('schDayStats');
   if(statsEl){
     const total = allApts2Days.length;
@@ -7508,10 +7536,9 @@ function renderScheduleDay(){
   const view = document.getElementById('schSlotView');
   if(!view) return;
   view.style.cssText = 'display:flex;gap:16px;';
-  view.innerHTML = buildDayColumn(date1, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
-                 + buildDayColumn(date2, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
-                 + buildDayColumn(date3, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)
-                 + buildDayColumn(date4, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL);
+  view.innerHTML = _schDates.length
+    ? _schDates.map(d=>buildDayColumn(d, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL)).join('')
+    : '<div style="padding:30px;color:var(--text-light);font-size:14px;">ไม่พบวันที่มีงานจัดฟันในช่วง 120 วันข้างหน้า</div>';
 
   // Init all slot time pickers
   view.querySelectorAll('.tp-wrap [id^="tp-slot_"][id$="-display"]').forEach(el=>{
