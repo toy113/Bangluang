@@ -4270,7 +4270,7 @@ function renderAptList(today){
   const rowHtml = a=>`
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
-      <div class="text-caption">${hnWithOrtho_(a.hn,a.patName)}</div>
+      <div class="text-caption">${hnWithOrtho_(a.hn,a.patName,a.orthoCode)}</div>
       <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
@@ -4618,7 +4618,7 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=nul
   document.getElementById('apt-date').value = apt?.date || prefillDate || todayStr();
   
   document.getElementById('apt-hn').value   = apt?.hn || '';
-  { const _o=document.getElementById('apt-ortho'); if(_o){ const _p=apt?.hn?patients.find(p=>normHN(p.hn)===normHN(apt.hn)):null; _o.value=_p?.orthoCode||''; if(!_o.value&&apt) aptFillOrtho_(apt.hn, apt.patName); } }
+  { const _o=document.getElementById('apt-ortho'); if(_o){ const _p=apt?.hn?patients.find(p=>normHN(p.hn)===normHN(apt.hn)):null; _o.value=apt?.orthoCode||_p?.orthoCode||''; if(!_o.value&&apt) aptFillOrtho_(apt.hn, apt.patName); } }
   document.getElementById('apt-name').value = apt?.patName || '';
   document.getElementById('apt-phone').value= apt?.phone || '';
   setAptContact(apt?.contactChannel || '');
@@ -4689,6 +4689,7 @@ function saveApt(){
     hn: document.getElementById('apt-hn').value,
     phone: document.getElementById('apt-phone')?.value||'',
     contactChannel: document.getElementById('apt-contact')?.value||'',
+    orthoCode: orthoCodeClean_(document.getElementById('apt-ortho')?.value),
     patName: document.getElementById('apt-name').value,
     proc: document.getElementById('apt-proc').value,
     status: document.getElementById('apt-status').value,
@@ -7572,7 +7573,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${orthoCodeOf_(a.hn,a.patName)?`<span style="color:var(--wine);font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName)}</span> · `:''}${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${orthoCodeOf_(a.hn,a.patName,a.orthoCode)?`<span style="color:var(--wine);font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName,a.orthoCode)}</span> · `:''}${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -8059,7 +8060,7 @@ function renderSchedulePage(){
         <tr>
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
-          <td class="text-caption hn-cell">${hnWithOrtho_(a.hn,a.patName)}</td>
+          <td class="text-caption hn-cell">${hnWithOrtho_(a.hn,a.patName,a.orthoCode)}</td>
           <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
@@ -8364,7 +8365,8 @@ function fmtTime24(input){
   input.value = v;
 }
 
-function orthoCodeOf_(hn, name){
+function orthoCodeOf_(hn, name, explicit){
+  if(explicit && /^A-\d+$/.test(String(explicit))) return String(explicit);
   const okc=v=>/^A-\d+$/.test(String(v||''));
   if(hn){
     const k=crmHN(hn);
@@ -8381,8 +8383,8 @@ function orthoCodeOf_(hn, name){
   return '';
 }
 // แสดง HN คู่กับรหัสจัดฟัน (ถ้ามี)
-function hnWithOrtho_(hn, name){
-  const h=hn||'—', code=orthoCodeOf_(hn, name);
+function hnWithOrtho_(hn, name, explicit){
+  const h=hn||'—', code=orthoCodeOf_(hn, name, explicit);
   return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;">🦷 '+code+'</div>' : h;
 }
 function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
