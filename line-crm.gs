@@ -759,8 +759,10 @@ function crmAptsWithOrtho_(apts, orthoRows) {
     var k = crmHN_(o.hn), d = crmDateOnly_(o['นัดถัดไป']);
     if (!k || !d) return;
     var tm = String(o['นัดถัดไปเวลา'] || '').trim().slice(0, 5);
+    // ซ้ำกับนัดในตารางนัด (ทุกสถานะ: ยกเลิก/เสร็จแล้วก็ถือว่าตารางนัดเป็นตัวจริง) → ไม่สร้างนัดเสมือน
+    // กันส่ง LINE ยืนยัน/เตือนนัดที่ยกเลิกไปแล้ว หรือนัดที่คนไข้มาแล้ว
     var dup = apts.some(function (a) {
-      return crmHN_(a.hn) === k && crmDateOnly_(a.date) === d && closedSt.indexOf(a.status) === -1
+      return crmHN_(a.hn) === k && crmDateOnly_(a.date) === d
         && (!tm || !a.time || String(a.time).slice(0, 5) === tm);
     });
     if (dup) return;
@@ -768,6 +770,16 @@ function crmAptsWithOrtho_(apts, orthoRows) {
       proc: o['รายการนัดถัดไป'] || 'นัดจัดฟัน', status: '', _ortho: true });
   });
   return out;
+}
+// ปุ่มในข้อความเก่าอ้างนัดจากการ์ด (ORTHO-<HN>-<วันที่>) แต่ตอนนี้มีนัดในตารางนัดวันเดียวกันมาแทน → ใช้นัดนั้น
+function crmOrthoIdFallback_(allApts, id) {
+  var m = String(id || '').match(/^ORTHO-(.+)-(\d{4}-\d{2}-\d{2})$/); if (!m) return null;
+  var k = m[1], d = m[2], closedSt = ['ยกเลิก'];
+  for (var i = 0; i < allApts.length; i++) {
+    var a = allApts[i];
+    if (!a._ortho && crmHN_(a.hn) === k && crmDateOnly_(a.date) === d && closedSt.indexOf(a.status) === -1) return a;
+  }
+  return null;
 }
 function crmIsOrthoApt_(s, apt, orthoActive) {
   if (apt._ortho) return true;
@@ -806,6 +818,12 @@ function crmTickInner_() {
     var tg = targets(a.hn); if (!tg.length) return;
     if (s.confirmOn) {
       var ck = crmKey_(s, 'confirm:' + a.id + ':' + a.date + ':' + (a.time || ''));
+      // นัดในตารางนัดที่มาแทนนัดจากการ์ด (วันเดียวกัน) และการ์ดส่งยืนยันไปแล้ว → ไม่ส่งซ้ำ
+      if (!a._ortho && !crmIsDone_(state, ck)) {
+        var ok0 = 'confirm:ORTHO-' + crmHN_(a.hn) + '-' + a.date + ':' + a.date + ':';
+        if (crmIsDone_(state, crmKey_(s, ok0 + (a.time || ''))) || crmIsDone_(state, crmKey_(s, ok0)))
+          crmMark_(state, ck, 'confirm', { hn: a.hn, patName: a.patName, refId: a.id }, 'skipped', 'ส่งยืนยันไปแล้วในนามนัดจากการ์ดจัดฟัน');
+      }
       if (!crmIsDone_(state, ck)) {
         var prefix = crmKey_(s, 'confirm:' + a.id + ':'), changed = false;
         for (var k in state.done) if (k.indexOf(prefix) === 0 && k.indexOf(ck) !== 0) { changed = true; break; }
@@ -829,6 +847,8 @@ function crmTickInner_() {
     var items = [];
     g.forEach(function (x) {
       var a = x.a, rk = crmKey_(s, 'remind:' + a.id + ':' + a.date);
+      if (!a._ortho && !crmIsDone_(state, rk) && crmIsDone_(state, crmKey_(s, 'remind:ORTHO-' + crmHN_(a.hn) + '-' + a.date + ':' + a.date)))
+        crmMark_(state, rk, 'remind', { hn: a.hn, patName: a.patName, refId: a.id }, 'skipped', 'เตือนไปแล้วในนามนัดจากการ์ดจัดฟัน');
       if (crmIsDone_(state, rk)) return;
       if (crmSentWithinHours_(state, crmKey_(s, 'confirm:' + a.id + ':' + a.date + ':' + (a.time || '')), 12)) {
         crmMark_(state, rk, 'remind', { hn: a.hn, patName: a.patName, refId: a.id }, 'skipped', 'เพิ่งส่งยืนยันนัดไปไม่เกิน 12 ชม.'); return;
@@ -1218,7 +1238,7 @@ function crmHandlePostback_(s, ev, uid) {
   var isTester = s.testMode && s.testUserId && uid === s.testUserId; // โหมดทดสอบ: บัญชีทดสอบกดปุ่มแทนคนไข้ได้
   if (parts[0] === 'apt') {
     var allApts = crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), crmReadByName_('ortho'));
-    var found = String(parts[2] || '').split(',').filter(Boolean).map(function (id) { return crmFind_(allApts, 'id', id); })
+    var found = String(parts[2] || '').split(',').filter(Boolean).map(function (id) { return crmFind_(allApts, 'id', id) || crmOrthoIdFallback_(allApts, id); })
       .filter(function (x) { return x && (hns.indexOf(crmHN_(x.hn)) !== -1 || isTester); });   // ปุ่มจากการ์ดเตือนรวมหลายนัดส่ง id คั่นด้วย ,
     if (!found.length) { crmReply_(ev.replyToken, [crmText_('ไม่พบนัดหมายนี้ในบัญชีของคุณ กรุณาติดต่อคลินิก ' + s.clinicPhone)]); return; }
     found.sort(function (x, y) { return String(x.time || '').localeCompare(String(y.time || '')); });
@@ -1387,7 +1407,7 @@ function crmPortal_(p) {
       var od = crmDateOnly_(oNext['นัดถัดไป']);
       if (od && od >= today) {
         var ot = String(oNext['นัดถัดไปเวลา'] || '').trim().slice(0, 5);
-        var dup = next.some(function (x) { return x.date === od && (!ot || !x.time || String(x.time).slice(0, 5) === ot); });
+        var dup = apts.some(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) === od && (!ot || !x.time || String(x.time).slice(0, 5) === ot); });
         if (!dup) {
           next.push({ id: 'ortho-' + k, date: od, time: ot, proc: oNext['รายการนัดถัดไป'] || 'นัดจัดฟัน', docName: oNext['หมอ'] || '', kind: 'ortho' });
           next.sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); });

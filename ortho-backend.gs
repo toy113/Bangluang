@@ -66,6 +66,7 @@ function orthoRoutePost_(e) {
   var action = body.action || (e.parameter && e.parameter.action);
   if (action === 'orthoBind' || action === 'orthoGet') return orthoJsonOut_({ ok: false, error: 'disabled' });
   if (action === 'orthoSave')   return orthoJsonOut_(orthoSave(body.row));     // admin: เพิ่ม/แก้ profile
+  if (action === 'orthoPatch')  return orthoJsonOut_(orthoPatch(body.hn, body.fields)); // admin: แก้เฉพาะบางช่อง (ไม่ทับช่องอื่น)
   if (action === 'orthoLogAdd') return orthoJsonOut_(orthoLogAdd(body.log));   // admin: เพิ่ม log adjust
   if (action === 'orthoLogAddBatch') return orthoJsonOut_(orthoLogAddBatch(body.logs)); // admin: บันทึกย้อนหลายวันในคำสั่งเดียว
   if (action === 'orthoLogUpdateDatesBatch') return orthoJsonOut_(orthoLogUpdateDatesBatch(body.hn, body.updates)); // admin: แก้วันที่ log เดิม
@@ -174,6 +175,43 @@ function orthoLogsByHn(hn) {
 /* upsert profile ทั้งแถว by hn */
 function orthoSave(row) {
   if (!row || !row.hn) return { ok: false, error: 'missing_hn' };
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(20000); } catch (eL) { return { ok: false, error: 'busy' }; }
+  try { return orthoSaveCore_(row); } finally { try { lock.releaseLock(); } catch (eR) {} }
+}
+
+// แก้เฉพาะช่องที่ส่งมา (อ่านแถวล่าสุดในชีตภายใต้ lock) — กันเครื่องที่ข้อมูลเก่ากว่าทับค่าที่อีกเครื่องเพิ่งบันทึก
+// เช่น เครื่อง A กด "มาตามนัด" (ครั้งที่มาแล้ว) ขณะเครื่อง B ลงนัดถัดไป → ทั้งสองค่าอยู่ครบ
+function orthoPatch(hn, fields) {
+  if (!hn) return { ok: false, error: 'missing_hn' };
+  if (!fields || typeof fields !== 'object') return { ok: false, error: 'missing_fields' };
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(20000); } catch (eL) { return { ok: false, error: 'busy' }; }
+  try {
+    var sh = orthoGetSheet_(SHEET_ORTHO, ORTHO_HEADERS);
+    orthoEnsureCol_(sh, 'รูปแบบชำระ');
+    var data = sh.getDataRange().getValues(), head = data[0], hnCol = head.indexOf('hn'), key = orthoNormHN_(hn), rowNo = -1;
+    for (var r = 1; r < data.length; r++) { if (orthoNormHN_(data[r][hnCol]) === key) { rowNo = r + 1; break; } }
+    if (rowNo < 0) {   // ยังไม่มีการ์ด → สร้างใหม่จากช่องที่ส่งมา
+      var nr = { hn: hn }; for (var f0 in fields) if (f0 && f0.charAt(0) !== '_') nr[f0] = fields[f0];
+      return orthoSaveCore_(nr);
+    }
+    var n = 0, timeCol = head.indexOf('นัดถัดไปเวลา');
+    for (var f in fields) {
+      if (!f || f.charAt(0) === '_' || f === 'hn') continue;
+      var c = head.indexOf(f); if (c < 0) continue;   // ช่องที่ชีตไม่มี: ข้าม (เหมือน orthoSave)
+      var v = (fields[f] === null || fields[f] === undefined) ? '' : fields[f];
+      var cell = sh.getRange(rowNo, c + 1);
+      if (c === timeCol && v !== '') cell.setNumberFormat('@STRING@');
+      cell.setValue(c === timeCol ? String(v) : v); n++;
+    }
+    var uc = head.indexOf('updatedAt');
+    if (uc >= 0) sh.getRange(rowNo, uc + 1).setValue(Utilities.formatDate(new Date(), ORTHO_TZ, 'yyyy-MM-dd HH:mm:ss'));
+    return { ok: true, hn: key, patched: n };
+  } finally { try { lock.releaseLock(); } catch (eR) {} }
+}
+
+function orthoSaveCore_(row) {
   var sh = orthoGetSheet_(SHEET_ORTHO, ORTHO_HEADERS);
   orthoEnsureCol_(sh, 'รูปแบบชำระ');   // กลุ่มการชำระ: ชำระ 28 ครั้ง / ชำระจนกว่าจะเสร็จ / อื่นๆ (เพิ่มคอลัมน์ท้ายชีตให้เองถ้ายังไม่มี)
   var data = sh.getDataRange().getValues();

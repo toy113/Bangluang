@@ -2810,7 +2810,7 @@ function startApp(){
   ['nav-stats','ttab-stats','mnav-stats'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = canSeeStats() ? '' : 'none'; });
   if(isManager||isOrthoOnlyUser()){
     try{ if(!orthoData.length){ const c=JSON.parse(localStorage.getItem('bl_ortho_cache')||'null'); if(Array.isArray(c)) orthoData=c; } }catch(e){}   // แคชรอบก่อน: โชว์รายการจัดฟันได้ทันที
-    if(typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().then(()=>{ try{ if(document.getElementById('schSlotView') && document.getElementById('schSlotView').offsetParent!==null) renderSchedulePage(); }catch(e){} }).catch(()=>{}); }, 100);
+    if(typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().then(()=>{ try{ if(document.getElementById('schSlotView') && document.getElementById('schSlotView').offsetParent!==null) renderSchedulePage(); }catch(e){} try{ if(document.getElementById('page-home')?.classList.contains('active')) renderHome(); }catch(e){} }).catch(()=>{}); }, 100);
   }   // โหลดเบื้องหลังเพื่อให้ตัวเลขที่เมนูจัดฟันขึ้นทันที
 
   // Show add buttons for manager only, hide for doctors
@@ -2942,6 +2942,31 @@ function crmPhoneOf(hn, fallback){ const p=crmPatient(hn); return (p && p.phone)
 function crmTel(phone){ return 'tel:'+String(phone||'').replace(/[^0-9+]/g,''); }
 function crmLinked(hn){ const L=(CRM.data&&CRM.data.linked)||{}; return L[crmHN(hn)] || []; }
 function crmHasLine(hn){ return crmLinked(hn).some(x=>x.consent); }
+// คนไข้ที่กำลังจัดฟัน: จากการ์ดในเครื่อง + รายชื่อจาก CRM (เผื่อการ์ดยังโหลดไม่เสร็จ)
+let _oaSet=null;
+function orthoActiveSet_(){
+  const od=(typeof orthoData!=='undefined'&&orthoData)||[], ca=(CRM.data&&CRM.data.orthoActive)||[], now=Date.now();
+  if(_oaSet && _oaSet.od===od && _oaSet.n===od.length && _oaSet.ca===ca && now-_oaSet.t<5000) return _oaSet.set;
+  const set=new Set(ca.map(crmHN));
+  od.forEach(o=>{ if(!o['สถานะ'] || o['สถานะ']==='กำลังจัด') set.add(crmHN(o.hn)); });
+  _oaSet={od,n:od.length,ca,t:now,set}; return set;
+}
+// นัดจากการ์ดจัดฟัน (ช่องนัดถัดไป) ที่ยังไม่มีในตารางนัด ช่วง r0..r1 — หมอว่าง = หมอจัดฟัน
+function orthoVirtualApts_(r0, r1){
+  let v=[]; try{ v=crmOrthoAptList(r0, r1||r0).filter(a=>a._ortho); }catch(e){ return []; }
+  const aim=orthoDocName_();
+  return v.map(a=>Object.assign(a,{docName:a.docName||aim}));
+}
+function orthoDocName_(){ return ((typeof doctors!=='undefined'?doctors:[]).find(d=>d.id==='aim')||{}).name||''; }
+// "งานจัดฟัน" ของนัด: รายการเป็นงานจัดฟัน / มีรหัสจัดฟันในนัด / คนไข้จัดฟันที่นัดกับหมอจัดฟัน (นัดอุดฟันกับหมออื่นไม่นับ)
+function crmIsOrthoVisit(a){
+  if(!a) return false;
+  if(a._ortho) return true;
+  if(orthoProcLike_(a.proc)) return true;
+  if(/^A-\d+$/.test(String(a.orthoCode||''))) return true;
+  if(!a.hn || !orthoActiveSet_().has(crmHN(a.hn))) return false;
+  return !a.docName || isAimDoc_(a.docName);
+}
 function crmIsOrtho(a){
   const s=(CRM.data&&CRM.data.settings)||{};
   if(((CRM.data&&CRM.data.orthoActive)||[]).includes(crmHN(a.hn))) return true;
@@ -3211,14 +3236,22 @@ function crmViewToday(){
 }
 
 /* ---------- 2) นัดหมาย ---------- */
+// สถานะ LINE ของนัด — ถ้านัดในตารางนัดมาแทนนัดจากการ์ด (วันเดียวกัน) ใช้สถานะที่คนไข้กดไว้กับนัดจากการ์ดด้วย
+function crmAptIdsFor_(a){ const ids=[String(a.id)]; if(!a._ortho && a.hn && a.date) ids.push(crmOrthoAptId(a.hn, a.date)); return ids; }
+function crmAptRecFor_(a){
+  const recs=(CRM.data&&CRM.data.apt)||[], ids=crmAptIdsFor_(a);
+  for(const id of ids){ const r=recs.find(x=>String(x.aptId)===id); if(r && (r.confirmedAt||r.rescheduleAt)) return r; }
+  return recs.find(x=>String(x.aptId)===ids[0]) || null;
+}
+function crmAptLogFor_(type, a){ return crmAptIdsFor_(a).reduce((o,id)=>o.concat(crmLogFor(type,id)),[]); }
 function crmAptLineChips(a){
-  const d=CRM.data, rec=(d.apt||[]).find(x=>String(x.aptId)===String(a.id));
+  const d=CRM.data, rec=crmAptRecFor_(a);
   const out=[];
   if(orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE) out.push('<span class="crm-chip b">💳 ชำระจนเสร็จ</span>');
   if(!crmHasLine(a.hn)) out.push(crmLinked(a.hn).some(x=>x.blocked) ? '<span class="crm-chip r">🚫 บล็อก LINE OA</span>' : '<span class="crm-chip x">ไม่มี LINE</span>');
   else {
-    if(crmSentOk(crmLogFor('confirm',a.id))) out.push('<span class="crm-chip w">ส่งยืนยันแล้ว</span>');
-    if(crmSentOk(crmLogFor('remind',a.id))) out.push('<span class="crm-chip w">เตือนแล้ว</span>');
+    if(crmSentOk(crmAptLogFor_('confirm',a))) out.push('<span class="crm-chip w">ส่งยืนยันแล้ว</span>');
+    if(crmSentOk(crmAptLogFor_('remind',a))) out.push('<span class="crm-chip w">เตือนแล้ว</span>');
   }
   if(rec && rec.confirmedAt) out.push(`<span class="crm-chip g">✅ คนไข้ยืนยัน ${crmTs(rec.confirmedAt).split(' ').slice(-1)[0]}</span>`);
   if(rec && rec.rescheduleAt) out.push('<span class="crm-chip o">📅 ขอเลื่อนนัด</span>');
@@ -3246,7 +3279,7 @@ function crmViewApts(){
     <p class="crm-muted" style="margin-bottom:10px;">คนไข้กด "ยืนยันนัด" ใน LINE → ระบบไม่แก้ตารางนัดเอง กด "ตั้งเป็นคอนเฟิร์ม" เพื่ออัปเดตสถานะในตารางนัด · นัดจัดฟัน (ป้าย จัดฟัน) ดูสถานะจากป้าย ✅ คนไข้ยืนยัน ได้เลย และขึ้นที่การ์ดในหน้าจัดฟันด้วย</p>
     <div class="crm-list">${list.map(a=>`<div class="crm-item"><div class="main">
         <div class="nm">${crmEsc(a.time||'')} · ${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
-        <div class="meta">${crmEsc(crmThaiShort(a.date))} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} · สถานะ: <b>${crmEsc(a.status||'-')}</b>${crmIsOrtho(a)?' · <span class="crm-chip b">จัดฟัน</span>':''}</div>
+        <div class="meta">${crmEsc(crmThaiShort(a.date))} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} · สถานะ: <b>${crmEsc(a.status||'-')}</b>${crmIsOrthoVisit(a)?' · <span class="crm-chip b">จัดฟัน</span>':''}</div>
         <div>${crmAptLineChips(a)}</div></div>
       <div class="acts">${!a._ortho && confirmed.has(String(a.id)) && a.status!=='คอนเฟิร์ม' ? `<button class="crm-btn g" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">ตั้งเป็นคอนเฟิร์ม</button>`:''}
         ${crmPhoneOf(a.hn,a.phone)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(a.hn,a.phone))}">📞</a>`:''}
@@ -3255,7 +3288,7 @@ function crmViewApts(){
 /* ---------- 2.5) นัดจัดฟัน: รายวัน กี่คน / ยืนยันกี่คน / ใครบ้าง ---------- */
 function crmOrthoAptList(r0, r1){
   const closed=['ยกเลิก'];
-  const list=appointments.filter(a=>a.date>=r0 && a.date<=r1 && !closed.includes(a.status) && crmIsOrtho(a)).map(a=>Object.assign({},a));
+  const list=appointments.filter(a=>a.date>=r0 && a.date<=r1 && !closed.includes(a.status) && crmIsOrthoVisit(a)).map(a=>Object.assign({},a));
   // นัดที่พิมพ์ชื่อนำด้วยรหัสจัดฟัน (เช่น "280ชัยวัฒน์" = A-280) แต่ไม่มี HN → จับคู่การ์ดจัดฟันจากรหัส (ถ้าตรงกับการ์ดเดียวเท่านั้น)
   if(typeof orthoData!=='undefined' && orthoData && orthoData.length){
     list.forEach(a=>{
@@ -3279,7 +3312,7 @@ function crmOrthoAptList(r0, r1){
 }
 // 'yes' ยืนยันแล้ว (คนไข้กดใน LINE หรือพนักงานตั้งคอนเฟิร์ม) · 'move' ขอเลื่อน · 'wait' มี LINE ยังไม่ยืนยัน · 'noline' ต้องโทร
 function crmOrthoState(a){
-  const rec=((CRM.data&&CRM.data.apt)||[]).find(x=>String(x.aptId)===String(a.id));
+  const rec=crmAptRecFor_(a);
   const resched = rec && rec.rescheduleAt && (!rec.confirmedAt || String(rec.rescheduleAt)>String(rec.confirmedAt));
   if(resched) return 'move';
   if((rec && rec.confirmedAt) || a.status==='คอนเฟิร์ม') return 'yes';
@@ -3410,11 +3443,12 @@ function cameRecordTreatment_(o){
   };
   applyXrayRule(t);
   treatments.push(t);
+  const _rc=String(r['รหัสประจำตัว']||'').trim();
   const done=appointments.filter(a=>{
-    const sameHn=t.hn && a.hn && String(a.hn).trim()===String(t.hn).trim();
+    const sameHn=(t.hn && a.hn && crmHN(a.hn)===crmHN(t.hn)) || (!a.hn && _rc && String(a.orthoCode||'').trim()===_rc);
     return a.date===t.date && sameHn && (!t.docName||!a.docName||a.docName===t.docName) && !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status);
   });
-  done.forEach(a=>{ a.status='เสร็จสิ้น'; });
+  done.forEach(a=>{ a.status='เสร็จสิ้น'; if(!a.hn && t.hn) a.hn=t.hn; });
   saveLocal();
   try{ renderHome(); renderTreatPage(); }catch(e){}
   markPendingSync('treatments', t);
@@ -3462,6 +3496,7 @@ async function crmOrthoCameSave(){
     row._visitCount=visits; row._looseCount=looseN;
     await Promise.all([ orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row}) ]);
     const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
+    orthoAdvanceNext_(r.hn, date);
     let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits, adj }); }catch(e){ console.error(e); trMsg='fail'; }
     closeModal('modalOrthoCame');
     showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
@@ -3644,7 +3679,7 @@ function crmViewRemind(){
   const withLine=due.filter(a=>crmHasLine(a.hn)), noLine=due.filter(a=>!crmHasLine(a.hn));
   const recent=(d.log||[]).filter(r=>r.type==='remind' && r.status!=='done').slice(-40).reverse();
   const row=a=>`<div class="crm-item"><div class="main"><div class="nm">${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
-     <div class="meta">${crmEsc(crmThaiShort(a.date))} ${crmEsc(a.time||'')} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} ${crmIsOrtho(a)?'<span class="crm-chip b">จัดฟัน '+od+' วัน</span>':'<span class="crm-chip w">'+xd+' วัน</span>'}</div><div>${crmAptLineChips(a)}</div></div>
+     <div class="meta">${crmEsc(crmThaiShort(a.date))} ${crmEsc(a.time||'')} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} ${crmIsOrthoVisit(a)?'<span class="crm-chip b">จัดฟัน '+od+' วัน</span>':'<span class="crm-chip w">'+xd+' วัน</span>'}</div><div>${crmAptLineChips(a)}</div></div>
      <div class="acts">${crmPhoneOf(a.hn,a.phone)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(a.hn,a.phone))}">📞 ${crmEsc(crmPhoneOf(a.hn,a.phone))}</a>`:'<span class="crm-muted">ไม่มีเบอร์</span>'}</div></div>`;
   return `<div class="crm-card"><h4>🔔 รอบเตือนวันนี้ (${crmEsc(s.remindHour||'10:00')} น.)<span class="sp"></span><span class="crm-chip w">จัดฟันก่อน ${od} วัน · งานอื่นก่อน ${xd} วัน</span></h4>
       ${!s.remindOn?'<div class="crm-alert o">การเตือนนัดปิดอยู่ (ตั้งค่า)</div>':''}
@@ -4249,9 +4284,9 @@ function statusBgColor(s){
 
 function renderAptList(today){
   refreshEndoSet();
-  let apts = appointments.filter(a=>a.date===today);
+  let apts = appointments.filter(a=>a.date===today).concat(orthoVirtualApts_(today, today));
   if(!isManager) apts = apts.filter(a=>a.docName===currentUser.name);
-  apts.sort((a,b)=>a.time.localeCompare(b.time));
+  apts.sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
   const el = document.getElementById('aptList');
   const hdr = document.getElementById('aptListHdr');
   // ผู้จัดการ → แยกกลุ่มเรียงตามหมอ (มีหัวกลุ่มบอกชื่อหมออยู่แล้ว มือถือแนวตั้งเลยซ่อนคอลัมน์หมอซ้ำในแต่ละแถว)
@@ -4279,7 +4314,7 @@ function renderAptList(today){
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
       ${isManager ? `<div style="font-size:12px;font-weight:700;color:${docColor(a.docName)}">${a.docName}</div>` : ''}
       <div>
-        <span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'}">${a.status}</span>
+        ${a._ortho ? `<span class="${statusClass(a.status)}" title="นัดจากการ์ดจัดฟัน — เปิดการ์ดเพื่อแก้ไข" style="cursor:pointer;" onclick="openOrthoHistory('${String(a.hn||'').replace(/'/g,"\\'")}')">🦷 ${a.status}</span>` : `<span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'}">${a.status}</span>`}
       </div>
     </div>`;
 
@@ -4704,6 +4739,11 @@ function saveApt(){
   if(!apt.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); _aptSaving=false; return; }
   const _aptOrtho = orthoCodeClean_(document.getElementById('apt-ortho')?.value);
   if(!orthoCodeOk_(_aptOrtho)){ showToast('รหัสจัดฟันรูปแบบ A-123 (หรือเว้นว่างได้)','error'); _aptSaving=false; return; }
+  // มีรหัสจัดฟันแต่ไม่มี HN → เติม HN จากการ์ดจัดฟัน (เซิร์ฟเวอร์ส่ง LINE ได้เฉพาะนัดที่มี HN)
+  if(!String(apt.hn||'').trim() && _aptOrtho){
+    const _byc = orthoByCode_(_aptOrtho);
+    if(_byc && _byc.hn){ apt.hn = _byc.hn; if(!apt.phone && _byc.phone) apt.phone = _byc.phone; showToast('เติม HN '+_byc.hn+' จากรหัส '+_aptOrtho+' ให้แล้ว'); }
+  }
   // บันทึกหมอล่าสุด
   if(isManager && apt.docName) localStorage.setItem('bl_last_doc', apt.docName);
   const idx = appointments.findIndex(a=>String(a.id)===String(apt.id));
@@ -4824,45 +4864,61 @@ function orthoProcLike_(proc){
   const kws=String(((CRM.data&&CRM.data.settings)||{}).orthoKeywords||'').split(',').map(x=>x.trim()).filter(Boolean);
   return kws.some(k=>p.includes(k));
 }
+const ORTHO_NEXT_FIELDS = ['นัดถัดไป','นัดถัดไปเวลา','รายการนัดถัดไป','หมายเหตุนัดถัดไป'];
+function orthoPickFields_(rec, keys){ const o={}; keys.forEach(k=>{ o[k]=rec&&rec[k]!=null?rec[k]:''; }); return o; }
 async function orthoSyncFromApt_(apt, oldApt){
   try{
     if(apt && apt.status==='ยกเลิก'){ orthoClearFromApt_(apt); return; }
     if(!apt || apt._ortho || ['เสร็จสิ้น','เสร็จ','walk-in'].includes(apt.status)) return;
-    if(!orthoProcLike_(apt.proc)) return;
-    try{ await loadOrthoData(true); }catch(e){}   // ดึงการ์ดล่าสุดก่อนเขียน กันทับข้อมูลที่เครื่องอื่นเพิ่งบันทึก (เช่น ครั้งที่มา)
+    if(!orthoProcLike_(apt.proc) && !/^A-\d+$/.test(String(apt.orthoCode||''))) return;
+    try{ await loadOrthoData(true); }catch(e){}   // ดึงการ์ดล่าสุดก่อนเขียน กันทับข้อมูลที่เครื่องอื่นเพิ่งบันทึก
     const rec = orthoCardForApt_(apt); if(!rec) return;
     if(apt.date < todayStr()) return;
-    const cur = String(rec['นัดถัดไป']||'').slice(0,10), curT = String(rec['นัดถัดไปเวลา']||'').slice(0,5);
-    const isSame = cur===apt.date && (!curT || !apt.time || curT===String(apt.time).slice(0,5));
+    const cur = String(rec['นัดถัดไป']||'').slice(0,10), curT = String(rec['นัดถัดไปเวลา']||'').slice(0,5), aT = String(apt.time||'').slice(0,5);
+    const isSame = cur===apt.date && (!curT || !aT || curT===aT);
     const wasThis = oldApt && cur===String(oldApt.date||'').slice(0,10);
-    if(isSame && curT===String(apt.time||'').slice(0,5)) return;   // การ์ดตรงกับนัดนี้อยู่แล้ว
-    if(cur && !isSame && !wasThis){
+    if(cur===apt.date && curT===aT) return;   // การ์ดตรงกับนัดนี้อยู่แล้ว
+    // การ์ดมีนัดอื่นที่ยังไม่ถึงและไม่ใช่นัดนี้ → ถามก่อนเขียนทับ (นัดที่ผ่านไปแล้วเขียนทับได้เลย)
+    if(cur && cur>=todayStr() && !isSame && !wasThis){
       if(!window.confirm('การ์ดจัดฟันของ '+(rec['ชื่อ']||apt.patName||'')+' มีนัดถัดไปเป็น '+cur+(curT?' '+curT:'')+'\nเขียนทับเป็น '+apt.date+' '+(apt.time||'')+' ?')) return;
     }
-    const row = Object.assign({}, rec, {
+    const fields = {
       'นัดถัดไป': apt.date, 'นัดถัดไปเวลา': apt.time||'',
       'รายการนัดถัดไป': String(apt.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='จัดฟัน').join(', ') || 'ปรับเครื่องมือ',
       'หมายเหตุนัดถัดไป': apt.note||''
-    });
-    await orthoPost({action:'orthoSave', row});
-    const i = orthoData.findIndex(x=>String(x.hn)===String(rec.hn)); if(i>=0) orthoData[i]=row;
-    try{ localStorage.setItem('bl_ortho_cache', JSON.stringify(orthoData)); }catch(e){}
-    showToast('อัปเดตนัดถัดไปในการ์ดจัดฟันแล้ว 🦷');
+    };
+    const res = await orthoPatchCard_(rec.hn, fields);
+    if(res && res.ok!==false) showToast('อัปเดตนัดถัดไปในการ์ดจัดฟันแล้ว 🦷');
   }catch(e){ console.warn('orthoSyncFromApt_', e); }
 }
+// คืนค่า {hn, fields เดิม} ไว้ให้ undo ได้ · null = ไม่ได้ล้าง
 async function orthoClearFromApt_(apt){
   try{
-    if(!apt || !orthoProcLike_(apt.proc)) return;
+    if(!apt || !(orthoProcLike_(apt.proc) || /^A-\d+$/.test(String(apt.orthoCode||'')))) return null;
     try{ await loadOrthoData(true); }catch(e){}
-    const rec = orthoCardForApt_(apt); if(!rec) return;
-    const cur = String(rec['นัดถัดไป']||'').slice(0,10); if(cur!==String(apt.date||'').slice(0,10)) return;
-    if(!window.confirm('ล้างนัดถัดไป ('+cur+') ในการ์ดจัดฟันของ '+(rec['ชื่อ']||apt.patName||'')+' ด้วยไหม?')) return;
-    const row = Object.assign({}, rec, {'นัดถัดไป':'','นัดถัดไปเวลา':'','รายการนัดถัดไป':'','หมายเหตุนัดถัดไป':''});
-    await orthoPost({action:'orthoSave', row});
-    const i = orthoData.findIndex(x=>String(x.hn)===String(rec.hn)); if(i>=0) orthoData[i]=row;
-    try{ localStorage.setItem('bl_ortho_cache', JSON.stringify(orthoData)); }catch(e){}
-    showToast('ล้างนัดถัดไปในการ์ดจัดฟันแล้ว');
-  }catch(e){ console.warn('orthoClearFromApt_', e); }
+    const rec = orthoCardForApt_(apt); if(!rec) return null;
+    const cur = String(rec['นัดถัดไป']||'').slice(0,10); if(cur!==String(apt.date||'').slice(0,10)) return null;
+    if(!window.confirm('ล้างนัดถัดไป ('+cur+') ในการ์ดจัดฟันของ '+(rec['ชื่อ']||apt.patName||'')+' ด้วยไหม?\n(ถ้าไม่ล้าง ระบบยังถือว่าคนไข้มีนัดวันนั้นจากการ์ด)')) return null;
+    const before = orthoPickFields_(rec, ORTHO_NEXT_FIELDS), fields={}; ORTHO_NEXT_FIELDS.forEach(k=>fields[k]='');
+    const res = await orthoPatchCard_(rec.hn, fields);
+    if(res && res.ok!==false){ showToast('ล้างนัดถัดไปในการ์ดจัดฟันแล้ว'); return { hn:rec.hn, fields:before }; }
+    return null;
+  }catch(e){ console.warn('orthoClearFromApt_', e); return null; }
+}
+// หลังกด "มาตามนัด": ถ้ามีนัดจัดฟันในตารางนัดที่ถัดไป → ตั้งเป็นนัดถัดไปของการ์ดให้เลย (การ์ดเก็บได้นัดเดียว)
+async function orthoAdvanceNext_(hn, afterDate){
+  try{
+    const rec = crmOrthoRec(hn); if(!rec) return;
+    const cur = String(rec['นัดถัดไป']||'').slice(0,10);
+    if(cur && cur>afterDate) return;   // การ์ดมีนัดในอนาคตอยู่แล้ว
+    const k = crmHN(hn);
+    const nx = appointments.filter(a=>crmHN(a.hn)===k && a.date>afterDate && !['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status) && crmIsOrthoVisit(a))
+      .sort((x,y)=>(x.date+(x.time||'')).localeCompare(y.date+(y.time||'')))[0];
+    if(!nx) return;
+    await orthoPatchCard_(rec.hn, { 'นัดถัดไป':nx.date, 'นัดถัดไปเวลา':nx.time||'',
+      'รายการนัดถัดไป': String(nx.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='จัดฟัน').join(', ') || 'ปรับเครื่องมือ', 'หมายเหตุนัดถัดไป': nx.note||'' });
+    showToast('ตั้งนัดถัดไปของการ์ดเป็น '+nx.date+' '+(nx.time||'')+' (จากตารางนัด) 🦷');
+  }catch(e){ console.warn('orthoAdvanceNext_', e); }
 }
 function deleteApt(id){
   if(!confirm('ยืนยันลบนัดนี้?')) return;
@@ -4870,7 +4926,7 @@ function deleteApt(id){
   if(idx<0) return;
   const removed = appointments[idx];
   appointments = appointments.filter(a=>String(a.id)!==String(id));
-  setTimeout(()=>orthoClearFromApt_(removed), 50);
+  let _cardRestore=null; setTimeout(async()=>{ _cardRestore = await orthoClearFromApt_(removed); }, 50);
   _blacklistDeletedApt(id); // กัน syncAll ดึงกลับมาก่อน Sheet propagate ระหว่างรอ undo + ลบจริง
   saveLocal();
   const rerender = () => {
@@ -4881,7 +4937,7 @@ function deleteApt(id){
   rerender();
   showUndoToast('ลบนัดสำเร็จ',
     () => { syncToSheet('delete',{type:'appointments',id}); },
-    () => { appointments.splice(idx,0,removed); saveLocal(); rerender(); }
+    () => { appointments.splice(idx,0,removed); saveLocal(); rerender(); if(_cardRestore) orthoPatchCard_(_cardRestore.hn, _cardRestore.fields).then(()=>showToast('คืนนัดถัดไปในการ์ดจัดฟันแล้ว')); }
   );
 }
 
@@ -7391,14 +7447,19 @@ function _slotMap(date){
     return v;
   }catch(e){ return {}; }
 }
+// slot ที่ลบ/เว้นว่าง เก็บรวมใน map ของวันนั้น (คีย์ '#del' / '#blk') → sync ขึ้นชีตพร้อม slot เห็นตรงกันทุกเครื่อง
 function _deletedMap(date){
+  const out = {};
   try{
-    const all = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
+    const all = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');   // ค่าเก่าที่เก็บเฉพาะเครื่อง
     const v = all[date];
-    if(v==null) return {};
-    if(Array.isArray(v)) return { '': v };
-    return v;
-  }catch(e){ return {}; }
+    if(Array.isArray(v)) out[''] = v.slice(); else if(v) Object.keys(v).forEach(k=>{ out[k] = (v[k]||[]).slice(); });
+  }catch(e){}
+  try{
+    const sv = _slotMap(date)['#del'] || {};
+    Object.keys(sv).forEach(k=>{ out[k] = [...new Set([...(out[k]||[]), ...(sv[k]||[])])]; });
+  }catch(e){}
+  return out;
 }
 function _writeSlotMap(date, map){
   try{
@@ -7414,9 +7475,10 @@ function _writeSlotMap(date, map){
 function _writeDeletedMap(date, map){
   try{
     const all = JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}');
-    all[date] = map;
+    delete all[date];   // ย้ายไปเก็บใน map ที่ sync แล้ว
     localStorage.setItem('bl_deleted_slots', JSON.stringify(all));
   }catch(e){}
+  try{ const sm = _slotMap(date); sm['#del'] = map; _writeSlotMap(date, sm); }catch(e){}
 }
 // หมอเอม (ทพญ.วัจน์กร) ใช้ slot ตั้งต้นทุก 15 นาที (10:00–18:00 เว้นพักเที่ยง 12:30–13:00)
 const AIM_DEFAULT_SLOTS = (()=>{ const o=[]; for(let m=600;m<=1080;m+=15){ if(m===750||m===765) continue; o.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return o; })();
@@ -7439,17 +7501,21 @@ function saveSchSlots(date, slots, doc){
   _writeSlotMap(date, map);
 }
 function isSlotBlocked(date, slot, doc){
+  try { if(((_slotMap(date)['#blk']||{})[doc||'']||[]).includes(slot)) return true; } catch(e){}
   try {
-    const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}');
+    const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}');   // ค่าเก่าที่เก็บเฉพาะเครื่อง
     return !!all[`${date}_${doc||''}_${slot}`];
   } catch(e){ return false; }
 }
 function toggleSlotBlocked(date, slot, doc){
   try {
-    const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}');
-    const key = `${date}_${doc||''}_${slot}`;
-    if(all[key]) delete all[key]; else all[key] = true;
-    localStorage.setItem(SCH_BLOCKED_KEY, JSON.stringify(all));
+    const dk = doc||'', was = isSlotBlocked(date, slot, dk);
+    try{ const all = JSON.parse(localStorage.getItem(SCH_BLOCKED_KEY)||'{}'); delete all[`${date}_${dk}_${slot}`]; localStorage.setItem(SCH_BLOCKED_KEY, JSON.stringify(all)); }catch(e){}
+    const map = _slotMap(date), blk = map['#blk'] = map['#blk'] || {};
+    const arr = (blk[dk]||[]).filter(s=>s!==slot);
+    if(!was) arr.push(slot);
+    blk[dk] = arr.sort();
+    _writeSlotMap(date, map);
     renderScheduleDay();
   } catch(e){}
 }
@@ -7504,7 +7570,9 @@ function confirmAddSlot(date, doc){
   map[dk] = [...list].sort();
   // เอาออกจาก blacklist ถ้าเคยถูกลบ
   const dmap = _deletedMap(date);
-  if(dmap[dk]){ dmap[dk] = dmap[dk].filter(s=>s!==t); _writeDeletedMap(date, dmap); }
+  if(dmap[dk]) dmap[dk] = dmap[dk].filter(s=>s!==t);
+  map['#del'] = dmap;   // เขียนรวมครั้งเดียว (กันค่า #del เก่าทับ)
+  try{ const all=JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}'); delete all[date]; localStorage.setItem('bl_deleted_slots', JSON.stringify(all)); }catch(e){}
   _writeSlotMap(date, map);
   renderScheduleDay();
   showToast(`เพิ่ม slot ${t} แล้ว`);
@@ -7577,7 +7645,7 @@ function renderScheduleDay(){
   const DAY_FG_PASTEL = ['#7B2020','#6B4A00','#7B2060','#1A6B40','#7B4000','#1A4A7B','#3D1A7B'];
 
   // Stat strip — รวม 2 วัน
-  const allApts2Days = appointments.filter(a=>_schDates.includes(a.date));
+  const allApts2Days = appointments.filter(a=>_schDates.includes(a.date)).concat(_schDates.length?orthoVirtualApts_(_schDates[0], _schDates[_schDates.length-1]).filter(a=>_schDates.includes(a.date)):[]);
   const statsEl = document.getElementById('schDayStats');
   if(statsEl){
     const total = allApts2Days.length;
@@ -7625,7 +7693,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const dow = d.getDay();
   const _realApts = appointments.filter(a=>a.date===date);
   // นัดจัดฟันจากการ์ดจัดฟัน (นัดถัดไป) ที่ยังไม่มีในตารางนัด → แสดงรวมที่นี่ด้วย (อ่านอย่างเดียว กดไปการ์ดจัดฟัน)
-  let _virt = []; try{ const _aim=(doctors.find(d=>d.id==='aim')||{}).name||''; _virt = crmOrthoAptList(date,date).filter(a=>a._ortho).map(a=>Object.assign(a,{docName:a.docName||_aim})); }catch(e){}
+  const _virt = orthoVirtualApts_(date, date);
   const dayApts = _realApts.concat(_virt).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const isToday = date===todayStr();
   const bg = DAY_BG_PASTEL[dow];
@@ -7665,6 +7733,13 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     });
   }
 
+  function schOrthoLineChip_(a){
+    let st='noline'; try{ st=crmOrthoState(a); }catch(e){}
+    const M={ yes:['✅ ยืนยันแล้ว','#E3F4EA','#1D6B44'], move:['📅 ขอเลื่อน','#FDEBD0','#A04000'], wait:['⏳ รอยืนยัน','#FFF4CC','#7A5600'], noline:['☎️ ยังไม่ผูกไลน์','#EEE','#666'] }[st]||['','#EEE','#666'];
+    const canConfirm = (st==='wait'||st==='noline') && isManager && !isViewOnlyUser();
+    return `<span style="background:${M[1]};color:${M[2]};border-radius:10px;padding:0 7px;font-weight:700;">${M[0]}</span>`
+      + (canConfirm ? `<button onclick="event.stopPropagation();crmOrthoConfirm('${String(a.id).replace(/'/g,'')}');setTimeout(renderScheduleDay,600);" title="คนไข้ยืนยันทางโทร/แชท" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:0 6px;font-size:10px;font-weight:700;color:#1E4FA0;cursor:pointer;">ตั้งยืนยัน</button>` : '');
+  }
   function aptCard(a){
     if(a._ortho){
       const hnE = String(a.hn||'').replace(/'/g,"\\'");
@@ -7673,7 +7748,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           <span style="font-weight:700;color:#1E4FA0;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orthoCodeOf_(a.hn,a.patName)?`<span style="font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName)}</span> · `:'🦷 '}${a.hn?`${a.hn} · `:''}${_escHtml(a.patName||'—')}</span>
           <button onclick="event.stopPropagation();openOrthoHistory('${hnE}')" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:700;color:#1E4FA0;cursor:pointer;flex-shrink:0;">การ์ดจัดฟัน</button>
         </div>
-        <div style="font-size:10.5px;color:var(--text-mid);margin-top:2px;">นัดจากการ์ดจัดฟัน · ${_escHtml(a.proc||'นัดจัดฟัน')}</div>
+        <div style="font-size:10.5px;color:var(--text-mid);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">นัดจากการ์ดจัดฟัน · ${_escHtml(a.proc||'นัดจัดฟัน')} ${schOrthoLineChip_(a)}</div>
       </div>`;
     }
     const sc = STATUS_COLOR[a.status]||'#999';
@@ -7715,7 +7790,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       slotBg = statusBgColor(slotApts[0].status);
     }
     // วันที่มีงานจัดฟัน: slot ว่างของคอลัมน์หมอจัดฟันใช้พื้นสีส้ม
-    const _orthoDay = dayApts.some(x=>x._ortho || (typeof crmIsOrtho==='function' && crmIsOrtho(x)));
+    const _orthoDay = dayApts.some(x=>crmIsOrthoVisit(x));
     const _orthoCol = filterDoc ? isAimDoc_(filterDoc) : true;
     const orthoFree = !blocked && slotApts.length===0 && _orthoDay && _orthoCol;
     if(orthoFree) slotBg = '#FFE2B8';
@@ -7845,7 +7920,7 @@ function renderSchMiniCal(){
   const today = todayStr();
 
   // apt map for this month
-  const monthApts = appointments.filter(a=>a.date&&a.date.startsWith(schCalMonth));
+  const monthApts = appointments.filter(a=>a.date&&a.date.startsWith(schCalMonth)).concat(orthoVirtualApts_(schCalMonth+'-01', schCalMonth+'-31'));
 
   // Day headers
   let html = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;">`;
@@ -8479,30 +8554,34 @@ function fmtTime24(input){
   input.value = v;
 }
 
+// ดัชนีรหัสจัดฟัน (สร้างครั้งเดียว ใช้ซ้ำ ~5 วิ) — กันตารางยาวช้าจากการวนหาทีละแถว
+let _ocIdx=null;
+function ocIndex_(){
+  const now=Date.now(), od=(typeof orthoData!=='undefined'&&orthoData)||[], pt=(typeof patients!=='undefined'&&patients)||[];
+  if(_ocIdx && _ocIdx.od===od && _ocIdx.pt===pt && _ocIdx.odn===od.length && _ocIdx.ptn===pt.length && now-_ocIdx.t<5000) return _ocIdx;
+  const okc=v=>/^A-\d+$/.test(String(v||'').trim()), norm=v=>String(v||'').replace(/\s+/g,' ').trim();
+  const cardByHn=new Map(), patByHn=new Map(), byName=new Map();
+  const addName=(n,c)=>{ n=norm(n); if(n.length<3) return; if(!byName.has(n)) byName.set(n,new Set()); byName.get(n).add(c); };
+  od.forEach(o=>{ const c=String(o['รหัสประจำตัว']||'').trim(); if(!okc(c)) return; const k=crmHN(o.hn); if(k && !cardByHn.has(k)) cardByHn.set(k,c); addName(o['ชื่อ'],c); });
+  pt.forEach(p=>{ const c=String(p.orthoCode||'').trim(); if(!okc(c)) return; const k=crmHN(p.hn); if(k && !patByHn.has(k)) patByHn.set(k,c); addName(p.name,c); });
+  _ocIdx={od,pt,odn:od.length,ptn:pt.length,t:now,cardByHn,patByHn,byName};
+  return _ocIdx;
+}
+// รหัสจัดฟันของนัด/คนไข้ — ลำดับ: รหัสที่กรอกในนัด → การ์ดจัดฟัน (ตาม HN) → ข้อมูลคนไข้ → เดาจากชื่อ (ลงท้าย "?")
 function orthoCodeOf_(hn, name, explicit){
-  if(explicit && /^A-\d+$/.test(String(explicit))) return String(explicit);
-  const okc=v=>/^A-\d+$/.test(String(v||''));
-  if(hn){
-    const k=crmHN(hn);
-    const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) return String(p.orthoCode).replace(/[<>&]/g,'');
-    if(typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && okc(x['รหัสประจำตัว'])); if(o) return o['รหัสประจำตัว']; }
-    return '';
-  }
-  const nm=String(name||'').trim();     // ไม่มี HN → จับคู่ด้วยชื่อ (ต้องตรงเป๊ะและมีคนเดียว)
-  if(nm.length<3) return '';
-  const norm=v=>String(v||'').replace(/\s+/g,' ').trim();
-  const c1=patients.filter(x=>norm(x.name)===nm && x.orthoCode);
-  if(c1.length===1) return String(c1[0].orthoCode).replace(/[<>&]/g,'');
-  if(typeof orthoData!=='undefined' && orthoData){ const c2=orthoData.filter(x=>norm(x['ชื่อ'])===nm && okc(x['รหัสประจำตัว'])); if(c2.length===1) return c2[0]['รหัสประจำตัว']; }
-  return '';
+  if(explicit && /^A-\d+$/.test(String(explicit).trim())) return String(explicit).trim();
+  const ix=ocIndex_();
+  if(hn){ const k=crmHN(hn); return ix.cardByHn.get(k) || ix.patByHn.get(k) || ''; }
+  const nm=String(name||'').replace(/\s+/g,' ').trim(); if(nm.length<3) return '';
+  const set=ix.byName.get(nm); return (set && set.size===1) ? [...set][0]+'?' : '';
 }
 // แสดง HN คู่กับรหัสจัดฟัน (ถ้ามี)
 function hnWithOrtho_(hn, name, explicit){
   const h=hn||'—', code=orthoCodeOf_(hn, name, explicit);
-  return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;">🦷 '+code+'</div>' : h;
+  return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;"'+(code.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>🦷 '+code+'</div>' : h;
 }
 // รหัสจัดฟันหน้าชื่อ (HTML / ข้อความล้วน) — ว่างถ้าไม่มี
-function ocTag_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?'<b style="color:var(--wine);font-weight:800;">'+String(c).replace(/[<>&"]/g,'')+'</b> ':''; }
+function ocTag_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?'<b style="color:var(--wine);font-weight:800;"'+(c.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>'+String(c).replace(/[<>&"]/g,'')+'</b> ':''; }
 function ocPlain_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?c+' ':''; }
 function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
 function orthoCodeClean_(v){ v=String(v||'').trim(); return (v==='A-')?'':v; }
@@ -8585,20 +8664,8 @@ function orthoCodeInput_(el, prefix, nameId){
 }
 function aptFillOrtho_(hn, name, elId){
   const el=document.getElementById(elId||'apt-ortho'); if(!el || el.value) return;
-  const k=(typeof crmHN==='function')?crmHN(hn):String(hn||'');
-  let code='';
-  if(k){
-    const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) code=p.orthoCode;
-    if(!code && typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && /^A-\d+$/.test(String(x['รหัสประจำตัว']||''))); if(o) code=o['รหัสประจำตัว']; }
-  }
-  if(!code && name){
-    const nm=String(name).trim();
-    if(nm.length>=3 && typeof orthoData!=='undefined' && orthoData){
-      const hits=orthoData.filter(x=>String(x['ชื่อ']||x.name||'').trim()===nm && /^A-\d+$/.test(String(x['รหัสประจำตัว']||'')));
-      if(hits.length===1) code=hits[0]['รหัสประจำตัว'];
-    }
-  }
-  if(code) el.value=code;
+  const code = orthoCodeOf_(hn, hn?'':name, '');
+  if(code) el.value=code.replace(/\?$/,'');
 }
 function autoFillByName(rawName, prefix){
   const q = rawName.trim();
@@ -9454,6 +9521,7 @@ function copyDaySummary(){
 
   const allDayApts = appointments
     .filter(a=>a.date===date && a.status!=='ยกเลิก')
+    .concat(orthoVirtualApts_(date, date))
     .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
 
   if(!allDayApts.length){ showToast('ไม่มีนัดในวันนี้','error'); return; }
@@ -9618,6 +9686,7 @@ function doSendSummary(date, dayName, dd, mon, yy){
 
   let dayApts = appointments
     .filter(a=>a.date===date && a.status!=='ยกเลิก')
+    .concat(orthoVirtualApts_(date, date))
     .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
 
   if(selected !== '__all__') dayApts = dayApts.filter(a=>a.docName===selected);
@@ -10789,6 +10858,30 @@ function openReschedule(hn){
   document.getElementById('modalReschedule').classList.add('open');
 }
 
+// เปลี่ยน "นัดถัดไป" ในการ์ด → นัดในตารางนัดของวันเดิม (ถ้ามี) ย้ายตาม/ยกเลิกตาม ไม่ให้คนไข้มี 2 นัด
+function orthoMoveRealApt_(hn, oldRow, newRow){
+  try{
+    const oldD=String(oldRow['นัดถัดไป']||'').slice(0,10), oldT=String(oldRow['นัดถัดไปเวลา']||'').slice(0,5);
+    const newD=String(newRow['นัดถัดไป']||'').slice(0,10), newT=String(newRow['นัดถัดไปเวลา']||'').slice(0,5);
+    if(!oldD || oldD<todayStr() || (oldD===newD && oldT===newT)) return;
+    const k=crmHN(hn);
+    const ra=appointments.find(a=>crmHN(a.hn)===k && a.date===oldD && !['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status)
+      && (!oldT || !a.time || String(a.time).slice(0,5)===oldT) && crmIsOrthoVisit(a));
+    if(!ra) return;
+    const nm=ra.patName||oldRow['ชื่อ']||'';
+    if(newD){
+      if(!window.confirm('ตารางนัดมีนัดของ '+nm+' วันที่ '+oldD+' '+(ra.time||'')+'\nย้ายไป '+newD+' '+(newT||ra.time||'')+' ตามการ์ดด้วยไหม?\n(ยกเลิก = คงนัดเดิมไว้ คนไข้จะมี 2 นัด)')) return;
+      ra.date=newD; if(newT) ra.time=newT; ra.status='ไม่คอนเฟิร์ม';
+      showToast('ย้ายนัดในตารางนัดไป '+newD+' '+(ra.time||'')+' แล้ว');
+    } else {
+      if(!window.confirm('ล้างนัดถัดไปในการ์ดแล้ว — ยกเลิกนัดในตารางนัดของ '+nm+' วันที่ '+oldD+' '+(ra.time||'')+' ด้วยไหม?')) return;
+      ra.status='ยกเลิก';
+      showToast('ยกเลิกนัดในตารางนัดแล้ว');
+    }
+    saveLocal(); markPendingSync('appointments', ra); syncToSheet('appointments', ra).catch(()=>showToast('sync นัดไม่สำเร็จ','error'));
+    try{ const p=document.querySelector('.page.active')?.id?.replace('page-',''); if(p==='home') renderHome(); else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); } }catch(e){}
+  }catch(e){ console.warn('orthoMoveRealApt_', e); }
+}
 async function saveReschedule(){
   if(viewOnlyBlock_()) return;
   if(_reschedSaving) return;
@@ -10802,10 +10895,13 @@ async function saveReschedule(){
     'รายการนัดถัดไป': Array.from(document.querySelectorAll('.resched-do-chk:checked')).map(c=>c.value).join(', '),
     'หมายเหตุนัดถัดไป': document.getElementById('resched-note').value.trim()
   });
-  await orthoPost({action:'orthoSave', row});
+  const _old = idx>=0 ? Object.assign({}, orthoData[idx]) : {};
+  const _res = await orthoPost({action:'orthoSave', row});
+  if(_res && _res.ok===false){ _reschedSaving=false; return; }
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalReschedule');
   showToast('นัดสำเร็จ');
+  orthoMoveRealApt_(hn, _old, row);
   crmKickReport_(hn); // สั่งรอบส่ง LINE CRM ทันที แล้วบอกผลบนหน้าจอ (ส่งแล้ว / ไม่ส่งเพราะอะไร)
   renderOrthoPage();
   try{ if(typeof CRM!=='undefined' && CRM.sub==='orthoapt' && CRM.data) crmRender(); }catch(e){}
@@ -10937,11 +11033,57 @@ async function saveQuickLog(){
   _qlogSaving = false;
 }
 
-async function orthoPost(payload){
-  const url = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
+// ส่งคำสั่งไป Apps Script แบบอ่านผลได้ (text/plain ไม่ต้อง preflight) · อ่านไม่ได้ = ส่งถึงแล้วแต่ไม่รู้ผล (ไม่ส่งซ้ำ กันข้อมูลซ้ำ)
+async function orthoSend_(payload){
+  let txt=null;
   try{
-    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  }catch(e){ console.warn('orthoPost error',e); showToast('บันทึกไม่สำเร็จ','error'); }
+    const r=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
+    txt=await r.text();
+  }catch(e){
+    if(typeof navigator!=='undefined' && navigator.onLine===false) return {ok:false,error:'ไม่มีอินเทอร์เน็ต'};
+    return {ok:true,unverified:true};
+  }
+  try{ return JSON.parse(txt); }catch(e){}
+  if(/^\s*error/i.test(String(txt||''))) return {ok:false,unsupported:true,error:String(txt).trim().slice(0,120)};
+  return {ok:true,unverified:true};
+}
+function orthoReport_(res){
+  if(res && res.ok===false) showToast('บันทึกข้อมูลจัดฟันไม่สำเร็จ: '+(res.error||'ไม่ทราบสาเหตุ'),'error');
+  return res;
+}
+// orthoSave ของการ์ดที่มีอยู่แล้ว → ส่งเฉพาะช่องที่เปลี่ยน (orthoPatch) กันทับค่าที่เครื่องอื่นเพิ่งบันทึก
+// ถ้าเซิร์ฟเวอร์ยังเป็นเวอร์ชันเก่า (ไม่รู้จัก orthoPatch) หรืออ่านผลไม่ได้ → ส่งทั้งแถวแบบเดิม ข้อมูลไม่หาย
+async function orthoPost(payload){
+  try{
+    if(payload && payload.action==='orthoSave' && payload.row && payload.row.hn){
+      const k=crmHN(payload.row.hn), base=((typeof orthoData!=='undefined'&&orthoData)||[]).find(x=>crmHN(x.hn)===k);
+      if(base){
+        const fields={};
+        Object.keys(payload.row).forEach(f=>{
+          if(!f || f[0]==='_' || f==='updatedAt' || f==='hn') return;
+          const a=payload.row[f], b=base[f];
+          if(String(a==null?'':a)!==String(b==null?'':b)) fields[f]=(a==null?'':a);
+        });
+        if(!Object.keys(fields).length) return {ok:true,nochange:true};
+        const res=await orthoSend_({action:'orthoPatch', hn:payload.row.hn, fields});
+        if(res && (res.unsupported || res.unverified)) return orthoReport_(await orthoSend_(payload));
+        return orthoReport_(res);
+      }
+    }
+    return orthoReport_(await orthoSend_(payload));
+  }catch(e){ console.warn('orthoPost error',e); showToast('บันทึกไม่สำเร็จ','error'); return {ok:false,error:String(e)}; }
+}
+// แก้บางช่องของการ์ดจัดฟัน + อัปเดตข้อมูลในเครื่องเมื่อสำเร็จ
+async function orthoPatchCard_(hn, fields){
+  const k=crmHN(hn), i=orthoData.findIndex(x=>crmHN(x.hn)===k);
+  const row=Object.assign({}, i>=0?orthoData[i]:{hn}, fields);
+  const res=await orthoPost({action:'orthoSave', row});
+  if(res && res.ok!==false){
+    if(i>=0) orthoData[i]=row; else orthoData.push(row);
+    try{ localStorage.setItem('bl_ortho_cache', JSON.stringify(orthoData)); }catch(e){}
+    _ocIdx=null; _oaSet=null;
+  }
+  return res;
 }
 
 // ============================================================
