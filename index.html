@@ -1503,6 +1503,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน <span id="orthoOverdueDays">50</span> วัน
             </label>
             <button type="button" class="ortho-chip" id="orthoPskChip" onclick="toggleOrthoPskFilter()" aria-pressed="false" title="คนไข้ที่มี ปกส แต่ปีนี้ยังไม่ได้ใช้สิทธิประกันสังคม">🏛️ ปกส ปีนี้ยังไม่ใช้สิทธิ <span id="orthoPskChipN">0</span></button>
+            <select class="form-control" id="orthoPayFilter" onchange="renderOrthoPage()" aria-label="กลุ่มการชำระ" style="height:36px;width:170px;"><option value="">ทุกกลุ่มการชำระ</option><option value="ชำระ 28 ครั้ง">ชำระ 28 ครั้ง</option><option value="ชำระจนกว่าจะเสร็จ">ชำระจนกว่าจะเสร็จ</option><option value="อื่นๆ">อื่นๆ</option><option value="__none">ยังไม่ระบุ</option></select>
             <select class="form-control" id="orthoSortSel" onchange="setOrthoSort(this.value)" aria-label="เรียงลำดับ" style="height:36px;width:200px;"></select>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
             <button class="btn btn-ghost btn-sm" onclick="toggleOrthoCalendar()">📅 ปฏิทินนัด</button>
@@ -2076,6 +2077,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group">
         <label>รหัสประจำตัว</label>
         <input class="form-control" id="ortho-idcode" placeholder="เช่น A-123" oninput="fmtIdCode(this)">
+      </div>
+      <div class="form-group">
+        <label>รูปแบบการชำระ</label>
+        <select class="form-control" id="ortho-paygrp"><option value="">— ยังไม่ระบุ —</option><option>ชำระ 28 ครั้ง</option><option>ชำระจนกว่าจะเสร็จ</option><option>อื่นๆ</option></select>
       </div>
       <div class="form-group">
         <label>แบบที่จัด</label>
@@ -10052,6 +10057,8 @@ async function renderOrthoPage(){
   let rows = orthoData.slice();
   if(statusFilter) rows = rows.filter(r=> orthoEffStatus_(r) === statusFilter);
   if(overdueOnly) rows = rows.filter(orthoOverdue_);
+  const payF = document.getElementById('orthoPayFilter')?.value || '';
+  if(payF) rows = rows.filter(r=> payF==='__none' ? !String(r['รูปแบบชำระ']||'').trim() : String(r['รูปแบบชำระ']||'').trim()===payF);
   if(q) rows = rows.filter(r=> String(r.hn||'').toLowerCase().includes(q) || String(r['ชื่อ']||'').toLowerCase().includes(q));
   orthoSyncSortSel_();
   // ชิป "ปกส ปีนี้ยังไม่ใช้สิทธิ": นับจากรายการที่ผ่านตัวกรองอื่นแล้ว และกรองเมื่อเปิดชิป
@@ -10238,7 +10245,7 @@ function orthoCardHtml(r){
           ${r['รหัสประจำตัว']?`<span style="color:var(--wine);font-weight:700;font-size:13px;">${r['รหัสประจำตัว']}</span>`:''}
           <span style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'}</span>
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
-          ${statusPill}${pskPill}${overduePill}${noApptPill}${missedPill}
+          ${statusPill}${r['รูปแบบชำระ']?`<span style="background:#EAF3FB;color:#1F5F8B;border:1px solid #BCD6EA;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">💳 ${escapeHtml(String(r['รูปแบบชำระ']))}</span>`:''}${pskPill}${overduePill}${noApptPill}${missedPill}
         </div>
         ${scaleLine}
         ${bound}
@@ -10269,6 +10276,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-hn-hint').innerHTML = '';
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
   document.getElementById('ortho-idcode').value = r?.['รหัสประจำตัว'] || 'A-';
+  document.getElementById('ortho-paygrp').value = r?.['รูปแบบชำระ'] || '';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '28 ครั้ง';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
@@ -10307,6 +10315,7 @@ async function saveOrthoProfile(){
     hn,
     'ชื่อ': document.getElementById('ortho-name').value.trim(),
     'รหัสประจำตัว': idcode === 'A-' ? '' : idcode,
+    'รูปแบบชำระ': document.getElementById('ortho-paygrp').value,
     'แบบจัด': document.getElementById('ortho-type').value,
     'หมอ': document.getElementById('ortho-doc').value,
     'สถานะ': document.getElementById('ortho-status').value,

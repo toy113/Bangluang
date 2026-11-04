@@ -175,6 +175,7 @@ function orthoLogsByHn(hn) {
 function orthoSave(row) {
   if (!row || !row.hn) return { ok: false, error: 'missing_hn' };
   var sh = orthoGetSheet_(SHEET_ORTHO, ORTHO_HEADERS);
+  orthoEnsureCol_(sh, 'รูปแบบชำระ');   // กลุ่มการชำระ: ชำระ 28 ครั้ง / ชำระจนกว่าจะเสร็จ / อื่นๆ (เพิ่มคอลัมน์ท้ายชีตให้เองถ้ายังไม่มี)
   var data = sh.getDataRange().getValues();
   var head = data[0];
   var hnCol = head.indexOf('hn');
@@ -402,6 +403,13 @@ function orthoNormPhone_(v) {
 function orthoJsonOut_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+function orthoEnsureCol_(sh, name) {
+  var lc = Math.max(1, sh.getLastColumn());
+  var head = sh.getRange(1, 1, 1, lc).getValues()[0];
+  for (var i = 0; i < head.length; i++) { if (String(head[i]).trim() === name) return i + 1; }
+  sh.getRange(1, lc + 1).setValue(name);
+  return lc + 1;
 }
 function orthoGetSheet_(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
