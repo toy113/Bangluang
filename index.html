@@ -4707,8 +4707,10 @@ function saveApt(){
   // บันทึกหมอล่าสุด
   if(isManager && apt.docName) localStorage.setItem('bl_last_doc', apt.docName);
   const idx = appointments.findIndex(a=>String(a.id)===String(apt.id));
+  const _oldApt = idx>-1 ? Object.assign({}, appointments[idx]) : null;
   if(idx>-1) appointments[idx]=apt; else appointments.push(apt);
   saveLocal();
+  orthoSyncFromApt_(apt, _oldApt);
 
   // ถ้ากรอกรหัสจัดฟัน → เก็บในข้อมูลคนไข้ (ถ้ามี HN นี้ในรายชื่อ)
   if(apt.hn && _aptOrtho){
@@ -4808,12 +4810,59 @@ function _deletedAptIds(){
     return new Set(Object.keys(live));
   }catch(e){ return new Set(); }
 }
+// ===== เชื่อมนัดจัดฟันในตารางนัด → ช่อง "นัดถัดไป" ของการ์ดจัดฟัน =====
+function orthoCardForApt_(apt){
+  if(!apt || typeof orthoData==='undefined' || !orthoData) return null;
+  let hn = apt.hn;
+  if(!hn && apt.orthoCode){ const r=orthoByCode_(apt.orthoCode); if(r) hn=r.hn; }
+  if(!hn) return null;
+  const rec = crmOrthoRec(hn);
+  return (rec && (!rec['สถานะ'] || rec['สถานะ']==='กำลังจัด')) ? rec : null;
+}
+async function orthoSyncFromApt_(apt, oldApt){
+  try{
+    if(!apt || apt._ortho || ['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(apt.status)) return;
+    if(!(crmIsOrtho(apt) || /จัดฟัน|ปรับเครื่องมือ|ถอดเครื่องมือ/.test(apt.proc||''))) return;
+    const rec = orthoCardForApt_(apt); if(!rec) return;
+    if(apt.date < todayStr()) return;
+    const cur = String(rec['นัดถัดไป']||'').slice(0,10), curT = String(rec['นัดถัดไปเวลา']||'').slice(0,5);
+    const isSame = cur===apt.date && (!curT || !apt.time || curT===String(apt.time).slice(0,5));
+    const wasThis = oldApt && cur===String(oldApt.date||'').slice(0,10);
+    if(isSame && curT===String(apt.time||'').slice(0,5)) return;   // การ์ดตรงกับนัดนี้อยู่แล้ว
+    if(cur && !isSame && !wasThis){
+      if(!window.confirm('การ์ดจัดฟันของ '+(rec['ชื่อ']||apt.patName||'')+' มีนัดถัดไปเป็น '+cur+(curT?' '+curT:'')+'\nเขียนทับเป็น '+apt.date+' '+(apt.time||'')+' ?')) return;
+    }
+    const row = Object.assign({}, rec, {
+      'นัดถัดไป': apt.date, 'นัดถัดไปเวลา': apt.time||'',
+      'รายการนัดถัดไป': String(apt.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='จัดฟัน').join(', ') || 'ปรับเครื่องมือ',
+      'หมายเหตุนัดถัดไป': apt.note||''
+    });
+    await orthoPost({action:'orthoSave', row});
+    const i = orthoData.findIndex(x=>String(x.hn)===String(rec.hn)); if(i>=0) orthoData[i]=row;
+    try{ localStorage.setItem('bl_ortho_cache', JSON.stringify(orthoData)); }catch(e){}
+    showToast('อัปเดตนัดถัดไปในการ์ดจัดฟันแล้ว 🦷');
+  }catch(e){ console.warn('orthoSyncFromApt_', e); }
+}
+async function orthoClearFromApt_(apt){
+  try{
+    if(!apt || !(crmIsOrtho(apt) || /จัดฟัน|ปรับเครื่องมือ|ถอดเครื่องมือ/.test(apt.proc||''))) return;
+    const rec = orthoCardForApt_(apt); if(!rec) return;
+    const cur = String(rec['นัดถัดไป']||'').slice(0,10); if(cur!==String(apt.date||'').slice(0,10)) return;
+    if(!window.confirm('ล้างนัดถัดไป ('+cur+') ในการ์ดจัดฟันของ '+(rec['ชื่อ']||apt.patName||'')+' ด้วยไหม?')) return;
+    const row = Object.assign({}, rec, {'นัดถัดไป':'','นัดถัดไปเวลา':'','รายการนัดถัดไป':'','หมายเหตุนัดถัดไป':''});
+    await orthoPost({action:'orthoSave', row});
+    const i = orthoData.findIndex(x=>String(x.hn)===String(rec.hn)); if(i>=0) orthoData[i]=row;
+    try{ localStorage.setItem('bl_ortho_cache', JSON.stringify(orthoData)); }catch(e){}
+    showToast('ล้างนัดถัดไปในการ์ดจัดฟันแล้ว');
+  }catch(e){ console.warn('orthoClearFromApt_', e); }
+}
 function deleteApt(id){
   if(!confirm('ยืนยันลบนัดนี้?')) return;
   const idx = appointments.findIndex(a=>String(a.id)===String(id));
   if(idx<0) return;
   const removed = appointments[idx];
   appointments = appointments.filter(a=>String(a.id)!==String(id));
+  setTimeout(()=>orthoClearFromApt_(removed), 50);
   _blacklistDeletedApt(id); // กัน syncAll ดึงกลับมาก่อน Sheet propagate ระหว่างรอ undo + ลบจริง
   saveLocal();
   const rerender = () => {
