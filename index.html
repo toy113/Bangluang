@@ -1758,7 +1758,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>ชื่อ-สกุล</label>
-        <input class="form-control" id="apt-name" placeholder="ชื่อผู้ป่วย" oninput="autoFillByName(this.value,'apt')">
+        <input class="form-control" id="apt-name" placeholder="ชื่อผู้ป่วย" oninput="autoFillByName(this.value,'apt');aptFillOrtho_(document.getElementById('apt-hn').value,this.value)">
       </div>
       <div class="form-group">
         <label>เบอร์โทรศัพท์</label>
@@ -4618,7 +4618,7 @@ function openAddApt(apt=null, prefillDate=null, prefillTime=null, prefillDoc=nul
   document.getElementById('apt-date').value = apt?.date || prefillDate || todayStr();
   
   document.getElementById('apt-hn').value   = apt?.hn || '';
-  { const _o=document.getElementById('apt-ortho'); if(_o){ const _p=apt?.hn?patients.find(p=>normHN(p.hn)===normHN(apt.hn)):null; _o.value=_p?.orthoCode||''; } }
+  { const _o=document.getElementById('apt-ortho'); if(_o){ const _p=apt?.hn?patients.find(p=>normHN(p.hn)===normHN(apt.hn)):null; _o.value=_p?.orthoCode||''; if(!_o.value&&apt) aptFillOrtho_(apt.hn, apt.patName); } }
   document.getElementById('apt-name').value = apt?.patName || '';
   document.getElementById('apt-phone').value= apt?.phone || '';
   setAptContact(apt?.contactChannel || '');
@@ -8420,6 +8420,24 @@ function saveDayNote(date, val){
   syncToSheet('day_notes', { id: date, date: date, note: val||'' });
 }
 
+// เติมรหัสจัดฟันอัตโนมัติในฟอร์มเพิ่มนัด (จากข้อมูลคนไข้ หรือการ์ดจัดฟัน) — เติมเฉพาะเมื่อช่องว่าง
+function aptFillOrtho_(hn, name){
+  const el=document.getElementById('apt-ortho'); if(!el || el.value) return;
+  const k=(typeof crmHN==='function')?crmHN(hn):String(hn||'');
+  let code='';
+  if(k){
+    const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) code=p.orthoCode;
+    if(!code && typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && /^A-\d+$/.test(String(x['รหัสประจำตัว']||''))); if(o) code=o['รหัสประจำตัว']; }
+  }
+  if(!code && name){
+    const nm=String(name).trim();
+    if(nm.length>=3 && typeof orthoData!=='undefined' && orthoData){
+      const hits=orthoData.filter(x=>String(x['ชื่อ']||x.name||'').trim()===nm && /^A-\d+$/.test(String(x['รหัสประจำตัว']||'')));
+      if(hits.length===1) code=hits[0]['รหัสประจำตัว'];
+    }
+  }
+  if(code) el.value=code;
+}
 function autoFillByName(rawName, prefix){
   const q = rawName.trim();
   if(q.length < 2) return;
@@ -8432,6 +8450,7 @@ function autoFillByName(rawName, prefix){
   if(hnEl && found.hn) hnEl.value = found.hn;
   if(phoneEl && found.phone) phoneEl.value = found.phone;
   if(hint) hint.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${found.name}${found.hn?' | HN: '+found.hn:''}</span>`;
+  if(prefix==='apt') aptFillOrtho_(found.hn, found.name);
 }
 
 function autoFillByPhone(rawPhone, prefix){
@@ -8446,10 +8465,11 @@ function autoFillByPhone(rawPhone, prefix){
   if(nameEl && found.name) nameEl.value = found.name;
   if(hnEl && found.hn) hnEl.value = found.hn;
   if(hint) hint.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${found.name}${found.hn?' | HN: '+found.hn:''}</span>`;
+  if(prefix==='apt') aptFillOrtho_(found.hn, found.name);
 }
 
 function autoFillPatient(hn, prefix){
-  if(prefix==='apt'){ const _o=document.getElementById('apt-ortho'), _p=patients.find(p=>String(p.hn||'').trim()===String(hn||'').trim()); if(_o && _p && _p.orthoCode && !_o.value) _o.value=_p.orthoCode; }
+  if(prefix==='apt') aptFillOrtho_(hn, '');
   const hint = document.getElementById(prefix+'-hn-hint');
   if(!hn || String(hn).trim().length < 1){
     if(hint) hint.innerHTML = '';
