@@ -3259,7 +3259,8 @@ function crmOrthoAptList(r0, r1){
   if(typeof orthoData!=='undefined' && orthoData && orthoData.length){
     list.forEach(a=>{
       if(a.hn && crmOrthoRec(a.hn)) return;
-      const m=String(a.patName||'').match(/^\s*(\d{3,})\s*(.*)$/); if(!m) return;
+      const mc=/^A-\d+$/.test(String(a.orthoCode||'')) ? [null, a.orthoCode.slice(2), ''] : null;   // รหัสที่กรอกในนัดโดยตรง
+      const m=mc || String(a.patName||'').match(/^\s*(\d{3,})\s*(.*)$/); if(!m) return;
       const hit=orthoData.filter(o=>/^A-\d+$/.test(String(o['รหัสประจำตัว']||'')) && String(+String(o['รหัสประจำตัว']).slice(2))===String(+m[1]));
       if(hit.length!==1) return;
       a.hn=hit[0].hn; a._hnFromCode=true; if(m[2]) a.patName=m[2];
@@ -3545,7 +3546,7 @@ function crmOrthoPrint(d){
     const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
     const last=String(o['ปรับล่าสุด']||'').slice(0,10);
     const info=[ o['แบบจัด']?E(o['แบบจัด']):'', last&&last!==d?'ปรับล่าสุด '+E(crmThaiShort(last)):'', loose?'หลุดสะสม '+loose+' ตัว':'', o['note']?E(o['note']):'' ].filter(Boolean).join(' · ');
-    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td><b>${E(a.patName||'')}</b> <span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span>${orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?' <span class="m" style="color:#1F5F8B;font-weight:700;">💳 ชำระจนเสร็จ</span>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?' <span class="m">· '+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
+    return `<tr><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td>${(o['รหัสประจำตัว']||a.orthoCode)?'<b>'+E(o['รหัสประจำตัว']||a.orthoCode)+'</b> ':''}<b>${E(a.patName||'')}</b> <span class="m">${a.hn?'HN '+E(a.hn):'ไม่มี HN'}</span>${orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE?' <span class="m" style="color:#1F5F8B;font-weight:700;">💳 ชำระจนเสร็จ</span>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${E(a.proc||'-')}${a.docName?' <span class="m">· '+E(a.docName)+'</span>':''}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
   }).join('');
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>นัดจัดฟัน ${E(crmThaiShort(d))}</title>
 <style>@page{size:A4 portrait;margin:8mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px;margin:0}
@@ -3612,7 +3613,7 @@ function crmViewOrthoApts(){
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
-        <td>${(()=>{ const oc=a.hn?crmOrthoRec(a.hn):null, code=oc&&oc['รหัสประจำตัว']; return code?'<b style="color:var(--wine);">'+crmEsc(code)+'</b> ':''; })()}<b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>${orthoPayBadge(a)}
+        <td>${(()=>{ const oc=a.hn?crmOrthoRec(a.hn):null, code=(oc&&oc['รหัสประจำตัว'])||a.orthoCode; return code?'<b style="color:var(--wine);">'+crmEsc(code)+'</b> ':''; })()}<b>${crmEsc(a.patName||'')}</b> <span class="crm-muted" style="font-size:11.5px;">${a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN'}</span>${orthoPayBadge(a)}
           <div class="crm-muted" style="font-size:11.5px;">${crmEsc(a.proc||'-')}${crmOrthoVisitNo(a)?` · <b style="color:var(--wine);">ปรับครั้งที่ ${crmOrthoVisitNo(a)}</b>`:''}</div>
           ${nextLine(a)}
           <div style="margin-top:3px;">${(x[2]&&!isViewOnlyUser())?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${a._hnFromCode?'<span class="crm-chip o" title="นัดในตารางนัดยังไม่มี HN จึงยังไม่ส่งไลน์ — ใส่ HN ในนัดนี้เพื่อให้ส่งไลน์ยืนยัน/เตือนได้">จับคู่จากรหัส · นัดไม่มี HN</span>':(crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>')}</div>
