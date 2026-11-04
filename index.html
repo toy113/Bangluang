@@ -4270,7 +4270,7 @@ function renderAptList(today){
   const rowHtml = a=>`
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
-      <div class="text-caption">${hnWithOrtho_(a.hn)}</div>
+      <div class="text-caption">${hnWithOrtho_(a.hn,a.patName)}</div>
       <div><div style="font-weight:600">${a.patName}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
@@ -4417,7 +4417,7 @@ function renderTreatList(treats){
 function treatRow(t){
   return `<tr style="${docRowStyle(t.docName)}">
     <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
-    <td class="text-caption hn-cell">${hnWithOrtho_(t.hn)}</td>
+    <td class="text-caption hn-cell">${hnWithOrtho_(t.hn,t.patName)}</td>
     <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
@@ -6102,7 +6102,7 @@ function renderTreatPage(){
   const rowHtml=t=>`
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
-      <td class="text-caption hn-cell">${hnWithOrtho_(t.hn)}</td>
+      <td class="text-caption hn-cell">${hnWithOrtho_(t.hn,t.patName)}</td>
       <td style="font-weight:600">${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
@@ -7572,7 +7572,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${orthoCodeOf_(a.hn)?`<span style="color:var(--wine);font-weight:800;">🦷 ${orthoCodeOf_(a.hn)}</span> · `:''}${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${orthoCodeOf_(a.hn,a.patName)?`<span style="color:var(--wine);font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName)}</span> · `:''}${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -8059,7 +8059,7 @@ function renderSchedulePage(){
         <tr>
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
-          <td class="text-caption hn-cell">${hnWithOrtho_(a.hn)}</td>
+          <td class="text-caption hn-cell">${hnWithOrtho_(a.hn,a.patName)}</td>
           <td style="font-weight:600;">${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
@@ -8364,19 +8364,26 @@ function fmtTime24(input){
   input.value = v;
 }
 
-function orthoCodeOf_(hn){
-  if(!hn) return ''; const k=crmHN(hn);
-  const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) return String(p.orthoCode).replace(/[<>&]/g,'');
-  if(typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && /^A-\d+$/.test(String(x['รหัสประจำตัว']||''))); if(o) return o['รหัสประจำตัว']; }
+function orthoCodeOf_(hn, name){
+  const okc=v=>/^A-\d+$/.test(String(v||''));
+  if(hn){
+    const k=crmHN(hn);
+    const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) return String(p.orthoCode).replace(/[<>&]/g,'');
+    if(typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && okc(x['รหัสประจำตัว'])); if(o) return o['รหัสประจำตัว']; }
+    return '';
+  }
+  const nm=String(name||'').trim();     // ไม่มี HN → จับคู่ด้วยชื่อ (ต้องตรงเป๊ะและมีคนเดียว)
+  if(nm.length<3) return '';
+  const norm=v=>String(v||'').replace(/\s+/g,' ').trim();
+  const c1=patients.filter(x=>norm(x.name)===nm && x.orthoCode);
+  if(c1.length===1) return String(c1[0].orthoCode).replace(/[<>&]/g,'');
+  if(typeof orthoData!=='undefined' && orthoData){ const c2=orthoData.filter(x=>norm(x['ชื่อ'])===nm && okc(x['รหัสประจำตัว'])); if(c2.length===1) return c2[0]['รหัสประจำตัว']; }
   return '';
 }
 // แสดง HN คู่กับรหัสจัดฟัน (ถ้ามี)
-function hnWithOrtho_(hn){
-  const h=hn||'—'; if(!hn) return h;
-  const k=crmHN(hn); let code='';
-  const p=patients.find(x=>crmHN(x.hn)===k && x.orthoCode); if(p) code=p.orthoCode;
-  if(!code && typeof orthoData!=='undefined' && orthoData){ const o=orthoData.find(x=>crmHN(x.hn)===k && /^A-\d+$/.test(String(x['รหัสประจำตัว']||''))); if(o) code=o['รหัสประจำตัว']; }
-  return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;">🦷 '+String(code).replace(/[<>&]/g,'')+'</div>' : h;
+function hnWithOrtho_(hn, name){
+  const h=hn||'—', code=orthoCodeOf_(hn, name);
+  return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;">🦷 '+code+'</div>' : h;
 }
 function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
 function orthoCodeClean_(v){ v=String(v||'').trim(); return (v==='A-')?'':v; }
