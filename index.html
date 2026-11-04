@@ -3704,7 +3704,7 @@ var _crmTplOpts = [];
 function crmEditTpl(id){
   const t = id ? (CRM.data.templates||[]).find(x=>x.id===id) : { name:'', procKeywords:'', priority:50, aftercareText:'', followupEnabled:'FALSE',
     followupQuestion:'สวัสดีค่ะ คุณ{name} 😊\nเมื่อวานคุณได้รับการ{proc} วันนี้อาการเป็นอย่างไรบ้างคะ?\nกดเลือกด้านล่างได้เลยค่ะ',
-    followupOptions: JSON.stringify([{label:'ปกติดี',kind:'ok',reply:'ดีใจด้วยค่ะ 😊 ดูแลตามคำแนะนำต่อไปนะคะ'},{label:'ปวดมาก',kind:'severe',reply:''},{label:'ให้คลินิกโทรกลับ',kind:'callback',reply:'รับเรื่องแล้วค่ะ 🙏 ทีมคลินิกจะโทรกลับในเวลาทำการ'}]) };
+    followupOptions: JSON.stringify([{label:'ปกติดี',kind:'ok',reply:'ดีจังเลยค่ะ 🌟 ขอบคุณที่ตอบกลับนะคะ ถ้ามีอาการอะไรเพิ่มเติม แจ้งคลินิกได้เสมอเลยค่ะ'},{label:'ปวดมาก',kind:'severe',reply:''},{label:'ให้คลินิกโทรกลับ',kind:'callback',reply:'รับเรื่องแล้วค่ะ 🙏 ทีมคลินิกจะโทรกลับในเวลาทำการ'}]) };
   if(!t) return;
   try{ _crmTplOpts = JSON.parse(t.followupOptions||'[]'); }catch(e){ _crmTplOpts=[]; }
   crmModal(`<h3>${id?'แก้ไข':'เพิ่ม'} template คำแนะนำหลังรักษา</h3>

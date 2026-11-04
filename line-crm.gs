@@ -434,7 +434,8 @@ function crmUserHns_(uid) {
 
 /* ============================ TEMPLATES ============================ */
 function crmOpt_(label, kind, reply) { return { label: label, kind: kind, reply: reply || '' }; }
-var CRM_REPLY_OK = 'ดีใจด้วยค่ะ 😊 ดูแลตามคำแนะนำต่อไปนะคะ';
+var CRM_REPLY_OK = 'ดีจังเลยค่ะ 🌟 ขอบคุณที่ตอบกลับนะคะ ถ้ามีอาการอะไรเพิ่มเติม แจ้งคลินิกได้เสมอเลยค่ะ';
+var CRM_REPLY_OK_OLD = 'ดีใจด้วยค่ะ 😊 ดูแลตามคำแนะนำต่อไปนะคะ';   // ข้อความเดิมที่บันทึกในแม่แบบเก่า → ใช้ข้อความใหม่แทนตอนตอบ (แก้เองในแท็บ Aftercare ก็ได้)
 var CRM_REPLY_MILD = 'อาการปวดเล็กน้อยพบได้ในช่วง 1–3 วันแรก รับประทานยาตามที่ทันตแพทย์สั่ง และดูแลตามคำแนะนำค่ะ\nถ้าปวดมากขึ้นหรือไม่ดีขึ้น กดปุ่ม "ให้คลินิกโทรกลับ" ได้เลยค่ะ';
 var CRM_REPLY_SEVERE = 'ขอบคุณที่แจ้งค่ะ 🙏 ส่งเรื่องให้ทีมคลินิกติดต่อกลับโดยเร็วแล้ว';
 var CRM_REPLY_CALLBACK = 'รับเรื่องแล้วค่ะ 🙏 ทีมคลินิกจะโทรกลับในเวลาทำการ';
@@ -1241,6 +1242,7 @@ function crmHandlePostback_(s, ev, uid) {
     if (opt.kind === 'emergency') reply = crmEmergencyText_(s); // ตอบรับเฉย ๆ + งานด่วน (ไม่แนะนำทางการแพทย์)
     else {
       reply = opt.reply || (opt.kind === 'ok' ? CRM_REPLY_OK : CRM_REPLY_CALLBACK);
+      if (opt.kind === 'ok' && reply === CRM_REPLY_OK_OLD) reply = CRM_REPLY_OK;
       if (opt.kind === 'ok') reply += crmNextAptText_(fu.hn, crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), crmReadByName_('ortho')));
     }
     var out = reply ? [crmText_(reply)] : [];
