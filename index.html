@@ -3563,9 +3563,8 @@ function crmViewOrthoApts(){
   const body=dates.map(d=>{
     const arr=days[d], cnt={yes:0,move:0,wait:0,noline:0}; arr.forEach(a=>cnt[crmOrthoState(a)]++);
     const pend=arr.filter(a=>['wait','noline'].includes(crmOrthoState(a)));
-    const copy = pend.length ? ` <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmCopy(${crmEsc(JSON.stringify(pend.map(a=>(a.time||'')+' '+(a.patName||'')+' HN '+(a.hn||'-')+' '+(crmPhoneOf(a.hn,a.phone)||''))))})">คัดลอกที่ยังไม่ยืนยัน</button>` : '';
     const head=`<tr><td colspan="3" style="background:var(--wine);color:#fff;font-weight:800;padding:8px 10px;border-bottom:0;">${crmEsc(crmThaiShort(d))}${d===today?' · วันนี้':''}
-        <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${(cnt.wait+cnt.noline)?` · ⏳${cnt.wait+cnt.noline}`:''}${cnt.move?` · 📅${cnt.move}`:''}</span><div style="margin-top:4px;">${copy} <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoPrint('${d}')">🖨 พิมพ์รายการให้หมอ</button>${d<=today?` <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoDfSummary('${d}')">📤 สรุปงาน+DF (ส่งไลน์)</button>`:''}</div></td></tr>`;
+        <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${(cnt.wait+cnt.noline)?` · ⏳${cnt.wait+cnt.noline}`:''}${cnt.move?` · 📅${cnt.move}`:''}</span><div style="margin-top:4px;"><button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoPrint('${d}')">🖨 พิมพ์รายการให้หมอ</button>${d<=today?` <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoDfSummary('${d}')">📤 สรุปงาน+DF (ส่งไลน์)</button>`:''}</div></td></tr>`;
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
