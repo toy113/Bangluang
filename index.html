@@ -4423,6 +4423,24 @@ function homeDfLineSend(){
   if(!w){ crmCopy(out); } else showToast('เปิด LINE แล้ว — เลือกแชทที่จะส่ง (คัดลอกข้อความไว้ให้ด้วย)');
 }
 // ตารางสรุปวันนี้แยกตามหมอ — เฉพาะผู้จัดการ
+// ปุ่มส่งไลน์ DF: โผล่เมื่อเคสสุดท้ายของหมอในวันนี้เสร็จแล้ว (ไม่เหลือนัดค้าง) · ถ้ายังเหลือ → แสดง "เหลือ N เคส" + ลิงก์ "ส่งเลย" เผื่อมีคนไม่มา
+function docPendingToday_(docName){
+  const today=todayStr(), n=docAlias(docName);
+  let pend=appointments.filter(a=>a.date===today && docAlias(a.docName)===n && !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status)).length;
+  try{
+    orthoVirtualApts_(today,today).filter(a=>docAlias(a.docName)===n).forEach(a=>{
+      const o=a.hn?crmOrthoRec(a.hn):null;
+      if(!(o && String(o['ปรับล่าสุด']||'').slice(0,10)===today)) pend++;
+    });
+  }catch(e){}
+  return pend;
+}
+function dfBtn_(n){
+  const doc=String(n).replace(/"/g,'&quot;'), pend=docPendingToday_(n);
+  const base='margin-left:6px;border:none;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;white-space:nowrap;';
+  if(!pend) return ` <button data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" title="เคสสุดท้ายเสร็จแล้ว — ส่ง DF ประจำวันเข้าไลน์" style="${base}background:#06C755;color:#fff;cursor:pointer;">📤 ส่งไลน์ DF</button>`;
+  return ` <span style="margin-left:6px;font-size:11px;color:var(--text-light);font-weight:600;">⏳ เหลืออีก ${pend} เคส</span> <a href="javascript:void(0)" data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" style="font-size:11px;color:var(--text-light);text-decoration:underline;">ส่งเลย</a>`;
+}
 function renderDocBreakdown_(treats){
   const box=document.getElementById('docBreakdownBox'), tbl=document.getElementById('docBreakdownTbl');
   if(!box||!tbl) return;
@@ -4442,7 +4460,7 @@ function renderDocBreakdown_(treats){
   if(!names.length){ tbl.innerHTML='<tr><td style="padding:16px;text-align:center;color:var(--text-light);">ยังไม่มีรายการรักษาวันนี้</td></tr>'; return; }
   const sum={n:0,total:0,cash:0,transfer:0,sso:0,share:0};
   const rows=names.map(n=>{ const g=by[n]; Object.keys(sum).forEach(k=>sum[k]+=g[k]);
-    return `<tr><td style="${td}text-align:left;font-weight:700;color:${docColor(n)};">${_escHtml(n)}${n!=='ไม่ระบุหมอ'?` <button data-doc="${String(n).replace(/"/g,'&quot;')}" onclick="homeDfLine(this.dataset.doc)" title="ส่ง DF ประจำวันของหมอคนนี้เข้าไลน์" style="margin-left:6px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;">📤 ส่งไลน์ DF</button>`:''}</td><td style="${td}">${g.n}</td><td style="${td}font-weight:700;">${fmt(g.total)}</td><td style="${td}">${fmt(g.cash)}</td><td style="${td}">${fmt(g.transfer)}</td><td style="${td}">${fmt(g.sso)}</td><td style="${td}color:#B7791F;font-weight:700;">${fmt(g.share)}</td></tr>`; }).join('');
+    return `<tr><td style="${td}text-align:left;font-weight:700;color:${docColor(n)};">${_escHtml(n)}${n!=='ไม่ระบุหมอ'?dfBtn_(n):''}</td><td style="${td}">${g.n}</td><td style="${td}font-weight:700;">${fmt(g.total)}</td><td style="${td}">${fmt(g.cash)}</td><td style="${td}">${fmt(g.transfer)}</td><td style="${td}">${fmt(g.sso)}</td><td style="${td}color:#B7791F;font-weight:700;">${fmt(g.share)}</td></tr>`; }).join('');
   tbl.innerHTML=`<tr><th style="${th}text-align:left;">หมอ</th><th style="${th}">ราย</th><th style="${th}">รายได้</th><th style="${th}">เงินสด</th><th style="${th}">โอน</th><th style="${th}">ประกันสังคม</th><th style="${th}">ส่วนแบ่งหมอ</th></tr>${rows}
   <tr style="background:var(--wine-pale);font-weight:800;"><td style="${td}text-align:left;">รวม</td><td style="${td}">${sum.n}</td><td style="${td}">${fmt(sum.total)}</td><td style="${td}">${fmt(sum.cash)}</td><td style="${td}">${fmt(sum.transfer)}</td><td style="${td}">${fmt(sum.sso)}</td><td style="${td}">${fmt(sum.share)}</td></tr>`;
 }
