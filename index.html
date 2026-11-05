@@ -3587,7 +3587,7 @@ function crmOrthoDfCopy(d){
 }
 // พิมพ์รายการนัดจัดฟันของวันนั้นให้หมอ (เปิดหน้าต่างใหม่แล้วสั่งพิมพ์)
 function crmOrthoPrint(d){
-  const list=crmOrthoAptList(d,d); if(!list.length){ showToast('ไม่มีนัดในวันนี้','error'); return; }
+  const list=crmOrthoAptList(d,d).filter(orthoAimOnly_); if(!list.length){ showToast('ไม่มีนัดของหมอวัจน์กรในวันนี้','error'); return; }
   const E=crmEsc;
   const rows=list.map((a,i)=>{
     const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
