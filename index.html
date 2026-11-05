@@ -2097,10 +2097,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input type="number" class="form-control" id="ortho-dfpct" min="0" max="100" step="1" placeholder="เช่น 100">
       </div>
       <div class="form-group">
-        <label>รูปแบบการชำระ</label>
-        <select class="form-control" id="ortho-paygrp"><option value="">— ยังไม่ระบุ —</option><option>ชำระ 28 ครั้ง</option><option>ชำระจนเสร็จ</option><option>อื่นๆ</option></select>
-      </div>
-      <div class="form-group">
         <label>แบบที่จัด</label>
         <select class="form-control" id="ortho-type">
           <option>โลหะ</option><option>เซรามิก</option><option>ใส (Aligner)</option><option>Damon</option><option>อื่นๆ</option>
@@ -5674,7 +5670,7 @@ async function loadLineHns(force){
 const ORTHO_PAY_UNTIL_DONE = 'ชำระจนเสร็จ';
 function orthoPayOf_(hn){
   const k=crmHN(hn); if(!k || typeof orthoData==='undefined' || !orthoData) return '';
-  const o=orthoData.find(x=>crmHN(x.hn)===k); const v=o ? String(o['รูปแบบชำระ']||'').trim() : ''; return v==='ชำระจนกว่าจะเสร็จ' ? ORTHO_PAY_UNTIL_DONE : v;   // รองรับค่าเดิมที่เคยบันทึกด้วยคำเก่า
+  const o=orthoData.find(x=>crmHN(x.hn)===k); return (o && /จนกว่าจะเสร็จ/.test(String(o['แผนเดือน']||''))) ? ORTHO_PAY_UNTIL_DONE : '';   // อนุมานจากแผนการรักษา "เดือนละครั้งจนกว่าจะเสร็จ" (ไม่มีช่องรูปแบบการชำระแล้ว)
 }
 function orthoPayBadge(o){ return (o && orthoPayOf_(o.hn)===ORTHO_PAY_UNTIL_DONE) ? '<span class="opay-badge" title="คนไข้จัดฟัน — ชำระจนเสร็จ">💳 ชำระจนเสร็จ</span>' : ''; }
 function pskBadge(o){
@@ -10979,7 +10975,7 @@ function orthoCardHtml(r){
           ${r['รหัสประจำตัว']?`<span style="color:var(--wine);font-weight:700;font-size:13px;">${r['รหัสประจำตัว']}</span>`:''}
           <span style="font-weight:800;font-size:15px;">${r['ชื่อ']||'—'}</span>
           <span style="color:var(--text-light);font-weight:600;font-size:13px;">(${r.hn||''})</span>
-          ${statusPill}${r['รูปแบบชำระ']?`<span style="background:#EAF3FB;color:#1F5F8B;border:1px solid #BCD6EA;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">💳 ${escapeHtml(String(r['รูปแบบชำระ']))}</span>`:''}${pskPill}${overduePill}${noApptPill}${missedPill}
+          ${statusPill}${orthoPayOf_(r.hn)===ORTHO_PAY_UNTIL_DONE?`<span style="background:#EAF3FB;color:#1F5F8B;border:1px solid #BCD6EA;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">💳 ${ORTHO_PAY_UNTIL_DONE}</span>`:''}${pskPill}${overduePill}${noApptPill}${missedPill}
         </div>
         ${scaleLine}
         ${bound}
@@ -11010,7 +11006,6 @@ function openOrthoForm(hn){
   document.getElementById('ortho-hn-hint').innerHTML = '';
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
   document.getElementById('ortho-idcode').value = r?.['รหัสประจำตัว'] || 'A-';
-  document.getElementById('ortho-paygrp').value = orthoPayOf_(r?.hn) || '';
   document.getElementById('ortho-dfpct').value = r?.['DFหมอ%'] ?? '';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '28 ครั้ง';
@@ -11050,7 +11045,7 @@ async function saveOrthoProfile(){
     hn,
     'ชื่อ': document.getElementById('ortho-name').value.trim(),
     'รหัสประจำตัว': idcode === 'A-' ? '' : idcode,
-    'รูปแบบชำระ': document.getElementById('ortho-paygrp').value,
+    'รูปแบบชำระ': /จนกว่าจะเสร็จ/.test(document.getElementById('ortho-plan').value) ? ORTHO_PAY_UNTIL_DONE : '',   // ไม่มีช่องเลือกแล้ว — อนุมาน "ชำระจนเสร็จ" จากแผนการรักษา "เดือนละครั้งจนกว่าจะเสร็จ"
     'DFหมอ%': (v=>v===''?'':Math.max(0,Math.min(100,+v||0)))(document.getElementById('ortho-dfpct').value.trim()),
     'แบบจัด': document.getElementById('ortho-type').value,
     'หมอ': document.getElementById('ortho-doc').value,
