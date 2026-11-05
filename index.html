@@ -8613,8 +8613,8 @@ function orthoCodeOf_(hn, name, explicit){
 }
 // แสดง HN คู่กับรหัสจัดฟัน (ถ้ามี)
 function hnWithOrtho_(hn, name, explicit){
-  const h=hn||'—', code=orthoCodeOf_(hn, name, explicit);
-  return code ? '<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;"'+(code.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>🦷 '+code+'</div>' : h;
+  // มีรหัสจัดฟัน → ชื่อมีรหัสนำหน้าอยู่แล้ว (ocTag_) จึงไม่แสดงซ้ำ/ไม่แสดง HN
+  return orthoCodeOf_(hn, name, explicit) ? '' : (hn||'—');
 }
 // HN ที่จะโชว์: ถ้ามีรหัสจัดฟันแล้วให้ซ่อน HN
 function hnShow_(hn,name,explicit){ return orthoCodeOf_(hn,name,explicit) ? '' : (hn||''); }
