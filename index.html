@@ -7977,10 +7977,7 @@ function schExportLine(date, docName){
   const _n=new Date(), _hm=String(_n.getHours()).padStart(2,'0')+':'+String(_n.getMinutes()).padStart(2,'0');
   out.push('━━━━━━━━━━━━━━━━','🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(todayStr())+' เวลา '+_hm+' น.','Bangluang Dental 🦷');
   const text=out.join('\n');
-  try{ if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{}); }catch(e){}
-  const w=window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
-  if(!w){ crmCopy(out); }
-  else showToast('เปิด LINE แล้ว — เลือกแชทที่จะส่ง (คัดลอกข้อความไว้ให้ด้วย)');
+  crmCopy(out);   // คัดลอกอย่างเดียว — ไปวางในไลน์เอง
 }
 function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const d = new Date(date+'T00:00:00');
@@ -8141,7 +8138,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 
   // ชื่อหมอใน header
   const docTagsHtml = docList.map(name=>
-    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="ส่งตารางนัดของหมอคนนี้เข้าไลน์" style="margin-left:5px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">📤 ไลน์</button></span>`
+    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="คัดลอกตารางนัดของหมอคนนี้ แล้วไปวางในไลน์เอง" style="margin-left:5px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">📋 คัดลอก</button></span>`
   ).join('');
 
   const colWidth = has2Docs ? 680 : 340;
