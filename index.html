@@ -3278,7 +3278,7 @@ function crmViewApts(){
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน']].map(x=>`<button class="${CRM.aptRange===x[0]?'on':''}" onclick="CRM.aptRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
     <p class="crm-muted" style="margin-bottom:10px;">คนไข้กด "ยืนยันนัด" ใน LINE → ระบบไม่แก้ตารางนัดเอง กด "ตั้งเป็นคอนเฟิร์ม" เพื่ออัปเดตสถานะในตารางนัด · นัดจัดฟัน (ป้าย จัดฟัน) ดูสถานะจากป้าย ✅ คนไข้ยืนยัน ได้เลย และขึ้นที่การ์ดในหน้าจัดฟันด้วย</p>
     <div class="crm-list">${list.map(a=>`<div class="crm-item"><div class="main">
-        <div class="nm">${crmEsc(a.time||'')} · ${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
+        <div class="nm">${crmEsc(a.time||'')} · ${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} ${hnShow_(a.hn,a.patName,a.orthoCode)?'<span class="crm-muted">HN '+crmEsc(a.hn)+'</span>':''}</div>
         <div class="meta">${crmEsc(crmThaiShort(a.date))} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} · สถานะ: <b>${crmEsc(a.status||'-')}</b>${crmIsOrthoVisit(a)?' · <span class="crm-chip b">จัดฟัน</span>':''}</div>
         <div>${crmAptLineChips(a)}</div></div>
       <div class="acts">${!a._ortho && confirmed.has(String(a.id)) && a.status!=='คอนเฟิร์ม' ? `<button class="crm-btn g" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">ตั้งเป็นคอนเฟิร์ม</button>`:''}
@@ -3678,7 +3678,7 @@ function crmViewRemind(){
     .sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   const withLine=due.filter(a=>crmHasLine(a.hn)), noLine=due.filter(a=>!crmHasLine(a.hn));
   const recent=(d.log||[]).filter(r=>r.type==='remind' && r.status!=='done').slice(-40).reverse();
-  const row=a=>`<div class="crm-item"><div class="main"><div class="nm">${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} <span class="crm-muted">HN ${crmEsc(a.hn||'-')}</span></div>
+  const row=a=>`<div class="crm-item"><div class="main"><div class="nm">${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')} ${hnShow_(a.hn,a.patName,a.orthoCode)?'<span class="crm-muted">HN '+crmEsc(a.hn)+'</span>':''}</div>
      <div class="meta">${crmEsc(crmThaiShort(a.date))} ${crmEsc(a.time||'')} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} ${crmIsOrthoVisit(a)?'<span class="crm-chip b">จัดฟัน '+od+' วัน</span>':'<span class="crm-chip w">'+xd+' วัน</span>'}</div><div>${crmAptLineChips(a)}</div></div>
      <div class="acts">${crmPhoneOf(a.hn,a.phone)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(a.hn,a.phone))}">📞 ${crmEsc(crmPhoneOf(a.hn,a.phone))}</a>`:'<span class="crm-muted">ไม่มีเบอร์</span>'}</div></div>`;
   return `<div class="crm-card"><h4>🔔 รอบเตือนวันนี้ (${crmEsc(s.remindHour||'10:00')} น.)<span class="sp"></span><span class="crm-chip w">จัดฟันก่อน ${od} วัน · งานอื่นก่อน ${xd} วัน</span></h4>
@@ -3720,7 +3720,7 @@ function crmViewAftercare(){
   const notes=d.casenotes||[];
   const pendingNotes=notes.filter(n=>n.status==='pending');
   return `
-  ${pendingNotes.length?`<div class="crm-card"><h4>📝 คำแนะนำพิเศษรออนุมัติ (${pendingNotes.length})</h4><div class="crm-list">${pendingNotes.map(n=>`<div class="crm-item"><div class="main"><div class="nm">${ocTag_(n.hn,n.patName)}${crmEsc(n.patName||'')} <span class="crm-muted">HN ${crmEsc(n.hn||'')}</span></div>
+  ${pendingNotes.length?`<div class="crm-card"><h4>📝 คำแนะนำพิเศษรออนุมัติ (${pendingNotes.length})</h4><div class="crm-list">${pendingNotes.map(n=>`<div class="crm-item"><div class="main"><div class="nm">${ocTag_(n.hn,n.patName)}${crmEsc(n.patName||'')} ${hnShow_(n.hn,n.patName,n.orthoCode)?'<span class="crm-muted">HN '+crmEsc(n.hn)+'</span>':''}</div>
      <div class="crm-pre" style="margin-top:6px;">${crmEsc(n.text)}</div><div class="meta">เขียนโดย ${crmEsc(n.author||'')} · ${crmEsc(crmTs(n.createdAt))}</div></div>
      <div class="acts"><button class="crm-btn g" onclick="crmApproveNote('${n.id}')">อนุมัติ (ทันตแพทย์)</button><button class="crm-btn r" onclick="crmDo({crm:'caseNoteReject',id:'${n.id}'},'ไม่อนุมัติแล้ว')">ไม่อนุมัติ</button></div></div>`).join('')}</div></div>`:''}
   <div class="crm-card"><h4>🩹 วันนี้: คนไข้ที่รักษาเสร็จ (${todays.length})<span class="sp"></span>${!s.aftercareOn?'<span class="crm-chip r">Aftercare ปิดอยู่</span>':''}</h4>
@@ -3729,7 +3729,7 @@ function crmViewAftercare(){
       const m=crmTplMatches(t.proc), ok=m.filter(x=>x.status==='approved');
       const sent=crmSentOk(crmLogFor('aftercare',t.id));
       const myNotes=notes.filter(n=>String(n.treatId)===String(t.id));
-      return `<div class="crm-item"><div class="main"><div class="nm">${ocTag_(t.hn,t.patName)}${crmEsc(t.patName||'')} <span class="crm-muted">HN ${crmEsc(t.hn)}</span></div>
+      return `<div class="crm-item"><div class="main"><div class="nm">${ocTag_(t.hn,t.patName)}${crmEsc(t.patName||'')} ${hnShow_(t.hn,t.patName)?'<span class="crm-muted">HN '+crmEsc(t.hn)+'</span>':''}</div>
         <div class="meta">${crmEsc(t.time||'')} · ${crmEsc(t.proc||'-')} · ${crmEsc(t.docName||'')}</div>
         <div>${!crmHasLine(t.hn)?'<span class="crm-chip x">ไม่มี LINE</span>':''}${sent?'<span class="crm-chip g">ส่งคำแนะนำแล้ว</span>':''}
           ${ok.map(x=>`<span class="crm-chip w">${crmEsc(x.name)}</span>`).join('')}${!m.length?'<span class="crm-chip x">ไม่มี template</span>':(!ok.length?'<span class="crm-chip o">template ยังไม่อนุมัติ</span>':'')}
@@ -3859,7 +3859,7 @@ function crmViewFollowup(){
     <p class="crm-muted" style="margin-bottom:8px;">45 วันล่าสุด: ส่ง ${fus.length} · ตอบ ${answered} (${fus.length?Math.round(answered/fus.length*100):0}%) — ระบบตอบด้วยข้อความที่ทันตแพทย์อนุมัติเท่านั้น ไม่มี AI วินิจฉัย</p>
     <div class="crm-list">${list.map(x=>{ const k=CRM_KIND[x.answerKind];
       return `<div class="crm-item ${x.answerKind==='emergency'?'urgent':(x.answerKind==='severe'?'high':'')}"><div class="main">
-        <div class="nm">${ocTag_(x.hn,x.patName)}${crmEsc(x.patName||'')} <span class="crm-muted">HN ${crmEsc(x.hn||'')}</span> ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
+        <div class="nm">${ocTag_(x.hn,x.patName)}${crmEsc(x.patName||'')} ${hnShow_(x.hn,x.patName,x.orthoCode)?'<span class="crm-muted">HN '+crmEsc(x.hn)+'</span>':''} ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
         <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:(crmFuAutoClosed(x)?'<span class="crm-chip x">🔒 ปิดเคสอัตโนมัติ (ไม่ตอบเกิน 24 ชม.)</span>':'<span class="crm-chip x">ยังไม่ตอบ</span>')}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}${x.calledAt?` <span class="crm-chip g">📞 โทรแล้ว ${crmEsc(crmTs(x.calledAt))}${x.calledBy?' · '+crmEsc(x.calledBy):''}</span>${x.callNote?` <span class="crm-muted">— ${crmEsc(x.callNote)}</span>`:''}`:''}</div></div>
         <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test' && !crmFuAutoClosed(x)?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
@@ -3899,7 +3899,7 @@ function crmViewRating(){
       <div class="crm-list">${names.map(n=>{ const o=by[n], mx=Math.max(...o.dist);
         return `<div class="crm-item"><div class="main"><div class="nm">${crmEsc(n)} <span class="crm-chip ${o.sum/o.n>=4.5?'g':(o.sum/o.n>=3.5?'o':'r')}">⭐ ${(o.sum/o.n).toFixed(2)}</span> <span class="crm-muted">${o.n} คำตอบ</span></div>
           <div style="margin-top:6px;">${[5,4,3,2,1,0].map(i=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:2px 0;"><span style="width:18px;">${i}⭐</span>${bar(o.dist[i],mx,i>=4?'#1D825C':(i===3?'#E67E22':'#C0392B'))}<span style="width:24px;text-align:right;">${o.dist[i]}</span></div>`).join('')}</div></div></div>`; }).join('')||'<div class="crm-empty">ยังไม่มีคะแนนในช่วงนี้</div>'}</div></div>
-    ${low.length?`<div class="crm-card"><h4>⚠️ คะแนนต่ำล่าสุด (≤3)</h4><div class="crm-list">${low.map(f=>`<div class="crm-item high"><div class="main"><div class="nm">⭐ ${f.r}/5 · ${ocTag_(f.hn,f.patName)}${crmEsc(f.patName||'')} <span class="crm-muted">HN ${crmEsc(f.hn||'')}</span></div><div class="meta">${crmEsc(f.proc||'')} · ${crmEsc(f.doc)} · ${crmEsc(crmTs(f.ratedAt))}</div></div></div>`).join('')}</div></div>`:''}`;
+    ${low.length?`<div class="crm-card"><h4>⚠️ คะแนนต่ำล่าสุด (≤3)</h4><div class="crm-list">${low.map(f=>`<div class="crm-item high"><div class="main"><div class="nm">⭐ ${f.r}/5 · ${ocTag_(f.hn,f.patName)}${crmEsc(f.patName||'')} ${hnShow_(f.hn,f.patName,f.orthoCode)?'<span class="crm-muted">HN '+crmEsc(f.hn)+'</span>':''}</div><div class="meta">${crmEsc(f.proc||'')} · ${crmEsc(f.doc)} · ${crmEsc(crmTs(f.ratedAt))}</div></div></div>`).join('')}</div></div>`:''}`;
 }
 
 /* ---------- 6) งานโทรกลับ ---------- */
@@ -7781,7 +7781,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       const hnE = String(a.hn||'').replace(/'/g,"\\'");
       return `<div style="background:#E8F0FE;border-left:3px solid #1E6FD9;border-radius:6px;padding:4px 7px;margin-top:3px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
-          <span style="font-weight:700;color:#1E4FA0;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orthoCodeOf_(a.hn,a.patName)?`<span style="font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName)}</span> · `:'🦷 '}${a.hn?`${a.hn} · `:''}${_escHtml(a.patName||'—')}</span>
+          <span style="font-weight:700;color:#1E4FA0;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orthoCodeOf_(a.hn,a.patName)?`<span style="font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName)}</span> · `:'🦷 '}${hnShow_(a.hn,a.patName)?`${hnShow_(a.hn,a.patName)} · `:''}${_escHtml(a.patName||'—')}</span>
           <button onclick="event.stopPropagation();openOrthoHistory('${hnE}')" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:700;color:#1E4FA0;cursor:pointer;flex-shrink:0;">การ์ดจัดฟัน</button>
         </div>
         <div style="font-size:10.5px;color:var(--text-mid);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">นัดจากการ์ดจัดฟัน · ${_escHtml(a.proc||'นัดจัดฟัน')} ${schOrthoLineChip_(a)}</div>
@@ -7793,7 +7793,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:4px 7px;margin-top:3px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
         <span style="font-weight:700;color:${sc};font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          ${orthoCodeOf_(a.hn,a.patName,a.orthoCode)?`<span style="color:var(--wine);font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName,a.orthoCode)}</span> · `:''}${a.hn?`${a.hn} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
+          ${orthoCodeOf_(a.hn,a.patName,a.orthoCode)?`<span style="color:var(--wine);font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName,a.orthoCode)}</span> · `:''}${hnShow_(a.hn,a.patName,a.orthoCode)?`${hnShow_(a.hn,a.patName,a.orthoCode)} · `:''}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}${a.phone?` <span style="font-weight:400;color:var(--text-light);font-size:11px;">· ${a.phone}</span>`:''}
         </span>
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
           <span class="${statusClass(a.status)}" data-apt-id="${safeId}"
@@ -8614,8 +8614,10 @@ function orthoCodeOf_(hn, name, explicit){
 // แสดง HN คู่กับรหัสจัดฟัน (ถ้ามี)
 function hnWithOrtho_(hn, name, explicit){
   const h=hn||'—', code=orthoCodeOf_(hn, name, explicit);
-  return code ? h+'<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;"'+(code.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>🦷 '+code+'</div>' : h;
+  return code ? '<div style="font-size:11px;font-weight:700;color:var(--wine);white-space:nowrap;"'+(code.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>🦷 '+code+'</div>' : h;
 }
+// HN ที่จะโชว์: ถ้ามีรหัสจัดฟันแล้วให้ซ่อน HN
+function hnShow_(hn,name,explicit){ return orthoCodeOf_(hn,name,explicit) ? '' : (hn||''); }
 // รหัสจัดฟันหน้าชื่อ (HTML / ข้อความล้วน) — ว่างถ้าไม่มี
 function ocTag_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?'<b style="color:var(--wine);font-weight:800;"'+(c.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>'+String(c).replace(/[<>&"]/g,'')+'</b> ':''; }
 function ocPlain_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?c+' ':''; }
