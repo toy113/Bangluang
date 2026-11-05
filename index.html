@@ -3592,17 +3592,17 @@ function crmOrthoPrint(d){
   const rows=list.map((a,i)=>{
     const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
     const last=String(o['ปรับล่าสุด']||'').slice(0,10);
-    const info=[ last&&last!==d?'ปรับล่าสุด '+E(crmThaiShort(last)):'', loose?'หลุดสะสม '+loose+' ตัว':'', o['note']?E(o['note']):'' ].filter(Boolean).join('<br>');
+    const lastTxt=last?E(crmThaiShort(last)):'';
     const untilDone=orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE;
-    return `<tr${untilDone?' style="background:#EAF3FB;"':''}><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td>${(o['รหัสประจำตัว']||a.orthoCode)?'<b>'+E(o['รหัสประจำตัว']||a.orthoCode)+'</b> ':''}<b>${E(a.patName||'')}</b> ${untilDone?'<div style="margin-top:2px;"><span style="border:1.5px solid #1F5F8B;color:#1F5F8B;border-radius:4px;padding:0 5px;font-weight:700;font-size:.9em;">ปรับจนกว่าจะเสร็จ</span></div>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${String(a.proc||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>x==='ปรับเครื่องมือ'?E(x):'<span style="color:#D00;font-weight:700;">'+E(x)+'</span>').join(', ')||'-'}</td><td>${info||'&nbsp;'}</td><td class="note">&nbsp;</td></tr>`;
+    return `<tr${untilDone?' style="background:#EAF3FB;"':''}><td class="c">${i+1}</td><td class="c b">${E(a.time||'-')}</td><td>${(o['รหัสประจำตัว']||a.orthoCode)?'<b>'+E(o['รหัสประจำตัว']||a.orthoCode)+'</b> ':''}<b>${E(a.patName||'')}</b> ${untilDone?'<div style="margin-top:2px;"><span style="border:1.5px solid #1F5F8B;color:#1F5F8B;border-radius:4px;padding:0 5px;font-weight:700;font-size:.9em;">ปรับจนกว่าจะเสร็จ</span></div>':''}</td><td class="c b">${no?'ครั้งที่ '+no:'-'}</td><td>${String(a.proc||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>x==='ปรับเครื่องมือ'?E(x):'<span style="color:#D00;font-weight:700;">'+E(x)+'</span>').join(', ')||'-'}</td><td class="c">${lastTxt||'&nbsp;'}</td><td class="c b">${loose}</td></tr>`;
   }).join('');
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>นัดจัดฟัน ${E(crmThaiShort(d))}</title>
 <style>@page{size:A4 portrait;margin:8mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px;margin:0}
 h1{font-size:1.4em;margin:0 0 2px}.sub{color:#555;margin-bottom:.6em;font-size:.9em}table{width:100%;border-collapse:collapse}
-th,td{border:1px solid #999;padding:.3em .45em;vertical-align:top}td{height:2.2em}th{background:#eee;font-size:.92em}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:.88em}.note{width:12%}td:nth-child(3){white-space:nowrap;width:30%}th:nth-child(3){width:30%}
+th,td{border:1px solid #999;padding:.3em .45em;vertical-align:top}td{height:2.2em}th{background:#eee;font-size:.92em}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:.88em}td:nth-child(3){white-space:nowrap;width:30%}th:nth-child(3){width:30%}
 tr{page-break-inside:avoid}</style></head><body>
 <h1>คลินิกทันตกรรมบางหลวง — นัดจัดฟัน ${E(crmThaiShort(d))}</h1><div class="sub">ทั้งหมด ${list.length} คน · พิมพ์เมื่อ ${E(new Date().toLocaleString('th-TH'))}</div><div style="font-weight:700;margin:0 0 .5em;">* กรณีข้อมูลไม่ตรงกัน ให้ใช้ข้อมูลจากบัตรจัดฟันเป็นหลัก</div>
-<table><tr><th>#</th><th>เวลา</th><th>คนไข้</th><th>ปรับครั้งที่</th><th>รายการนัด</th><th>ข้อมูลจากการ์ด</th><th>บันทึกหมอ</th></tr>${rows}</table>
+<table><tr><th>#</th><th>เวลา</th><th>คนไข้</th><th>ปรับครั้งที่</th><th>รายการนัด</th><th>มาล่าสุด</th><th>หลุดสะสม</th></tr>${rows}</table>
 <script>
 /* ย่อขนาดตัวอักษรอัตโนมัติให้ทั้งรายการพอดี 1 แผ่น A4 แนวตั้ง (ใหญ่สุด 13px ลงไปถึง 5.5px) */
 function fit(){ var max=1035; for(var f=13; f>=5.5; f-=0.5){ document.body.style.fontSize=f+'px'; if(document.body.scrollHeight<=max) break; } }
