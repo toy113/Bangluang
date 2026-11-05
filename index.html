@@ -7814,6 +7814,24 @@ function renderScheduleDay(){
   });
 }
 
+// ส่งตารางนัดของหมอ 1 คน / 1 วัน เข้าไลน์ (เปิดหน้าเลือกแชทใน LINE พร้อมข้อความ + คัดลอกไว้ในคลิปบอร์ดด้วย)
+function schExportLine(date, docName){
+  const apts=appointments.filter(a=>a.date===date).concat(orthoVirtualApts_(date,date))
+    .filter(a=>a.docName===docName && a.status!=='ยกเลิก')
+    .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+  if(!apts.length){ showToast('ไม่มีนัดของหมอคนนี้ในวันนี้','error'); return; }
+  const out=['📅 ตารางนัด '+docName, fmtDateThai(date)+' · '+apts.length+' นัด', '━━━━━━━━━━━━━━━━'];
+  apts.forEach((a,i)=>{
+    const code=orthoCodeOf_(a.hn,a.patName,a.orthoCode);
+    out.push((i+1)+'. '+String(a.time||'').slice(0,5)+'  '+(code?code+' ':'')+(a.patName||'—')+(a.proc?' · '+a.proc:'')+(a.note?' ('+a.note+')':''));
+  });
+  out.push('━━━━━━━━━━━━━━━━','Bangluang Dental 🦷');
+  const text=out.join('\n');
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{}); }catch(e){}
+  const w=window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
+  if(!w){ crmCopy(out); }
+  else showToast('เปิด LINE แล้ว — เลือกแชทที่จะส่ง (คัดลอกข้อความไว้ให้ด้วย)');
+}
 function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   const d = new Date(date+'T00:00:00');
   const dow = d.getDay();
@@ -7973,7 +7991,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 
   // ชื่อหมอใน header
   const docTagsHtml = docList.map(name=>
-    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}</span>`
+    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="ส่งตารางนัดของหมอคนนี้เข้าไลน์" style="margin-left:5px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">📤 ไลน์</button></span>`
   ).join('');
 
   const colWidth = has2Docs ? 680 : 340;
