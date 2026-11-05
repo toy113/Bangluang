@@ -10729,7 +10729,6 @@ function renderOrthoCalendar(){
     const hnEsc = String(a.hn||'').replace(/'/g,"\\'"), hasCard = a.hn && crmOrthoRec(a.hn);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);">
       <span style="font-size:12.5px;flex:1;">${escapeHtml(orthoDayLine_(a,i))}</span>
-      ${(hasCard && !isViewOnlyUser())?`<button class="btn btn-ghost btn-sm" onclick="openOrthoLog('${hnEsc}','${dsel}')" style="flex-shrink:0;">➕ บันทึก</button>`:''}
     </div>`;
   }).join('');
   detailBox.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
