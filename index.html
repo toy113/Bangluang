@@ -1357,6 +1357,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
       </div>
 
+      <!-- สรุปแยกหมอ (ผู้จัดการ) -->
+      <div class="card-box" id="docBreakdownBox" style="margin-bottom:20px;display:none;">
+        <div class="card-box-hdr">
+          <div class="card-box-title">👨‍⚕️ สรุปแยกตามหมอ (วันนี้)</div>
+        </div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;" id="docBreakdownTbl"></table></div>
+      </div>
+
     </div>
 
     <!-- ===== TREATMENT PAGE ===== -->
@@ -4311,8 +4319,33 @@ function renderHome(){
   document.getElementById('sumTransfer').textContent = fmt(transfer);
   document.getElementById('sumSSO').textContent = fmt(sso);
 
+  try{ renderDocBreakdown_(treats); }catch(e){ console.error(e); }
   renderAptList(today);
   renderTreatList(treats);
+}
+// ตารางสรุปวันนี้แยกตามหมอ — เฉพาะผู้จัดการ
+function renderDocBreakdown_(treats){
+  const box=document.getElementById('docBreakdownBox'), tbl=document.getElementById('docBreakdownTbl');
+  if(!box||!tbl) return;
+  if(!isManager){ box.style.display='none'; return; }
+  box.style.display='';
+  const by={};
+  treats.forEach(t=>{
+    const n=docAlias(t.docName)||'ไม่ระบุหมอ';
+    const g=by[n]||(by[n]={n:0,total:0,cash:0,transfer:0,sso:0,share:0});
+    const doc=doctors.find(d=>d.name===t.docName||d.name===n);
+    g.n++; g.total+=totalPrice(t); g.cash+=(+t.cash||0); g.transfer+=(+t.transfer||0); g.sso+=(+t.sso||0); g.share+=dfAmt(t,doc);
+  });
+  const order=doctors.map(d=>d.name);
+  const names=Object.keys(by).sort((a,b)=>{ const ia=order.indexOf(a), ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b); });
+  const th='padding:8px 10px;text-align:right;white-space:nowrap;color:var(--text-mid);font-weight:700;background:var(--wine-pale);';
+  const td='padding:8px 10px;text-align:right;white-space:nowrap;border-top:1px solid var(--border);';
+  if(!names.length){ tbl.innerHTML='<tr><td style="padding:16px;text-align:center;color:var(--text-light);">ยังไม่มีรายการรักษาวันนี้</td></tr>'; return; }
+  const sum={n:0,total:0,cash:0,transfer:0,sso:0,share:0};
+  const rows=names.map(n=>{ const g=by[n]; Object.keys(sum).forEach(k=>sum[k]+=g[k]);
+    return `<tr><td style="${td}text-align:left;font-weight:700;color:${docColor(n)};">${_escHtml(n)}</td><td style="${td}">${g.n}</td><td style="${td}font-weight:700;">${fmt(g.total)}</td><td style="${td}">${fmt(g.cash)}</td><td style="${td}">${fmt(g.transfer)}</td><td style="${td}">${fmt(g.sso)}</td><td style="${td}color:#B7791F;font-weight:700;">${fmt(g.share)}</td></tr>`; }).join('');
+  tbl.innerHTML=`<tr><th style="${th}text-align:left;">หมอ</th><th style="${th}">ราย</th><th style="${th}">รายได้</th><th style="${th}">เงินสด</th><th style="${th}">โอน</th><th style="${th}">ประกันสังคม</th><th style="${th}">ส่วนแบ่งหมอ</th></tr>${rows}
+  <tr style="background:var(--wine-pale);font-weight:800;"><td style="${td}text-align:left;">รวม</td><td style="${td}">${sum.n}</td><td style="${td}">${fmt(sum.total)}</td><td style="${td}">${fmt(sum.cash)}</td><td style="${td}">${fmt(sum.transfer)}</td><td style="${td}">${fmt(sum.sso)}</td><td style="${td}">${fmt(sum.share)}</td></tr>`;
 }
 
 function statusBgColor(s){
