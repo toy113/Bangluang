@@ -4521,8 +4521,10 @@ function renderAptList(today){
     window._aptTreatMap[a.id]=a;
     return `<div><button class="btn btn-ghost btn-sm" style="margin-top:4px;padding:4px 8px;font-size:11px;white-space:nowrap;border:1px solid var(--wine);color:var(--wine);font-weight:700;" onclick="event.stopPropagation();aptAddTreat(this.dataset.aid)" data-aid="${String(a.id).replace(/"/g,'')}">📝 บันทึกการรักษา</button></div>`;
   };
+  // คนไข้จัดฟันที่ "มาแล้ว" (กดมาตามนัดแล้ว) → พื้นทั้งแถวเขียวอ่อน
+  const cameBg_=a=>{ try{ const o=a.hn?crmOrthoRec(a.hn):null; if(o && (a._ortho||crmIsOrthoVisit(a)) && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return 'rgba(39,174,96,0.16)'; }catch(e){} return ''; };
   const rowHtml = a=>`
-    <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
+    <div class="${rowClass}" style="background:${cameBg_(a)||statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${hnWithOrtho_(a.hn,a.patName,a.orthoCode)}</div>
       <div><div style="font-weight:600">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
