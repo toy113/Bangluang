@@ -4200,10 +4200,14 @@ function crmStaffNotifyCard_(s, fol){
     <div style="padding:8px 0;"><label class="crm-muted" style="font-weight:700;">บัญชีแอดมินที่รับแจ้ง (ต้องเพิ่มเพื่อน LINE OA และทักแชทก่อน 1 ครั้ง ถึงจะขึ้นในรายชื่อ)</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:6px;">${adm.map(box).join('') || '<span class="crm-muted">ไม่พบบัญชี TOY / ดินสอ ในผู้ติดตาม LINE OA — ให้เพิ่มเพื่อนและทักแชทก่อน</span>'}
       ${missing.map(id=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" class="crmS_staffId" value="${crmEsc(id)}" checked> ${crmEsc(id.slice(0,10))}… (เลิกติดตามแล้ว?)</label>`).join('')}</div>
-      ${rest.length?`<details style="margin-top:6px;"><summary class="crm-muted" style="cursor:pointer;font-size:12px;">เลือกจากรายชื่อทั้งหมด (${rest.length})</summary><div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;max-height:160px;overflow:auto;">${rest.map(box).join('')}</div></details>`:''}</div>
+      ${rest.length?`<details style="margin-top:6px;"><summary class="crm-muted" style="cursor:pointer;font-size:12px;">เลือกจากรายชื่อทั้งหมด (${rest.length})</summary><input class="form-control" placeholder="🔎 พิมพ์ชื่อ LINE เพื่อค้นหา" style="margin-top:6px;max-width:260px;" oninput="crmStaffFilter_(this)"><div id="crmStaffRest" style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;max-height:220px;overflow:auto;">${rest.map(box).join('')}</div></details>`:''}</div>
     <div style="padding:4px 0;"><label class="crm-muted" style="font-weight:700;">แจ้งเรื่อง</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;">${T.map(t=>`<label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" class="crmS_staffType" value="${t[0]}" ${types.includes(t[0])?'checked':''}> ${t[1]}</label>`).join('')}</div></div>
     <div class="crm-tools" style="margin-top:6px;"><button class="crm-btn" onclick="crmStaffNotifyTest_()">📨 ส่งทดสอบถึงแอดมิน</button><span class="crm-muted">กด 💾 บันทึกการตั้งค่า ก่อนส่งทดสอบ</span></div></div>`;
+}
+function crmStaffFilter_(inp){
+  const q=String(inp.value||'').trim().toLowerCase();
+  document.querySelectorAll('#crmStaffRest > label').forEach(l=>{ l.style.display=(!q||l.textContent.toLowerCase().includes(q))?'flex':'none'; });
 }
 async function crmStaffNotifyTest_(){
   showToast('กำลังส่งทดสอบ...');
