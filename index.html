@@ -3498,13 +3498,19 @@ async function crmOrthoCameSave(){
       }
     }
     const row=Object.assign({}, r, { 'ปรับล่าสุด':date, 'ครั้งที่มาแล้ว':visits, 'หลุดกี่ครั้ง':looseN });
+    // ติ๊ก "ใส่รีเทนเนอร์" → บันทึกวันใส่รีเทนเนอร์ลงการ์ด (LIFF/หน้าเว็บอ่านจากช่องนี้) และย้ายไป "เสร็จแล้ว" เหมือนฟอร์มบันทึกเดิม
+    let retainerDone=false;
+    if(extras.some(x=>x.name==='ใส่รีเทนเนอร์') || others.includes('ใส่รีเทนเนอร์')){
+      if(!String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์']=date;
+      if((row['สถานะ']||'กำลังจัด')==='กำลังจัด' && orthoRetainerPlaced_(row)){ row['สถานะ']='เสร็จแล้ว'; retainerDone=true; }
+    }
     row._visitCount=visits; row._looseCount=looseN;
     await Promise.all([ orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row}) ]);
     const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
     orthoAdvanceNext_(r.hn, date);
     let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits, adj }); }catch(e){ console.error(e); trMsg='fail'; }
     closeModal('modalOrthoCame');
-    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
+    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(retainerDone?' · ใส่รีเทนเนอร์ '+date+' → ย้ายไป "เสร็จแล้ว"':'')+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
     if(trMsg==='nocaps') showToast('บันทึกประวัติจัดฟันแล้ว แต่ยังไม่ได้ลงบันทึกการรักษา/รายได้ — ต้องวาง line-crm.gs ฉบับล่าสุดก่อน','error');
     else if(trMsg==='fail') showToast('บันทึกประวัติจัดฟันแล้ว แต่ลงบันทึกการรักษาไม่สำเร็จ — กรุณาลงเองในหน้าบันทึกการรักษา','error');
     if(sendLine){
