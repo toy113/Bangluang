@@ -993,6 +993,33 @@ function crmTickInner_() {
     if (crmCancelTask_(s, state, a, 'ยกเลิกนัดในตารางนัด')) summary.aptcancel = (summary.aptcancel || 0) + 1;
   });
 
+  // 3.7) นัดจากการ์ดจัดฟันที่เคยส่งยืนยัน/เตือนไปแล้ว แต่ตอนนี้ไม่มีนัดแล้ว (ล้างนัดถัดไป / เปลี่ยนสถานะการ์ดเป็นหยุด-เลิก-เสร็จ)
+  //      → สร้างงาน "แจ้งยกเลิกนัด" ให้แอดมินตัดสินใจส่งข้อความ (เหมือนนัดในตารางนัด) · ถ้าเลื่อนไปวันใหม่ คนไข้จะได้ยืนยันนัดใหม่อยู่แล้ว จึงไม่สร้าง
+  try {
+    var oSeen = {}, oProc = {}, cardFuture = {};
+    apts.forEach(function (a) { if (a._ortho) oSeen[a.id] = true; });
+    orthoAll.forEach(function (o) {
+      var kk = crmHN_(o.hn), nd = crmDateOnly_(o['นัดถัดไป']);
+      if ((!o['สถานะ'] || o['สถานะ'] === 'กำลังจัด') && nd && nd >= today) cardFuture[kk] = true;
+    });
+    var realOpen = {};
+    apts.forEach(function (a) { if (!a._ortho && a.hn && a.status !== 'ยกเลิก') realOpen[crmHN_(a.hn) + '|' + crmDateOnly_(a.date)] = true; });
+    for (var lk in state.done) {
+      var lr = state.done[lk];
+      if (!lr || (lr.type !== 'confirm' && lr.type !== 'remind') || (lr.status !== 'sent' && lr.status !== 'test')) continue;
+      var mm = String(lr.refId || '').match(/^ORTHO-(.+)-(\d{4}-\d{2}-\d{2})$/); if (!mm) continue;
+      var rid = lr.refId, od = mm[2], ok = crmHN_(lr.hn || mm[1]);
+      if (oProc[rid] || oSeen[rid] || od < today) continue;
+      oProc[rid] = true;
+      if (cardFuture[ok] || realOpen[ok + '|' + od]) continue;   // เลื่อนไปวันใหม่แล้ว / มีนัดในตารางนัดแทน
+      var otm = String(lr.detail || '').split(' ')[1] || '';
+      if (od === today && otm && otm <= hm) continue;
+      if (!targets(lr.hn).length) continue;
+      if (crmCancelTask_(s, state, { id: rid, hn: lr.hn, patName: lr.patName, date: od, time: otm, proc: 'นัดจัดฟัน', status: 'ยกเลิก' }, 'ล้างนัดถัดไปในการ์ดจัดฟัน'))
+        summary.aptcancel = (summary.aptcancel || 0) + 1;
+    }
+  } catch (eOC) { console.error('ortho cancel check: ' + eOC); }
+
   // 4) ติดตามอาการวันถัดไป
   if (s.followupOn && hm >= s.followupHour) {
     var yday = crmAddDays_(today, -1), groups = {};

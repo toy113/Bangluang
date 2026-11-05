@@ -5006,6 +5006,7 @@ function saveApt(){
   _editAptOrigTime = null;
 
   closeModal('modalApt');
+  if(apt.hn) setTimeout(()=>ensurePatient_(apt.hn, apt.patName, apt.phone, apt.orthoCode), 300);
   // Re-render whichever page is active
   const p=document.querySelector('.page.active')?.id?.replace('page-','');
   if(p==='home') renderHome();
@@ -5318,7 +5319,16 @@ function saveTreat(){
       if(miss.length){ _treatSaving = false; showToast('กรุณากรอกราคา X-Ray ในช่อง "ราคาแต่ละรายการ" (ส่วน X-Ray ไม่คิด DF · ถ้าฟรีใส่ 0)','error');
         const _i = document.querySelector('#treat-pp-list input[data-proc="'+miss[0].replace(/"/g,'')+'"]'); if(_i){ _i.focus(); _i.style.borderColor='#C0392B'; } return; } } }
   if(existingTreat){ ['caseClosed','caseClosedAt','caseClosedBy','caseClosedReason','dfPaid','dfPaidAt','dfPaidBy'].forEach(k=>{ if(existingTreat[k]!==undefined && existingTreat[k]!=='') t[k]=existingTreat[k]; }); } // คงสถานะจบเคสไว้ตอนแก้ไขรายการ
-  applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 → หมอทอย ส่วนแบ่ง 0 · จ่ายยา ตั้งแต่ 31 ต.ค. 2569 → ส่วนแบ่ง 0
+  applyXrayRule(t); // X-Ray ตั้งแต่ ต.ค. 2569 (ดูหมายเหตุท้ายบล็อก)
+  // รายการที่ติ๊ก "โอน DF ให้หมอแล้ว" → ถ้ายอด DF / หมอ / วันที่เปลี่ยน เตือนก่อน แล้วปลดสถานะจ่ายแล้วของรายการนี้ (วันนั้นจะขึ้นว่าจ่ายไม่ครบ ให้ตรวจยอดใหม่)
+  if(existingTreat && isDfPaid(existingTreat)){
+    const _dOld=doctors.find(d=>d.name===existingTreat.docName), _dNew=doctors.find(d=>d.name===t.docName);
+    const a0=Math.round(dfAmt(existingTreat,_dOld)), a1=Math.round(dfAmt(t,_dNew));
+    if(a0!==a1 || existingTreat.docName!==t.docName || existingTreat.date!==t.date){
+      if(!window.confirm('รายการนี้ติ๊ก "โอน DF ให้หมอแล้ว" ไปแล้ว\nDF เดิม '+a0.toLocaleString()+' → ใหม่ '+a1.toLocaleString()+' บาท'+(existingTreat.docName!==t.docName?' · เปลี่ยนหมอ':'')+(existingTreat.date!==t.date?' · เปลี่ยนวัน':'')+'\n\nบันทึกต่อไหม? (ระบบจะปลดสถานะ "จ่ายแล้ว" ของรายการนี้ ให้ตรวจยอดโอนใหม่)')){ _treatSaving=false; return; }
+      t.dfPaid=''; t.dfPaidAt=''; t.dfPaidBy='';
+    }
+  } // กฎ X-Ray → หมอทอย ส่วนแบ่ง 0 · จ่ายยา ตั้งแต่ 31 ต.ค. 2569 → ส่วนแบ่ง 0
   if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
@@ -5347,6 +5357,7 @@ function saveTreat(){
   saveLocal();
   closeModal('modalTreat');
   renderHome(); renderTreatPage();
+  setTimeout(()=>ensurePatient_(t.hn, t.patName, '', ''), 300);
   showToast(completedAppointments.length ? 'บันทึกการรักษาและเปลี่ยนสถานะนัดเป็นเสร็จสิ้นแล้ว' : 'บันทึกการรักษาสำเร็จ');
   markPendingSync('treatments', t);
   syncToSheet('treatments', t).then(()=>{
@@ -5385,7 +5396,7 @@ async function orthoRevertDay_(hn, date){
 function deleteTreat(id){
   const _rec = treatments.find(t=>t.id===id);
   if(_rec && !canEditTreat(_rec)){ warnTreatLocked(); return; }
-  if(!confirm('ยืนยันลบรายการนี้?')) return;
+  if(!confirm(_rec && isDfPaid(_rec) ? 'รายการนี้ติ๊ก "โอน DF ให้หมอแล้ว" ไปแล้ว (DF '+Math.round(dfAmt(_rec, doctors.find(d=>d.name===_rec.docName))).toLocaleString()+' บาท)\nลบแล้วยอด DF ของวันนั้นจะไม่ตรงกับที่โอนไป — ยืนยันลบ?' : 'ยืนยันลบรายการนี้?')) return;
   const idx = treatments.findIndex(t=>t.id===id);
   if(idx<0) return;
   const removed = treatments[idx];
@@ -6991,7 +7002,7 @@ function renderFollowup(){
   const cutoff = new Date(today); cutoff.setDate(cutoff.getDate()-days);
 
   // กรองเฉพาะคนที่มี ปกส > 0
-  const pskTreats = treatments.filter(t=> parseFloat(t.psk||t.ins||0) > 0);
+  const pskTreats = treatments.filter(t=> parseFloat(t.sso||t.psk||t.ins||0) > 0);   // หน้าเก่า (ไม่มีเมนูเข้าแล้ว — ใช้ Recall แทน)
 
   // group by HN หาวันล่าสุด
   const byHN = {};
@@ -9696,6 +9707,17 @@ function patientPropagate_(old, rec){
     try{ _ocIdx=null; }catch(e){}
   }catch(e){ console.warn('patientPropagate_', e); }
 }
+// HN ใหม่ที่ยังไม่มีในรายชื่อคนไข้ → ถามว่าจะเพิ่มไหม (ใช้ชื่อ/เบอร์/รหัสจัดฟันจากฟอร์มที่บันทึก)
+function ensurePatient_(hn, name, phone, orthoCode){
+  try{
+    hn=String(hn||'').trim(); name=String(name||'').trim();
+    if(!hn || !name || patients.some(p=>normHN(p.hn)===normHN(hn))) return;
+    if(!window.confirm('HN '+hn+' ('+name+') ยังไม่มีในรายชื่อคนไข้\nเพิ่มเข้ารายชื่อคนไข้ด้วยไหม?')) return;
+    const rec={ hn, name, phone:phone||'', lineId:'', sso:false, orthoCode:orthoCode||'', addedAt:todayStr() };
+    patients.push(rec); cachePatients(); try{ _ocIdx=null; }catch(e){}
+    pushPatientToSheet(rec).then(()=>showToast('เพิ่ม '+name+' เข้ารายชื่อคนไข้แล้ว ✅')).catch(()=>showToast('เพิ่มในเครื่องแล้ว (sync รายชื่อไม่สำเร็จ)','error'));
+  }catch(e){ console.warn('ensurePatient_', e); }
+}
 // ---- EDIT ----
 function openEditPatient(hn){
   const p = patients.find(x=>String(x.hn)===String(hn));
@@ -9739,7 +9761,13 @@ function saveEditPatient(){
 
 // ---- DELETE ----
 function deletePatient(hn, name){
-  if(!confirm(`ลบ "${name}" (HN: ${hn}) ?\n\nประวัติการรักษาจะยังคงอยู่`)) return;
+  const _k=normHN(hn), _w=[];
+  try{
+    const _card=(orthoData||[]).find(o=>normHN(o.hn)===_k); if(_card) _w.push('• การ์ดจัดฟัน'+(_card['รหัสประจำตัว']?' '+_card['รหัสประจำตัว']:'')+' (ยังอยู่ ไม่ถูกลบ)');
+    const _fa=appointments.filter(a=>normHN(a.hn)===_k && a.date>=todayStr() && !['ยกเลิก','เสร็จสิ้น','เสร็จ'].includes(a.status)); if(_fa.length) _w.push('• นัดล่วงหน้า '+_fa.length+' นัด (ยังอยู่ในตารางนัด)');
+    if(typeof crmHasLine==='function' && crmHasLine(hn)) _w.push('• ผูก LINE OA ไว้ (ยังได้รับข้อความนัด/แจ้งเตือน)');
+  }catch(e){}
+  if(!confirm(`ลบ "${name}" (HN: ${hn}) ?\n\nประวัติการรักษาจะยังคงอยู่`+(_w.length?'\n\nคนไข้นี้ยังผูกกับ:\n'+_w.join('\n'):''))) return;
   const hnStr = String(hn);
   patients = patients.filter(p=>String(p.hn)!==hnStr);
   cachePatients();
@@ -9798,8 +9826,33 @@ function openPatientDetail(hn){
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
-    </div>`;
+    </div>${patientExtraHtml_(p)}`;
   }, 50); // setTimeout end
+}
+// หน้ารายละเอียดคนไข้: นัดล่วงหน้า (รวมนัดจากการ์ดจัดฟัน) · การ์ดจัดฟัน · งานแลป
+function patientExtraHtml_(p){
+  try{
+    const k=normHN(p.hn), today=todayStr(), H=v=>_escHtml(v==null?'':v);
+    const box=(title,body)=>'<div style="font-size:14px;font-weight:700;color:var(--wine-dark);margin:16px 0 8px;">'+title+'</div><div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.7;">'+body+'</div>';
+    let out='';
+    const real=appointments.filter(a=>normHN(a.hn)===k && a.date>=today && !['ยกเลิก','เสร็จสิ้น','เสร็จ'].includes(a.status));
+    let virt=[]; try{ virt=crmOrthoAptList(today,'2999-12-31').filter(a=>a._ortho && normHN(a.hn)===k); }catch(e){}
+    const apts=real.concat(virt).sort((x,y)=>(x.date+(x.time||'')).localeCompare(y.date+(y.time||'')));
+    out+=box('📅 นัดล่วงหน้า ('+apts.length+')', apts.length ? apts.map(a=>'<div>'+fmtDate(a.date)+' '+H(String(a.time||'').slice(0,5))+' · '+procBadge(a.proc||(a._ortho?'นัดจัดฟัน':''))+' · '+docBadge(a.docName)+' <span style="color:var(--text-light);font-size:12px;">'+H(a._ortho?'นัดจากการ์ดจัดฟัน':(a.status||''))+'</span></div>').join('') : '<span style="color:var(--text-light);font-style:italic;">ไม่มีนัดล่วงหน้า</span>');
+    const o=(typeof orthoData!=='undefined'&&orthoData||[]).find(x=>normHN(x.hn)===k);
+    if(o){
+      const hnE=String(o.hn).replace(/'/g,"\\'");
+      out+=box('🦷 การ์ดจัดฟัน', [
+        (o['รหัสประจำตัว']?'<b>'+H(o['รหัสประจำตัว'])+'</b> · ':'')+'สถานะ '+H(o['สถานะ']||'กำลังจัด')+(o['หมอ']?' · '+H(o['หมอ']):''),
+        'ปรับมาแล้ว '+(o._visitCount||0)+' ครั้ง · หลุดสะสม '+(o._looseCount||0)+' ตัว'+(o['ปรับล่าสุด']?' · ปรับล่าสุด '+fmtDate(String(o['ปรับล่าสุด']).slice(0,10)):''),
+        o['นัดถัดไป']?'นัดถัดไป '+fmtDate(String(o['นัดถัดไป']).slice(0,10))+' '+H(o['นัดถัดไปเวลา']||''):'ยังไม่ลงนัดถัดไป',
+        '<button class="btn btn-ghost btn-sm" style="margin-top:4px;" onclick="closePatientDetail();openOrthoHistory(\''+hnE+'\')">เปิดการ์ดจัดฟัน</button>'
+      ].join('<br>'));
+    }
+    const lb=(typeof labs!=='undefined'&&labs||[]).filter(l=>normHN(l.hn)===k).sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))).slice(0,10);
+    if(lb.length) out+=box('🧪 งานแลป ('+lb.length+')', lb.map(l=>'<div>'+fmtDate(String(l.date||'').slice(0,10))+' · '+H(l.work||'-')+' · '+H(l.lab||'')+' · ฿'+fmt(+l.price||0)+'</div>').join(''));
+    return out;
+  }catch(e){ console.warn('patientExtraHtml_', e); return ''; }
 }
 function closePatientDetail(){
   const m = document.getElementById('modalPatientDetail');
@@ -10128,6 +10181,14 @@ function setRecallMode(m, btn){
   renderRecall();
 }
 function renderRecall(){ return recallMode==='year' ? renderRecallYear_() : renderRecallLong_(); }
+// วันนัดถัดไปของคนไข้แต่ละคน (normHN → วันที่) = นัดในตารางนัดที่มี HN + นัดที่จับคู่จากรหัสจัดฟัน + นัดถัดไปในการ์ดจัดฟัน
+function recallNextAptMap_(){
+  const today=todayStr(), m=new Map();
+  const put=(hn,d)=>{ const k=normHN(hn); if(!k || !d || d<today) return; if(!m.has(k) || d<m.get(k)) m.set(k,d); };
+  appointments.forEach(a=>{ if(!['ยกเลิก','เสร็จสิ้น','เสร็จ'].includes(a.status)) put(a.hn, String(a.date||'').slice(0,10)); });
+  try{ crmOrthoAptList(today,'2999-12-31').forEach(a=>put(a.hn, a.date)); }catch(e){}
+  return m;
+}
 function recallYearData_(){
   const today = todayStr(), year = today.slice(0,4);
   const used = new Set(), lastSso = new Map(), nextApt = new Map();
@@ -10137,10 +10198,7 @@ function recallYearData_(){
     if(d.slice(0,4)===year) used.add(k);
     if(!lastSso.has(k) || d>lastSso.get(k)) lastSso.set(k,d);
   });
-  appointments.forEach(a=>{
-    const k=normHN(a.hn); if(!k) return; const d=String(a.date||'').slice(0,10);
-    if(d>=today && a.status!=='ยกเลิก' && (!nextApt.has(k) || d<nextApt.get(k))) nextApt.set(k,d);
-  });
+  recallNextAptMap_().forEach((d,k)=>nextApt.set(k,d));
   let _rstore = {}; try{ _rstore = JSON.parse(localStorage.getItem('bl_recall')||'{}'); }catch(e){}
   const rows = recallPeople_().map(p=>{
     const k=normHN(p.hn); const tr=getPatientTreatments(p.hn); const log=getRecallLog(p.hn,year,_rstore);
@@ -10288,14 +10346,17 @@ function renderRecallLong_(){
   const now = new Date();
 
   const ssoPatients = recallPeople_();
+  const _nx = recallNextAptMap_();
 
   const list = ssoPatients.map(p=>{
     const treats = getPatientTreatments(p.hn);
     const lastDate = treats.length ? treats[0].date : null;
     const lastMs = lastDate ? new Date(lastDate).getTime() : 0;
     const diffDays = lastMs ? Math.floor((now - lastMs) / (24*60*60*1000)) : 9999;
-    const status = getRecallStatus(p.hn);
-    return { ...p, lastDate, diffDays, status };
+    const nextApt = _nx.get(normHN(p.hn))||'';
+    let status = getRecallStatus(p.hn);
+    if(nextApt && status==='รอติดตาม') status = 'ติดตามแล้ว';   // มีนัดล่วงหน้าแล้ว ไม่ต้องโทรตาม
+    return { ...p, lastDate, diffDays, status, nextApt };
   })
   .filter(p => p.diffDays >= THRESHOLD_DAYS && p.diffDays < 9999)
   .sort((a,b) => b.diffDays - a.diffDays);
@@ -10352,6 +10413,7 @@ function renderRecallLong_(){
           ${p.phone?`<span>📞 ${p.phone}</span>`:''}
           <span style="color:${isUrgent?'#C0392B':'#E74C3C'};font-weight:700;">⏰ ไม่มา ${timeStr}</span>
           ${p.lastDate?`<span>รักษาล่าสุด ${fmtDate(p.lastDate)}</span>`:''}
+          ${p.nextApt?`<span style="color:#0E6655;font-weight:800;">📅 มีนัดแล้ว ${fmtDate(p.nextApt)}</span>`:''}
         </div>
       </div>
 
@@ -10977,6 +11039,7 @@ async function saveOrthoProfile(){
   });
   await orthoPost({action:'orthoSave', row});
   const merged = Object.assign({}, existing, row);
+  setTimeout(()=>ensurePatient_(hn, row['ชื่อ'], '', row['รหัสประจำตัว']||''), 300);
   // รหัสจัดฟันในการ์ด → อัปเดตรหัสในรายชื่อคนไข้ให้ตรงกัน
   try{
     const _pc=row['รหัสประจำตัว']||'', _p=patients.find(p=>normHN(p.hn)===normHN(hn));
