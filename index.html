@@ -1831,7 +1831,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           oninput="fmtTimeInput(this)" onblur="fmtTimeBlur(this)">
       </div>
       <div class="form-group">
-        <label>HN</label>
+        <label>HN <span style="color:#C0392B;">*</span></label>
         <input class="form-control" id="treat-hn" placeholder="xx-xxxxx" oninput="fmtHN(this);autoFillPatient(this.value,'treat')" maxlength="8">
         <div id="treat-hn-hint" style="font-size:11px;margin-top:4px;min-height:16px;"></div>
       </div>
@@ -5175,6 +5175,7 @@ function saveTreat(){
     itemDfRate:(existingTreat && existingTreat.itemDfRate!==undefined) ? existingTreat.itemDfRate : '',
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
+  if(!String(t.hn||'').trim()){ showToast('กรุณากรอก HN','error'); try{ document.getElementById('treat-hn').focus(); }catch(e){} return; }
   // X-Ray ลงรวมกับหัตถการอื่น: ต้องกรอกราคา X-Ray ในช่องราคาแต่ละรายการ (ส่วนนี้ DF = 0)
   { const _parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
     if(String(t.date||'')>=xrayRuleStart() && _parts.some(_isXrayProc) && !isXrayOnly(t.proc)){
