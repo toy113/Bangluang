@@ -4411,7 +4411,7 @@ function homeDfLineSend(){
     parts.forEach(x=>{
       const price=pp[x]!==undefined?(+pp[x]||0):(parts.length===1?totalPrice(t):0), hit=ip.items.find(it=>it.name===x);
       const rate=_isXrayProc(x)?0:(hit?hit.rate:pct);
-      out.push('     '+x+'  '+baht(price)+(price>0?'  → df '+rate+'% = '+baht(price*rate/100):(rate?'  (ฟรี)':'')));
+      out.push('     '+x+'  '+baht(price)+(price>0?(rate===pct?'':'  → df '+rate+'% = '+baht(price*rate/100)):(rate?'  (ฟรี)':'')));   // df ปกติ (เท่า % ของหมอ) ไม่ต้องแสดง · แสดงเฉพาะรายการที่ df ต่างจากปกติ
     });
     tot+=totalPrice(t); df+=dfAmt(t,doc);
   });
