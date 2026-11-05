@@ -4328,6 +4328,34 @@ function renderHome(){
   renderAptList(today);
   renderTreatList(treats);
 }
+// ส่งสรุปรายการรักษา + DF ประจำวันของหมอ 1 คน เข้าไลน์ (เปิดหน้าเลือกแชท + คัดลอกไว้ด้วย) ท้ายข้อความมีวัน/เวลาที่บันทึกข้อมูล
+function homeDfLine(docName){
+  const d=todayStr(), LINE='━'.repeat(16), baht=n=>'฿'+fmt(n);
+  const rows=treatments.filter(t=>String(t.date||'').slice(0,10)===d && t.status!=='ยกเลิก' && (docAlias(t.docName)||'')===docName)
+    .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+  if(!rows.length){ showToast('ยังไม่มีรายการรักษาของหมอคนนี้วันนี้','error'); return; }
+  const doc=doctors.find(x=>x.name===docName)||DOCTORS_DATA.find(x=>x.name===docName);
+  const out=['💰 สรุปรายการรักษา + DF', docName+' · '+crmThaiShort(d), LINE];
+  let tot=0, df=0;
+  rows.forEach((t,i)=>{
+    let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
+    const parts=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean), ip=itemDfParts(t), pct=docSharePct(t,doc);
+    const code=orthoCodeOf_(t.hn,t.patName);
+    out.push((i+1)+'. '+(code?code+' ':'')+(t.patName||'—'));
+    parts.forEach(x=>{
+      const price=pp[x]!==undefined?(+pp[x]||0):(parts.length===1?totalPrice(t):0), hit=ip.items.find(it=>it.name===x);
+      const rate=_isXrayProc(x)?0:(hit?hit.rate:pct);
+      out.push('     '+x+'  '+baht(price)+(price>0?'  → df '+rate+'% = '+baht(price*rate/100):(rate?'  (ฟรี)':'')));
+    });
+    tot+=totalPrice(t); df+=dfAmt(t,doc);
+  });
+  const n=new Date(), hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  out.push(LINE,'🧾 ยอดรวม  '+baht(tot),'✨ df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)',LINE,'🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(d)+' เวลา '+hm+' น.','Bangluang Dental 🦷');
+  const text=out.join('\n');
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{}); }catch(e){}
+  const w=window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
+  if(!w){ crmCopy(out); } else showToast('เปิด LINE แล้ว — เลือกแชทที่จะส่ง (คัดลอกข้อความไว้ให้ด้วย)');
+}
 // ตารางสรุปวันนี้แยกตามหมอ — เฉพาะผู้จัดการ
 function renderDocBreakdown_(treats){
   const box=document.getElementById('docBreakdownBox'), tbl=document.getElementById('docBreakdownTbl');
@@ -4348,7 +4376,7 @@ function renderDocBreakdown_(treats){
   if(!names.length){ tbl.innerHTML='<tr><td style="padding:16px;text-align:center;color:var(--text-light);">ยังไม่มีรายการรักษาวันนี้</td></tr>'; return; }
   const sum={n:0,total:0,cash:0,transfer:0,sso:0,share:0};
   const rows=names.map(n=>{ const g=by[n]; Object.keys(sum).forEach(k=>sum[k]+=g[k]);
-    return `<tr><td style="${td}text-align:left;font-weight:700;color:${docColor(n)};">${_escHtml(n)}</td><td style="${td}">${g.n}</td><td style="${td}font-weight:700;">${fmt(g.total)}</td><td style="${td}">${fmt(g.cash)}</td><td style="${td}">${fmt(g.transfer)}</td><td style="${td}">${fmt(g.sso)}</td><td style="${td}color:#B7791F;font-weight:700;">${fmt(g.share)}</td></tr>`; }).join('');
+    return `<tr><td style="${td}text-align:left;font-weight:700;color:${docColor(n)};">${_escHtml(n)}${n!=='ไม่ระบุหมอ'?` <button data-doc="${String(n).replace(/"/g,'&quot;')}" onclick="homeDfLine(this.dataset.doc)" title="ส่ง DF ประจำวันของหมอคนนี้เข้าไลน์" style="margin-left:6px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;">📤 ส่งไลน์ DF</button>`:''}</td><td style="${td}">${g.n}</td><td style="${td}font-weight:700;">${fmt(g.total)}</td><td style="${td}">${fmt(g.cash)}</td><td style="${td}">${fmt(g.transfer)}</td><td style="${td}">${fmt(g.sso)}</td><td style="${td}color:#B7791F;font-weight:700;">${fmt(g.share)}</td></tr>`; }).join('');
   tbl.innerHTML=`<tr><th style="${th}text-align:left;">หมอ</th><th style="${th}">ราย</th><th style="${th}">รายได้</th><th style="${th}">เงินสด</th><th style="${th}">โอน</th><th style="${th}">ประกันสังคม</th><th style="${th}">ส่วนแบ่งหมอ</th></tr>${rows}
   <tr style="background:var(--wine-pale);font-weight:800;"><td style="${td}text-align:left;">รวม</td><td style="${td}">${sum.n}</td><td style="${td}">${fmt(sum.total)}</td><td style="${td}">${fmt(sum.cash)}</td><td style="${td}">${fmt(sum.transfer)}</td><td style="${td}">${fmt(sum.sso)}</td><td style="${td}">${fmt(sum.share)}</td></tr>`;
 }
