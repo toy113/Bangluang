@@ -3597,6 +3597,8 @@ function crmOrthoDfCopy(d){
 function crmOrthoPrint(d){
   const list=crmOrthoAptList(d,d).filter(orthoAimOnly_); if(!list.length){ showToast('ไม่มีนัดของหมอวัจน์กรในวันนี้','error'); return; }
   const E=crmEsc;
+  // นัดอื่นของหมอวัจน์กรในแท็บดูนัด (ไม่ใช่งานจัดฟัน) — เพื่อรวมยอดทั้งวัน
+  const aimOther=(appointments||[]).filter(a=>String(a.date||'').slice(0,10)===d && a.status!=='ยกเลิก' && a.docName && isAimDoc_(docAlias(a.docName)) && !crmIsOrthoVisit(a) && !a._ortho);
   const rows=list.map((a,i)=>{
     const o=crmOrthoRec(a.hn)||{}, no=crmOrthoVisitNo(a), loose=orthoLooseCount_(o);
     const last=String(o['ปรับล่าสุด']||'').slice(0,10);
@@ -3609,7 +3611,7 @@ function crmOrthoPrint(d){
 h1{font-size:1.4em;margin:0 0 2px}.sub{color:#555;margin-bottom:.6em;font-size:.9em}table{width:100%;border-collapse:collapse}
 th,td{border:1px solid #999;padding:.3em .45em;vertical-align:top}td{height:2.2em}th{background:#eee;font-size:.92em}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:.88em}td:nth-child(3){white-space:nowrap;width:30%}th:nth-child(3){width:30%}
 tr{page-break-inside:avoid}</style></head><body>
-<h1>คลินิกทันตกรรมบางหลวง — นัดจัดฟัน ${E(crmThaiShort(d))}</h1><div class="sub">ทั้งหมด ${list.length} คน · พิมพ์เมื่อ ${E(new Date().toLocaleString('th-TH'))}</div><div style="font-weight:700;margin:0 0 .5em;">* กรณีข้อมูลไม่ตรงกัน ให้ใช้ข้อมูลจากบัตรจัดฟันเป็นหลัก</div>
+<h1>คลินิกทันตกรรมบางหลวง — นัดจัดฟัน ${E(crmThaiShort(d))}</h1><div class="sub">จัดฟัน ${list.length} คน · นัดอื่นของหมอวัจน์กร (แท็บดูนัด) ${aimOther.length} นัด · <b>รวมนัดหมอวัจน์กรทั้งวัน ${list.length+aimOther.length} นัด</b> · พิมพ์เมื่อ ${E(new Date().toLocaleString('th-TH'))}</div><div style="font-weight:700;margin:0 0 .5em;">* กรณีข้อมูลไม่ตรงกัน ให้ใช้ข้อมูลจากบัตรจัดฟันเป็นหลัก</div>
 <table><tr><th>#</th><th>เวลา</th><th>คนไข้</th><th>ปรับครั้งที่</th><th>รายการนัด</th><th>มาล่าสุด</th><th>หลุดสะสม</th></tr>${rows}</table>
 <script>
 /* ย่อขนาดตัวอักษรอัตโนมัติให้ทั้งรายการพอดี 1 แผ่น A4 แนวตั้ง (ใหญ่สุด 13px ลงไปถึง 5.5px) */
