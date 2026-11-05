@@ -4383,12 +4383,12 @@ function homeDfLine(docName){
   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
   m._doc=docName;
   m.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px;width:340px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,0.25);">'
-    +'<div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:4px;">📤 ส่ง DF เข้าไลน์</div>'
+    +'<div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:4px;">📋 คัดลอก DF ไปส่งไลน์</div>'
     +'<div style="font-size:12.5px;color:var(--text-light);margin-bottom:12px;">'+_escHtml(docName)+' · '+crmThaiShort(d)+' · กรอกเงินสดที่จ่ายให้หมอแล้ว (เว้นว่าง = ไม่แสดงบรรทัดจ่ายแล้ว/คงเหลือ)</div>'
     +'<label style="display:block;font-size:13px;font-weight:700;color:var(--wine-dark);margin-bottom:5px;">💵 จ่ายเงินสดให้หมอแล้ว (บาท)</label>'
     +'<input id="homeDfPaid" type="number" inputmode="numeric" min="0" step="1" placeholder="ไม่จ่าย / เว้นว่าง" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;">'
     +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'homeDfModal\').remove()">ยกเลิก</button>'
-    +'<button class="btn btn-primary btn-sm" onclick="homeDfLineSend()">📤 ส่งไลน์</button></div></div>';
+    +'<button class="btn btn-primary btn-sm" onclick="homeDfLineSend()">📋 คัดลอก</button></div></div>';
   document.body.appendChild(m);
   setTimeout(()=>{ const i=document.getElementById('homeDfPaid'); if(i) i.focus(); },50);
 }
@@ -4420,9 +4420,7 @@ function homeDfLineSend(){
   if(paid>0) out.push(LINE,'💵 จ่ายเงินสดให้'+docName+'แล้ว  '+baht(paid),'📌 df คงเหลือ  '+baht(Math.round(df)-paid));
   out.push(LINE,'🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(d)+' เวลา '+hm+' น.','Bangluang Dental 🦷');
   const text=out.join('\n');
-  try{ if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{}); }catch(e){}
-  const w=window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
-  if(!w){ crmCopy(out); } else showToast('เปิด LINE แล้ว — เลือกแชทที่จะส่ง (คัดลอกข้อความไว้ให้ด้วย)');
+  crmCopy(out);   // คัดลอกอย่างเดียว — ไปวางในไลน์เอง
 }
 // ตารางสรุปวันนี้แยกตามหมอ — เฉพาะผู้จัดการ
 // ปุ่มส่งไลน์ DF: โผล่เมื่อเคสสุดท้ายของหมอในวันนี้เสร็จแล้ว (ไม่เหลือนัดค้าง) · ถ้ายังเหลือ → แสดง "เหลือ N เคส" + ลิงก์ "ส่งเลย" เผื่อมีคนไม่มา
@@ -4440,8 +4438,8 @@ function docPendingToday_(docName){
 function dfBtn_(n){
   const doc=String(n).replace(/"/g,'&quot;'), pend=docPendingToday_(n);
   const base='margin-left:6px;border:none;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;white-space:nowrap;';
-  if(!pend) return ` <button data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" title="เคสสุดท้ายเสร็จแล้ว — ส่ง DF ประจำวันเข้าไลน์" style="${base}background:#06C755;color:#fff;cursor:pointer;">📤 ส่งไลน์ DF</button>`;
-  return ` <span style="margin-left:6px;font-size:11px;color:var(--text-light);font-weight:600;">⏳ เหลืออีก ${pend} เคส</span> <a href="javascript:void(0)" data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" style="font-size:11px;color:var(--text-light);text-decoration:underline;">ส่งเลย</a>`;
+  if(!pend) return ` <button data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" title="เคสสุดท้ายเสร็จแล้ว — คัดลอก DF ประจำวันไปวางในไลน์" style="${base}background:#06C755;color:#fff;cursor:pointer;">📋 คัดลอก DF</button>`;
+  return ` <span style="margin-left:6px;font-size:11px;color:var(--text-light);font-weight:600;">⏳ เหลืออีก ${pend} เคส</span> <a href="javascript:void(0)" data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" style="font-size:11px;color:var(--text-light);text-decoration:underline;">คัดลอกเลย</a>`;
 }
 function renderDocBreakdown_(treats){
   const box=document.getElementById('docBreakdownBox'), tbl=document.getElementById('docBreakdownTbl');
