@@ -7841,7 +7841,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           font-family:'Prompt',sans-serif;letter-spacing:2px;
           padding:3px 4px;min-width:58px;display:inline-block;">${slot}</span>
         <div style="flex:1;"></div>
-        ${blocked
+        ${(!blocked && slotApts.some(x=>String(x.id||'').indexOf('ORTHO-')===0)) ? '' : blocked
           ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" aria-label="เปิดช่องเวลานี้" style="font-size:10px;min-height:26px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;color:#555;">เปิด</button>`
           : `<button onclick="openAddApt(null,'${date}','${slot}','${orthoFree?String((doctors.find(d=>d.id==='aim')||{}).name||dparam).replace(/'/g,''):dparam}'${orthoFree?',true':''})" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
              <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" aria-label="เว้นว่างช่องเวลานี้" style="font-size:12px;min-width:26px;min-height:26px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
