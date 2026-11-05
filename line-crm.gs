@@ -540,6 +540,11 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
 function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม\nโทร. ' + String((s && s.clinicPhone) || '0959476759').replace(/[^0-9]/g, '') + '\nพิมพ์ในแชทนี้ได้เลยค่ะ', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
 function crmTelUri_(s) { return 'tel:' + String(s.clinicPhone || '').replace(/[^0-9+]/g, ''); }
+/* ปุ่มขอเลื่อนนัด = ส่งข้อความจริงเข้าแชท (เด้งเตือนใน LINE OA Manager) เช่น "ขอเลื่อนนัด 12/11" · วัน/เดือนใช้จับคู่นัด */
+function crmReschedText_(date) {
+  var d = crmDateOnly_(date);
+  return 'ขอเลื่อนนัด' + (d ? ' ' + parseInt(d.slice(8, 10), 10) + '/' + parseInt(d.slice(5, 7), 10) : '');
+}
 function crmAptMessage_(s, apt, kind) {
   var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '✅ ยืนยันการนัดหมาย');
   var sub = 'คุณ' + (apt.patName || '') + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ');
@@ -549,7 +554,7 @@ function crmAptMessage_(s, apt, kind) {
   var buttons = [];
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
   if (kind === 'remind') buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + apt.id, displayText: 'ยืนยันนัด' } });
-  buttons.push({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '🔄 ขอเลื่อนนัด', data: 'apt|resched|' + apt.id, displayText: 'ขอเลื่อนนัด' } });
+  buttons.push({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(apt.date) } });
   buttons.push(crmInquiryNote_(s));
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
@@ -563,7 +568,7 @@ function crmAptGroupMessage_(s, list) {
   });
   var buttons = [
     { type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'postback', label: '✅ ยืนยันนัด', data: 'apt|confirm|' + ids, displayText: 'ยืนยันนัด' } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '🔄 ขอเลื่อนนัด', data: 'apt|resched|' + ids, displayText: 'ขอเลื่อนนัด' } },
+    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(a0.date) } },
     crmInquiryNote_(s)];
   return { type: 'flex', altText: 'เตือนนัดหมาย ' + crmThaiDate_(a0.date) + ' ' + list.length + ' นัด',
     contents: crmBubble_(s, '🔔 เตือนนัดหมาย', 'คุณ' + (a0.patName || '') + ' อย่าลืมนัดหมายของคุณนะคะ (' + list.length + ' นัดในวันเดียวกัน)', rows, buttons) };
@@ -1392,6 +1397,23 @@ function crmHandleText_(s, ev, uid) {
     else crmCreateTask_({ type: 'emergency', priority: 'urgent', hn: hns[0] || '', patName: name, lineUserId: uid, detail: 'ข้อความจากคนไข้: ' + text.slice(0, 300) });
     var ack = crmEmergencyText_(s);
     if (ack) crmReply_(ev.replyToken, [crmText_(ack)]);
+    return;
+  }
+  // ขอเลื่อนนัด (ปุ่มในการ์ดส่งเป็นข้อความจริง หรือคนไข้พิมพ์เอง) → จับคู่นัดข้างหน้าของคนไข้แล้วเข้ากระบวนการเดียวกับปุ่มเดิม
+  var tm = text.replace(/\s+/g, ' ').trim();
+  if (/^ขอเลื่อนนัด(\s|$)/.test(tm) && tm.length <= 40) {
+    var hnR = crmUserHns_(uid);
+    if (!hnR.length) { crmReply_(ev.replyToken, [crmText_('รับเรื่องแล้วค่ะ 🙏 หากต้องการเลื่อนนัด กรุณาโทร ' + s.clinicPhone + ' หรือผูกบัญชีคนไข้ก่อนนะคะ')]); return; }
+    var today = crmToday_(), allR = crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), crmReadByName_('ortho'));
+    var mine = allR.filter(function (x) { return hnR.indexOf(crmHN_(x.hn)) !== -1 && crmDateOnly_(x.date) >= today; });
+    var dm = tm.match(/(\d{1,2})\/(\d{1,2})/), pick = [];
+    if (dm) pick = mine.filter(function (x) { var d = crmDateOnly_(x.date); return parseInt(d.slice(8, 10), 10) === +dm[1] && parseInt(d.slice(5, 7), 10) === +dm[2]; });
+    if (!pick.length) {
+      var minD = ''; mine.forEach(function (x) { var d = crmDateOnly_(x.date); if (!minD || d < minD) minD = d; });
+      pick = mine.filter(function (x) { return crmDateOnly_(x.date) === minD; });
+    }
+    if (!pick.length) { crmReply_(ev.replyToken, [crmText_('ไม่พบนัดล่วงหน้าของคุณค่ะ หากต้องการเลื่อนนัด กรุณาโทร ' + s.clinicPhone)]); return; }
+    crmHandlePostback_(s, { replyToken: ev.replyToken, postback: { data: 'apt|resched|' + pick.map(function (x) { return x.id; }).join(',') } }, uid);
     return;
   }
   var t = text.replace(/\s/g, '');
