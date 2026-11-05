@@ -4355,6 +4355,13 @@ function renderAptList(today){
     if(a.date>todayStr()) return '';
     return `<div><button class="crm-btn p" style="${bs}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button></div>`;
   };
+  // ปุ่ม "บันทึกการรักษา" ทุกแถว → เปิดฟอร์มรายการรักษาพร้อมข้อมูลจากนัดนี้
+  window._aptTreatMap = window._aptTreatMap || {};
+  const homeTreatBtn_=a=>{
+    if(isViewOnlyUser()) return '';
+    window._aptTreatMap[a.id]=a;
+    return `<div><button class="btn btn-ghost btn-sm" style="margin-top:4px;padding:4px 8px;font-size:11px;white-space:nowrap;border:1px solid var(--wine);color:var(--wine);font-weight:700;" onclick="event.stopPropagation();aptAddTreat(this.dataset.aid)" data-aid="${String(a.id).replace(/"/g,'')}">📝 บันทึกการรักษา</button></div>`;
+  };
   const rowHtml = a=>`
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
@@ -4367,6 +4374,7 @@ function renderAptList(today){
       <div>
         ${a._ortho ? `<span class="${statusClass(a.status)}" title="นัดจากการ์ดจัดฟัน — เปิดการ์ดเพื่อแก้ไข" style="cursor:pointer;" onclick="openOrthoHistory('${String(a.hn||'').replace(/'/g,"\\'")}')">🦷 ${a.status}</span>` : `<span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'}">${a.status}</span>`}
         ${homeCame_(a)}
+        ${homeTreatBtn_(a)}
       </div>
     </div>`;
 
@@ -5092,6 +5100,24 @@ function openAddTreat(t=null){
   calcTotal();
   document.getElementById('modalTreat').classList.add('open');
   renderTreatSaveSummary();
+}
+// เปิดฟอร์มบันทึกการรักษาจากแถวนัด (เติม HN/ชื่อ/หมอ/รายการ/หมายเหตุให้)
+function aptAddTreat(aid){
+  const a=(window._aptTreatMap||{})[aid]; if(!a) return;
+  openAddTreat();
+  try{
+    document.getElementById('treat-date').value=a.date||todayStr();
+    document.getElementById('treat-hn').value=a.hn||'';
+    document.getElementById('treat-name').value=a.patName||'';
+    if(a.hn) autoFillPatient(a.hn,'treat');
+    const dsel=document.getElementById('treat-doc');
+    if(a.docName && dsel){ dsel.value=docAlias(a.docName); dsel.dispatchEvent(new Event('change')); }
+    const procs=String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='จัดฟัน');
+    document.getElementById('treat-proc').value=procs.join(', ');
+    setProcSelected(procs.join(', '));
+    if(a.note) document.getElementById('treat-note').value=a.note;
+    calcTotal();
+  }catch(e){ console.error(e); }
 }
 function calcTotal(){
   const v = ['treat-cash','treat-transfer','treat-sso'].reduce((s,id)=>s+(+document.getElementById(id).value||0),0);
