@@ -4517,14 +4517,19 @@ function renderAptList(today){
   };
   // ปุ่ม "บันทึกการรักษา" ทุกแถว → เปิดฟอร์มรายการรักษาพร้อมข้อมูลจากนัดนี้
   window._aptTreatMap = window._aptTreatMap || {};
+  // มีรายการรักษาของคนไข้คนนี้ (หมอเดียวกัน) ในวันของนัดแล้ว?
+  const treatedApt_=a=>treatments.some(t=>t.date===a.date && t.status!=='ยกเลิก'
+    && ((a.hn && t.hn && normHN(a.hn)===normHN(t.hn)) || ((!a.hn || !t.hn) && a.patName && t.patName && String(a.patName).trim()===String(t.patName).trim()))
+    && (!a.docName || !t.docName || docAlias(a.docName)===docAlias(t.docName)));
   const homeTreatBtn_=a=>{
+    if(treatedApt_(a)) return `<div><span class="crm-chip g" style="margin-top:4px;padding:4px 8px;font-size:11px;white-space:nowrap;">✅ บันทึกแล้ว</span></div>`;
     if(isViewOnlyUser()) return '';
     if(isAimDoc_(a.docName) && (a._ortho || (a.hn && crmOrthoRec(a.hn)) || /^A-\d+$/.test(String(a.orthoCode||'')))) return '';   // คนไข้ที่มีการ์ดจัดฟันของหมอเอม → ลงผ่านปุ่ม มาตามนัด เท่านั้น · นัดทั่วไป/ปรึกษาจัดฟัน (ไม่มีการ์ด) ยังมีปุ่มบันทึกการรักษา
     window._aptTreatMap[a.id]=a;
     return `<div><button class="btn btn-ghost btn-sm" style="margin-top:4px;padding:4px 8px;font-size:11px;white-space:nowrap;border:1px solid var(--wine);color:var(--wine);font-weight:700;" onclick="event.stopPropagation();aptAddTreat(this.dataset.aid)" data-aid="${String(a.id).replace(/"/g,'')}">📝 บันทึกการรักษา</button></div>`;
   };
   // คนไข้จัดฟันที่ "มาแล้ว" (กดมาตามนัดแล้ว) → พื้นทั้งแถวเขียวอ่อน
-  const cameBg_=a=>{ try{ const o=a.hn?crmOrthoRec(a.hn):null; if(o && (a._ortho||crmIsOrthoVisit(a)) && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return 'rgba(39,174,96,0.16)'; }catch(e){} return ''; };
+  const cameBg_=a=>{ if(treatedApt_(a)) return 'rgba(39,174,96,0.16)'; try{ const o=a.hn?crmOrthoRec(a.hn):null; if(o && (a._ortho||crmIsOrthoVisit(a)) && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return 'rgba(39,174,96,0.16)'; }catch(e){} return ''; };
   const rowHtml = a=>`
     <div class="${rowClass}" style="background:${cameBg_(a)||statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
