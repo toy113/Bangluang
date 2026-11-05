@@ -3954,6 +3954,7 @@ function crmViewTasks(){
         <div class="meta">${crmEsc(crmTs(t.createdAt))}${t.status!=='open'?' · ปิดโดย '+crmEsc(t.doneBy||'')+(t.resultNote?' — '+crmEsc(t.resultNote):''):''}</div></div>
         <div class="acts">${ph?`<a class="crm-btn" href="${crmTel(ph)}">📞 ${crmEsc(ph)}</a>`:'<span class="crm-muted">ไม่มีเบอร์ (ตอบใน LINE OA Chat)</span>'}
           ${t.aptId && appointments.some(a=>String(a.id)===String(t.aptId))?`<button class="crm-btn" onclick="openEditApt('${crmEsc(t.aptId)}')">เปิดนัด</button>`:''}
+          ${t.type==='reschedule' && t.status==='open' && t.hn && crmOrthoRec(t.hn) && !isViewOnlyUser()?`<button class="crm-btn p" onclick="openReschedule('${crmEsc(crmOrthoRec(t.hn).hn)}')">📅 ลงนัดจัดฟันใหม่</button>`:''}
           ${t.type==='amtchange' && t.status==='open'?`<button class="crm-btn p" onclick="crmAmtResend('${t.id}')">📤 ส่งการ์ดแก้ไขยอด</button><button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'done',resultNote:'ไม่ส่งการ์ดแก้ไข'},'ปิดงานแล้ว (ไม่ส่ง)')">ไม่ต้องส่ง</button>`:''}
           ${t.type==='aptcancel' && t.status==='open'?`<button class="crm-btn p" onclick="crmCancelSend('${t.id}')">📤 ส่งข้อความแจ้งยกเลิกนัด</button><button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'done',resultNote:'ไม่แจ้งคนไข้'},'ปิดงานแล้ว (ไม่แจ้ง)')">ไม่ต้องแจ้ง</button>`:''}
           ${(t.type==='amtchange'||t.type==='aptcancel')?'':(t.status==='open'?`<button class="crm-btn g" onclick="crmCloseTask('${t.id}')">เสร็จแล้ว</button>`:`<button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'open'},'เปิดงานอีกครั้ง')">เปิดอีกครั้ง</button>`)}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีงาน 🎉</div>'}</div></div>`;
@@ -4915,9 +4916,15 @@ function saveApt(){
   if(isManager && apt.docName) localStorage.setItem('bl_last_doc', apt.docName);
   const idx = appointments.findIndex(a=>String(a.id)===String(apt.id));
   const _oldApt = idx>-1 ? Object.assign({}, appointments[idx]) : null;
+  // คงช่องอื่นที่ฟอร์มไม่มี (เช่น movedAt) ไม่ให้ถูกล้างตอนบันทึก
+  if(_oldApt) Object.keys(_oldApt).forEach(k=>{ if(!(k in apt)) apt[k]=_oldApt[k]; });
+  // ย้ายวัน/เวลา → สถานะยืนยัน/ขอเลื่อนของวันเดิมไม่นับต่อ + ปิดงาน "ขอเลื่อนนัด" ที่ค้างใน LINE CRM
+  const _moved = _oldApt && (String(_oldApt.date||'').slice(0,10)!==apt.date || String(_oldApt.time||'').slice(0,5)!==String(apt.time||'').slice(0,5));
+  if(_moved){ apt.movedAt = crmLocalTs_(); if(apt.status==='คอนเฟิร์ม') apt.status='ไม่คอนเฟิร์ม'; }
   if(idx>-1) appointments[idx]=apt; else appointments.push(apt);
   saveLocal();
   orthoSyncFromApt_(apt, _oldApt);
+  if(_moved && apt.hn && !['ยกเลิก'].includes(apt.status)) crmCloseReschedTasks_(apt.hn, apt.date, apt.time, 'แก้ไขนัด');
 
   // ถ้ากรอกรหัสจัดฟัน → เก็บในข้อมูลคนไข้ (ถ้ามี HN นี้ในรายชื่อ)
   if(apt.hn && _aptOrtho){
@@ -11105,13 +11112,17 @@ function orthoMoveRealApt_(hn, oldRow, newRow){
 }
 // ลงวันนัดใหม่แล้ว → ปิดงาน "ขอเลื่อนนัด" ที่เปิดค้างของคนไข้คนนี้ใน LINE CRM ให้อัตโนมัติ
 function orthoCloseReschedTasks_(hn, oldRow, newRow){
+  const newD=String(newRow['นัดถัดไป']||'').slice(0,10), newT=String(newRow['นัดถัดไปเวลา']||'').slice(0,5);
+  if(!newD || (newD===String(oldRow['นัดถัดไป']||'').slice(0,10) && newT===String(oldRow['นัดถัดไปเวลา']||'').slice(0,5))) return;
+  crmCloseReschedTasks_(hn, newD, newT, 'ปุ่มนัดถัดไป');
+}
+function crmCloseReschedTasks_(hn, newD, newT, src){
   try{
-    const newD=String(newRow['นัดถัดไป']||'').slice(0,10), newT=String(newRow['นัดถัดไปเวลา']||'').slice(0,5);
-    if(!newD || (newD===String(oldRow['นัดถัดไป']||'').slice(0,10) && newT===String(oldRow['นัดถัดไปเวลา']||'').slice(0,5))) return;
-    const k=crmHN(hn), open=((CRM.data&&CRM.data.tasks)||[]).filter(t=>t.status==='open' && t.type==='reschedule' && crmHN(t.hn)===k);
-    open.forEach(t=>crmDo({crm:'updateTask', id:t.id, status:'done', resultNote:'ลงนัดใหม่ '+newD+(newT?' '+newT:'')+' แล้ว (ปิดอัตโนมัติจากปุ่มนัดถัดไป)'}, null));
+    const k=crmHN(hn); if(!k || !newD) return;
+    const open=((CRM.data&&CRM.data.tasks)||[]).filter(t=>t.status==='open' && t.type==='reschedule' && crmHN(t.hn)===k);
+    open.forEach(t=>crmDo({crm:'updateTask', id:t.id, status:'done', resultNote:'ลงนัดใหม่ '+newD+(newT?' '+String(newT).slice(0,5):'')+' แล้ว (ปิดอัตโนมัติจาก'+src+')'}, null));
     if(open.length) showToast('ปิดงาน "ขอเลื่อนนัด" ใน LINE CRM ให้แล้ว '+open.length+' งาน');
-  }catch(e){ console.warn('orthoCloseReschedTasks_', e); }
+  }catch(e){ console.warn('crmCloseReschedTasks_', e); }
 }
 async function saveReschedule(){
   if(viewOnlyBlock_()) return;
