@@ -7498,7 +7498,7 @@ function orthoDaysFrom_(from, n, dir){
   const toS = d=>toDateStr(d);
   const a = new Date(from+'T12:00:00'), b = new Date(from+'T12:00:00'); b.setDate(b.getDate()+120*dir);
   const lo = dir>0 ? from : toS(b), hi = dir>0 ? toS(b) : from;
-  let set = new Set(); try{ crmOrthoAptList(lo,hi).forEach(x=>set.add(x.date)); }catch(e){}
+  let set = new Set(); try{ crmOrthoAptList(lo,hi).filter(orthoAimOnly_).forEach(x=>set.add(x.date)); }catch(e){}
   const arr = [...set].sort();
   return dir>0 ? arr.slice(0,n) : arr.slice(-n);
 }
@@ -10376,7 +10376,7 @@ function renderOrthoCalendar(){
   // นัดจัดฟันทั้งหมดของเดือน = นัดจากการ์ดจัดฟัน + นัดในตารางนัดที่เป็นงานจัดฟัน (ชุดเดียวกับแท็บ LINE CRM > นัดจัดฟัน)
   const _p2 = n=>String(n).padStart(2,'0'), _dim = new Date(y, m+1, 0).getDate();
   const apptMap = {};
-  try{ crmOrthoAptList(y+'-'+_p2(m+1)+'-01', y+'-'+_p2(m+1)+'-'+_p2(_dim)).forEach(a=>{ (apptMap[a.date]=apptMap[a.date]||[]).push(a); }); }catch(e){}
+  try{ crmOrthoAptList(y+'-'+_p2(m+1)+'-01', y+'-'+_p2(m+1)+'-'+_p2(_dim)).filter(orthoAimOnly_).forEach(a=>{ (apptMap[a.date]=apptMap[a.date]||[]).push(a); }); }catch(e){}
   const firstDay = new Date(y, m, 1);
   const startWeekday = firstDay.getDay();
   const daysInMonth = new Date(y, m+1, 0).getDate();
@@ -10459,8 +10459,10 @@ function orthoSlotStrip_(dsel, list){
 }
 
 // รายการนัดจัดฟันของวันเดียว (การ์ดจัดฟัน + ตารางนัด) เรียงตามเวลา และบรรทัดข้อความของแต่ละคน
+// ปฏิทิน/รายการจัดฟัน นับเฉพาะนัดของหมอเอม (หมอจัดฟัน) — นัดที่ไม่ระบุหมอนับเป็นของหมอเอม
+function orthoAimOnly_(a){ return !a.docName || isAimDoc_(docAlias(a.docName)); }
 function orthoDayList_(d){
-  let list=[]; try{ list=crmOrthoAptList(d,d); }catch(e){}
+  let list=[]; try{ list=crmOrthoAptList(d,d).filter(orthoAimOnly_); }catch(e){}
   return list.slice().sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
 }
 function orthoDayLine_(a,i){
