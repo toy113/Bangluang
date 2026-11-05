@@ -3616,7 +3616,7 @@ function crmViewOrthoApts(){
   const ranges={ today:[today,today], tomorrow:[crmAddDays(today,1),crmAddDays(today,1)], week:[today,crmAddDays(today,7)], d14:[today,crmAddDays(today,14)], d30:[today,crmAddDays(today,30)] };
   const rk=ranges[CRM.orthoRange]?CRM.orthoRange:'week', r=ranges[rk];
   if(typeof orthoData!=='undefined' && !_orthoLoaded && typeof loadOrthoData==='function') loadOrthoData().then(()=>{ if(CRM.sub==='orthoapt') crmRender(); }).catch(()=>{});
-  const list=crmOrthoAptList(r[0], r[1]);
+  const list=crmOrthoAptList(r[0], r[1]).filter(orthoAimOnly_);   // เฉพาะนัดของหมอเอม (หมอวัจน์กร)
   const days={}; list.forEach(a=>{ (days[a.date]=days[a.date]||[]).push(a); });
   const dates=Object.keys(days).sort();
   const ST={ yes:['✅ ยืนยัน','g'], move:['📅 ขอเลื่อน','o'], wait:['⏳ รอยืนยัน','w','y'], noline:['⏳ ยังไม่ยืนยัน','w','r'] };
