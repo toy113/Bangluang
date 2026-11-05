@@ -1248,9 +1248,8 @@ function crmNotifyStaff_(s, task, force) {
   }
   var lines = [(CRM_STAFF_LABEL[task.type] || ('🔔 ' + task.type)) + (task.priority === 'urgent' ? ' (ด่วน)' : (task.priority === 'high' ? ' (สำคัญ)' : ''))];
   var oc = ''; try { oc = crmOrthoCodeOf_(task.hn); } catch (eO) { Logger.log('crmOrthoCodeOf_ ' + eO); }
-  // คนไข้จัดฟัน: รหัสจัดฟันนำหน้าชื่อ และไม่แสดง HN (ตามกติกาของแอป) · คนไข้ทั่วไป: ชื่อ + HN
-  lines.push(oc ? (oc + ' คุณ' + (task.patName || 'ไม่ทราบชื่อ'))
-                : ('คุณ' + (task.patName || 'ไม่ทราบชื่อ') + (task.hn ? ' · HN ' + task.hn : ' · ยังไม่ผูก HN')));
+  // รหัสจัดฟัน + HN นำหน้าชื่อ
+  lines.push((oc ? oc + ' ' : '') + (task.hn ? 'HN ' + task.hn + ' ' : '') + 'คุณ' + (task.patName || 'ไม่ทราบชื่อ') + (task.hn ? '' : ' · ยังไม่ผูก HN'));
   if (task.aptDate) lines.push('นัดเดิม: ' + crmThaiDate_(task.aptDate) + (task.aptTime ? ' ' + task.aptTime + ' น.' : ''));
   if (task.detail) lines.push(String(task.detail).slice(0, 300));
   lines.push('➡️ เปิดแอปคลินิก › LINE CRM › งานโทรกลับ');
