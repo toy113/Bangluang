@@ -3541,14 +3541,15 @@ function crmOrthoVisitNo(a){
 }
 // สรุปงานจัดฟันของวันนั้นให้หมอ: ทำอะไรบ้าง ราคา และ DF → คัดลอกเป็นข้อความวางส่งไลน์ (รูปแบบเดียวกับ "Copy สรุปรายได้")
 // ใช้แถวบันทึกการรักษาที่ลงจากปุ่ม "มาตามนัด" (หมายเหตุมี "มาตามนัดจัดฟัน") ของวันนั้น แยกตามหมอ
+// สรุป DF ส่งไลน์: รวม "ทุกรายการรักษาของหมอวัจน์กรในวันนั้น" (ทั้งที่ลงผ่านปุ่มมาตามนัด และลงผ่านฟอร์มบันทึกการรักษา) + งานจัดฟันที่ลงผ่านปุ่มมาตามนัดของหมออื่น
 function crmOrthoDfRows_(d){
-  return treatments.filter(t=>String(t.date||'').slice(0,10)===d && String(t.note||'').indexOf('มาตามนัดจัดฟัน')>=0 && t.status!=='ยกเลิก')
+  return treatments.filter(t=>String(t.date||'').slice(0,10)===d && t.status!=='ยกเลิก' && ( String(t.note||'').indexOf('มาตามนัดจัดฟัน')>=0 || isAimDoc_(docAlias(t.docName)) ))
     .sort((a,b)=>String(a.docName||'').localeCompare(String(b.docName||''))||String(a.time||'').localeCompare(String(b.time||'')));
 }
 // ขั้นแรก: ถามว่าจ่ายเงินสดให้หมอแล้วเท่าไร (เว้นว่างได้) แล้วค่อยคัดลอกข้อความ
 function crmOrthoDfSummary(d){
   const rows=crmOrthoDfRows_(d);
-  if(!rows.length){ showToast('วันนี้ยังไม่มีงานจัดฟันที่บันทึกผ่านปุ่ม "มาตามนัด" (ต้องวาง line-crm.gs ฉบับล่าสุดก่อนระบบจึงลงบันทึกการรักษา)','error'); return; }
+  if(!rows.length){ showToast('ยังไม่มีรายการรักษาของหมอวัจน์กรในวันนี้ (งานจัดฟันต้องกด "มาตามนัด" และวาง line-crm.gs ฉบับล่าสุดก่อน ระบบจึงลงบันทึกการรักษา)','error'); return; }
   const docs=[]; rows.forEach(t=>{ const n=t.docName||'ไม่ระบุหมอ'; if(!docs.includes(n)) docs.push(n); });
   const ex=document.getElementById('orthoDfModal'); if(ex) ex.remove();
   const m=document.createElement('div'); m.id='orthoDfModal';
