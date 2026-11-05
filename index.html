@@ -2216,6 +2216,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label class="checkbox-label" style="font-weight:800;"><input type="checkbox" id="came-loose" onchange="cameCalc()"> 🔧 ติดเหล็กหลุด</label>
         <div id="came-looserow" style="display:none;margin-top:6px;">
           <div style="display:flex;align-items:center;gap:8px;">จำนวนที่หลุด <input type="number" class="form-control" id="came-looseqty" value="1" min="1" max="20" style="width:80px;" oninput="cameCalc()"> ตัว</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">ราคาต่อตัว (ที่เกินโควตาฟรี) <input type="number" class="form-control" id="came-loosefee" value="300" min="0" step="50" style="width:90px;" oninput="cameCalc()"> บาท
+            <label class="checkbox-label" style="margin-left:6px;"><input type="checkbox" id="came-loosefree" onchange="cameCalc()"> ไม่คิดเงินครั้งนี้ (หมอยกเว้น)</label></div>
           <div id="came-loosehint" style="font-size:12.5px;color:var(--text-mid);margin-top:6px;"></div>
         </div>
       </div>
@@ -3369,7 +3371,7 @@ function crmOrthoCame(hn, date, doc, again){
   document.getElementById('came-hn').value=r.hn; document.getElementById('came-date').value=date;
   document.getElementById('came-datetxt').textContent=crmThaiShort(date);
   document.getElementById('came-adj').checked=!again; document.getElementById('came-adjfee').value=ORTHO_ADJ_FEE;   // again = วันนี้บันทึกมาแล้ว → เพิ่มรายการอื่น ไม่ติ๊กปรับเครื่องมือซ้ำ
-  document.getElementById('came-loose').checked=false; document.getElementById('came-looseqty').value=1;
+  document.getElementById('came-loose').checked=false; document.getElementById('came-looseqty').value=1; document.getElementById('came-loosefee').value=ORTHO_LOOSE_FEE; document.getElementById('came-loosefree').checked=false;
   document.querySelectorAll('.came-other,.came-ex').forEach(c=>c.checked=false); document.querySelectorAll('.came-exfee').forEach(c=>c.value='');
   document.getElementById('came-note').value='';
   _cameManualPay=false; document.getElementById('came-cash').value=''; document.getElementById('came-transfer').value=''; setCameBank('');
@@ -3381,9 +3383,14 @@ function crmOrthoCame(hn, date, doc, again){
   cameCalc(); document.getElementById('modalOrthoCame').classList.add('open');
 }
 // คิดเงินเหล็กหลุด: นับต่อจากที่หลุดมาแล้วในประวัติ (ฟรี 3 ตัวแรกตลอดการจัดฟัน ตัวต่อไปตัวละ 300)
+function cameLooseRate_(){   // ราคาต่อตัวที่เกินโควตาฟรี · ติ๊ก "ไม่คิดเงินครั้งนี้" = 0
+  const fr=document.getElementById('came-loosefree'); if(fr && fr.checked) return 0;
+  const el=document.getElementById('came-loosefee'); const v=el?parseFloat(el.value):NaN;
+  return isFinite(v)&&v>=0 ? v : ORTHO_LOOSE_FEE;
+}
 function cameLoosePlan(r, qty){
-  const done=orthoLooseCount_(r), freeLeft=Math.max(0,ORTHO_LOOSE_FREE-done), free=Math.min(qty,freeLeft), paid=qty-free;
-  return { done, free, paid, fee: paid*ORTHO_LOOSE_FEE };
+  const rate=cameLooseRate_(), done=orthoLooseCount_(r), freeLeft=Math.max(0,ORTHO_LOOSE_FREE-done), free=Math.min(qty,freeLeft), paid=qty-free;
+  return { done, free, paid, rate, fee: paid*rate };
 }
 function cameExtras(){   // รายการอื่นที่ติ๊ก: ชื่อ + ราคา (null = ไม่คิดเงิน)
   return Array.from(document.querySelectorAll('.came-ex')).map(c=>{
@@ -3442,7 +3449,7 @@ function cameCalc(){
   let lf=0, hint='';
   if(loose){
     const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1))), p=cameLoosePlan(r,q); lf=p.fee;
-    hint='หลุดมาแล้ว '+p.done+' ตัว (ฟรี '+ORTHO_LOOSE_FREE+' ตัวแรก) → ครั้งนี้ '+q+' ตัว: '+(p.free?'ฟรี '+p.free+' ตัว':'')+(p.free&&p.paid?' + ':'')+(p.paid?'เก็บ '+p.paid+' ตัว × '+ORTHO_LOOSE_FEE+' = '+lf.toLocaleString()+' บาท':'');
+    hint='หลุดมาแล้ว '+p.done+' ตัว (ฟรี '+ORTHO_LOOSE_FREE+' ตัวแรก) → ครั้งนี้ '+q+' ตัว: '+(p.free?'ฟรี '+p.free+' ตัว':'')+(p.free&&p.paid?' + ':'')+(p.paid?(p.rate>0?'เก็บ '+p.paid+' ตัว × '+p.rate.toLocaleString()+' = '+lf.toLocaleString()+' บาท':p.paid+' ตัว ไม่คิดเงิน (หมอยกเว้น)'):'');
   }
   document.getElementById('came-loosehint').textContent=hint;
   const exFee=cameExtras().reduce((t,x)=>t+(x.price||0),0);
@@ -3531,11 +3538,12 @@ async function crmOrthoCameSave(){
     }
     if(loose){
       const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1)));
+      const lrate=cameLooseRate_(), waived=document.getElementById('came-loosefree').checked;
       for(let k=1;k<=q;k++){
         looseN++;
-        const free=looseN<=ORTHO_LOOSE_FREE; if(!free) money+=ORTHO_LOOSE_FEE;
-        lineItems.push({name:'ติดเหล็กหลุด ตัวที่ '+looseN, price:free?0:ORTHO_LOOSE_FEE});
-        logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':'เครื่องมือหลุด', 'หมอ':doc, 'note':'หลุดตัวที่ '+looseN+' — '+(free?'ฟรี':'เก็บ '+ORTHO_LOOSE_FEE+' บาท')+(userNote&&!adj&&!others.length&&!extras.length&&k===1?' · '+userNote:'') });
+        const inQuota=looseN<=ORTHO_LOOSE_FREE, free=inQuota||lrate===0, price=free?0:lrate; money+=price;
+        lineItems.push({name:'ติดเหล็กหลุด ตัวที่ '+looseN, price});
+        logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':'เครื่องมือหลุด', 'หมอ':doc, 'note':'หลุดตัวที่ '+looseN+' — '+(inQuota?'ฟรี':(lrate===0?(waived?'ฟรี (หมอยกเว้น)':'ฟรี'):'เก็บ '+lrate.toLocaleString()+' บาท'))+(userNote&&!adj&&!others.length&&!extras.length&&k===1?' · '+userNote:'') });
       }
     }
     const row=Object.assign({}, r, { 'ปรับล่าสุด':date, 'ครั้งที่มาแล้ว':visits, 'หลุดกี่ครั้ง':looseN });
