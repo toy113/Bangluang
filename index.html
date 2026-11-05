@@ -2085,6 +2085,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input class="form-control" id="ortho-idcode" placeholder="พิมพ์เฉพาะตัวเลข เช่น 123" inputmode="numeric" maxlength="10" oninput="orthoCodeInput_(this,'ortho','ortho-name')">
       </div>
       <div class="form-group">
+        <label>DF หมอ % เฉพาะงานจัดฟัน <span style="font-weight:400;color:var(--text-light);">(เว้นว่าง = ใช้อัตราปกติ · ใส่ 100 ถ้าหมอได้ DF เต็ม)</span></label>
+        <input type="number" class="form-control" id="ortho-dfpct" min="0" max="100" step="1" placeholder="เช่น 100">
+      </div>
+      <div class="form-group">
         <label>รูปแบบการชำระ</label>
         <select class="form-control" id="ortho-paygrp"><option value="">— ยังไม่ระบุ —</option><option>ชำระ 28 ครั้ง</option><option>ชำระจนเสร็จ</option><option>อื่นๆ</option></select>
       </div>
@@ -3439,7 +3443,8 @@ function cameRecordTreatment_(o){
     cash:String(cashAmt), transfer:String(transAmt), sso:'0',
     transferBank:transAmt>0?(document.getElementById('came-bank').value||''):'', company:'0',
     note:'🦷 มาตามนัดจัดฟัน'+(o.adj?' ปรับครั้งที่ '+o.visitNo:'')+(o.userNote?' · '+o.userNote:''), status:'เสร็จ',
-    docShare: dObj ? dObj.share : '', procPrices:JSON.stringify(pp)
+    docShare: dObj ? dObj.share : '', procPrices:JSON.stringify(pp),
+    itemDfRate: (String(r['DFหมอ%']||'').trim()!=='' && isFinite(+r['DFหมอ%'])) ? +r['DFหมอ%'] : ''
   };
   applyXrayRule(t);
   treatments.push(t);
@@ -5140,6 +5145,7 @@ function saveTreat(){
     status:'เสร็จ',
     docShare,
     procPrices:getProcPrices(),
+    itemDfRate:(existingTreat && existingTreat.itemDfRate!==undefined) ? existingTreat.itemDfRate : '',
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
   // X-Ray ลงรวมกับหัตถการอื่น: ต้องกรอกราคา X-Ray ในช่องราคาแต่ละรายการ (ส่วนนี้ DF = 0)
@@ -9074,13 +9080,16 @@ function itemDfParts(t){
   if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=itemDfStart())) return out;
   const parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
   if(!parts.some(x=>ITEM_DF_RATES[x]!==undefined)) return out;
+  // คนไข้จัดฟันที่ตั้ง "DF หมอ %" เฉพาะราย (snapshot ไว้ที่รายการรักษา: itemDfRate) → ใช้แทนอัตราพิเศษของรายการจัดฟัน
+  const _ov = (t.itemDfRate!==undefined && t.itemDfRate!==null && t.itemDfRate!=='' && isFinite(+t.itemDfRate)) ? +t.itemDfRate : null;
   let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
   parts.forEach(x=>{
     if(ITEM_DF_RATES[x]===undefined) return;
-    if(ITEM_DF_ONLY_DOC[x] && t.docName!==docAlias(ITEM_DF_ONLY_DOC[x])) return;
+    if(!_ov && ITEM_DF_ONLY_DOC[x] && t.docName!==docAlias(ITEM_DF_ONLY_DOC[x])) return;
     const price = pp[x]!==undefined ? (+pp[x]||0) : (parts.length===1 ? totalPrice(t) : null);   // ลงรวมหลายรายการแต่ไม่มีราคาแยก → คิด % ปกติทั้งใบ
     if(price===null) return;
-    out.items.push({ name:x, price, rate:ITEM_DF_RATES[x] }); out.base += price; out.df += price*ITEM_DF_RATES[x]/100;
+    const _rt = _ov!==null ? _ov : ITEM_DF_RATES[x];
+    out.items.push({ name:x, price, rate:_rt }); out.base += price; out.df += price*_rt/100;
   });
   return out;
 }
@@ -10681,6 +10690,7 @@ function openOrthoForm(hn){
   document.getElementById('ortho-name').value = r?.['ชื่อ'] || '';
   document.getElementById('ortho-idcode').value = r?.['รหัสประจำตัว'] || 'A-';
   document.getElementById('ortho-paygrp').value = orthoPayOf_(r?.hn) || '';
+  document.getElementById('ortho-dfpct').value = r?.['DFหมอ%'] ?? '';
   document.getElementById('ortho-type').value = r?.['แบบจัด'] || 'โลหะ';
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '28 ครั้ง';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
@@ -10720,6 +10730,7 @@ async function saveOrthoProfile(){
     'ชื่อ': document.getElementById('ortho-name').value.trim(),
     'รหัสประจำตัว': idcode === 'A-' ? '' : idcode,
     'รูปแบบชำระ': document.getElementById('ortho-paygrp').value,
+    'DFหมอ%': (v=>v===''?'':Math.max(0,Math.min(100,+v||0)))(document.getElementById('ortho-dfpct').value.trim()),
     'แบบจัด': document.getElementById('ortho-type').value,
     'หมอ': document.getElementById('ortho-doc').value,
     'สถานะ': document.getElementById('ortho-status').value,

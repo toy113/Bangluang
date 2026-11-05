@@ -190,6 +190,7 @@ function orthoPatch(hn, fields) {
   try {
     var sh = orthoGetSheet_(SHEET_ORTHO, ORTHO_HEADERS);
     orthoEnsureCol_(sh, 'รูปแบบชำระ');
+    orthoEnsureCol_(sh, 'DFหมอ%');
     var data = sh.getDataRange().getValues(), head = data[0], hnCol = head.indexOf('hn'), key = orthoNormHN_(hn), rowNo = -1;
     for (var r = 1; r < data.length; r++) { if (orthoNormHN_(data[r][hnCol]) === key) { rowNo = r + 1; break; } }
     if (rowNo < 0) {   // ยังไม่มีการ์ด → สร้างใหม่จากช่องที่ส่งมา
@@ -213,6 +214,7 @@ function orthoPatch(hn, fields) {
 
 function orthoSaveCore_(row) {
   var sh = orthoGetSheet_(SHEET_ORTHO, ORTHO_HEADERS);
+  orthoEnsureCol_(sh, 'DFหมอ%');   // DF หมอ % เฉพาะงานจัดฟันของคนไข้รายนั้น (ว่าง = อัตราปกติ)
   orthoEnsureCol_(sh, 'รูปแบบชำระ');   // กลุ่มการชำระ: ชำระ 28 ครั้ง / ชำระจนกว่าจะเสร็จ / อื่นๆ (เพิ่มคอลัมน์ท้ายชีตให้เองถ้ายังไม่มี)
   var data = sh.getDataRange().getValues();
   var head = data[0];
