@@ -6822,14 +6822,14 @@ function openDoctorBreakdown(idx){
     </table></div>`;
     // โน้ตใต้บรรทัดรวม: รายที่ df ไม่ปกติ (อัตราต่อรายการต่างจากตาราง หรือ % ส่วนแบ่งต่างจากค่าปกติของหมอ)
     try{
-      const odd=[];
+      const odd=[], byRate={};
       dr.forEach(r=>{
         const bits=[];
-        itemDfParts(r).items.forEach(it=>{ const nr=ITEM_DF_RATES[it.name]; if(it.price>0 && +it.rate!==+nr) bits.push(it.name+' df '+it.rate+'% (มาตรฐาน '+nr+'%)'); });
-        if(isOff(r)) bits.push('ส่วนแบ่ง '+docSharePct(r,doc)+'% (มาตรฐาน '+curPct+'%)');
+        itemDfParts(r).items.forEach(it=>{ const nr=ITEM_DF_RATES[it.name]; if(it.price>0 && +it.rate!==+nr){ bits.push(it.name+' df '+it.rate+'% (มาตรฐาน '+nr+'%)'); (byRate[it.rate]=byRate[it.rate]||new Set()).add(r); } });
+        if(isOff(r)){ bits.push('ส่วนแบ่ง '+docSharePct(r,doc)+'% (มาตรฐาน '+curPct+'%)'); (byRate[docSharePct(r,doc)]=byRate[docSharePct(r,doc)]||new Set()).add(r); }
         if(bits.length){ const code=orthoCodeOf_(r.hn,r.patName); odd.push('<b>'+(code?code+' ':'')+_escHtml(r.patName||'—')+'</b>'+(showDate?' <span style="opacity:.7">('+fmtDate(String(r.date||'').slice(0,10))+')</span>':'')+' — '+_escHtml(bits.join(' · '))); }
       });
-      html+= odd.length ? '<div class="dbk-note" style="color:#B45309;font-weight:600;">📌 df เฉพาะราย '+odd.length+' ราย<br>'+odd.join('<br>')+'</div>' : '<div class="dbk-note">✅ ทุกรายใช้ df มาตรฐาน</div>';
+      html+= odd.length ? '<div class="dbk-note" style="color:#B45309;font-weight:600;">📌 '+Object.keys(byRate).sort((x,y)=>x-y).map(k=>'df '+k+'% '+byRate[k].size+' ราย').join(' · ')+'<br>'+odd.join('<br>')+'</div>' : '<div class="dbk-note">✅ ทุกรายใช้ df มาตรฐาน</div>';
     }catch(e){ console.error(e); }
     if(hasCombo) html+='<div class="dbk-note">รายการที่คิดเงินรวมหลายหัตถการในครั้งเดียว (เช่น "A, B") แสดงเป็นกลุ่มเดียว เพราะระบบเก็บราคาเป็นยอดรวมต่อครั้ง ไม่ได้แยกราคาต่อหัตถการ</div>';
 
