@@ -3293,7 +3293,7 @@ function crmViewApts(){
       const d=String(o['นัดถัดไป']||'').slice(0,10);
       if(!d || d<r[0] || d>r[1] || (o['สถานะ'] && o['สถานะ']!=='กำลังจัด')) return;
       if(crmCalDupOf(o.hn, d, o['นัดถัดไปเวลา'])) return;
-      list.push({ id:crmOrthoAptId(o.hn,d), _ortho:true, date:d, time:String(o['นัดถัดไปเวลา']||'').slice(0,5), hn:o.hn, patName:o['ชื่อ']||'', proc:o['รายการนัดถัดไป']||'นัดจัดฟัน', docName:o['หมอ']||'', status:'นัดจัดฟัน' });
+      list.push({ id:crmOrthoAptId(o.hn,d), _ortho:true, date:d, time:String(o['นัดถัดไปเวลา']||'').slice(0,5), hn:o.hn, patName:o['ชื่อ']||'', proc:o['รายการนัดถัดไป']||'นัดจัดฟัน', docName:o['หมอ']||'', status:'นัดจัดฟัน', note:o['หมายเหตุนัดถัดไป']||'' });
     });
   }
   list.sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
@@ -3332,7 +3332,7 @@ function crmOrthoAptList(r0, r1){
       // นัดในตารางนัดที่ไม่มี HN แต่จับคู่จากรหัสได้ (คนเดียวกัน วันเดียวกัน หมอเดียวกัน) = นัดเดียวกัน → ไม่แสดงนัดจากการ์ดซ้ำ
       const _cd=docAlias(o['หมอ']||'')||orthoDefaultDoc_();
       if(list.some(a=>a._hnFromCode && crmHN(a.hn)===crmHN(o.hn) && a.date===d && (!a.docName || docAlias(a.docName)===_cd))) return;
-      list.push({ id:crmOrthoAptId(o.hn,d), _ortho:true, date:d, time:String(o['นัดถัดไปเวลา']||'').slice(0,5), hn:o.hn, patName:o['ชื่อ']||'', proc:o['รายการนัดถัดไป']||'นัดจัดฟัน', docName:o['หมอ']||'', status:'นัดจัดฟัน' });
+      list.push({ id:crmOrthoAptId(o.hn,d), _ortho:true, date:d, time:String(o['นัดถัดไปเวลา']||'').slice(0,5), hn:o.hn, patName:o['ชื่อ']||'', proc:o['รายการนัดถัดไป']||'นัดจัดฟัน', docName:o['หมอ']||'', status:'นัดจัดฟัน', note:o['หมายเหตุนัดถัดไป']||'' });
     });
   }
   return list.sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
