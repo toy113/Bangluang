@@ -3250,7 +3250,18 @@ function crmViewToday(){
 /* ---------- 2) นัดหมาย ---------- */
 // สถานะ LINE ของนัด — ถ้านัดในตารางนัดมาแทนนัดจากการ์ด (วันเดียวกัน) ใช้สถานะที่คนไข้กดไว้กับนัดจากการ์ดด้วย
 function crmAptIdsFor_(a){ const ids=[String(a.id)]; if(!a._ortho && a.hn && a.date) ids.push(crmOrthoAptId(a.hn, a.date)); return ids; }
+function crmLocalTs_(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
 function crmAptRecFor_(a){
+  const r0=crmAptRecFor0_(a);
+  // นัดที่ถูกย้ายวันแล้ว (movedAt) → การยืนยัน/ขอเลื่อนที่เกิดก่อนย้าย เป็นของวันเดิม ไม่ใช้กับวันใหม่
+  if(r0 && a && a.movedAt){
+    const mv=String(a.movedAt), c=String(r0.confirmedAt||''), rs=String(r0.rescheduleAt||'');
+    const out=Object.assign({}, r0, { confirmedAt: c>mv?r0.confirmedAt:'', rescheduleAt: rs>mv?r0.rescheduleAt:'' });
+    return out;
+  }
+  return r0;
+}
+function crmAptRecFor0_(a){
   const recs=(CRM.data&&CRM.data.apt)||[], ids=crmAptIdsFor_(a);
   for(const id of ids){ const r=recs.find(x=>String(x.aptId)===id); if(r && (r.confirmedAt||r.rescheduleAt)) return r; }
   return recs.find(x=>String(x.aptId)===ids[0]) || null;
@@ -11073,14 +11084,15 @@ function orthoMoveRealApt_(hn, oldRow, newRow){
     const oldD=String(oldRow['นัดถัดไป']||'').slice(0,10), oldT=String(oldRow['นัดถัดไปเวลา']||'').slice(0,5);
     const newD=String(newRow['นัดถัดไป']||'').slice(0,10), newT=String(newRow['นัดถัดไปเวลา']||'').slice(0,5);
     if(!oldD || oldD<todayStr() || (oldD===newD && oldT===newT)) return;
-    const k=crmHN(hn);
-    const ra=appointments.find(a=>crmHN(a.hn)===k && a.date===oldD && !['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status)
+    const k=crmHN(hn), _code=String(oldRow['รหัสประจำตัว']||'').trim();
+    const ra=appointments.find(a=>(crmHN(a.hn)===k || (!a.hn && _code && String(a.orthoCode||'').trim()===_code)) && a.date===oldD && !['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status)
       && (!oldT || !a.time || String(a.time).slice(0,5)===oldT) && crmIsOrthoVisit(a));
     if(!ra) return;
     const nm=ra.patName||oldRow['ชื่อ']||'';
     if(newD){
       if(!window.confirm('ตารางนัดมีนัดของ '+nm+' วันที่ '+oldD+' '+(ra.time||'')+'\nย้ายไป '+newD+' '+(newT||ra.time||'')+' ตามการ์ดด้วยไหม?\n(ยกเลิก = คงนัดเดิมไว้ คนไข้จะมี 2 นัด)')) return;
-      ra.date=newD; if(newT) ra.time=newT; ra.status='ไม่คอนเฟิร์ม';
+      ra.date=newD; if(newT) ra.time=newT; ra.status='ไม่คอนเฟิร์ม'; if(!ra.hn) ra.hn=hn;
+      ra.movedAt=crmLocalTs_();   // สถานะยืนยัน/ขอเลื่อนของวันเดิม (ผูกกับ id นัด) ไม่นับต่อในวันใหม่
       showToast('ย้ายนัดในตารางนัดไป '+newD+' '+(ra.time||'')+' แล้ว');
     } else {
       if(!window.confirm('ล้างนัดถัดไปในการ์ดแล้ว — ยกเลิกนัดในตารางนัดของ '+nm+' วันที่ '+oldD+' '+(ra.time||'')+' ด้วยไหม?')) return;
@@ -11090,6 +11102,16 @@ function orthoMoveRealApt_(hn, oldRow, newRow){
     saveLocal(); markPendingSync('appointments', ra); syncToSheet('appointments', ra).catch(()=>showToast('sync นัดไม่สำเร็จ','error'));
     try{ const p=document.querySelector('.page.active')?.id?.replace('page-',''); if(p==='home') renderHome(); else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); } }catch(e){}
   }catch(e){ console.warn('orthoMoveRealApt_', e); }
+}
+// ลงวันนัดใหม่แล้ว → ปิดงาน "ขอเลื่อนนัด" ที่เปิดค้างของคนไข้คนนี้ใน LINE CRM ให้อัตโนมัติ
+function orthoCloseReschedTasks_(hn, oldRow, newRow){
+  try{
+    const newD=String(newRow['นัดถัดไป']||'').slice(0,10), newT=String(newRow['นัดถัดไปเวลา']||'').slice(0,5);
+    if(!newD || (newD===String(oldRow['นัดถัดไป']||'').slice(0,10) && newT===String(oldRow['นัดถัดไปเวลา']||'').slice(0,5))) return;
+    const k=crmHN(hn), open=((CRM.data&&CRM.data.tasks)||[]).filter(t=>t.status==='open' && t.type==='reschedule' && crmHN(t.hn)===k);
+    open.forEach(t=>crmDo({crm:'updateTask', id:t.id, status:'done', resultNote:'ลงนัดใหม่ '+newD+(newT?' '+newT:'')+' แล้ว (ปิดอัตโนมัติจากปุ่มนัดถัดไป)'}, null));
+    if(open.length) showToast('ปิดงาน "ขอเลื่อนนัด" ใน LINE CRM ให้แล้ว '+open.length+' งาน');
+  }catch(e){ console.warn('orthoCloseReschedTasks_', e); }
 }
 async function saveReschedule(){
   if(viewOnlyBlock_()) return;
@@ -11111,6 +11133,8 @@ async function saveReschedule(){
   closeModal('modalReschedule');
   showToast('นัดสำเร็จ');
   orthoMoveRealApt_(hn, _old, row);
+  orthoCloseReschedTasks_(hn, _old, row);
+  try{ const p=document.querySelector('.page.active')?.id?.replace('page-',''); if(p==='home') renderHome(); else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); } }catch(e){}
   crmKickReport_(hn); // สั่งรอบส่ง LINE CRM ทันที แล้วบอกผลบนหน้าจอ (ส่งแล้ว / ไม่ส่งเพราะอะไร)
   renderOrthoPage();
   try{ if(typeof CRM!=='undefined' && CRM.sub==='orthoapt' && CRM.data) crmRender(); }catch(e){}
