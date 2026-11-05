@@ -70,6 +70,7 @@ function orthoRoutePost_(e) {
   if (action === 'orthoLogAdd') return orthoJsonOut_(orthoLogAdd(body.log));   // admin: เพิ่ม log adjust
   if (action === 'orthoLogAddBatch') return orthoJsonOut_(orthoLogAddBatch(body.logs)); // admin: บันทึกย้อนหลายวันในคำสั่งเดียว
   if (action === 'orthoLogUpdateDatesBatch') return orthoJsonOut_(orthoLogUpdateDatesBatch(body.hn, body.updates)); // admin: แก้วันที่ log เดิม
+  if (action === 'orthoLogDeleteDay') return orthoJsonOut_(orthoLogDeleteDay(body.hn, body.date)); // admin: ย้อน "มาตามนัด" ของวันนั้น (ลบประวัติทุกแถวของวันนั้น)
   if (action === 'orthoLogDeleteDatesBatch') return orthoJsonOut_(orthoLogDeleteDatesBatch(body.hn, body.dates)); // admin: ลบ log เดิม
   if (action === 'orthoSetLine')return orthoJsonOut_(orthoSetLineId(body.hn, body.lineUserId)); // admin ผูกมือ (fallback)
 
@@ -294,6 +295,25 @@ function orthoLogUpdateDatesBatch(hn, updates) {
 
 // ลบแถว log "ปรับเครื่องมือ" ที่มีอยู่แล้วหลายแถวในคำสั่งเดียว — จับคู่ด้วย hn+วันที่ แล้วลบทิ้ง
 // (ลบจากแถวล่างขึ้นบนกัน index เลื่อนระหว่างลบ) ใช้ตอนล้างช่องวันที่ในหน้า "ประวัติการรักษา" ให้ว่าง
+// ลบประวัติทุกแถวของคนไข้คนนี้ในวันนั้น (ปรับเครื่องมือ / เครื่องมือหลุด / รายการอื่น) — ใช้ตอนลบรายการรักษาที่ลงจากปุ่ม "มาตามนัด"
+function orthoLogDeleteDay(hn, date) {
+  if (!hn || !date) return { ok: false, error: 'missing_field' };
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(20000); } catch (eL) { return { ok: false, error: 'busy' }; }
+  try {
+    hn = orthoNormHN_(hn); date = String(date).slice(0, 10);
+    var sh = orthoGetSheet_(SHEET_ORTHO_LOG, ORTHO_LOG_HEADERS);
+    var data = sh.getDataRange().getValues(), head = data[0];
+    var hnCol = head.indexOf('hn'), dateCol = head.indexOf('วันที่'), rows = [];
+    for (var r = 1; r < data.length; r++) {
+      var v = data[r][dateCol];
+      var ds = v instanceof Date ? Utilities.formatDate(v, ORTHO_TZ, 'yyyy-MM-dd') : String(v).slice(0, 10);
+      if (orthoNormHN_(data[r][hnCol]) === hn && ds === date) rows.push(r + 1);
+    }
+    rows.sort(function (a, b) { return b - a; }).forEach(function (n) { sh.deleteRow(n); });
+    return { ok: true, deleted: rows.length };
+  } finally { try { lock.releaseLock(); } catch (eR) {} }
+}
 function orthoLogDeleteDatesBatch(hn, dates) {
   if (!hn || !Array.isArray(dates) || !dates.length) return { ok: false, error: 'missing_field' };
   hn = orthoNormHN_(hn);

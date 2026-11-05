@@ -3328,6 +3328,9 @@ function crmOrthoAptList(r0, r1){
       const d=String(o['นัดถัดไป']||'').slice(0,10);
       if(!d || d<r0 || d>r1 || (o['สถานะ'] && o['สถานะ']!=='กำลังจัด')) return;
       if(crmCalDupOf(o.hn, d, o['นัดถัดไปเวลา'])) return;
+      // นัดในตารางนัดที่ไม่มี HN แต่จับคู่จากรหัสได้ (คนเดียวกัน วันเดียวกัน หมอเดียวกัน) = นัดเดียวกัน → ไม่แสดงนัดจากการ์ดซ้ำ
+      const _cd=docAlias(o['หมอ']||'')||orthoDefaultDoc_();
+      if(list.some(a=>a._hnFromCode && crmHN(a.hn)===crmHN(o.hn) && a.date===d && (!a.docName || docAlias(a.docName)===_cd))) return;
       list.push({ id:crmOrthoAptId(o.hn,d), _ortho:true, date:d, time:String(o['นัดถัดไปเวลา']||'').slice(0,5), hn:o.hn, patName:o['ชื่อ']||'', proc:o['รายการนัดถัดไป']||'นัดจัดฟัน', docName:o['หมอ']||'', status:'นัดจัดฟัน' });
     });
   }
@@ -3445,6 +3448,27 @@ function cameCalc(){
 }
 // มาตามนัด → ลงบันทึกการรักษา (รายได้ + DF ต่อรายการ) และปิดนัดตารางนัดวันเดียวกัน
 // ลงเฉพาะเมื่อ line-crm.gs ฉบับใหม่พร้อม (caps.orthoTreat) เพราะต้องข้ามการส่งใบเสร็จ/ติดตามอาการอัตโนมัติของแถวนี้ ไม่งั้นคนไข้ได้ข้อความซ้ำ
+// ปิดนัดในตารางนัดของคนไข้คนนี้ในวันนั้น (ใช้ทั้งตอนลงบันทึกการรักษา และตอน "มาตามนัด" ที่ยังไม่มี line-crm.gs ใหม่)
+function orthoCloseDayApts_(hn, code, date, doc){
+  const _rc=String(code||'').trim();
+  const done=appointments.filter(a=>{
+    const sameHn=(hn && a.hn && normHN(a.hn)===normHN(hn)) || (!a.hn && _rc && String(a.orthoCode||'').trim()===_rc);
+    return a.date===date && sameHn && (!doc||!a.docName||docAlias(a.docName)===docAlias(doc)) && !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status);
+  });
+  done.forEach(a=>{ a.status='เสร็จสิ้น'; if(!a.hn && hn) a.hn=hn; });
+  if(done.length){ saveLocal(); done.forEach(a=>{ markPendingSync('appointments', a); syncToSheet('appointments', a).catch(()=>showToast('⚠️ เปลี่ยนสถานะนัดในเครื่องแล้ว แต่ sync ไม่สำเร็จ','error')); }); }
+  return done;
+}
+// เปิดนัดที่ถูกปิดอัตโนมัติคืน (เมื่อรายการรักษาของวันนั้นถูกลบ/ย้าย และไม่มีรายการรักษาอื่นของคนไข้คนนี้ในวันนั้นแล้ว)
+function reopenAptsFor_(hn, patName, date, doc){
+  if(!date) return [];
+  const sameP=x=>(hn && x.hn && normHN(x.hn)===normHN(hn)) || ((!hn || !x.hn) && patName && x.patName && String(x.patName).trim()===String(patName).trim());
+  if(treatments.some(t=>t.date===date && t.status!=='ยกเลิก' && sameP(t) && (!doc||!t.docName||docAlias(t.docName)===docAlias(doc)))) return [];
+  const ra=appointments.filter(a=>a.date===date && sameP(a) && ['เสร็จสิ้น','เสร็จ'].includes(a.status) && (!doc||!a.docName||docAlias(a.docName)===docAlias(doc)));
+  ra.forEach(a=>{ a.status='รอทำ'; markPendingSync('appointments', a); syncToSheet('appointments', a).catch(()=>{}); });
+  if(ra.length){ saveLocal(); showToast('เปิดนัดของวันนั้นคืนเป็น "รอทำ" แล้ว '+ra.length+' นัด'); }
+  return ra;
+}
 function cameRecordTreatment_(o){
   if(!(CRM.data && CRM.data.caps && CRM.data.caps.orthoTreat)) return 'nocaps';
   const r=o.r, pp={}, names=[];
@@ -3467,12 +3491,8 @@ function cameRecordTreatment_(o){
   };
   applyXrayRule(t);
   treatments.push(t);
-  const _rc=String(r['รหัสประจำตัว']||'').trim();
-  const done=appointments.filter(a=>{
-    const sameHn=(t.hn && a.hn && crmHN(a.hn)===crmHN(t.hn)) || (!a.hn && _rc && String(a.orthoCode||'').trim()===_rc);
-    return a.date===t.date && sameHn && (!t.docName||!a.docName||a.docName===t.docName) && !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status);
-  });
-  done.forEach(a=>{ a.status='เสร็จสิ้น'; if(!a.hn && t.hn) a.hn=t.hn; });
+  orthoCloseDayApts_(t.hn, r['รหัสประจำตัว'], t.date, t.docName);   // ปิดนัดในตารางนัดของวันนั้น
+  const done=[];
   saveLocal();
   try{ renderHome(); renderTreatPage(); }catch(e){}
   markPendingSync('treatments', t);
@@ -3530,6 +3550,7 @@ async function crmOrthoCameSave(){
     let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits, adj }); }catch(e){ console.error(e); trMsg='fail'; }
     closeModal('modalOrthoCame');
     showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(retainerDone?' · ใส่รีเทนเนอร์ '+date+' → ย้ายไป "เสร็จแล้ว"':'')+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
+    if(trMsg==='nocaps'){ try{ orthoCloseDayApts_(r.hn, r['รหัสประจำตัว'], date, doc); try{ renderHome(); }catch(e){} }catch(e){} }
     if(trMsg==='nocaps') showToast('บันทึกประวัติจัดฟันแล้ว แต่ยังไม่ได้ลงบันทึกการรักษา/รายได้ — ต้องวาง line-crm.gs ฉบับล่าสุดก่อน','error');
     else if(trMsg==='fail') showToast('บันทึกประวัติจัดฟันแล้ว แต่ลงบันทึกการรักษาไม่สำเร็จ — กรุณาลงเองในหน้าบันทึกการรักษา','error');
     if(sendLine){
@@ -5306,13 +5327,17 @@ function saveTreat(){
   // HN is the primary match; use the patient name only when either record has no HN.
   const completedAppointments = appointments.filter(a=>{
     const sameDate = a.date===t.date;
-    const sameHn = t.hn && a.hn && String(a.hn).trim()===String(t.hn).trim();
+    const sameHn = t.hn && a.hn && normHN(a.hn)===normHN(t.hn);
     const sameName = (!t.hn || !a.hn) && t.patName && a.patName && String(a.patName).trim()===String(t.patName).trim();
     const sameDoctor = !t.docName || !a.docName || a.docName===t.docName;
     const isOpen = !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status);
     return sameDate && sameDoctor && isOpen && (sameHn || sameName);
   });
   completedAppointments.forEach(a=>{ a.status='เสร็จสิ้น'; });
+  // แก้รายการเดิมแล้วย้ายวัน/HN/หมอ → นัดของวัน/คนเดิมที่เคยถูกปิดอัตโนมัติ เปิดคืน (ถ้าไม่มีรายการรักษาอื่นแล้ว)
+  if(existingTreat && (existingTreat.date!==t.date || normHN(existingTreat.hn)!==normHN(t.hn) || docAlias(existingTreat.docName)!==docAlias(t.docName))){
+    try{ reopenAptsFor_(existingTreat.hn, existingTreat.patName, existingTreat.date, existingTreat.docName); }catch(e){}
+  }
 
   // จ่ายด้วยประกันสังคม → ติ๊กสิทธิ์ ปกส ให้คนไข้ในรายชื่ออัตโนมัติ (ใช้ติดตามใน Recall)
   if((+t.sso||0) > 0){
@@ -5337,6 +5362,26 @@ function saveTreat(){
     });
   });
 }
+// ย้อนการ์ดจัดฟันของวันหนึ่ง: ลบประวัติ (ortho log) ของวันนั้น · ล้างวันใส่รีเทนเนอร์ถ้าเป็นวันเดียวกัน · โหลดใหม่ให้ครั้งที่/หลุดสะสม/ปรับล่าสุดคำนวณจากประวัติที่เหลือ
+async function orthoRevertDay_(hn, date){
+  try{
+    const res=await orthoSend_({action:'orthoLogDeleteDay', hn, date});
+    if(res && res.ok===false){ showToast('ย้อนการ์ดจัดฟันไม่สำเร็จ — ต้องวาง ortho-backend.gs ฉบับล่าสุด หรือแก้ในประวัติการ์ดเอง','error'); return; }
+    const rec=crmOrthoRec(hn), f={};
+    if(rec){
+      if(String(rec['ปรับล่าสุด']||'').slice(0,10)===date) f['ปรับล่าสุด']='';
+      if(String(rec['วันใส่รีเทนเนอร์']||'').slice(0,10)===date){ f['วันใส่รีเทนเนอร์']=''; if(rec['สถานะ']==='เสร็จแล้ว') f['สถานะ']='กำลังจัด'; }
+      if(Object.keys(f).length) await orthoPatchCard_(rec.hn, f);
+    }
+    try{ await loadOrthoData(true); }catch(e){}
+    // ปรับล่าสุด = วันล่าสุดที่เหลือในประวัติ (คำนวณตอนโหลด) → เขียนกลับลงการ์ด
+    const r2=crmOrthoRec(hn);
+    // เขียนตรงลงชีต (orthoPatchCard_ จะข้ามช่องที่ค่าในเครื่องตรงอยู่แล้ว แต่ในชีตยังเป็นค่าที่เพิ่งล้าง)
+    if(r2){ const ff={'ครั้งที่มาแล้ว':r2._visitCount||0, 'หลุดกี่ครั้ง':r2._looseCount||0}; if(f['ปรับล่าสุด']==='' && r2['ปรับล่าสุด']) ff['ปรับล่าสุด']=r2['ปรับล่าสุด']; await orthoSend_({action:'orthoPatch', hn:r2.hn, fields:ff}); }
+    showToast('ย้อนการ์ดจัดฟันของวันที่ '+date+' แล้ว 🦷');
+    try{ renderOrthoPage(); }catch(e){}
+  }catch(e){ console.warn('orthoRevertDay_', e); showToast('ย้อนการ์ดจัดฟันไม่สำเร็จ','error'); }
+}
 function deleteTreat(id){
   const _rec = treatments.find(t=>t.id===id);
   if(_rec && !canEditTreat(_rec)){ warnTreatLocked(); return; }
@@ -5344,10 +5389,13 @@ function deleteTreat(id){
   const idx = treatments.findIndex(t=>t.id===id);
   if(idx<0) return;
   const removed = treatments[idx];
+  // รายการจากปุ่ม "มาตามนัด" ของคนไข้จัดฟัน → ถามว่าจะย้อนการ์ดจัดฟันด้วยไหม (ลบประวัติวันนั้น · ครั้งที่/หลุดสะสม/ปรับล่าสุดคำนวณใหม่)
+  const _isCame = String(removed.note||'').indexOf('มาตามนัดจัดฟัน')>=0 && removed.hn && crmOrthoRec(removed.hn);
+  const _revertOrtho = _isCame && window.confirm('รายการนี้ลงจากปุ่ม "มาตามนัด" จัดฟัน\nย้อนการ์ดจัดฟันของวันที่ '+removed.date+' ด้วยไหม?\n(ลบประวัติการปรับ/หลุดของวันนั้น · ครั้งที่ปรับและหลุดสะสมคำนวณใหม่)\n\nยกเลิก = ลบเฉพาะรายการรักษา');
   treatments = treatments.filter(t=>t.id!==id);
   saveLocal(); renderTreatPage(); renderHome();
   showUndoToast('ลบรายการสำเร็จ',
-    () => { syncToSheet('delete',{type:'treatments',id}); },
+    () => { syncToSheet('delete',{type:'treatments',id}); try{ reopenAptsFor_(removed.hn, removed.patName, removed.date, removed.docName); renderHome(); }catch(e){} if(_revertOrtho) orthoRevertDay_(removed.hn, removed.date); },
     () => { treatments.splice(idx,0,removed); saveLocal(); renderTreatPage(); renderHome(); }
   );
 }
@@ -9611,9 +9659,12 @@ function saveNewPatient(){
   if(!name){ showToast('กรุณากรอกชื่อ','error'); return; }
   if(!orthoCodeOk_(orthoCode)){ showToast('รหัสจัดฟันรูปแบบ A-123 (หรือเว้นว่างได้)','error'); return; }
 
-  const rec = { hn, name, phone, lineId, sso, orthoCode, addedAt: todayStr() };
-  const idx = patients.findIndex(p=>String(p.hn)===hn);
+  const idx = patients.findIndex(p=>normHN(p.hn)===normHN(hn));
+  if(idx>-1 && !window.confirm('HN '+hn+' มีอยู่แล้ว ('+(patients[idx].name||'')+')\nบันทึกทับข้อมูลเดิมไหม?\n(ช่องที่เว้นว่างจะใช้ค่าเดิม)')) return;
+  const old = idx>-1 ? patients[idx] : {};
+  const rec = Object.assign({}, old, { hn: idx>-1?old.hn:hn, name, phone: phone||old.phone||'', lineId: lineId||old.lineId||'', sso: sso||old.sso===true||String(old.sso).toUpperCase()==='TRUE', orthoCode: orthoCode||old.orthoCode||'', addedAt: old.addedAt||todayStr() });
   if(idx>-1) patients[idx]=rec; else patients.push(rec);
+  patientPropagate_(old, rec);
   cachePatients();
   closeAddPatient();
   renderPatients();
@@ -9624,6 +9675,27 @@ function saveNewPatient(){
     .catch(()=>showToast('บันทึก local แล้ว (sync ไม่สำเร็จ)','error'));
 }
 
+// แก้ข้อมูลคนไข้ → ส่งต่อไปที่อื่น: รหัสจัดฟันลงการ์ดจัดฟัน · ชื่อ/เบอร์ลงนัดล่วงหน้าและการ์ดจัดฟัน (ถามก่อน)
+function patientPropagate_(old, rec){
+  try{
+    const k=normHN(rec.hn), card=(typeof orthoData!=='undefined'&&orthoData||[]).find(o=>normHN(o.hn)===k);
+    const f={};
+    if(card && rec.orthoCode && String(card['รหัสประจำตัว']||'').trim()!==rec.orthoCode) f['รหัสประจำตัว']=rec.orthoCode;
+    const nameChanged = old.name && rec.name && String(old.name).trim()!==String(rec.name).trim();
+    const phoneChanged = old.phone!==undefined && String(old.phone||'')!==String(rec.phone||'') && rec.phone;
+    const fut = (nameChanged||phoneChanged) ? appointments.filter(a=>a.hn && normHN(a.hn)===k && a.date>=todayStr() && !['ยกเลิก','เสร็จสิ้น','เสร็จ'].includes(a.status)) : [];
+    let doIt=false;
+    if((nameChanged && (fut.length || card)) || (phoneChanged && fut.length))
+      doIt=window.confirm('อัปเดต'+(nameChanged?'ชื่อเป็น "'+rec.name+'"':'')+(nameChanged&&phoneChanged?' และ':'')+(phoneChanged?'เบอร์เป็น '+rec.phone:'')+'\nในนัดล่วงหน้า '+fut.length+' นัด'+(card&&nameChanged?' และการ์ดจัดฟัน':'')+' ด้วยไหม?');
+    if(doIt){
+      fut.forEach(a=>{ if(nameChanged) a.patName=rec.name; if(phoneChanged) a.phone=rec.phone; markPendingSync('appointments', a); syncToSheet('appointments', a).catch(()=>{}); });
+      if(fut.length) saveLocal();
+      if(card && nameChanged) f['ชื่อ']=rec.name;
+    }
+    if(card && Object.keys(f).length) orthoPatchCard_(card.hn, f).then(r=>{ if(r && r.ok!==false) showToast('อัปเดตการ์ดจัดฟันแล้ว 🦷'); });
+    try{ _ocIdx=null; }catch(e){}
+  }catch(e){ console.warn('patientPropagate_', e); }
+}
 // ---- EDIT ----
 function openEditPatient(hn){
   const p = patients.find(x=>String(x.hn)===String(hn));
@@ -9652,8 +9724,10 @@ function saveEditPatient(){
 
   const idx = patients.findIndex(p=>String(p.hn)===hn);
   const addedAt = idx>-1 ? (patients[idx].addedAt||todayStr()) : todayStr();
-  const rec = { hn, name, phone, lineId, sso, orthoCode, addedAt };
+  const old = idx>-1 ? Object.assign({}, patients[idx]) : {};
+  const rec = Object.assign({}, old, { hn, name, phone, lineId, sso, orthoCode, addedAt });
   if(idx>-1) patients[idx]=rec; else patients.push(rec);
+  patientPropagate_(old, rec);
   cachePatients();
   closeEditPatient();
   renderPatients();
@@ -10903,6 +10977,11 @@ async function saveOrthoProfile(){
   });
   await orthoPost({action:'orthoSave', row});
   const merged = Object.assign({}, existing, row);
+  // รหัสจัดฟันในการ์ด → อัปเดตรหัสในรายชื่อคนไข้ให้ตรงกัน
+  try{
+    const _pc=row['รหัสประจำตัว']||'', _p=patients.find(p=>normHN(p.hn)===normHN(hn));
+    if(_p && _pc && _p.orthoCode!==_pc){ _p.orthoCode=_pc; cachePatients(); pushPatientToSheet(Object.assign({}, _p)).catch(()=>{}); }
+  }catch(e){}
   if(idx>=0) orthoData[idx]=merged; else orthoData.unshift(merged);
   closeModal('modalOrtho');
   showToast('บันทึกข้อมูลจัดฟันสำเร็จ');
