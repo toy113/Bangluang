@@ -8115,8 +8115,8 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       slotBg = statusBgColor(slotApts[0].status);
     }
     // วันที่มีงานจัดฟัน: slot ว่างของคอลัมน์หมอจัดฟันใช้พื้นสีส้ม
-    const _orthoDay = dayApts.some(x=>crmIsOrthoVisit(x));
-    const _orthoCol = filterDoc ? isAimDoc_(filterDoc) : true;
+    const _orthoDay = dayApts.some(x=>crmIsOrthoVisit(x) && orthoAimOnly_(x));   // เฉพาะงานจัดฟันของหมอเอม (คนไข้จัดฟันที่นัดกับหมออื่นไม่นับ)
+    const _orthoCol = filterDoc ? isAimDoc_(filterDoc) : dayApts.filter(x=>x.docName).every(x=>isAimDoc_(x.docName));   // คอลัมน์เดียว: ส้มเฉพาะเมื่อนัดของวันนั้นเป็นของหมอเอมล้วน
     const orthoFree = !blocked && slotApts.length===0 && _orthoDay && _orthoCol;
     if(orthoFree) slotBg = '#FFE2B8';
     // หมอเอม: ช่องที่มีนัดแล้วพื้นฟ้า (ว่าง = ส้มเหมือนเดิม)
