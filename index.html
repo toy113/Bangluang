@@ -4330,6 +4330,26 @@ function renderHome(){
 }
 // ส่งสรุปรายการรักษา + DF ประจำวันของหมอ 1 คน เข้าไลน์ (เปิดหน้าเลือกแชท + คัดลอกไว้ด้วย) ท้ายข้อความมีวัน/เวลาที่บันทึกข้อมูล
 function homeDfLine(docName){
+  const d=todayStr();
+  if(!treatments.some(t=>String(t.date||'').slice(0,10)===d && t.status!=='ยกเลิก' && (docAlias(t.docName)||'')===docName)){ showToast('ยังไม่มีรายการรักษาของหมอคนนี้วันนี้','error'); return; }
+  const ex=document.getElementById('homeDfModal'); if(ex) ex.remove();
+  const m=document.createElement('div'); m.id='homeDfModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  m._doc=docName;
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px;width:340px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,0.25);">'
+    +'<div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:4px;">📤 ส่ง DF เข้าไลน์</div>'
+    +'<div style="font-size:12.5px;color:var(--text-light);margin-bottom:12px;">'+_escHtml(docName)+' · '+crmThaiShort(d)+' · กรอกเงินสดที่จ่ายให้หมอแล้ว (เว้นว่าง = ไม่แสดงบรรทัดจ่ายแล้ว/คงเหลือ)</div>'
+    +'<label style="display:block;font-size:13px;font-weight:700;color:var(--wine-dark);margin-bottom:5px;">💵 จ่ายเงินสดให้หมอแล้ว (บาท)</label>'
+    +'<input id="homeDfPaid" type="number" inputmode="numeric" min="0" step="1" placeholder="ไม่จ่าย / เว้นว่าง" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;">'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'homeDfModal\').remove()">ยกเลิก</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="homeDfLineSend()">📤 ส่งไลน์</button></div></div>';
+  document.body.appendChild(m);
+  setTimeout(()=>{ const i=document.getElementById('homeDfPaid'); if(i) i.focus(); },50);
+}
+function homeDfLineSend(){
+  const modal=document.getElementById('homeDfModal'); if(!modal) return;
+  const docName=modal._doc, paid=Math.max(0,Math.round(+(document.getElementById('homeDfPaid').value)||0));
+  modal.remove();
   const d=todayStr(), LINE='━'.repeat(16), baht=n=>'฿'+fmt(n);
   const rows=treatments.filter(t=>String(t.date||'').slice(0,10)===d && t.status!=='ยกเลิก' && (docAlias(t.docName)||'')===docName)
     .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
@@ -4350,7 +4370,9 @@ function homeDfLine(docName){
     tot+=totalPrice(t); df+=dfAmt(t,doc);
   });
   const n=new Date(), hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
-  out.push(LINE,'🧾 ยอดรวม  '+baht(tot),'✨ df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)',LINE,'🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(d)+' เวลา '+hm+' น.','Bangluang Dental 🦷');
+  out.push(LINE,'🧾 ยอดรวม  '+baht(tot),'✨ df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)');
+  if(paid>0) out.push(LINE,'💵 จ่ายเงินสดให้'+docName+'แล้ว  '+baht(paid),'📌 df คงเหลือ  '+baht(Math.round(df)-paid));
+  out.push(LINE,'🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(d)+' เวลา '+hm+' น.','Bangluang Dental 🦷');
   const text=out.join('\n');
   try{ if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{}); }catch(e){}
   const w=window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank');
