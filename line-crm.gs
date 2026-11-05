@@ -1227,6 +1227,18 @@ function crmCreateTask_(t) {
 }
 // ---- แจ้งแอดมินทาง LINE (push เข้า LINE ส่วนตัวของแอดมิน) ----
 var CRM_STAFF_LABEL = { reschedule: '📅 คนไข้ขอเลื่อนนัด', emergency: '🚨 อาการฉุกเฉิน', callback: '📞 ขอให้คลินิกโทรกลับ' };
+/* รหัสจัดฟัน (A-###) ของ HN จากชีต ortho · ไม่มี/ไม่พบ → '' */
+function crmOrthoCodeOf_(hn) {
+  var k = crmHN_(hn); if (!k) return '';
+  var rows = crmReadByName_('ortho');
+  for (var i = 0; i < rows.length; i++) {
+    if (crmHN_(rows[i].hn) === k) {
+      var c = String(rows[i]['รหัสประจำตัว'] || '').trim().toUpperCase();
+      if (c) return c;
+    }
+  }
+  return '';
+}
 function crmNotifyStaff_(s, task, force) {
   if (!force && !(s.staffNotifyOn === true || s.staffNotifyOn === 'true' || s.staffNotifyOn === 'TRUE')) return 0;
   if (!force && crmSplitList_(s.staffNotifyTypes || 'reschedule,emergency,callback').indexOf(task.type) === -1) return 0;
@@ -1235,7 +1247,10 @@ function crmNotifyStaff_(s, task, force) {
     var q = crmQuota_(); if (q && q.remaining !== null && q.remaining !== undefined && q.remaining <= 0) return 0;
   }
   var lines = [(CRM_STAFF_LABEL[task.type] || ('🔔 ' + task.type)) + (task.priority === 'urgent' ? ' (ด่วน)' : (task.priority === 'high' ? ' (สำคัญ)' : ''))];
-  lines.push('คุณ' + (task.patName || 'ไม่ทราบชื่อ') + (task.hn ? ' · HN ' + task.hn : ' · ยังไม่ผูก HN'));
+  var oc = ''; try { oc = crmOrthoCodeOf_(task.hn); } catch (eO) { Logger.log('crmOrthoCodeOf_ ' + eO); }
+  // คนไข้จัดฟัน: รหัสจัดฟันนำหน้าชื่อ และไม่แสดง HN (ตามกติกาของแอป) · คนไข้ทั่วไป: ชื่อ + HN
+  lines.push(oc ? (oc + ' คุณ' + (task.patName || 'ไม่ทราบชื่อ'))
+                : ('คุณ' + (task.patName || 'ไม่ทราบชื่อ') + (task.hn ? ' · HN ' + task.hn : ' · ยังไม่ผูก HN')));
   if (task.aptDate) lines.push('นัดเดิม: ' + crmThaiDate_(task.aptDate) + (task.aptTime ? ' ' + task.aptTime + ' น.' : ''));
   if (task.detail) lines.push(String(task.detail).slice(0, 300));
   lines.push('➡️ เปิดแอปคลินิก › LINE CRM › งานโทรกลับ');
