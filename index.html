@@ -8049,11 +8049,14 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     return `<span style="background:${M[1]};color:${M[2]};border-radius:10px;padding:0 7px;font-weight:700;">${M[0]}</span>`
       + (canConfirm ? `<button onclick="event.stopPropagation();crmOrthoConfirm('${String(a.id).replace(/'/g,'')}');setTimeout(renderScheduleDay,600);" title="คนไข้ยืนยันทางโทร/แชท" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:0 6px;font-size:10px;font-weight:700;color:#1E4FA0;cursor:pointer;">ตั้งยืนยัน</button>` : '');
   }
+  // นัดที่ "เสร็จ/มาแล้ว": สถานะเสร็จสิ้น หรือคนไข้จัดฟันที่กดมาตามนัดวันนี้แล้ว
+  function aptDone_(x){ if(['เสร็จสิ้น','เสร็จ'].includes(x.status)) return true; try{ const o=x.hn?crmOrthoRec(x.hn):null; return !!(o && String(o['ปรับล่าสุด']||'').slice(0,10)===date); }catch(e){ return false; } }
   function aptCard(a){
     if(a._ortho){
       const hnE = String(a.hn||'').replace(/'/g,"\\'");
       const oc = orthoCodeOf_(a.hn,a.patName), hs = hnShow_(a.hn,a.patName);
-      return `<div onclick="event.stopPropagation();openOrthoHistory('${hnE}')" title="แตะเพื่อเปิดการ์ดจัดฟัน" style="background:#EEF4FF;border:1px solid #D3E2FB;border-left:4px solid #1E6FD9;border-radius:9px;padding:7px 10px;margin-top:5px;cursor:pointer;">
+      const _dn=aptDone_(a);
+      return `<div onclick="event.stopPropagation();openOrthoHistory('${hnE}')" title="แตะเพื่อเปิดการ์ดจัดฟัน" style="background:${_dn?'#E3F7EA':'#EEF4FF'};border:1px solid ${_dn?'#A8DDB9':'#D3E2FB'};border-left:4px solid ${_dn?'#2E9E5B':'#1E6FD9'};border-radius:9px;padding:7px 10px;margin-top:5px;cursor:pointer;">
         <div style="display:flex;align-items:center;gap:7px;min-width:0;">
           ${lineDot_(a)}${oc?`<span style="background:var(--wine);color:#fff;border-radius:7px;padding:1px 8px;font-size:12px;font-weight:800;flex-shrink:0;">${_escHtml(oc)}</span>`:'<span style="flex-shrink:0;">🦷</span>'}
           <span style="font-weight:800;color:#17407F;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escHtml(a.patName||'—')}</span>
@@ -8113,8 +8116,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     const aimBusy = !blocked && slotApts.length>0 && (filterDoc ? isAimDoc_(filterDoc) : slotApts.every(x=>isAimDoc_(x.docName)));
     if(aimBusy) slotBg = '#D3E6FB';
     // หมอเอม: ทุกนัดในช่องนี้ "บันทึกการรักษา/มาตามนัดแล้ว" → พื้นเขียวอ่อนทั้งช่อง
-    const _aptDone=x=>{ if(['เสร็จสิ้น','เสร็จ'].includes(x.status)) return true; try{ const o=x.hn?crmOrthoRec(x.hn):null; return !!(o && String(o['ปรับล่าสุด']||'').slice(0,10)===date); }catch(e){ return false; } };
-    const aimDone = aimBusy && slotApts.every(_aptDone);
+    const aimDone = aimBusy && slotApts.every(aptDone_);
     if(aimDone) slotBg = '#D9F2E1';
     if(blocked) slotBg = 'rgba(0,0,0,0.03)';
     const addDocParam = filterDoc ? `,'${filterDoc}'` : '';
