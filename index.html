@@ -4506,7 +4506,7 @@ function renderAptList(today){
     <div class="${rowClass}" style="background:${statusBgColor(a.status)};">
       <div style="font-weight:700;color:var(--wine)">${a.time}</div>
       <div class="text-caption">${hnWithOrtho_(a.hn,a.patName,a.orthoCode)}</div>
-      <div><div style="font-weight:600">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
+      <div><div style="font-weight:600">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
       <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
@@ -4655,7 +4655,7 @@ function treatRow(t){
   return `<tr style="${docRowStyle(t.docName)}">
     <td style="${docStripeStyle(t.docName)}">${t.time||'—'}</td>
     <td class="text-caption hn-cell">${hnWithOrtho_(t.hn,t.patName)}</td>
-    <td style="font-weight:600">${ocTag_(t.hn,t.patName)}${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
+    <td style="font-weight:600">${ocTag_(t.hn,t.patName)}${t.patName}${pskBadge(t)}${endoBadge(t)}</td>
     <td>${procBadge(t.proc)}</td>
     <td>${docBadge(t.docName)}</td>
     <td style="color:var(--green);font-weight:600">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -6496,7 +6496,7 @@ function renderTreatPage(){
     <tr class="${t.docName===currentUser?.name?'own-row':''}" style="${docRowStyle(t.docName)}">
       <td style="${docStripeStyle(t.docName)}">${fmtDate(t.date)}</td>
       <td class="text-caption hn-cell">${hnWithOrtho_(t.hn,t.patName)}</td>
-      <td style="font-weight:600">${ocTag_(t.hn,t.patName)}${t.patName}${pskBadge(t)}${orthoPayBadge(t)}${endoBadge(t)}</td>
+      <td style="font-weight:600">${ocTag_(t.hn,t.patName)}${t.patName}${pskBadge(t)}${endoBadge(t)}</td>
       <td>${procBadge(t.proc)}</td>
       <td>${docBadge(t.docName)}</td>
       <td style="color:var(--green)">${t.cash&&+t.cash?fmt(+t.cash):''}</td>
@@ -8036,6 +8036,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
         <div style="display:flex;align-items:center;gap:7px;min-width:0;">
           ${lineDot_(a)}${oc?`<span style="background:var(--wine);color:#fff;border-radius:7px;padding:1px 8px;font-size:12px;font-weight:800;flex-shrink:0;">${_escHtml(oc)}</span>`:'<span style="flex-shrink:0;">🦷</span>'}
           <span style="font-weight:800;color:#17407F;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escHtml(a.patName||'—')}</span>
+          ${orthoPayBadge(a)}
           ${hs?`<span style="font-size:11px;color:var(--text-light);flex-shrink:0;">${_escHtml(hs)}</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:11px;">
@@ -8546,7 +8547,7 @@ function renderSchedulePage(){
           <td>${fmtDate(a.date)}</td>
           <td style="font-weight:700;color:var(--wine);">${a.time||'—'}</td>
           <td class="text-caption hn-cell">${hnWithOrtho_(a.hn,a.patName,a.orthoCode)}</td>
-          <td style="font-weight:600;">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName||'—'}${pskBadge(a)}${orthoPayBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
+          <td style="font-weight:600;">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName||'—'}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
           <td>${docBadge(a.docName)}</td>
@@ -8879,7 +8880,7 @@ function hnWithOrtho_(hn, name, explicit){
 // HN ที่จะโชว์: ถ้ามีรหัสจัดฟันแล้วให้ซ่อน HN
 function hnShow_(hn,name,explicit){ return orthoCodeOf_(hn,name,explicit) ? '' : (hn||''); }
 // รหัสจัดฟันหน้าชื่อ (HTML / ข้อความล้วน) — ว่างถ้าไม่มี
-function ocTag_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?'<b style="color:var(--wine);font-weight:800;"'+(c.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>'+String(c).replace(/[<>&"]/g,'')+'</b> ':''; }
+function ocTag_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return (c?'<b style="color:var(--wine);font-weight:800;"'+(c.slice(-1)==='?'?' title="เดาจากชื่อ — นัดนี้ไม่มี HN/รหัส"':'')+'>'+String(c).replace(/[<>&"]/g,'')+'</b> ':'')+(orthoPayOf_(hn)===ORTHO_PAY_UNTIL_DONE?orthoPayBadge({hn})+' ':''); }
 function ocPlain_(hn,name,explicit){ const c=orthoCodeOf_(hn,name,explicit); return c?c+' ':''; }
 function orthoCodeOk_(v){ v=String(v||'').trim(); return !v || v==='A-' || /^A-\d{1,}$/.test(v); }
 function orthoCodeClean_(v){ v=String(v||'').trim(); return (v==='A-')?'':v; }
