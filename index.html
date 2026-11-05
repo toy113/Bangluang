@@ -7784,7 +7784,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           <span style="font-weight:700;color:#1E4FA0;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orthoCodeOf_(a.hn,a.patName)?`<span style="font-weight:800;">🦷 ${orthoCodeOf_(a.hn,a.patName)}</span> · `:'🦷 '}${hnShow_(a.hn,a.patName)?`${hnShow_(a.hn,a.patName)} · `:''}${_escHtml(a.patName||'—')}</span>
           <button onclick="event.stopPropagation();openOrthoHistory('${hnE}')" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:700;color:#1E4FA0;cursor:pointer;flex-shrink:0;">การ์ดจัดฟัน</button>
         </div>
-        <div style="font-size:10.5px;color:var(--text-mid);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">นัดจากการ์ดจัดฟัน · ${_escHtml(a.proc||'นัดจัดฟัน')} ${schOrthoLineChip_(a)}</div>
+        <div style="font-size:10.5px;color:var(--text-mid);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${_escHtml(a.proc||'นัดจัดฟัน')} ${schOrthoLineChip_(a)}</div>
       </div>`;
     }
     const sc = STATUS_COLOR[a.status]||'#999';
