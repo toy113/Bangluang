@@ -2245,7 +2245,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div id="came-total" style="font-size:15px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:10px 12px;margin-top:8px;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalOrthoCame')">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="crmOrthoCameSave()">💾 บันทึก</button>
+      <button class="btn btn-primary" id="came-savebtn" onclick="crmOrthoCameSave()">💾 บันทึก</button>
     </div>
   </div>
 </div>
@@ -3518,6 +3518,7 @@ async function crmOrthoCameSave(){
     if(m>0 && pv.cash+pv.transfer!==m){ showToast('เงินสด + โอน ต้องรวมเป็น '+m.toLocaleString()+' บาท','error'); return; }
     if(m>0 && pv.transfer>0 && !document.getElementById('came-bank').value){ showToast('กรุณาเลือกธนาคารที่โอน','error'); return; } }
   _crmCameSaving=true;
+  const _sb=document.getElementById('came-savebtn'); if(_sb){ _sb.disabled=true; _sb.textContent='⏳ กำลังบันทึก...'; _sb.style.opacity='.7'; }
   try{
     const sendLine=document.getElementById('came-send').checked && !document.getElementById('came-send').disabled, careOn=document.getElementById('came-care').checked;
     const doc=document.getElementById('came-doc').value, userNote=document.getElementById('came-note').value.trim();
@@ -3571,6 +3572,7 @@ async function crmOrthoCameSave(){
     setTimeout(()=>{ if(typeof loadOrthoData==='function') loadOrthoData(true).then(()=>{ if(CRM.sub==='orthoapt') crmRender(); }).catch(()=>{}); },1500);
   }catch(e){ console.error(e); showToast('บันทึกไม่สำเร็จ','error'); }
   _crmCameSaving=false;
+  if(_sb){ _sb.disabled=false; _sb.textContent='💾 บันทึก'; _sb.style.opacity=''; }
 }
 // นัดปรับครั้งที่เท่าไร: นับจากครั้งที่มาแล้วจริงใน ortho_log (+1 ถ้ายังไม่ได้มาในวันนัดนั้น)
 function crmOrthoVisitNo(a){
