@@ -4488,6 +4488,7 @@ function renderAptList(today){
   const homeCame_=a=>{
     const o=a.hn?crmOrthoRec(a.hn):null;
     if(!o || !(a._ortho || crmIsOrthoVisit(a))) return '';
+    if(!orthoAimOnly_(a)) return '';   // มาตามนัด: เฉพาะนัดของหมอวัจน์กร (หมอคนอื่นไม่มีปุ่ม)
     const bs='margin-top:4px;padding:4px 8px;font-size:11px;white-space:nowrap;';
     if(String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<div><span class="crm-chip g" style="${bs}">🦷 มาแล้ว</span></div>`;
     if(isViewOnlyUser()) return '';
