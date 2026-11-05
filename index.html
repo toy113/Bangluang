@@ -8112,10 +8112,14 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     // หมอเอม: ช่องที่มีนัดแล้วพื้นฟ้า (ว่าง = ส้มเหมือนเดิม)
     const aimBusy = !blocked && slotApts.length>0 && (filterDoc ? isAimDoc_(filterDoc) : slotApts.every(x=>isAimDoc_(x.docName)));
     if(aimBusy) slotBg = '#D3E6FB';
+    // หมอเอม: ทุกนัดในช่องนี้ "บันทึกการรักษา/มาตามนัดแล้ว" → พื้นเขียวอ่อนทั้งช่อง
+    const _aptDone=x=>{ if(['เสร็จสิ้น','เสร็จ'].includes(x.status)) return true; try{ const o=x.hn?crmOrthoRec(x.hn):null; return !!(o && String(o['ปรับล่าสุด']||'').slice(0,10)===date); }catch(e){ return false; } };
+    const aimDone = aimBusy && slotApts.every(_aptDone);
+    if(aimDone) slotBg = '#D9F2E1';
     if(blocked) slotBg = 'rgba(0,0,0,0.03)';
     const addDocParam = filterDoc ? `,'${filterDoc}'` : '';
     return `<div style="background:${slotBg};
-      border:1.5px solid ${blocked?'#e0e0e0':slotApts.length>0?(aimBusy?'#9CC2EE':'rgba(0,0,0,0.1)'):orthoFree?'#F0B36A':'var(--border)'};
+      border:1.5px solid ${blocked?'#e0e0e0':slotApts.length>0?(aimDone?'#8FD1A6':aimBusy?'#9CC2EE':'rgba(0,0,0,0.1)'):orthoFree?'#F0B36A':'var(--border)'};
       border-radius:10px;padding:8px 10px;box-shadow:var(--shadow);
       opacity:${blocked?'0.5':'1'};margin-bottom:6px;transition:background 0.2s;">
       <div style="display:flex;align-items:center;gap:4px;">
