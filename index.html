@@ -10687,7 +10687,7 @@ function renderOrthoCalendar(){
   if(!orthoCalSelectedDay){ detailBox.innerHTML=''; return; }
   const dsel = orthoCalSelectedDay;
   const dayList = orthoDayList_(dsel);
-  const slotStrip = orthoSlotStrip_(dsel, dayList);
+  const slotStrip = '';   // ปิดแถบ "ช่วงเวลาของวัน/ความหนาแน่น" (orthoSlotStrip_ ยังอยู่ในโค้ด แต่ไม่แสดง)
   if(!dayList.length){
     detailBox.innerHTML = `<div style="color:var(--text-light);font-size:13px;margin-bottom:8px;">ไม่มีนัดวันที่ ${orthoThaiDateShort_(dsel)}</div>${slotStrip}`;
     return;
