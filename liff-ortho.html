@@ -347,9 +347,10 @@ function renderOrtho(p){
   $('panel-ortho').innerHTML = `
     <div class="overdue-banner" style="display:${overdue?'block':'none'}">⚠️ คุณไม่ได้มาปรับเครื่องมือ ${since} วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาปรับเครื่องมือ</div>
     <div class="card"><h3>📈 ความคืบหน้า ${esc(braceLabel(pr['แบบจัด']))} *</h3><p class="muted" style="margin:-4px 0 8px;font-size:12px;">* ข้อมูลยึดตามบัตรจัดฟันที่คลินิกเป็นหลัก</p>${prog}
-      ${(pr['วันติดบน']||pr['วันติดล่าง'])
-        ? `<div class="row"><span class="k">วันติดเครื่องมือบน</span><span class="v">${pr['วันติดบน']?esc(thaiDateShort(pr['วันติดบน'])):'—'}</span></div><div class="row"><span class="k">วันติดเครื่องมือล่าง</span><span class="v">${pr['วันติดล่าง']?esc(thaiDateShort(pr['วันติดล่าง'])):'—'}</span></div>`
-        : `<div class="row"><span class="k">วันติดเครื่องมือ</span><span class="v">${pr['วันเริ่ม']?esc(thaiDateShort(pr['วันเริ่ม'])):'—'}</span></div>`}
+      ${(()=>{ const up=pr['วันติดบน']?String(pr['วันติดบน']).slice(0,10):'', lo=pr['วันติดล่าง']?String(pr['วันติดล่าง']).slice(0,10):'', row=(k,d)=>`<div class="row"><span class="k">${k}</span><span class="v">${d?esc(thaiDateShort(d)):'—'}</span></div>`;
+        if(!up && !lo) return row('วันติดเครื่องมือ', pr['วันเริ่ม']);          // การ์ดเก่ายังไม่มีข้อมูลแยกบน/ล่าง
+        if(up && lo && up===lo) return row('วันติดเครื่องมือ (บน+ล่าง)', up);   // ติดวันเดียวกัน → บรรทัดเดียว
+        return row('วันติดเครื่องมือบน', up) + row('วันติดเครื่องมือล่าง', lo); })()}
       <div class="row"><span class="k">ทันตแพทย์</span><span class="v">${esc(pr['หมอ']||'—')}</span></div>
       ${pr['วันใส่รีเทนเนอร์']?`<div class="row"><span class="k">วันใส่รีเทนเนอร์</span><span class="v">${esc(thaiDateShort(pr['วันใส่รีเทนเนอร์']))}</span></div>`:''}
     </div>
