@@ -326,7 +326,7 @@ function renderOrtho(p){
   if(planM){
     const planN = +planM[1];
     const pct = Math.min(100, Math.round(visits.length/planN*100));
-    prog = `<div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="row"><span class="k">ความคืบหน้า</span><span class="v">${visits.length} / ${planN} ครั้ง</span></div>`;
+    prog = `<div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="row"><span class="k">ปรับเครื่องมือ</span><span class="v">${visits.length} / ${planN} ครั้ง</span></div>`;
   } else {
     prog = `<div class="row"><span class="k">มาปรับเครื่องมือแล้ว</span><span class="v">${visits.length} ครั้ง</span></div><div class="row"><span class="k">แผนการชำระ</span><span class="v">ชำระครั้งละ 1,500 บาทจนเสร็จ</span></div>`;
   }
