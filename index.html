@@ -571,7 +571,7 @@ select.form-control { cursor: pointer; }
 /* DOCTOR SHARE TABLE */
 .share-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
 .share-grid.share-list { display:flex; flex-direction:column; gap:8px; }
-.share-row { display:grid; grid-template-columns:minmax(150px,1.6fr) 70px repeat(3,minmax(90px,1fr)) 20px; gap:10px; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:12px; cursor:pointer; }
+.share-row { display:grid; grid-template-columns:minmax(150px,1.6fr) 70px repeat(2,minmax(90px,1fr)) 20px; gap:10px; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:12px; cursor:pointer; }
 .share-row:hover { border-color:var(--wine-light); box-shadow:0 2px 10px rgba(107,45,94,.1); }
 .share-row .n { font-weight:800; color:var(--wine-dark); }
 .share-row .k { font-size:10px; color:var(--text-light); font-weight:700; }
@@ -6676,6 +6676,9 @@ function incPeriodOk_(d){
   const rs=document.getElementById('income-range-start')?.value||today, re=document.getElementById('income-range-end')?.value||today;
   return d>=rs && d<=re;
 }
+function incLabItems_(doc){
+  return labs.filter(l=>l.docName===doc.name && incPeriodOk_(l.date)).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
 function incLabDeduct_(doc){
   if(!document.getElementById('income-lab-deduct')?.checked) return 0;
   const sum=labs.filter(l=>l.docName===doc.name && incPeriodOk_(l.date)).reduce((s,l)=>s+(+l.price||0),0);
@@ -7012,13 +7015,12 @@ function buildShareGrid(rows){
     });
     shown.forEach(x=>chartRows.push({name:x.doc.name, share:x.share, clinicShare:x.clinic}));
     el.innerHTML = shown.length
-      ? '<div class="share-row hd"><span class="k">หมอ</span><span class="k">จำนวน</span><span class="k">รายได้รวม</span><span class="k">ส่วนแบ่งหมอ</span><span class="k">ส่วนแบ่งคลินิก</span><span></span></div>'
+      ? '<div class="share-row hd"><span class="k">หมอ</span><span class="k">จำนวน</span><span class="k">รายได้รวม</span><span class="k">ส่วนแบ่งหมอ</span><span></span></div>'
         + shown.map(x=>`<div class="share-row" role="button" tabindex="0" onclick="openDoctorBreakdown(${x.docIdx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDoctorBreakdown(${x.docIdx});}">
             <span class="n">${x.doc.emoji||'🦷'} ${x.doc.name}${x.labDed?` <span style="font-size:10px;color:#B45309;font-weight:700;">(หักแลป ${fmt(x.labDed)})</span>`:''}</span>
             <span><span class="k" style="display:block;">จำนวน</span><span class="v">${x.n} ราย</span></span>
             <span><span class="k" style="display:block;">รายได้รวม</span><span class="v" style="color:var(--wine-dark);">${fmt(x.tot)}</span></span>
             <span><span class="k" style="display:block;">ส่วนแบ่งหมอ</span><span class="v" style="color:var(--gold);">${fmt(x.share)}</span></span>
-            <span><span class="k" style="display:block;">ส่วนแบ่งคลินิก</span><span class="v" style="color:var(--wine);">${fmt(x.clinic)}</span></span>
             <span class="arr" style="color:var(--text-light);">›</span></div>`).join('')
       : '<div style="padding:24px;text-align:center;color:var(--text-light);">วันนี้ยังไม่มียอดรายได้</div>';
   } else
@@ -7042,7 +7044,13 @@ function buildShareGrid(rows){
         <div style="background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;">${effectivePct}%</div>
       </div>
       <div class="share-card-amount">${fmt(share)}</div>
-      ${labDed?`<div style="font-size:11px;color:#B45309;font-weight:700;margin-top:2px;">หักค่าแลป −${fmt(labDed)} (จากส่วนแบ่ง ${fmt(dfSum)})</div>`:''}
+      ${labDed?(()=>{ const it=incLabItems_(doc), lp=labDfPct_(doc.name), full=it.reduce((a,l)=>a+(+l.price||0),0);
+        return `<div style="margin-top:8px;padding:8px 10px;background:#FFF4DC;border:1px solid #F0D79A;border-radius:10px;font-size:11.5px;color:#6B4A00;">
+          <div style="font-weight:800;margin-bottom:4px;">🧪 หักค่าแลป (หมอรับผิดชอบ ${lp}%)</div>
+          ${it.map(l=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px dashed #E8CF8E;"><span style="min-width:0;">${_escHtml(l.patName||'—')}<br><span style="color:#8A6200;">${_escHtml(l.work||'')} · ${_escHtml(l.lab||'')} · ${fmtDate(l.date)}</span></span><span style="text-align:right;white-space:nowrap;">เต็ม ${fmt(+l.price||0)}<br><b>หมอ ${fmt(Math.round((+l.price||0)*lp)/100)}</b></span></div>`).join('')}
+          <div style="display:flex;justify-content:space-between;border-top:1.5px solid #E0C070;margin-top:4px;padding-top:4px;font-weight:800;"><span>รวม ${it.length} รายการ · เต็ม ${fmt(full)}</span><span>หมอ −${fmt(labDed)}</span></div>
+          <div style="margin-top:4px;color:#8A6200;">ส่วนแบ่ง ${fmt(dfSum)} − แลป ${fmt(labDed)} = <b>${fmt(share)}</b></div>
+        </div>`; })():''}
       <div style="display:flex;justify-content:space-between;margin-top:8px;">
         <span style="font-size:11px;color:var(--text-light);">รายได้รวม</span>
         <span style="font-size:12px;font-weight:700;color:var(--wine-dark);">${fmt(tot)}</span>
@@ -7051,16 +7059,7 @@ function buildShareGrid(rows){
       <div style="margin-top:8px;height:6px;background:rgba(107,45,94,0.1);border-radius:4px;overflow:hidden;">
         <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--wine) 0%,var(--wine-light) 100%);border-radius:4px;transition:width 0.4s;"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-        <div>
-          <div style="font-size:10px;color:var(--text-light);font-weight:700;">ส่วนแบ่งหมอ</div>
-          <div style="font-size:14px;font-weight:800;color:var(--gold);">${fmt(share)}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:var(--text-light);font-weight:700;">ส่วนแบ่งคลินิก</div>
-          <div style="font-size:14px;font-weight:800;color:var(--wine);">${fmt(clinicShare)}</div>
-        </div>
-      </div>
+
       <div class="share-card-more">ดูรายการรักษา ›</div>
     </div>`;
   }).join('');
@@ -7075,7 +7074,6 @@ function buildShareGrid(rows){
         labels: chartRows.map(r=>r.name),
         datasets: [
           { label:'ส่วนแบ่งหมอ', data:chartRows.map(r=>r.share), backgroundColor:'rgba(212,168,71,0.85)', borderRadius:4, stack:'s' },
-          { label:'ส่วนแบ่งคลินิก', data:chartRows.map(r=>r.clinicShare), backgroundColor:'rgba(107,45,94,0.85)', borderRadius:4, stack:'s' },
         ]
       },
       options: {
@@ -7361,7 +7359,7 @@ function buildLabSummary(rows,month,docFilter){
             <div style="font-size:12px;color:var(--wine-dark);font-weight:700;">${d.emoji} ${d.name}</div>
             <div style="font-size:18px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${fmt(d.total)}</div>
             <div style="font-size:11px;color:var(--text-light);">${d.count} รายการ</div>
-            <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:11.5px;color:var(--text-mid);">ส่วนหมอ (DF ${d.pct}%) <b style="color:var(--wine-dark);">${fmt(Math.round(d.total*d.pct)/100)}</b><br>ส่วนคลินิก <b>${fmt(Math.round(d.total*(100-d.pct))/100)}</b></div>
+            <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:11.5px;color:var(--text-mid);">ส่วนหมอ (DF ${d.pct}%) <b style="color:var(--wine-dark);">${fmt(Math.round(d.total*d.pct)/100)}</b></div>
           </div>`).join('')}
         </div>
       </div>`;
@@ -7374,7 +7372,6 @@ function buildLabSummary(rows,month,docFilter){
     docShareBox = `<div style="flex:1;min-width:160px;background:#FFF4DC;border:1px solid #F0D79A;border-radius:10px;padding:12px 14px;">
       <div style="font-size:12px;color:#8A6200;font-weight:700;">ส่วนค่าแลปของหมอ (DF ${pct}%)</div>
       <div style="font-size:20px;font-weight:800;color:#8A6200;font-family:'Prompt',sans-serif;">${fmt(Math.round(grand*pct)/100)}</div>
-      <div style="font-size:11px;color:var(--text-light);">ส่วนคลินิก ${fmt(Math.round(grand*(100-pct))/100)}</div>
     </div>`;
   }
   el.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
