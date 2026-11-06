@@ -61,7 +61,7 @@ var CRM_DEFAULT_SETTINGS = {
   birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
   birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
   followupOn: true, followupHour: '10:00',
-  reviewOnOk: true,          // คนไข้ตอบ "ปกติดี" ในข้อความถามอาการ → ส่งการ์ดปุ่มไปหน้ารีวิว Google ทันที (ต่อคนไข้ไม่เกิน 1 ครั้งต่อ 60 วัน) · ใช้เมื่อปิดการให้คะแนนอยู่
+  reviewOnOk: true,          // คนไข้ตอบ "ปกติดี" ในข้อความถามอาการ → ส่งการ์ดปุ่มไปหน้ารีวิว Google ทันที (ต่อคนไข้ไม่เกิน 1 ครั้งต่อ 360 วัน) · ใช้เมื่อปิดการให้คะแนนอยู่
   ratingOn: false, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
   clinicPhone: '095-947-6759',
@@ -1423,8 +1423,8 @@ function crmHandlePostback_(s, ev, uid) {
     var out = reply ? [crmText_(reply)] : [];
     if (opt.kind === 'ok' && crmRatingApplies_(s, fu)) out.push(crmRatingMessage_(s, fu));
     else if (opt.kind === 'ok' && s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim())) {
-      // ปกติดี → การ์ดไปหน้ารีวิว Google (คนไข้คนเดียวกันไม่เกิน 1 ครั้งต่อ 60 วัน กันรบกวน)
-      var since = crmAddDays_(crmToday_(), -60), hk = crmHN_(fu.hn);
+      // ปกติดี → การ์ดไปหน้ารีวิว Google (คนไข้คนเดียวกันไม่เกิน 1 ครั้งต่อ 360 วัน กันรบกวน)
+      var since = crmAddDays_(crmToday_(), -360), hk = crmHN_(fu.hn);
       var askedRecently = crmRead_('followups').some(function (r) { return crmHN_(r.hn) === hk && r.reviewAt && String(r.reviewAt).slice(0, 10) > since; });
       if (!askedRecently) {
         var rv = crmReviewMessages_(s); if (rv.length > 1) { out.push(rv[1]); crmUpdate_('followups', fu._row, { reviewAt: crmNow_() }); }
