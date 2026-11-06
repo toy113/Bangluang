@@ -1438,6 +1438,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(1)" aria-label="ถัดไป" title="ถัดไป">›</button>
           </div>
           <div class="inc-actions">
+            <select id="income-doc-filter" class="form-control" onchange="renderIncome()" style="height:36px;min-width:150px;display:none;font-weight:700;" aria-label="เลือกหมอ"><option value="">👨‍⚕️ ทุกหมอ</option></select>
             <button type="button" class="date-nav-btn date-nav-today" id="incomeTodayBtn" onclick="incomeGoToday()">วันนี้</button>
             <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
           </div>
@@ -6658,6 +6659,11 @@ function setPeriod(p,btn){
   if(tb) tb.textContent = p==='month' ? 'เดือนนี้' : (p==='year' ? 'ปีนี้' : 'วันนี้');
   renderIncome();
 }
+function incDocOk_(r){
+  if(!isManager) return r.docName===currentUser.name;
+  const f = document.getElementById('income-doc-filter')?.value || '';
+  return !f || r.docName===f;
+}
 function renderIncome(){
   const now=new Date(); const today=todayStr();
   // Get selected filter values
@@ -6665,8 +6671,13 @@ function renderIncome(){
   const selMonth= document.getElementById('income-filter-month')?.value|| today.slice(0,7);
   const selYrBE = parseInt(document.getElementById('income-filter-year')?.value) || (now.getFullYear()+543);
   const selYrCE = String(selYrBE - 543);
-  let rows=treatments;
-  if(!isManager) rows=rows.filter(t=>t.docName===currentUser.name);
+  // ช่องเลือกหมอ (ผู้จัดการ) — กรองทั้งการ์ดส่วนแบ่ง ตัวเลขรวม และกราฟ
+  const _docSel = document.getElementById('income-doc-filter');
+  if(_docSel){
+    _docSel.style.display = isManager ? '' : 'none';
+    if(isManager && _docSel.options.length<=1){ doctors.forEach(d=>{ const o=document.createElement('option'); o.value=d.name; o.textContent=(d.emoji||'🦷')+' '+d.name; _docSel.appendChild(o); }); }
+  }
+  let rows=treatments.filter(incDocOk_);
   if(currentPeriod==='day') rows=rows.filter(t=>t.date===selDay);
   else if(currentPeriod==='month') rows=rows.filter(t=>t.date&&t.date.startsWith(selMonth));
   else if(currentPeriod==='year') rows=rows.filter(t=>t.date&&t.date.startsWith(selYrCE));
@@ -6713,7 +6724,7 @@ function buildCharts(rows, period, today, month, year){
     for(let i=6;i>=0;i--){
       const d=new Date(); d.setDate(d.getDate()-i);
       const ds=toDateStr(d);
-      const dayRows=treatments.filter(r=>r.date===ds&&(isManager||r.docName===currentUser.name));
+      const dayRows=treatments.filter(r=>r.date===ds&&incDocOk_(r));
       barLabels.push(d.toLocaleDateString('th-TH',{day:'numeric',month:'short'}));
       barCash.push(dayRows.reduce((s,r)=>s+(+r.cash||0),0));
       barTransfer.push(dayRows.reduce((s,r)=>s+(+r.transfer||0),0));
@@ -6725,7 +6736,7 @@ function buildCharts(rows, period, today, month, year){
     const days=new Date(parseInt(month.slice(0,4)),parseInt(month.slice(5)),0).getDate();
     for(let d=1;d<=days;d++){
       const ds=`${month}-${String(d).padStart(2,'0')}`;
-      const dayRows=treatments.filter(r=>r.date===ds&&(isManager||r.docName===currentUser.name));
+      const dayRows=treatments.filter(r=>r.date===ds&&incDocOk_(r));
       barLabels.push(d+'');
       barCash.push(dayRows.reduce((s,r)=>s+(+r.cash||0),0));
       barTransfer.push(dayRows.reduce((s,r)=>s+(+r.transfer||0),0));
@@ -6736,7 +6747,7 @@ function buildCharts(rows, period, today, month, year){
     // Each month in selected year
     for(let m=1;m<=12;m++){
       const ms=`${year}-${String(m).padStart(2,'0')}`;
-      const mRows=treatments.filter(r=>r.date&&r.date.startsWith(ms)&&(isManager||r.docName===currentUser.name));
+      const mRows=treatments.filter(r=>r.date&&r.date.startsWith(ms)&&incDocOk_(r));
       barLabels.push(THMONTHS[m-1]);
       barCash.push(mRows.reduce((s,r)=>s+(+r.cash||0),0));
       barTransfer.push(mRows.reduce((s,r)=>s+(+r.transfer||0),0));
@@ -6948,7 +6959,8 @@ function openDoctorBreakdown(idx){
 }
 function buildShareGrid(rows){
   const el=document.getElementById('shareGrid');
-  const docList=isManager?doctors:doctors.filter(d=>d.id===currentUser.id);
+  const _fd = document.getElementById('income-doc-filter')?.value || '';
+  const docList=isManager?(_fd?doctors.filter(d=>d.name===_fd):doctors):doctors.filter(d=>d.id===currentUser.id);
   // Find max for progress bar reference
   const maxTot = Math.max(1,...docList.map(doc=>rows.filter(r=>r.docName===doc.name).reduce((s,r)=>s+totalPrice(r),0)));
   const grandTotal = docList.reduce((s,doc)=>s+rows.filter(r=>r.docName===doc.name).reduce((ss,r)=>ss+totalPrice(r),0),0);
