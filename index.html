@@ -1573,6 +1573,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <button onclick="schGoToday()" class="btn btn-ghost" style="height:36px;font-size:13px;">วันนี้</button>
         <button id="schOrthoBtn" onclick="schToggleOrtho()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--border);" title="แสดงเฉพาะวันที่มีนัดจัดฟัน">🦷 เฉพาะวันที่มีงานจัดฟัน</button>
         <button onclick="schResetSlots()" class="btn btn-ghost" style="display:none;height:36px;font-size:12px;color:var(--text-light);" title="รีเซ็ต slot เป็นค่าเริ่มต้น 10:00-18:00">↺ Reset Slots</button>
+        <button onclick="schJumpMonthly()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--border);" title="เลื่อนลงไปดูปฏิทินภาพรวมนัดตลอดเดือนทันที">📆 ภาพรวมนัดตลอดเดือน</button>
         <div style="flex:1;"></div>
         <button onclick="copyDaySummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">📋 ส่งสรุปนัด</button>
         <button class="btn btn-primary" id="btnAddAptSchedule" onclick="openAddAptSchedule()" style="height:36px;">+ เพิ่มนัด</button>
@@ -1588,7 +1589,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
 
       <!-- Monthly calendar overview -->
-      <div class="card-box">
+      <div class="card-box" id="schMonthlyBox">
         <div class="card-box-hdr">
           <div class="card-box-title">📆 ภาพรวมนัดตลอดเดือน</div>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -8260,6 +8261,10 @@ function schCalNextMonth(){
   const d = new Date(y, m, 1);
   schCalMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   renderSchMiniCal();
+}
+function schJumpMonthly(){   // เด้งลงไปที่ปฏิทินภาพรวมนัดตลอดเดือนทันที (ไม่เลื่อนช้า)
+  const el=document.getElementById('schMonthlyBox'); if(!el) return;
+  el.scrollIntoView({behavior:'instant',block:'start'});
 }
 function renderSchMiniCal(){
   const calEl = document.getElementById('schMiniCal');
