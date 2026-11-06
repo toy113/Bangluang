@@ -8036,10 +8036,30 @@ function renderScheduleDay(){
   });
 }
 
+// พิมพ์ตารางนัดของหมอ 1 คน / 1 วัน ทันที (หน้าพิมพ์เลือก "บันทึกเป็น PDF" ได้) · หมอจัดฟัน (หมอเอม) ใช้ใบพิมพ์จัดฟันเดิม
+function schPrintDoc(date, docName){
+  try{ if(isAimDoc_(docAlias(docName)) && crmOrthoAptList(date,date).filter(orthoAimOnly_).length){ crmOrthoPrint(date); return; } }catch(e){}
+  const apts=appointments.filter(a=>a.date===date).concat(orthoVirtualApts_(date,date))
+    .filter(a=>a.docName===docName && a.status!=='ยกเลิก')
+    .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+  if(!apts.length){ showToast('ไม่มีนัดของหมอคนนี้ในวันนี้','error'); return; }
+  const E=escapeHtml;
+  const rows=apts.map(a=>{
+    const code=orthoCodeOf_(a.hn,a.patName,a.orthoCode);
+    const w=String(a.patName||'').trim().split(/\s+/).filter(Boolean); if(w.length>1 && /^(นาย|นาง|นางสาว|น\.ส\.|ด\.ช\.|ด\.ญ\.|คุณ)$/.test(w[0])) w.shift();
+    const pr=String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ').join(', ');
+    return '<tr><td class="c b">'+E(String(a.time||'-').slice(0,5))+'</td><td>'+(code?'<b>'+E(code)+'</b> ':'')+'<b>'+E(w[0]||'—')+'</b></td><td>'+E(pr)+'</td><td class="n">'+E(a.note||'')+'</td></tr>';
+  }).join('');
+  const html='<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ตารางนัด '+E(docName)+' '+E(fmtDateThai(date))+'</title>'
+   +'<style>@page{size:A4 portrait;margin:8mm}body{font-family:\'Sarabun\',\'Noto Sans Thai\',Tahoma,sans-serif;color:#222;font-size:13px;margin:0}h1{font-size:1.3em;margin:0 0 .5em}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:.3em .45em;vertical-align:top}td{height:2em}th{background:#eee}.c{text-align:center;white-space:nowrap}.b{font-weight:700}td.n{font-size:.88em;color:#444}tr{page-break-inside:avoid}</style></head><body>'
+   +'<h1>ตารางนัด '+E(docName)+' · '+E(fmtDateThai(date))+' · '+apts.length+' นัด</h1>'
+   +'<table><tr><th>เวลา</th><th>คนไข้</th><th>รายการนัด</th><th>หมายเหตุ</th></tr>'+rows+'</table>'
+   +'<script>function fit(){var max=1035;for(var f=13;f>=5.5;f-=0.5){document.body.style.fontSize=f+"px";if(document.body.scrollHeight<=max)break;}}window.onload=function(){fit();setTimeout(function(){window.print()},300);};<\/script></body></html>';
+  const w=window.open('','_blank'); if(!w){ showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — กรุณาอนุญาต pop-up','error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
 // ส่งตารางนัดของหมอ 1 คน / 1 วัน เข้าไลน์ (เปิดหน้าเลือกแชทใน LINE พร้อมข้อความ + คัดลอกไว้ในคลิปบอร์ดด้วย)
 function schExportLine(date, docName){
-  // หมอจัดฟัน (หมอเอม): กดปุ่มแล้วสั่งพิมพ์ใบนัดทันที (ใบเดียวกับปุ่ม พิมพ์รายการให้หมอ) · หมออื่นยังเป็นคัดลอกไปวางไลน์
-  try{ if(isAimDoc_(docAlias(docName)) && crmOrthoAptList(date,date).filter(orthoAimOnly_).length){ crmOrthoPrint(date); return; } }catch(e){}
   const apts=appointments.filter(a=>a.date===date).concat(orthoVirtualApts_(date,date))
     .filter(a=>a.docName===docName && a.status!=='ยกเลิก')
     .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
@@ -8224,7 +8244,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 
   // ชื่อหมอใน header
   const docTagsHtml = docList.map(name=>
-    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="${isAimDoc_(docAlias(name))?'พิมพ์ใบนัดของหมอจัดฟันทันที':'คัดลอกตารางนัดของหมอคนนี้ แล้วไปวางในไลน์เอง'}" style="margin-left:5px;background:${isAimDoc_(docAlias(name))?'#6B2D5E':'#06C755'};color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">${isAimDoc_(docAlias(name))?'🖨 พิมพ์':'📋 คัดลอก'}</button></span>`
+    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schPrintDoc(this.dataset.d,this.dataset.doc)" title="พิมพ์ตารางนัดของหมอคนนี้ทันที (ในหน้าพิมพ์เลือก บันทึกเป็น PDF ได้)" style="margin-left:5px;background:#6B2D5E;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">🖨 พิมพ์</button><button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="คัดลอกตารางนัดของหมอคนนี้ แล้วไปวางในไลน์เอง" style="margin-left:3px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">📋 คัดลอก</button></span>`
   ).join('');
 
   const colWidth = has2Docs ? 680 : 340;
