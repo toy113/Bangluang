@@ -7857,8 +7857,8 @@ function _writeDeletedMap(date, map){
   }catch(e){}
   try{ const sm = _slotMap(date); sm['#del'] = map; _writeSlotMap(date, sm); }catch(e){}
 }
-// หมอเอม (ทพญ.วัจน์กร) ใช้ slot ตั้งต้นทุก 10 นาที (09:00–18:00 เว้นพักเที่ยง 12:30–13:00)
-const AIM_DEFAULT_SLOTS = (()=>{ const o=[]; for(let m=540;m<=1080;m+=10){ if(m>=750&&m<780) continue; o.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return o; })();
+// หมอเอม (ทพญ.วัจน์กร) ใช้ slot ตั้งต้นทุก 15 นาที (09:00–18:00 เว้นพักเที่ยง 12:30–13:00) · ต้นชั่วโมง/ครึ่งชั่วโมงมี 2 ช่อง
+const AIM_DEFAULT_SLOTS = (()=>{ const o=[]; for(let m=540;m<=1080;m+=15){ if(m===750||m===765) continue; const t=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); o.push(t); if(m%30===0) o.push(t+'#2'); } return o; })();   // key 'HH:MM#2' = ช่องที่ 2 ของเวลาเดียวกัน (แสดงเป็นเวลาเดิม)
 function isAimDoc_(name){ const a=(typeof doctors!=='undefined'?doctors:[]).find(d=>d.id==='aim'); return !!(a && name && String(name)===String(a.name)); }
 function getSchSlots(date, doc, defDoc){
   try {
@@ -8141,11 +8141,18 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     'ยกเลิก':'var(--red)','walk-in':'#3498DB'
   };
 
+  const _dupMemo = {};
   function getSlotApts(slot, filterDoc){
-    return dayApts.filter(a=>{
+    const base = String(slot).split('#')[0], isDup2 = String(slot).indexOf('#2')>0;
+    const all = dayApts.filter(a=>{
       if(filterDoc && !inDoc_(a, filterDoc)) return false;
-      return String(a.time||'').slice(0,5) === slot;
+      return String(a.time||'').slice(0,5) === base;
     });
+    // เวลาเดียวกันมี 2 ช่อง: ช่องแรกแสดงนัดแรก · ช่องที่ 2 แสดงนัดที่เหลือ
+    const fk = filterDoc||'';
+    if(_dupMemo[fk]===undefined) _dupMemo[fk] = slotsForDoc(fk);
+    if(isDup2) return all.slice(1);
+    return _dupMemo[fk].includes(base+'#2') ? all.slice(0,1) : all;
   }
 
   function schOrthoLineChip_(a){
@@ -8206,6 +8213,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   function slotCard(slot, filterDoc){
     const dparam = filterDoc ? String(filterDoc).replace(/'/g,'') : '';
     const blocked = isSlotBlocked(date, slot, filterDoc||'');
+    const slotLbl = String(slot).split('#')[0];
     const slotApts = getSlotApts(slot, filterDoc||null);
     const aptCards = blocked ? '' : slotApts.map(aptCard).join('');
 
@@ -8234,11 +8242,11 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       <div style="display:flex;align-items:center;gap:4px;">
         <span style="font-size:16px;font-weight:800;color:var(--wine-dark);
           font-family:'Prompt',sans-serif;letter-spacing:2px;
-          padding:3px 4px;min-width:58px;display:inline-block;">${slot}</span>
+          padding:3px 4px;min-width:58px;display:inline-block;">${slotLbl}</span>
         <div style="flex:1;"></div>
         ${(!blocked && slotApts.some(x=>String(x.id||'').indexOf('ORTHO-')===0)) ? '' : blocked
           ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" aria-label="เปิดช่องเวลานี้" style="font-size:10px;min-height:26px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;color:#555;">เปิด</button>`
-          : `<button onclick="openAddApt(null,'${date}','${slot}','${orthoFree?String((doctors.find(d=>d.id==='aim')||{}).name||dparam).replace(/'/g,''):dparam}'${orthoFree?',true':''})" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
+          : `<button onclick="openAddApt(null,'${date}','${slotLbl}','${orthoFree?String((doctors.find(d=>d.id==='aim')||{}).name||dparam).replace(/'/g,''):dparam}'${orthoFree?',true':''})" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
              <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" aria-label="เว้นว่างช่องเวลานี้" style="font-size:12px;min-width:26px;min-height:26px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
         }
         <button onclick="schRemoveSlot('${date}','${slot}','${dparam}')" title="ลบช่องเวลานี้" aria-label="ลบช่องเวลานี้" style="font-size:10px;min-width:22px;min-height:26px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;display:inline;">✕</button>
