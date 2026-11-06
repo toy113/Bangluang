@@ -2297,6 +2297,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือบน"> ติดเครื่องมือบน</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือล่าง"> ติดเครื่องมือล่าง</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="เช็ครีเทนเนอร์"> เช็ครีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ปักหมุด"> ปักหมุด</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ถอดเครื่องมือจัดฟัน"> ถอดเครื่องมือจัดฟัน</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="X-ray"> X-ray</label>
@@ -2538,7 +2539,7 @@ const DOCTORS_DATA = [
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
-const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ปรึกษาจัดฟัน','ปรับเครื่องมือ','ติดเครื่องมือบน','ติดเครื่องมือล่าง','ติดเหล็กหลุด','ปักหมุด','ทำรีเทนเนอร์','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
+const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ปรึกษาจัดฟัน','เช็ครีเทนเนอร์','ปรับเครื่องมือ','ติดเครื่องมือบน','ติดเครื่องมือล่าง','ติดเหล็กหลุด','ปักหมุด','ทำรีเทนเนอร์','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
 
 const PROC_COLORS = {
   'ขูดหินปูน':    '#2980B9',
@@ -2559,7 +2560,7 @@ const PROC_COLORS = {
   'เกลารากฟัน':  '#2471A3',
   'รากฟันเทียม': '#922B21',
   'จัดฟัน':      '#6C3483',
-  'ปรึกษาจัดฟัน':'#9C27B0',
+  'ปรึกษาจัดฟัน':'#9C27B0', 'เช็ครีเทนเนอร์':'#00897B',
   'ปรับเครื่องมือ':'#D81B60',
   'ติดเครื่องมือ':'#5E35B1', 'ติดเครื่องมือบน':'#5E35B1', 'ติดเครื่องมือล่าง':'#5E35B1',
   'ติดเหล็กหลุด':'#F4511E',
