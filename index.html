@@ -2934,9 +2934,9 @@ function getDoctorOptions(){
 // ============================================================
 var CRM = { data:null, loading:false, err:'', sub:'today', aptRange:'tomorrow', orthoRange:'week', fuFilter:'all', taskFilter:'open', oldSeg:'gone12', oldQ:'', linkQ:'' };
 var CRM_SUBS = [
-  ['today','🏠','ภาพรวมวันนี้'], ['tasks','📞','งานโทรกลับ'], ['apts','📅','นัดหมาย'], ['orthoapt','😬','นัดจัดฟัน'], ['remind','🔔','เตือนนัด'], ['aftercare','🩹','Aftercare'],
+  ['today','🏠','ภาพรวมวันนี้'], ['tasks','📞','งานโทรกลับ'], ['apts','📅','นัดหมาย'], ['orthoapt','😬','นัดจัดฟัน'], ['remind','🔔','เตือนนัด'], ['links','🔗','LINE Connections'],
   ['followup','🩺','ติดตามอาการ'], ['rating','⭐','คะแนนบริการ'], ['old','🗂️','คนไข้เก่า'], ['sso','🏛️','แคมเปญประกันสังคม'],
-  ['links','🔗','LINE Connections'], ['report','📊','รายงานและต้นทุน'], ['settings','⚙️','ตั้งค่า']
+  ['aftercare','🩹','Aftercare'], ['report','📊','รายงานและต้นทุน'], ['settings','⚙️','ตั้งค่า']
 ];
 // หมอเอม (id 'aim') เห็นเฉพาะ: จัดฟัน · LINE CRM > นัดจัดฟัน · บันทึกการรักษา · สรุปรายได้
 function isOrthoOnlyUser(){ return !!(currentUser && !isManager && currentUser.id==='aim'); }
