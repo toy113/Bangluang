@@ -4112,7 +4112,9 @@ function crmViewLinks(){
   const d=CRM.data, links=d.links||[];
   const pending=links.filter(l=>l.status==='pending');
   const q=CRM.linkQ.trim().toLowerCase();
-  const active=links.filter(l=>l.status==='active' && (!q || (l.patName+' '+l.hn+' '+l.displayName).toLowerCase().includes(q)));
+  const activeAll=links.filter(l=>l.status==='active' && (!q || (l.patName+' '+l.hn+' '+l.displayName).toLowerCase().includes(q)))
+    .sort((x,y)=>String(y.approvedAt||y.createdAt||'').localeCompare(String(x.approvedAt||x.createdAt||'')));   // ผูกล่าสุดอยู่บน
+  const linkShow=CRM.linkShow||10, active=activeAll.slice(0,linkShow);
   const linkedUids=new Set(links.filter(l=>l.status==='active').map(l=>l.lineUserId));
   Object.values(d.linked||{}).forEach(arr=>arr.forEach(x=>linkedUids.add(x.lineUserId)));
   const unlinked=(d.followers||[]).filter(f=>f.status!=='unfollow' && !linkedUids.has(f.lineUserId));
@@ -4133,12 +4135,13 @@ function crmViewLinks(){
     <div class="crm-list">${unlinked.slice(0,100).map(f=>`<div class="crm-item"><div class="main"><div class="nm">${f.pictureUrl?`<img src="${crmEsc(f.pictureUrl)}" style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">`:''}${crmEsc(f.displayName||'(ไม่มีชื่อ)')}</div>
       <div class="meta">เพิ่มเพื่อน ${crmEsc(crmTs(f.followedAt||f.updatedAt))} · ใช้งานล่าสุด ${crmEsc(crmTs(f.lastSeenAt))}</div></div>
       <div class="acts"><input class="form-control" list="crmPatList" id="crmFol_${crmEsc(f.lineUserId)}" placeholder="HN" style="height:34px;width:150px;"><button class="crm-btn p" onclick="crmManualLink('${crmEsc(f.lineUserId)}')">ผูก</button>${(d.caps&&d.caps.followerDelete&&!isViewOnlyUser())?`<button class="crm-btn r" title="ลบออกจากรายการ (ถ้าเขาทักมาใหม่จะกลับมาในรายการเอง)" data-uid="${crmEsc(f.lineUserId)}" data-nm="${crmEsc(f.displayName||'')}" onclick="crmFollowerDelete(this)">🗑 ลบ</button>`:''}</div></div>`).join('')||'<div class="crm-empty">ไม่มี</div>'}</div></div>
-  <div class="crm-card"><h4>✅ ผูกแล้ว (${links.filter(l=>l.status==='active').length})<span class="sp"></span><input class="form-control" style="height:34px;max-width:220px;" placeholder="🔍 ค้นหา" value="${crmEsc(CRM.linkQ)}" oninput="CRM.linkQ=this.value;clearTimeout(window._crmLkT);window._crmLkT=setTimeout(crmRender,250)"></h4>
+  <div class="crm-card"><h4>✅ ผูกแล้ว (${links.filter(l=>l.status==='active').length})<span class="sp"></span><input class="form-control" style="height:34px;max-width:220px;" placeholder="🔍 ค้นหา" value="${crmEsc(CRM.linkQ)}" oninput="CRM.linkQ=this.value;CRM.linkShow=10;clearTimeout(window._crmLkT);window._crmLkT=setTimeout(crmRender,250)"></h4>
     <p class="crm-muted" style="margin-bottom:8px;">คนไข้จัดฟันที่เคยผูกผ่านหน้าจัดฟันเดิม (${Object.keys(d.linked||{}).length - new Set(links.filter(l=>l.status==='active').map(l=>crmHN(l.hn))).size} HN) ใช้งานได้ทันทีโดยไม่ต้องผูกใหม่</p>
     <div class="crm-tablewrap"><table class="crm-table"><tr><th>คนไข้</th><th>LINE</th><th>ที่มา</th><th>รับข้อความ</th><th></th></tr>${active.map(l=>`<tr><td><b>${crmEsc(l.patName)}</b><div class="crm-muted">HN ${crmEsc(l.hn)}</div></td>
       <td>${crmEsc(l.displayName||'-')}</td><td>${crmEsc(src[l.source]||l.source)}<div class="crm-muted">${crmEsc(crmTs(l.approvedAt||l.createdAt))} ${crmEsc(l.approvedBy||'')}</div></td>
       <td>${String(l.consent).toUpperCase()==='FALSE'?'<span class="crm-chip x">ปิด</span>':'<span class="crm-chip g">เปิด</span>'}</td>
-      <td><button class="crm-btn r" onclick="if(confirm('ยกเลิกการผูก ${crmEsc(l.patName)}?'))crmDo({crm:'linkRevoke',id:'${l.id}'},'ยกเลิกการผูกแล้ว')">ยกเลิก</button></td></tr>`).join('')}</table></div></div>`;
+      <td><button class="crm-btn r" onclick="if(confirm('ยกเลิกการผูก ${crmEsc(l.patName)}?'))crmDo({crm:'linkRevoke',id:'${l.id}'},'ยกเลิกการผูกแล้ว')">ยกเลิก</button></td></tr>`).join('')}</table></div>
+    ${activeAll.length>active.length?`<div style="text-align:center;margin-top:10px;"><button class="crm-btn" onclick="CRM.linkShow=(CRM.linkShow||10)+10;crmRender()">แสดงเพิ่มอีก 10 รายการ (แสดง ${active.length} จาก ${activeAll.length})</button></div>`:`<p class="crm-muted" style="text-align:center;margin-top:8px;">${activeAll.length?'แสดงครบ '+activeAll.length+' รายการ':'ไม่พบรายการ'}</p>`}</div>`;
 }
 function crmApproveLink(id, hasHn){
   let hn='', name='';
