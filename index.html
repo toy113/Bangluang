@@ -8258,7 +8258,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   // จุดสถานะยืนยันนัดต่อท้ายชื่อ: เหลือง=รอยืนยัน · ส้ม=ขอเลื่อน · เทา=ยังไม่ผูกไลน์ (ยืนยันแล้ว = ไม่มีจุด)
   function schStateDot_(a){
     let st='noline'; try{ st=crmOrthoState(a); }catch(e){}
-    const M={ wait:['#F2C200','รอยืนยัน'], move:['#F28C28','ขอเลื่อน'], noline:['#9E9E9E','ยังไม่ผูกไลน์'] }[st];
+    const M={ wait:['#E53935','รอยืนยัน'], move:['#F28C28','ขอเลื่อน'], noline:['#9E9E9E','ยังไม่ผูกไลน์'] }[st];
     return M ? `<span title="${M[1]}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${M[0]};flex-shrink:0;"></span>` : '';
   }
   function aptCardCompact(a){
