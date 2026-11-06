@@ -548,10 +548,32 @@ function crmReschedText_(date, word) {
   var d = crmDateOnly_(date);
   return (word || 'ขอเลื่อนนัด') + (d ? ' ' + parseInt(d.slice(8, 10), 10) + '/' + parseInt(d.slice(5, 7), 10) : '');
 }
-function crmAptMessage_(s, apt, kind) {
-  var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '✅ ยืนยันการนัดหมาย');
-  var sub = 'คุณ' + (apt.patName || '') + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ');
-  var rows = [crmRow_('วัน', crmThaiDate_(apt.date)), crmRow_('เวลา', (apt.time || '-') + ' น.')];
+// นัดเดิมที่ถูกเลื่อน: (ก) นัดในตารางนัด id เดิม เปลี่ยนวัน/เวลา (ข) นัดจัดฟันจากการ์ด — วันเก่าส่งยืนยันไปแล้ว แต่ตอนนี้ไม่มีแล้ว (curIds = id ของนัดทั้งหมดที่มีตอนนี้) · ไม่พบ = null
+function crmMoveInfo_(s, state, a, curIds) {
+  var best = null, bestAt = '', prefix = crmKey_(s, 'confirm:' + a.id + ':'), ck = crmKey_(s, 'confirm:' + a.id + ':' + a.date + ':' + (a.time || ''));
+  var hk = crmHN_(a.hn), today = crmToday_();
+  for (var k in state.done) {
+    var lr = state.done[k]; if (!lr) continue;
+    var at = String(lr.createdAt || ''), od = '', ot = '';
+    if (k.indexOf(prefix) === 0 && k.indexOf(ck) !== 0) {
+      var m1 = k.slice(prefix.length).split('>')[0].match(/^(\d{4}-\d{2}-\d{2}):(.*)$/);
+      if (m1) { od = m1[1]; ot = m1[2]; }
+    } else if (a._ortho && lr.type === 'confirm' && (lr.status === 'sent' || lr.status === 'test')) {
+      var m2 = String(lr.refId || '').match(/^ORTHO-(.+)-(\d{4}-\d{2}-\d{2})$/);
+      if (m2 && crmHN_(m2[1]) === hk && m2[2] !== a.date && m2[2] >= today && !curIds[lr.refId]) { od = m2[2]; ot = String(lr.detail || '').split(' ')[1] || ''; }
+    }
+    if (od && at >= bestAt) { best = { date: od, time: ot }; bestAt = at; }
+  }
+  return best;
+}
+function crmAptMessage_(s, apt, kind, mv) {
+  // mv = { date, time } นัดเดิมที่ถูกเลื่อน (kind 'move') — บอกคนไข้ชัดเจนว่าเลื่อนจากวันไหนเป็นวันไหน และนัดเดิมถูกยกเลิกแล้ว
+  var sameDay = !!(mv && mv.date === apt.date);
+  var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'move' ? (sameDay ? '🔄 เปลี่ยนเวลานัดหมาย' : '🔄 เลื่อนนัดหมายแล้ว') : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '✅ ยืนยันการนัดหมาย'));
+  var sub = 'คุณ' + (apt.patName || '') + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : (kind === 'move' ? ' คลินิกได้' + (sameDay ? 'เปลี่ยนเวลา' : 'เลื่อน') + 'นัดหมายของคุณให้แล้วค่ะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ'));
+  var rows = [];
+  if (kind === 'move' && mv) rows.push(crmRow_('นัดเดิม', (sameDay ? '' : crmThaiDate_(mv.date) + ' ') + (mv.time ? mv.time + ' น. ' : '') + '(ยกเลิกแล้ว)'));
+  rows.push(crmRow_(kind === 'move' ? 'นัดใหม่' : 'วัน', crmThaiDate_(apt.date)), crmRow_('เวลา', (apt.time || '-') + ' น.'));
   if (apt.docName) rows.push(crmRow_('ทันตแพทย์', apt.docName));
   if (apt.proc) rows.push(crmRow_('รายการ', apt.proc));
   var buttons = [];
@@ -699,7 +721,8 @@ function crmConfirmOne_(hn) {
     var orthoAll = crmReadByName_('ortho').filter(function (o) { return crmHN_(o.hn) === k; });
     var apts = crmAptsWithOrtho_(crmReadByNameWhere_('ตารางนัด', crmHnTest_(hnSet)), orthoAll);
     var state = crmLogKeys_(); state.pushBudget = budget;
-    var closed = ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ', 'walk-in'];
+    var closed = ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ', 'walk-in'], curIds1 = {};
+    apts.forEach(function (a) { if (a.id) curIds1[a.id] = true; });
     apts.forEach(function (a) {
       a.date = crmDateOnly_(a.date);
       if (!a.id || !a.date || a.date < today || closed.indexOf(a.status) !== -1) return;
@@ -708,9 +731,10 @@ function crmConfirmOne_(hn) {
       if (crmIsDone_(state, ck)) return;
       var prefix = crmKey_(s, 'confirm:' + a.id + ':'), changed = false;
       for (var kk in state.done) if (kk.indexOf(prefix) === 0 && kk.indexOf(ck) !== 0) { changed = true; break; }
+      var mvI = crmMoveInfo_(s, state, a, curIds1);
       tg.forEach(function (t) {
         if (crmSend_(s, state, { key: ck + '>' + t.lineUserId, type: 'confirm', hn: a.hn, patName: a.patName, lineUserId: t.lineUserId, refId: a.id, detail: a.date + ' ' + (a.time || '') },
-          [crmAptMessage_(s, a, changed ? 'change' : 'confirm')])) summary.confirm++;
+          [crmAptMessage_(s, a, mvI ? 'move' : (changed ? 'change' : 'confirm'), mvI)])) summary.confirm++;
       });
       if (crmAllDone_(state, ck, tg)) crmMark_(state, ck, 'confirm', { hn: a.hn, patName: a.patName, refId: a.id }, 'done', '');
     });
@@ -822,7 +846,8 @@ function crmTickInner_() {
   function targets(hn) { return (links[crmHN_(hn)] || []).filter(function (x) { return x.consent; }); }
 
   // 1) ยืนยันนัด (+ รวบรวมนัดที่ต้องเตือน)
-  var remindGroups = {};
+  var remindGroups = {}, curIdsT = {};
+  apts.forEach(function (a) { if (a.id) curIdsT[a.id] = true; });
   apts.forEach(function (a) {
     a.date = crmDateOnly_(a.date);
     if (!a.id || !a.date || a.date < today || closed.indexOf(a.status) !== -1) return;
@@ -839,9 +864,10 @@ function crmTickInner_() {
       if (!crmIsDone_(state, ck)) {
         var prefix = crmKey_(s, 'confirm:' + a.id + ':'), changed = false;
         for (var k in state.done) if (k.indexOf(prefix) === 0 && k.indexOf(ck) !== 0) { changed = true; break; }
+        var mvI = crmMoveInfo_(s, state, a, curIdsT);
         tg.forEach(function (t) {
           if (crmSend_(s, state, { key: ck + '>' + t.lineUserId, type: 'confirm', hn: a.hn, patName: a.patName, lineUserId: t.lineUserId, refId: a.id, detail: a.date + ' ' + (a.time || '') },
-            [crmAptMessage_(s, a, changed ? 'change' : 'confirm')])) summary.confirm++;
+            [crmAptMessage_(s, a, mvI ? 'move' : (changed ? 'change' : 'confirm'), mvI)])) summary.confirm++;
         });
         if (crmAllDone_(state, ck, tg)) crmMark_(state, ck, 'confirm', { hn: a.hn, patName: a.patName, refId: a.id }, 'done', '');
       }
