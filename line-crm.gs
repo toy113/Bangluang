@@ -61,7 +61,7 @@ var CRM_DEFAULT_SETTINGS = {
   birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
   birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
   followupOn: true, followupHour: '10:00',
-  ratingOn: true, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
+  ratingOn: false, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
   clinicPhone: '095-947-6759',
   linkApproval: 'staff',     // staff = พนักงานต้องกดอนุมัติการผูกบัญชี, auto = เบอร์+ชื่อตรงก็ผูกเลย
@@ -81,6 +81,11 @@ function crmSettings_() {
   // ย้ายค่าครั้งเดียว: เตือนนัดล่วงหน้า 2 วันทุกประเภท (ค่าเดิมที่เคยบันทึกไว้เป็น 1 วัน) — หลังจากนี้ปรับเองในตั้งค่าได้ตามปกติ
   if (raw && s.remind2dMigrated !== true) {
     s.orthoDays = 2; s.otherDays = 2; s.remind2dMigrated = true;
+    try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
+  }
+  // ย้ายค่าครั้งเดียว: ปิดการถามคะแนนบริการ (6 พ.ย. 69 ตามที่คลินิกสั่ง) — หลังจากนี้เปิดเองได้ในตั้งค่า "ให้คะแนนบริการ"
+  if (raw && s.ratingOffMigrated !== true) {
+    s.ratingOn = false; s.ratingOffMigrated = true;
     try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
   }
   var out = {};
