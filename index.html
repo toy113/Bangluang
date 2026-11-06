@@ -1566,7 +1566,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="page" id="page-schedule">
 
       <!-- Top bar: วันที่ + เพิ่มนัด -->
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div id="schTopBar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
         <button onclick="schChangeDay(-1)" class="btn btn-ghost" style="padding:6px 12px;font-size:18px;">‹</button>
         <input type="date" class="form-control" id="schDate" onchange="renderScheduleDay()" style="height:36px;width:160px;font-weight:700;color:var(--wine-dark);">
         <button onclick="schChangeDay(1)" class="btn btn-ghost" style="padding:6px 12px;font-size:18px;">›</button>
@@ -1592,7 +1592,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="card-box" id="schMonthlyBox">
         <div class="card-box-hdr">
           <div class="card-box-title">📆 ภาพรวมนัดตลอดเดือน</div>
-          <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button onclick="schJumpTop()" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;border:1.5px solid var(--border);" title="เด้งขึ้นไปดูนัดรายวันด้านบนทันที">⬆️ ขึ้นไปด้านบน</button>
             <button onclick="schCalPrevMonth()" class="btn btn-ghost" style="padding:4px 10px;">‹</button>
             <span id="schCalMonthLabel" style="font-size:13px;font-weight:700;color:var(--wine-dark);"></span>
             <button onclick="schCalNextMonth()" class="btn btn-ghost" style="padding:4px 10px;">›</button>
@@ -8264,6 +8265,10 @@ function schCalNextMonth(){
 }
 function schJumpMonthly(){   // เด้งลงไปที่ปฏิทินภาพรวมนัดตลอดเดือนทันที (ไม่เลื่อนช้า)
   const el=document.getElementById('schMonthlyBox'); if(!el) return;
+  el.scrollIntoView({behavior:'instant',block:'start'});
+}
+function schJumpTop(){   // เด้งขึ้นไปด้านบนสุดของหน้าดูนัดทันที
+  const el=document.getElementById('schTopBar'); if(!el) return;
   el.scrollIntoView({behavior:'instant',block:'start'});
 }
 function renderSchMiniCal(){
