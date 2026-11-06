@@ -1159,6 +1159,43 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   /* แท็บบนสุด */
   .top-tab { padding-top: 9px; padding-bottom: 9px; }
 }
+
+/* ---- มือถือ: ตารางนัดหน้าหลัง = การ์ดต่อคนไข้ (ชื่อเด่น เวลาซ้าย รายการ/สถานะเรียงใต้ชื่อ) ---- */
+@media (max-width: 768px) {
+  .apt-hdr { display: none !important; }
+  #aptList .apt-row { display: grid !important; grid-template-columns: 58px auto minmax(0,1fr) !important; column-gap: 8px !important; row-gap: 6px !important; align-items: start !important; padding: 14px 14px 14px 12px !important; font-size: 13px !important; }
+  #aptList .apt-row > div { display: block !important; min-width: 0; }
+  #aptList .apt-row > div:first-child { grid-column: 1; grid-row: 1 / span 6; font-size: 16px; font-family: 'Prompt',sans-serif; padding-top: 1px; }
+  /* ผู้จัดการ (มีเบอร์โทร/หมอ): 1 เวลา 2 HN 3 ชื่อ 4 เบอร์ 5 รายการ 6 หมายเหตุ 7 หมอ 8 สถานะ */
+  #aptList .apt-row.with-phone > div:nth-child(2) { grid-column: 2; grid-row: 1; font-size: 12px; }
+  #aptList .apt-row.with-phone > div:nth-child(4) { grid-column: 3; grid-row: 1; font-size: 12px; text-align: right; }
+  #aptList .apt-row.with-phone > div:nth-child(3) { grid-column: 2 / -1; grid-row: 2; font-size: 15px; line-height: 1.5; }
+  #aptList .apt-row.with-phone > div:nth-child(5) { grid-column: 2 / -1; grid-row: 3; }
+  #aptList .apt-row.with-phone > div:nth-child(6) { grid-column: 2 / -1; grid-row: 4; }
+  #aptList .apt-row.with-phone > div:nth-child(7) { grid-column: 2 / -1; grid-row: 5; }
+  #aptList .apt-row.with-phone.grouped > div:nth-child(7) { display: none !important; }
+  #aptList .apt-row.with-phone > div:nth-child(8) { grid-column: 2 / -1; grid-row: 6; display: flex !important; flex-wrap: wrap; align-items: center; gap: 8px; }
+  /* หมอ (ไม่มีเบอร์): 1 เวลา 2 HN 3 ชื่อ 4 รายการ 5 หมายเหตุ 6 สถานะ */
+  #aptList .apt-row.no-phone > div:nth-child(2) { grid-column: 2 / -1; grid-row: 1; font-size: 12px; }
+  #aptList .apt-row.no-phone > div:nth-child(3) { grid-column: 2 / -1; grid-row: 2; font-size: 15px; line-height: 1.5; }
+  #aptList .apt-row.no-phone > div:nth-child(4) { grid-column: 2 / -1; grid-row: 3; }
+  #aptList .apt-row.no-phone > div:nth-child(5) { grid-column: 2 / -1; grid-row: 4; }
+  #aptList .apt-row.no-phone > div:nth-child(6) { grid-column: 2 / -1; grid-row: 5; display: flex !important; flex-wrap: wrap; align-items: center; gap: 8px; }
+  #aptList .apt-row .apt-note.empty { display: none !important; }
+  #aptList .apt-row > div:last-child > div { margin: 0; }
+  #aptList .apt-row > div:last-child .crm-chip, #aptList .apt-row > div:last-child .btn, #aptList .apt-row > div:last-child .crm-btn { margin-top: 0 !important; }
+  #aptList .apt-row > div:last-child .btn, #aptList .apt-row > div:last-child .crm-btn { min-height: 36px; padding: 6px 14px !important; font-size: 13px !important; border-radius: 10px; }
+  #aptList .apt-row > div:last-child .badge { font-size: 12px; padding: 4px 12px; }
+  #aptList > div[style*="border-left:4px"] { margin: 14px 10px 6px !important; padding: 10px 14px !important; border-radius: 12px !important; font-size: 14px !important; }
+  /* ---- การ์ดแท็บจัดฟัน ---- */
+  .oc-card { border-radius: 18px !important; padding: 16px !important; margin-bottom: 14px !important; border-color: rgba(107,45,94,0.14) !important; box-shadow: 0 2px 12px rgba(107,45,94,0.06); }
+  .oc-card.oc-over { border-color: rgba(225,31,49,0.45) !important; background: #fffafa !important; }
+  .oc-card .oc-stats { text-align: left !important; width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; padding: 10px 12px; background: var(--cream); border-radius: 12px; font-size: 13px !important; }
+  .oc-card .oc-stats > div { white-space: nowrap; }
+  .oc-card .oc-acts { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; margin-top: 14px !important; }
+  .oc-card .oc-acts .btn { width: 100%; justify-content: center; padding: 8px 6px; font-size: 13px; }
+  .oc-card .oc-acts .btn:first-child { grid-column: 1 / -1; }
+}
 </style>
 </head>
 <body>
@@ -4635,7 +4672,7 @@ function renderAptList(today){
       <div><div style="font-weight:600">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</div></div>
       ${isManager ? `<div style="font-size:12px;color:var(--text-mid)">${a.phone||'—'}${contactTag(a.contactChannel)}</div>` : ''}
       <div style="font-size:12px;">${procBadge(a.proc)}</div>
-      <div style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note||'—'}</div>
+      <div class="apt-note${a.note?'':' empty'}" style="font-size:12px;color:var(--text-light);font-style:${a.note?'normal':'italic'}">${a.note?'📝 '+a.note:'—'}</div>
       ${isManager ? `<div style="font-size:12px;font-weight:700;color:${docColor(a.docName)}">${a.docName}</div>` : ''}
       <div>
         ${a._ortho ? `<span class="${statusClass(a.status)}" title="นัดจากการ์ดจัดฟัน — เปิดการ์ดเพื่อแก้ไข" style="cursor:pointer;" onclick="openOrthoHistory('${String(a.hn||'').replace(/'/g,"\\'")}')">🦷 ${a.status}</span>` : `<span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'}">${a.status}</span>`}
@@ -11436,7 +11473,7 @@ function orthoCardHtml(r){
     scaleLine = `<div style="font-size:12px;margin-top:4px;color:var(--text-mid);" onclick="event.stopPropagation()">🧼 ขูดหินปูนล่าสุด: ${ls ? `<b style="color:var(--wine-dark);">${thaiDate_(ls.date)}</b> <span style="color:var(--text-light);">(${orthoAgoText_(ls.date)} · ${ls.src})</span>` : '<span style="color:var(--text-light);">ยังไม่มีข้อมูล</span>'} <button class="btn btn-ghost btn-sm" style="padding:1px 8px;font-size:11px;" onclick="openScalingEdit('${hnEsc}')">${ls ? '✏️ แก้' : '＋ กรอกวันที่'}</button></div>`;
   }
   const missedPill = (isActive && orthoMissedAppt_(r)) ? `<span style="background:#E67E22;color:#fff;border-radius:20px;font-size:10px;font-weight:800;padding:2px 8px;animation:pulse 1.5s infinite;">⏰ ขาดนัด</span>` : '';
-  return `<div style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
+  return `<div class="oc-card${overdue?' oc-over':''}" style="border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;cursor:pointer;" onclick="openOrthoHistory('${hnEsc}')">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
       <div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -11448,14 +11485,14 @@ function orthoCardHtml(r){
         ${scaleLine}
         ${bound}
       </div>
-      <div style="text-align:right;font-size:12px;">
+      <div class="oc-stats" style="text-align:right;font-size:12px;">
         <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r)}</strong> ครั้ง</div>
         ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
         ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>${crmOrthoAptBadge(r)}`:''}
         ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
       </div>
     </div>
-    ${isViewOnlyUser()?'':`<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+    ${isViewOnlyUser()?'':`<div class="oc-acts" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
       <button class="btn btn-ghost btn-sm" onclick="openOrthoForm('${hnEsc}')">✏️ แก้ไข</button>
       <button class="btn btn-ghost btn-sm" onclick="openQuickLog('${hnEsc}')">⚡ ประวัติปรับเครื่องมือ</button>
       <button class="btn btn-ghost btn-sm" onclick="openReschedule('${hnEsc}')">📅 นัดถัดไป</button>
