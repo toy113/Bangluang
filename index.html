@@ -2999,16 +2999,17 @@ function crmIsOrtho(a){
 function crmLogFor(type, refId){ return ((CRM.data&&CRM.data.log)||[]).filter(r=>r.type===type && String(r.refId).split(',').includes(String(refId))); }
 // นัดจัดฟัน (การ์ดจัดฟัน คอลัมน์ นัดถัดไป) → id เสมือนแบบเดียวกับฝั่งเซิร์ฟเวอร์ ORTHO-<HN>-<วันที่>
 function crmOrthoAptId(hn, date){ return 'ORTHO-'+crmHN(hn)+'-'+String(date||'').slice(0,10); }
-function crmCalDupOf(hn, date, time){
-  const k=crmHN(hn), d=String(date||'').slice(0,10), tm=String(time||'').slice(0,5);
-  return (appointments||[]).find(a=>crmHN(a.hn)===k && a.date===d && !['ยกเลิก','walk-in'].includes(a.status) && (!tm || !a.time || String(a.time).slice(0,5)===tm)) || null;
+function crmCalDupOf(hn, date, time, doc){
+  const k=crmHN(hn), d=String(date||'').slice(0,10), tm=String(time||'').slice(0,5), cd=doc?docAlias(doc):'';
+  // หมอคนละคนในวัน+เวลาเดียวกัน = คนละนัด (เช่น หมอจัดฟัน + หมออื่นขูดหินปูน) ไม่ถือว่าซ้ำ
+  return (appointments||[]).find(a=>crmHN(a.hn)===k && a.date===d && !['ยกเลิก','walk-in'].includes(a.status) && (!tm || !a.time || String(a.time).slice(0,5)===tm) && (!cd || !a.docName || docAlias(a.docName)===cd)) || null;
 }
 // สถานะ LINE ของนัดจัดฟัน: คนไข้กดยืนยัน / ขอเลื่อน (ถ้านัดซ้ำกับตารางนัด ระบบใช้ id ของตารางนัด)
 function crmOrthoAptRec(r){
   if(!r || !r['นัดถัดไป']) return null;
   try{ if(!CRM.data){ const c=localStorage.getItem('bl_crm_cache'); if(c){ const cd=JSON.parse(c); if(cd && cd.ok) CRM.data=cd; } } }catch(e){}
   const recs=(CRM.data&&CRM.data.apt)||[]; if(!recs.length) return null;
-  const dup=crmCalDupOf(r.hn, r['นัดถัดไป'], r['นัดถัดไปเวลา']);
+  const dup=crmCalDupOf(r.hn, r['นัดถัดไป'], r['นัดถัดไปเวลา'], r['หมอ']);
   const id=dup ? String(dup.id) : crmOrthoAptId(r.hn, r['นัดถัดไป']);
   return recs.find(x=>String(x.aptId)===id) || null;
 }
@@ -3305,7 +3306,7 @@ function crmViewApts(){
     (orthoData||[]).forEach(o=>{
       const d=String(o['นัดถัดไป']||'').slice(0,10);
       if(!d || d<r[0] || d>r[1] || (o['สถานะ'] && o['สถานะ']!=='กำลังจัด')) return;
-      if(crmCalDupOf(o.hn, d, o['นัดถัดไปเวลา'])) return;
+      if(crmCalDupOf(o.hn, d, o['นัดถัดไปเวลา'], o['หมอ'])) return;
       list.push({ id:crmOrthoAptId(o.hn,d), _ortho:true, date:d, time:String(o['นัดถัดไปเวลา']||'').slice(0,5), hn:o.hn, patName:o['ชื่อ']||'', proc:o['รายการนัดถัดไป']||'นัดจัดฟัน', docName:o['หมอ']||'', status:'นัดจัดฟัน', note:o['หมายเหตุนัดถัดไป']||'' });
     });
   }
@@ -3341,7 +3342,7 @@ function crmOrthoAptList(r0, r1){
     (orthoData||[]).forEach(o=>{
       const d=String(o['นัดถัดไป']||'').slice(0,10);
       if(!d || d<r0 || d>r1 || (o['สถานะ'] && o['สถานะ']!=='กำลังจัด')) return;
-      if(crmCalDupOf(o.hn, d, o['นัดถัดไปเวลา'])) return;
+      if(crmCalDupOf(o.hn, d, o['นัดถัดไปเวลา'], o['หมอ'])) return;
       // นัดในตารางนัดที่ไม่มี HN แต่จับคู่จากรหัสได้ (คนเดียวกัน วันเดียวกัน หมอเดียวกัน) = นัดเดียวกัน → ไม่แสดงนัดจากการ์ดซ้ำ
       const _cd=docAlias(o['หมอ']||'')||orthoDefaultDoc_();
       if(list.some(a=>a._hnFromCode && crmHN(a.hn)===crmHN(o.hn) && a.date===d && (!a.docName || docAlias(a.docName)===_cd))) return;
@@ -5124,6 +5125,7 @@ async function orthoSyncFromApt_(apt, oldApt){
     if(!orthoProcLike_(apt.proc) && !/^A-\d+$/.test(String(apt.orthoCode||''))) return;
     try{ await loadOrthoData(true); }catch(e){}   // ดึงการ์ดล่าสุดก่อนเขียน กันทับข้อมูลที่เครื่องอื่นเพิ่งบันทึก
     const rec = orthoCardForApt_(apt); if(!rec) return;
+    if(apt.docName && rec['หมอ'] && docAlias(apt.docName)!==docAlias(rec['หมอ'])) return;   // นัดของหมออื่น (เช่น ขูดหินปูน) ไม่เขียนทับนัดจัดฟันในการ์ด
     if(apt.date < todayStr()) return;
     const cur = String(rec['นัดถัดไป']||'').slice(0,10), curT = String(rec['นัดถัดไปเวลา']||'').slice(0,5), aT = String(apt.time||'').slice(0,5);
     const isSame = cur===apt.date && (!curT || !aT || curT===aT);

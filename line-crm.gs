@@ -756,6 +756,12 @@ function crmArchiveLog_(keepDays) {
 }
 // นัดจัดฟัน (เก็บในการ์ดจัดฟัน คอลัมน์ นัดถัดไป) → แปลงเป็นแถวนัดเสมือน (id = ORTHO-<HN>-<วันที่นัด> วันนัดใหม่ = นัดใหม่) รวมกับตารางนัด
 // เพื่อให้ได้ข้อความยืนยัน/เปลี่ยนนัด/เตือนนัด + ปุ่มขอเลื่อนเหมือนนัดทั่วไป · ถ้ามีนัดในตารางนัดวันเดียวกัน (เวลาตรง หรือฝั่งใดไม่ระบุเวลา) ถือว่าซ้ำ ใช้แถวของตารางนัด ไม่สร้างเสมือน
+// หมอคนเดียวกัน? (ตัดคำนำหน้า/ช่องว่าง) — ใช้ตัดสินว่านัดในตารางนัดซ้ำกับนัดจัดฟันในการ์ดหรือไม่ · หมอคนละคนในวัน+เวลาเดียวกัน = คนละนัด (เช่น หมอจัดฟัน + หมออื่นขูดหินปูน)
+function crmSameDoc_(a, b) {
+  var f = function (v) { return String(v || '').replace(/\s+/g, '').replace(/^(ทพญ\.|ทพ\.|หมอ)/, ''); };
+  var x = f(a), y = f(b);
+  return !x || !y || x === y;
+}
 function crmAptsWithOrtho_(apts, orthoRows) {
   var closedSt = ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ', 'walk-in'];
   var out = apts.slice();
@@ -768,7 +774,8 @@ function crmAptsWithOrtho_(apts, orthoRows) {
     // กันส่ง LINE ยืนยัน/เตือนนัดที่ยกเลิกไปแล้ว หรือนัดที่คนไข้มาแล้ว
     var dup = apts.some(function (a) {
       return crmHN_(a.hn) === k && crmDateOnly_(a.date) === d
-        && (!tm || !a.time || String(a.time).slice(0, 5) === tm);
+        && (!tm || !a.time || String(a.time).slice(0, 5) === tm)
+        && crmSameDoc_(a.docName, o['หมอ']);
     });
     if (dup) return;
     out.push({ id: 'ORTHO-' + k + '-' + d, date: d, time: tm, docName: o['หมอ'] || '', hn: o.hn, patName: o['ชื่อ'] || '',
@@ -1492,7 +1499,7 @@ function crmPortal_(p) {
       var od = crmDateOnly_(oNext['นัดถัดไป']);
       if (od && od >= today) {
         var ot = String(oNext['นัดถัดไปเวลา'] || '').trim().slice(0, 5);
-        var dup = apts.some(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) === od && (!ot || !x.time || String(x.time).slice(0, 5) === ot); });
+        var dup = apts.some(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) === od && (!ot || !x.time || String(x.time).slice(0, 5) === ot) && crmSameDoc_(x.docName, oNext['หมอ']); });
         if (!dup) {
           next.push({ id: 'ortho-' + k, date: od, time: ot, proc: oNext['รายการนัดถัดไป'] || 'นัดจัดฟัน', docName: oNext['หมอ'] || '', kind: 'ortho' });
           next.sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); });
