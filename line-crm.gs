@@ -688,10 +688,7 @@ function crmConfirmOne_(hn) {
     var hm = crmHM_(), today = crmToday_();
     if (hm < s.sendStart || hm >= s.sendEnd) { summary.skipped.push('outside_window'); return summary; }
     var k = crmHN_(hn); if (!k) { summary.skipped.push('no_hn'); return summary; }
-    var budget = 20, qc = null;
-    try { var qs = CacheService.getScriptCache().get('crm_quota'); if (qs) qc = JSON.parse(qs); } catch (e) {}
-    if (qc && qc.remaining !== null && qc.remaining !== undefined) budget = Math.min(budget, Math.max(0, qc.remaining - (+s.quotaGuard || 0)));
-    if (budget <= 0) { summary.skipped.push('quota'); return summary; }
+    var budget = 20;   // บัญชีรายเดือน — ไม่หยุดส่งตามโควตาแล้ว (budget = เพดานต่อรอบเท่านั้น)
     var links = crmLinkMap_();
     var tg = (links[k] || []).filter(function (x) { return x.consent; });
     if (!tg.length) { summary.skipped.push('no_line'); return summary; }
@@ -801,10 +798,7 @@ function crmTickInner_() {
   if (s.testMode && !s.testUserId) { summary.skipped.push('no_test_user'); return summary; }
   var hm = crmHM_(), today = crmToday_();
   if (hm < s.sendStart || hm >= s.sendEnd) { summary.skipped.push('outside_window'); return summary; }
-  var quota = crmQuota_();
-  var budget = 150;
-  if (quota && quota.remaining !== null && quota.remaining !== undefined) budget = Math.min(budget, Math.max(0, quota.remaining - (+s.quotaGuard || 0)));
-  if (budget <= 0) { summary.skipped.push('quota'); return summary; }
+  var budget = 150;   // บัญชีรายเดือน — ไม่หยุดส่งตามโควตาแล้ว (budget = เพดานต่อรอบเท่านั้น)
   var state = crmLogKeys_(); state.pushBudget = budget;
   var links = crmLinkMap_();
   var orthoAll = crmReadByName_('ortho');
@@ -1868,8 +1862,6 @@ function crmCampaignSend_(b, by) {
     rec.status = ok ? 'test' : 'failed'; rec.sent = ok ? 1 : 0; crmAppend_('campaigns', rec);
     return { ok: ok, test: true, targets: uids.length };
   }
-  var q = crmQuota_(true);
-  if (q.remaining !== null && q.remaining !== undefined && q.remaining - (+s.quotaGuard || 0) < uids.length) return { ok: false, error: 'โควตาไม่พอ (เหลือ ' + q.remaining + ', ต้องใช้ ' + uids.length + ')' };
   var sent = 0;
   for (var i = 0; i < uids.length; i += 500) {
     var batch = uids.slice(i, i + 500);

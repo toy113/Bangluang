@@ -3193,8 +3193,8 @@ function crmSetupHelp(err){
 function crmStatusBar(){
   const d=CRM.data, s=d.settings||{};
   const mode = !s.enabled ? ['ปิดอยู่','#9a93a3'] : (s.testMode ? ['โหมดทดสอบ','#A26608'] : ['ส่งจริง','#1D825C']);
-  const q=d.quota||{};
-  const qTxt = q.limit!=null ? `โควตา ${q.used??'?'}/${q.limit}` : (q.type==='none'?'โควตาไม่จำกัด':'');
+  const _st=(d.stats||{})[todayStr().slice(0,7)]||{sent:0};
+  const qTxt = 'ส่งเดือนนี้ '+(_st.sent||0)+' ข้อความ';
   const tick = d.lastTick && d.lastTick.at ? 'รอบล่าสุด '+String(d.lastTick.at).slice(11,16) : '';
   return `<div class="crm-status"><span><span class="crm-dot" style="background:${mode[1]}"></span><b style="color:${mode[1]}">${mode[0]}</b></span>
     ${!d.tickInstalled?'<span class="crm-chip r">ยังไม่ได้ติดตั้ง trigger</span>':''}${!d.tokenSet?'<span class="crm-chip r">ยังไม่ได้ตั้ง LINE token</span>':''}
@@ -3253,7 +3253,7 @@ function crmViewToday(){
     <div class="crm-kpi"><div class="l">ถามอาการวันนี้</div><div class="v">${fuToday.length}</div><div class="s">ตอบแล้ว ${fuToday.filter(f=>f.answeredAt).length}</div></div>
     <div class="crm-kpi ${c.fuAlert?'alert':''}"><div class="l">อาการต้องดูแล (2 วัน)</div><div class="v">${c.fuAlert}</div><div class="s">รุนแรง / ฉุกเฉิน / ขอโทรกลับ</div></div>
     <div class="crm-kpi"><div class="l">คนไข้ที่ผูก LINE</div><div class="v">${linkedHns}</div><div class="s">รออนุมัติ ${c.linksPending}</div></div>
-    <div class="crm-kpi"><div class="l">โควตาเดือนนี้</div><div class="v">${q.limit!=null?(q.remaining??'?'):'—'}</div><div class="s">${q.limit!=null?('ใช้ไป '+(q.used??'?')+' จาก '+q.limit):(q.error?'อ่านโควตาไม่ได้':'ไม่จำกัด/ไม่ทราบ')}</div></div>
+    <div class="crm-kpi"><div class="l">ส่งเดือนนี้</div><div class="v">${((d.stats||{})[todayStr().slice(0,7)]||{}).sent||0}</div><div class="s">ข้อความที่ระบบส่งออก</div></div>
   </div>
   <div class="crm-card"><h4>✅ ความพร้อมของระบบ ${ready?'<span class="crm-chip g">พร้อมใช้งาน</span>':''}</h4>
     <div class="crm-check">${checklist.map(x=>`<div><span>${x[0]?'✅':'⬜'}</span><span>${crmEsc(x[1])}</span></div>`).join('')}</div>
@@ -4018,11 +4018,11 @@ function crmFuCalled(id){
   crmDo({crm:'fuCalled', id, note}, 'บันทึกการโทรแล้ว ✅');
 }
 function crmAmtResend(id){
-  if(!window.confirm('ส่งการ์ด "แก้ไขสรุปค่าใช้จ่าย" ให้คนไข้ทาง LINE ตอนนี้? (ใช้โควตา 1 ข้อความ)')) return;
+  if(!window.confirm('ส่งการ์ด "แก้ไขสรุปค่าใช้จ่าย" ให้คนไข้ทาง LINE ตอนนี้? (ส่ง 1 ข้อความ)')) return;
   crmDo({crm:'amtResend', id}, 'ส่งการ์ดแก้ไขแล้ว ✅');
 }
 function crmCancelSend(id){
-  if(!window.confirm('ส่งข้อความ "แจ้งยกเลิกนัด" ให้คนไข้ทาง LINE ตอนนี้? (ใช้โควตา 1 ข้อความ)')) return;
+  if(!window.confirm('ส่งข้อความ "แจ้งยกเลิกนัด" ให้คนไข้ทาง LINE ตอนนี้? (ส่ง 1 ข้อความ)')) return;
   crmDo({crm:'cancelSend', id}, 'ส่งข้อความแจ้งยกเลิกแล้ว ✅');
 }
 function crmCloseTask(id){
@@ -4103,7 +4103,7 @@ function crmCampaign(key){
     : `สวัสดีค่ะ จาก${s.clinicName||'คลินิก'} 🦷\nไม่ได้พบกันนานแล้ว ถึงเวลาตรวจสุขภาพช่องปากและขูดหินปูนประจำ 6 เดือนแล้วนะคะ\n\nนัดหมายโทร ${s.clinicPhone||''} หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ`;
   const q=CRM.data.quota||{};
   crmModal(`<h3>✉️ ส่งข้อความ LINE ถึง ${list.length} คน</h3>
-    ${s.testMode?'<div class="crm-alert o">โหมดทดสอบ: จะส่งตัวอย่าง 1 ข้อความไปที่บัญชีทดสอบเท่านั้น</div>':`<div class="crm-alert o">ส่งจริง ${list.length} ข้อความ (ใช้โควตา ${list.length}${q.remaining!=null?' จากที่เหลือ '+q.remaining:''}) — ส่งเฉพาะคนที่ยินยอมรับข้อความ</div>`}
+    ${s.testMode?'<div class="crm-alert o">โหมดทดสอบ: จะส่งตัวอย่าง 1 ข้อความไปที่บัญชีทดสอบเท่านั้น</div>':`<div class="crm-alert o">ส่งจริง ${list.length} ข้อความ — ส่งเฉพาะคนที่ยินยอมรับข้อความ</div>`}
     <div class="crm-form"><div class="full"><label>ชื่อแคมเปญ</label><input class="form-control" id="crmCampName" value="${crmEsc(key.startsWith('sso')?'ปกส ปี '+(+todayStr().slice(0,4)+543):'คนไข้ไม่กลับมา 12 เดือน')}"></div>
     <div class="full"><label>ข้อความ</label><textarea class="form-control" id="crmCampText" style="min-height:150px;">${crmEsc(def)}</textarea></div></div>
     <div class="foot"><button class="crm-btn" onclick="crmCloseModal()">ยกเลิก</button><button class="crm-btn p" id="crmCampGo">${s.testMode?'ส่งตัวอย่าง':'ยืนยันส่ง '+list.length+' คน'}</button></div>`);
@@ -4194,16 +4194,14 @@ function crmViewReport(){
   const thisM=todayStr().slice(0,7), cur=st[thisM]||{sent:0,byType:{}};
   const day=+todayStr().slice(8,10), dim=new Date(+thisM.slice(0,4), +thisM.slice(5,7), 0).getDate();
   const proj=Math.round((cur.sent||0)/Math.max(day,1)*dim);
+  const sentToday=(d.log||[]).filter(r=>r.status==='sent' && String(r.createdAt||'').slice(0,10)===todayStr()).length;
   return `<div class="crm-kpis">
-      <div class="crm-kpi"><div class="l">ส่งเดือนนี้ (นับโควตา)</div><div class="v">${cur.sent||0}</div><div class="s">คาดการณ์ทั้งเดือน ~${proj}</div></div>
-      <div class="crm-kpi"><div class="l">โควตาตามแพ็กเกจ</div><div class="v">${q.limit!=null?q.limit:'—'}</div><div class="s">${q.type==='limited'?'จำกัดต่อเดือน':(q.type==='none'?'ไม่จำกัด':'ไม่ทราบ')}</div></div>
-      <div class="crm-kpi"><div class="l">LINE รายงานว่าใช้ไป</div><div class="v">${q.used??'—'}</div><div class="s">รวมข้อความที่ส่งจาก LINE OA Manager</div></div>
-      <div class="crm-kpi ${q.remaining!=null&&q.remaining<proj-(cur.sent||0)?'alert':''}"><div class="l">คงเหลือ</div><div class="v">${q.remaining??'—'}</div><div class="s">${q.remaining!=null&&q.remaining<proj-(cur.sent||0)?'อาจไม่พอถึงสิ้นเดือน':'อัปเดต '+crmEsc(String(q.checkedAt||'').slice(11,16))}</div></div></div>
-  <div class="crm-card"><h4>💡 อะไรนับโควตา<span class="sp"></span><button class="crm-btn" onclick="crmDo({crm:'refreshQuota'},'อัปเดตโควตาแล้ว')">อัปเดตโควตา</button></h4>
-    <div class="crm-check"><div>💬 <span><b>นับโควตา (push):</b> ยืนยันนัด, เตือนนัด, Aftercare, คำแนะนำพิเศษ, ถามอาการ, แคมเปญ — 1 ข้อความต่อคนต่อครั้ง</span></div>
-      <div>🆓 <span><b>ไม่นับ (reply):</b> ตอบกลับเมื่อคนไข้กดปุ่ม ยืนยัน/ขอเลื่อน/ตอบอาการ, ข้อความต้อนรับ, ข้อความตอบรับอาการฉุกเฉิน</span></div>
-      <div>⚙️ <span>ลดการใช้โควตา: ปิด "ถามอาการ" ใน template ที่ไม่จำเป็น, ปิดยืนยันนัดทันที (เหลือแค่เตือนก่อนนัด) ได้ที่ ตั้งค่า</span></div>
-      <div>🛡️ <span>ระบบหยุด push อัตโนมัติเมื่อโควตาเหลือ ≤ ${crmEsc(d.settings.quotaGuard)} (ตั้งค่า)</span></div></div></div>
+      <div class="crm-kpi"><div class="l">ส่งเดือนนี้</div><div class="v">${cur.sent||0}</div><div class="s">ข้อความที่ระบบส่งออก · คาดการณ์ทั้งเดือน ~${proj}</div></div>
+      <div class="crm-kpi"><div class="l">ส่งวันนี้</div><div class="v">${sentToday}</div><div class="s">นับเฉพาะที่ส่งจริง</div></div>
+      <div class="crm-kpi"><div class="l">เฉลี่ยต่อวัน</div><div class="v">${Math.round((cur.sent||0)/Math.max(day,1))}</div><div class="s">เฉลี่ยตั้งแต่ต้นเดือน</div></div></div>
+  <div class="crm-card"><h4>💡 อะไรนับเป็นข้อความที่ส่ง</h4>
+    <div class="crm-check"><div>💬 <span><b>นับ (push):</b> ยืนยันนัด, เตือนนัด, Aftercare, คำแนะนำพิเศษ, ถามอาการ, แคมเปญ — 1 ข้อความต่อคนต่อครั้ง</span></div>
+      <div>🆓 <span><b>ไม่นับ (reply):</b> ตอบกลับเมื่อคนไข้กดปุ่ม ยืนยัน/ขอเลื่อน/ตอบอาการ, ข้อความต้อนรับ, ข้อความตอบรับอาการฉุกเฉิน</span></div></div></div>
   <div class="crm-card"><h4>📊 ข้อความรายเดือน</h4>${months.length?`<div class="crm-tablewrap"><table class="crm-table"><tr><th>เดือน</th><th style="min-width:120px;">ส่งจริง</th>${types.map(t=>`<th>${CRM_LOG_TYPE[t]}</th>`).join('')}<th>ทดสอบ</th><th>ล้มเหลว</th></tr>
     ${months.map(m=>`<tr><td><b>${crmEsc(crmThaiShort(m+'-01').split(' ').slice(1).join(' '))}</b></td><td><div style="display:flex;gap:6px;align-items:center;"><div class="crm-bar" style="flex:1;"><span style="width:${Math.round((st[m].sent||0)/max*100)}%"></span></div><b>${st[m].sent||0}</b></div></td>
       ${types.map(t=>`<td>${(st[m].byType||{})[t]||0}</td>`).join('')}<td>${st[m].test||0}</td><td>${st[m].failed?`<span class="crm-chip r">${st[m].failed}</span>`:0}</td></tr>`).join('')}</table></div>`:'<div class="crm-empty">ยังไม่มีการส่ง</div>'}</div>
@@ -4262,7 +4260,7 @@ function crmViewSettings(){
       ${inp('orthoDays','งานจัดฟัน เตือนก่อน (วัน)','number')}${inp('otherDays','งานอื่น เตือนก่อน (วัน)','number')}
       <div class="full">${inp('orthoKeywords','คำที่ถือว่าเป็นนัดจัดฟัน (นอกเหนือจากคนไข้จัดฟันในระบบ)')}</div>
       ${inp('receiptWaitMin','ถ้ายังไม่มียอดเงิน รอก่อนส่งสรุปการรักษา (นาที) — เผื่อพนักงานกรอกยอดทีหลัง · 0 = ไม่รอ','number')}
-      ${inp('aftercareDelayMin','หน่วงส่ง Aftercare (นาที) — เผื่อเวลาเพิ่มคำแนะนำพิเศษ','number')}${inp('quotaGuard','หยุด push เมื่อโควตาเหลือ ≤','number')}
+      ${inp('aftercareDelayMin','หน่วงส่ง Aftercare (นาที) — เผื่อเวลาเพิ่มคำแนะนำพิเศษ','number')}
     </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
