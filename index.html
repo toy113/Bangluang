@@ -571,7 +571,7 @@ select.form-control { cursor: pointer; }
 /* DOCTOR SHARE TABLE */
 .share-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
 .share-grid.share-list { display:flex; flex-direction:column; gap:8px; }
-.share-grid.share-one { grid-template-columns:1fr; }   /* เลือกหมอคนเดียว → การ์ดเต็มความกว้าง */
+.share-grid.share-one { grid-template-columns:1fr !important; }   /* เลือกหมอคนเดียว → การ์ดเต็มความกว้าง */
 .share-row { display:grid; grid-template-columns:minmax(150px,1.6fr) 70px repeat(2,minmax(90px,1fr)) 20px; gap:10px; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:12px; cursor:pointer; }
 .share-row:hover { border-color:var(--wine-light); box-shadow:0 2px 10px rgba(107,45,94,.1); }
 .share-row .n { font-weight:800; color:var(--wine-dark); }
