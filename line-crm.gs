@@ -32,7 +32,7 @@ var CRM_SHEETS = {
   followers: ['lineUserId','displayName','pictureUrl','status','followedAt','updatedAt','lastSeenAt'],
   log:       ['key','type','hn','patName','lineUserId','refId','status','detail','createdAt','pushCount'],
   tasks:     ['id','type','priority','status','hn','patName','lineUserId','aptId','aptDate','aptTime','detail','preference','createdAt','updatedAt','doneBy','resultNote'],
-  followups: ['id','hn','patName','lineUserId','treatDate','templateId','proc','sentAt','answer','answerKind','answeredAt','taskId','status','rating','ratedAt','calledAt','calledBy','callNote'],
+  followups: ['id','hn','patName','lineUserId','treatDate','templateId','proc','sentAt','answer','answerKind','answeredAt','taskId','status','rating','ratedAt','calledAt','calledBy','callNote','reviewAt'],
   templates: ['id','name','procKeywords','priority','aftercareText','followupEnabled','followupQuestion','followupOptions','status','version','approvedBy','approvedAt','updatedBy','updatedAt'],
   casenotes: ['id','treatId','hn','patName','text','author','status','approvedBy','approvedAt','sentAt','createdAt'],
   apt:       ['aptId','hn','confirmedAt','rescheduleAt','lastAction','updatedAt'],
@@ -61,6 +61,7 @@ var CRM_DEFAULT_SETTINGS = {
   birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
   birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
   followupOn: true, followupHour: '10:00',
+  reviewOnOk: true,          // คนไข้ตอบ "ปกติดี" ในข้อความถามอาการ → ส่งการ์ดปุ่มไปหน้ารีวิว Google ทันที (ต่อคนไข้ไม่เกิน 1 ครั้งต่อ 60 วัน) · ใช้เมื่อปิดการให้คะแนนอยู่
   ratingOn: false, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
   clinicPhone: '095-947-6759',
@@ -1421,6 +1422,14 @@ function crmHandlePostback_(s, ev, uid) {
     }
     var out = reply ? [crmText_(reply)] : [];
     if (opt.kind === 'ok' && crmRatingApplies_(s, fu)) out.push(crmRatingMessage_(s, fu));
+    else if (opt.kind === 'ok' && s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim())) {
+      // ปกติดี → การ์ดไปหน้ารีวิว Google (คนไข้คนเดียวกันไม่เกิน 1 ครั้งต่อ 60 วัน กันรบกวน)
+      var since = crmAddDays_(crmToday_(), -60), hk = crmHN_(fu.hn);
+      var askedRecently = crmRead_('followups').some(function (r) { return crmHN_(r.hn) === hk && r.reviewAt && String(r.reviewAt).slice(0, 10) > since; });
+      if (!askedRecently) {
+        var rv = crmReviewMessages_(s); if (rv.length > 1) { out.push(rv[1]); crmUpdate_('followups', fu._row, { reviewAt: crmNow_() }); }
+      }
+    }
     if (out.length) crmReply_(ev.replyToken, out);
     return;
   }
@@ -1789,9 +1798,9 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
+        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
-      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
+      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);

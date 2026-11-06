@@ -4268,6 +4268,7 @@ function crmViewSettings(){
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
       <div class="full"><label>การผูกบัญชีของคนไข้</label><div class="crm-muted" style="padding:8px 0;">✅ ผูกอัตโนมัติเมื่อ <b>HN + เบอร์โทร</b> ตรงกับทะเบียนคนไข้ · ถ้าไม่ตรง จะเข้าคิวให้พนักงานอนุมัติ</div></div>
       <div class="full"><label>⭐ ให้คะแนนบริการ 0–5 หลังคนไข้ตอบ "ปกติดี" (เฉพาะถอนฟัน) · ได้ 5 ส่งลิงก์รีวิว · ได้ ≤3 สร้างงานโทรสอบถาม</label><div>${sw('ratingOn','เปิดถามคะแนนหลังถอนฟัน')}</div></div>
+      <div class="full"><label>⭐ คนไข้ตอบ "ปกติดี" → ส่งปุ่มไปหน้ารีวิว Google ทันที (ไม่ถามคะแนน · คนไข้คนเดียวกันไม่เกิน 1 ครั้งต่อ 60 วัน)</label><div>${sw('reviewOnOk','ส่งลิงก์รีวิวเมื่อคนไข้ตอบปกติดี')}</div></div>
       <div class="full"><label>ลิงก์รีวิว Google (ขึ้นต้น https:// — เว้นว่าง = ขอบคุณเฉยๆ ไม่ส่งลิงก์)</label><input class="form-control" id="crmS_reviewUrl" value="${crmEsc(s.reviewUrl||'')}" placeholder="https://g.page/r/xxxx/review"></div>
       <div class="full"><label>ข้อความตอบรับเมื่อพบอาการฉุกเฉิน (ระบบสร้างงานด่วนเสมอ · เว้นว่าง = ไม่ตอบคนไข้)</label><textarea class="form-control" id="crmS_emergencyText">${crmEsc(s.emergencyText)}</textarea></div>
       <div class="full"><label>คำที่ถือว่าฉุกเฉินเมื่อคนไข้พิมพ์มา (คั่นด้วย ,)</label><textarea class="form-control" id="crmS_emergencyKeywords" style="min-height:60px;">${crmEsc(s.emergencyKeywords)}</textarea></div>
@@ -4282,7 +4283,7 @@ function crmViewSettings(){
 }
 function crmSaveSettings(){
   const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','receiptWaitMin','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
-    'confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText','birthdayText'];
+    'confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText','birthdayText'];
   const s={};
   keys.forEach(k=>{ const el=document.getElementById('crmS_'+k); if(!el) return; s[k]= el.type==='checkbox' ? el.checked : (el.type==='number' ? +el.value : el.value); });
   { const on=document.getElementById('crmS_staffNotifyOn');
