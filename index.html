@@ -8045,7 +8045,7 @@ function schExportLine(date, docName){
   const out=['📅 ตารางนัด '+docName, fmtDateThai(date)+' · '+apts.length+' นัด', '━━━━━━━━━━━━━━━━'];
   apts.forEach((a,i)=>{
     const code=orthoCodeOf_(a.hn,a.patName,a.orthoCode);
-    out.push((i+1)+'. '+String(a.time||'').slice(0,5)+'  '+(code?code+' ':'')+(a.patName||'—')+(a.proc?' · '+a.proc:'')+(a.note?' ('+a.note+')':''));
+    out.push((i+1)+'. '+String(a.time||'').slice(0,5)+'  '+(code?code+' ':'')+(a.patName||'—')+(()=>{ const pr=String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ').join(', '); return pr?' · '+pr:''; })()+(a.note?' ('+a.note+')':''));   // ไม่ใส่คำว่า ปรับเครื่องมือ (เป็นงานปกติของทุกคน) · แสดงเฉพาะรายการอื่น
   });
   const _n=new Date(), _hm=String(_n.getHours()).padStart(2,'0')+':'+String(_n.getMinutes()).padStart(2,'0');
   out.push('━━━━━━━━━━━━━━━━','🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(todayStr())+' เวลา '+_hm+' น.','Bangluang Dental 🦷');
