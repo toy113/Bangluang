@@ -8045,7 +8045,7 @@ function schExportLine(date, docName){
   const out=['📅 ตารางนัด '+docName, fmtDateThai(date)+' · '+apts.length+' นัด', '━━━━━━━━━━━━━━━━'];
   apts.forEach((a,i)=>{
     const code=orthoCodeOf_(a.hn,a.patName,a.orthoCode);
-    out.push((i+1)+'. '+String(a.time||'').slice(0,5)+'  '+(code?code+' ':'')+((()=>{ const w=String(a.patName||'').trim().split(/\s+/).filter(Boolean); if(w.length>1 && /^(นาย|นาง|นางสาว|น\.ส\.|ด\.ช\.|ด\.ญ\.|คุณ)$/.test(w[0])) w.shift(); return w[0]; })()||'—')+(()=>{ const pr=String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ').join(', '); return pr?' · '+pr:''; })()+(a.note?' ('+a.note+')':''));   // ไม่ใส่คำว่า ปรับเครื่องมือ (เป็นงานปกติของทุกคน) · แสดงเฉพาะรายการอื่น
+    out.push(String(a.time||'').slice(0,5)+'  '+(code?code+' ':'')+((()=>{ const w=String(a.patName||'').trim().split(/\s+/).filter(Boolean); if(w.length>1 && /^(นาย|นาง|นางสาว|น\.ส\.|ด\.ช\.|ด\.ญ\.|คุณ)$/.test(w[0])) w.shift(); return w[0]; })()||'—')+(()=>{ const pr=String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ').join(', '); return pr?' · '+pr:''; })()+(a.note?' ('+a.note+')':''));   // ไม่ใส่คำว่า ปรับเครื่องมือ (เป็นงานปกติของทุกคน) · แสดงเฉพาะรายการอื่น
   });
   const _n=new Date(), _hm=String(_n.getHours()).padStart(2,'0')+':'+String(_n.getMinutes()).padStart(2,'0');
   out.push('━━━━━━━━━━━━━━━━','🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(todayStr())+' เวลา '+_hm+' น.','Bangluang Dental 🦷');
