@@ -8270,8 +8270,8 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       const oc = orthoCodeOf_(a.hn,a.patName);
       const _dn=aptDone_(a);
       return `<div onclick="event.stopPropagation();openOrthoHistory('${hnE}')" title="แตะเพื่อเปิดการ์ดจัดฟัน" style="background:${_dn?'#E3F7EA':'#EEF4FF'};border-left:3px solid ${_dn?'#2E9E5B':'#1E6FD9'};border-radius:5px;padding:1px 6px;margin-bottom:2px;cursor:pointer;display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12.5px;line-height:1.55;">
-        ${lineDot_(a)}${oc?`<b style="color:var(--wine);font-size:11px;">${_escHtml(oc)}</b>`:'<span>🦷</span>'}
-        <span style="font-weight:800;color:#17407F;">${_escHtml(a.patName||'—')}</span>${schStateDot_(a)}
+        <span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${lineDot_(a).replace('margin-right:5px','margin-right:0')}${schStateDot_(a)}</span>${oc?`<b style="color:var(--wine);font-size:11px;">${_escHtml(oc)}</b>`:'<span>🦷</span>'}
+        <span style="font-weight:800;color:#17407F;">${_escHtml(a.patName||'—')}</span>
         ${orthoPayBadge(a)}${procHtml}${noteHtml}${schOrthoConfirmBtn_(a)}
       </div>`;
     }
