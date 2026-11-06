@@ -2183,6 +2183,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือล่าง"> ติดเครื่องมือล่าง</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ทำรีเทนเนอร์"> ทำรีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="เช็ครีเทนเนอร์"> เช็ครีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปักหมุด"> ปักหมุด</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="X-ray"> X-ray</label>
@@ -2226,6 +2227,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label style="font-weight:800;">รายการอื่นวันนี้ (ใส่ราคาได้ · เว้นว่าง = ไม่คิดเงินในหน้านี้)</label>
         <div style="display:grid;gap:8px;margin-top:6px;">
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ใส่รีเทนเนอร์" onchange="cameCalc()"> ใส่รีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="เช็ครีเทนเนอร์" onchange="cameCalc()"> เช็ครีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ทำรีเทนเนอร์" onchange="cameCalc()"> ทำรีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="พิมพ์ปาก" onchange="cameCalc()"> พิมพ์ปาก</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="X-ray" onchange="cameCalc()"> X-ray</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
@@ -3557,7 +3559,11 @@ async function crmOrthoCameSave(){
     // ติ๊ก "ใส่รีเทนเนอร์" → บันทึกวันใส่รีเทนเนอร์ลงการ์ด (LIFF/หน้าเว็บอ่านจากช่องนี้) และย้ายไป "เสร็จแล้ว" เหมือนฟอร์มบันทึกเดิม
     let retainerDone=false;
     if(extras.some(x=>x.name==='ใส่รีเทนเนอร์') || others.includes('ใส่รีเทนเนอร์')){
-      if(!String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์']=date;
+      if(!String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์']=date;   // ใส่รีเทนเนอร์ = บันทึกวันเฉยๆ ยังไม่จบเคส
+    }
+    // ติ๊ก "เช็ครีเทนเนอร์" → บันทึกวันเช็ครีเทนเนอร์ และจบเคส (ย้ายไป "เสร็จแล้ว")
+    if(extras.some(x=>x.name==='เช็ครีเทนเนอร์') || others.includes('เช็ครีเทนเนอร์')){
+      if(!String(row['วันเช็ครีเทนเนอร์']||'').trim()) row['วันเช็ครีเทนเนอร์']=date;
       if((row['สถานะ']||'กำลังจัด')==='กำลังจัด' && orthoRetainerPlaced_(row)){ row['สถานะ']='เสร็จแล้ว'; retainerDone=true; }
     }
     const bondSet=orthoApplyBondDates_(row, extras.map(x=>x.name).concat(others), date);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ด
@@ -3567,7 +3573,7 @@ async function crmOrthoCameSave(){
     orthoAdvanceNext_(r.hn, date);
     let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits, adj }); }catch(e){ console.error(e); trMsg='fail'; }
     closeModal('modalOrthoCame');
-    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(retainerDone?' · ใส่รีเทนเนอร์ '+date+' → ย้ายไป "เสร็จแล้ว"':'')+(bondSet.length?' · วันติดเครื่องมือ'+bondSet.join('/')+' '+date:'')+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
+    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(retainerDone?' · เช็ครีเทนเนอร์ '+date+' → จบเคส ย้ายไป "เสร็จแล้ว"':'')+(bondSet.length?' · วันติดเครื่องมือ'+bondSet.join('/')+' '+date:'')+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
     if(trMsg==='nocaps'){ try{ orthoCloseDayApts_(r.hn, r['รหัสประจำตัว'], date, doc); try{ renderHome(); }catch(e){} }catch(e){} }
     if(trMsg==='nocaps') showToast('บันทึกประวัติจัดฟันแล้ว แต่ยังไม่ได้ลงบันทึกการรักษา/รายได้ — ต้องวาง line-crm.gs ฉบับล่าสุดก่อน','error');
     else if(trMsg==='fail') showToast('บันทึกประวัติจัดฟันแล้ว แต่ลงบันทึกการรักษาไม่สำเร็จ — กรุณาลงเองในหน้าบันทึกการรักษา','error');
@@ -5382,6 +5388,7 @@ function saveTreat(){
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
   orthoBondFromTreat_(t);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ดจัดฟัน
+  orthoCheckFromTreat_(t);  // เช็ครีเทนเนอร์ → จบเคสจัดฟัน
 
   // Completing treatment completes the matching same-day appointment automatically.
   // HN is the primary match; use the patient name only when either record has no HN.
@@ -5431,7 +5438,8 @@ async function orthoRevertDay_(hn, date){
     const rec=crmOrthoRec(hn), f={};
     if(rec){
       if(String(rec['ปรับล่าสุด']||'').slice(0,10)===date) f['ปรับล่าสุด']='';
-      if(String(rec['วันใส่รีเทนเนอร์']||'').slice(0,10)===date){ f['วันใส่รีเทนเนอร์']=''; if(rec['สถานะ']==='เสร็จแล้ว') f['สถานะ']='กำลังจัด'; }
+      if(String(rec['วันใส่รีเทนเนอร์']||'').slice(0,10)===date) f['วันใส่รีเทนเนอร์']='';
+      if(String(rec['วันเช็ครีเทนเนอร์']||'').slice(0,10)===date){ f['วันเช็ครีเทนเนอร์']=''; if(rec['สถานะ']==='เสร็จแล้ว') f['สถานะ']='กำลังจัด'; }
       if(Object.keys(f).length) await orthoPatchCard_(rec.hn, f);
     }
     try{ await loadOrthoData(true); }catch(e){}
@@ -10903,9 +10911,9 @@ function orthoMissedAppt_(r){
   return r['ปรับล่าสุด'] !== r['นัดถัดไป']; // ไม่มีบันทึกการรักษา/เครื่องมือหลุดในวันนัดนั้น
 }
 
-// ใส่รีเทนเนอร์แล้ว (มีวันใส่รีเทนเนอร์ และไม่ใช่วันในอนาคต) → ถือว่าจบการจัดฟัน จัดเข้าหมวด "เสร็จแล้ว" อัตโนมัติ
-function orthoRetainerPlaced_(r){
-  const v = String((r&&r['วันใส่รีเทนเนอร์'])||'').trim();
+// เช็ครีเทนเนอร์แล้ว (มีวันเช็ครีเทนเนอร์ และไม่ใช่วันในอนาคต) → ถือว่าจบการจัดฟัน จัดเข้าหมวด "เสร็จแล้ว" อัตโนมัติ
+function orthoRetainerPlaced_(r){   // ชื่อเดิม — ตอนนี้ "จบเคส" นับจาก วันเช็ครีเทนเนอร์ (ไม่ใช่วันใส่รีเทนเนอร์แล้ว)
+  const v = String((r&&r['วันเช็ครีเทนเนอร์'])||'').trim();
   if(!v) return false;
   const m = v.match(/^\d{4}-\d{2}-\d{2}/);
   return m ? m[0] <= todayStr() : true;
@@ -11087,8 +11095,8 @@ async function saveOrthoProfile(){
   {
     const ex0 = orthoData.find(x=> String(x.hn)===String(hn));
     if(ex0 && document.getElementById('ortho-status').value==='กำลังจัด' && orthoRetainerPlaced_(ex0)){
-      if(confirm('คนไข้รายนี้ใส่รีเทนเนอร์แล้ว (วันที่ '+ex0['วันใส่รีเทนเนอร์']+')\nต้องการล้างวันใส่รีเทนเนอร์ เพื่อกลับไปเป็น "กำลังจัด" หรือไม่?\n\nกด ยกเลิก = คงสถานะ "เสร็จแล้ว"')){
-        ex0['วันใส่รีเทนเนอร์'] = '';
+      if(confirm('คนไข้รายนี้เช็ครีเทนเนอร์แล้ว (วันที่ '+ex0['วันเช็ครีเทนเนอร์']+')\nต้องการล้างวันเช็ครีเทนเนอร์ เพื่อกลับไปเป็น "กำลังจัด" หรือไม่?\n\nกด ยกเลิก = คงสถานะ "เสร็จแล้ว"')){
+        ex0['วันเช็ครีเทนเนอร์'] = '';
       } else {
         document.getElementById('ortho-status').value = 'เสร็จแล้ว';
       }
@@ -11165,10 +11173,11 @@ async function saveOrthoLog(){
     'ปรับล่าสุด': log['วันที่'],
     'ครั้งที่มาแล้ว': visits
   });
-  // ถ้าครั้งนี้ "ใส่รีเทนเนอร์" → บันทึกวันใส่รีเทนเนอร์และย้ายไปหมวด "เสร็จแล้ว" อัตโนมัติ
+  // ใส่รีเทนเนอร์ → บันทึกวันเฉยๆ · เช็ครีเทนเนอร์ → บันทึกวันเช็ค และจบเคส (ย้ายไปหมวด "เสร็จแล้ว")
   let retainerDone = false;
-  if(treatments.split(',').map(x=>x.trim()).includes('ใส่รีเทนเนอร์')){
-    if(!String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์'] = log['วันที่'];
+  if(_items.includes('ใส่รีเทนเนอร์') && !String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์'] = log['วันที่'];
+  if(_items.includes('เช็ครีเทนเนอร์')){
+    if(!String(row['วันเช็ครีเทนเนอร์']||'').trim()) row['วันเช็ครีเทนเนอร์'] = log['วันที่'];
     if((row['สถานะ']||'กำลังจัด')==='กำลังจัด' && orthoRetainerPlaced_(row)){ row['สถานะ']='เสร็จแล้ว'; retainerDone = true; }
   }
   orthoApplyBondDates_(row, _items, log['วันที่']);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ด
@@ -11179,7 +11188,7 @@ async function saveOrthoLog(){
   ]);
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalOrthoLog');
-  showToast(retainerDone ? 'บันทึกการรักษาสำเร็จ — ใส่รีเทนเนอร์แล้ว ย้ายไปหมวด "เสร็จแล้ว"' : 'บันทึกการรักษาสำเร็จ');
+  showToast(retainerDone ? 'บันทึกการรักษาสำเร็จ — เช็ครีเทนเนอร์แล้ว จบเคส ย้ายไปหมวด "เสร็จแล้ว"' : 'บันทึกการรักษาสำเร็จ');
   renderOrthoPage();
   if(document.getElementById('orthoCalendarBox').style.display !== 'none') renderOrthoCalendar();
   _ologSaving = false;
@@ -11396,9 +11405,7 @@ async function saveRetainer(){
   const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
     'วันใส่รีเทนเนอร์': document.getElementById('retainer-date').value
   });
-  // ใส่รีเทนเนอร์แล้ว → ย้ายไปหมวด "เสร็จแล้ว" อัตโนมัติ (ไม่แตะเคสที่ตั้งเป็นหยุด/เลิกรักษา)
-  let movedDone = false;
-  if(orthoRetainerPlaced_(row) && (row['สถานะ']||'กำลังจัด')==='กำลังจัด'){ row['สถานะ']='เสร็จแล้ว'; movedDone = true; }
+  const movedDone = false;   // ใส่รีเทนเนอร์ = บันทึกวันเฉยๆ · จบเคสเมื่อ "เช็ครีเทนเนอร์"
   await orthoPost({action:'orthoSave', row});
   if(idx>=0) orthoData[idx] = row;
   closeModal('modalRetainer');
@@ -11559,6 +11566,17 @@ function orthoApplyBondDates_(row, items, date){
   if(lo && !g('วันติดล่าง')){ row['วันติดล่าง']=d; set.push('ล่าง'); }
   row['วันเริ่ม']=[g('วันติดบน'),g('วันติดล่าง')].filter(Boolean).sort()[0] || row['วันเริ่ม'] || '';
   return set;
+}
+// บันทึกการรักษา (ฟอร์มปกติ) ที่มี "เช็ครีเทนเนอร์" ของคนไข้ที่มีการ์ดจัดฟัน → ใส่วันเช็ค + จบเคส (ถ้ายังกำลังจัด)
+function orthoCheckFromTreat_(t){
+  try{
+    if(!String(t.proc||'').split(',').map(x=>x.trim()).includes('เช็ครีเทนเนอร์')) return;
+    const r=t.hn?crmOrthoRec(t.hn):null; if(!r) return;
+    if(String(r['วันเช็ครีเทนเนอร์']||'').trim() && (r['สถานะ']||'กำลังจัด')!=='กำลังจัด') return;
+    const f={'วันเช็ครีเทนเนอร์': String(r['วันเช็ครีเทนเนอร์']||'').trim() || t.date};
+    if((r['สถานะ']||'กำลังจัด')==='กำลังจัด' && String(t.date||'')<=todayStr()) f['สถานะ']='เสร็จแล้ว';
+    orthoPatchCard_(r.hn, f).then(res=>{ if(res && res.ok!==false && f['สถานะ']) showToast('เช็ครีเทนเนอร์ — จบเคสจัดฟัน ย้ายไป "เสร็จแล้ว" 🦷'); }).catch(()=>showToast('อัปเดตการ์ดจัดฟันไม่สำเร็จ','error'));
+  }catch(e){ console.warn('orthoCheckFromTreat_', e); }
 }
 // บันทึกการรักษา (ฟอร์มปกติ) ที่มี ติดเครื่องมือบน/ล่าง ของคนไข้ที่มีการ์ดจัดฟัน → อัปเดตวันติดในการ์ดด้วย
 function orthoBondFromTreat_(t){

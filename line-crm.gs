@@ -135,7 +135,7 @@ function crmCell_(v, col) {
   if (v === null || v === undefined) return '';
   if (v instanceof Date) {
     var c = String(col || '').toLowerCase();
-    if (c === 'date' || c === 'treatdate' || c === 'aptdate' || c === 'วันที่' || c === 'วันเริ่ม' || c === 'วันติดบน' || c === 'วันติดล่าง' || c === 'นัดถัดไป' || c === 'ปรับล่าสุด' || c === 'วันใส่รีเทนเนอร์') return Utilities.formatDate(v, CRM_TZ, 'yyyy-MM-dd');
+    if (c === 'date' || c === 'treatdate' || c === 'aptdate' || c === 'วันที่' || c === 'วันเริ่ม' || c === 'วันติดบน' || c === 'วันติดล่าง' || c === 'วันเช็ครีเทนเนอร์' || c === 'นัดถัดไป' || c === 'ปรับล่าสุด' || c === 'วันใส่รีเทนเนอร์') return Utilities.formatDate(v, CRM_TZ, 'yyyy-MM-dd');
     if (c === 'time' || c === 'apttime' || c === 'นัดถัดไปเวลา') return Utilities.formatDate(v, CRM_TZ, 'HH:mm');
     return Utilities.formatDate(v, CRM_TZ, 'yyyy-MM-dd HH:mm');
   }
