@@ -7045,13 +7045,6 @@ function buildShareGrid(rows){
         <div style="background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;">${effectivePct}%</div>
       </div>
       <div class="share-card-amount">${fmt(share)}</div>
-      ${labDed?(()=>{ const it=incLabItems_(doc), lp=labDfPct_(doc.name), full=it.reduce((a,l)=>a+(+l.price||0),0);
-        return `<div style="margin-top:8px;padding:8px 10px;background:#FFF4DC;border:1px solid #F0D79A;border-radius:10px;font-size:11.5px;color:#6B4A00;">
-          <div style="font-weight:800;margin-bottom:4px;">🧪 หักค่าแลป (หมอรับผิดชอบ ${lp}%)</div>
-          ${it.map(l=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px dashed #E8CF8E;"><span style="min-width:0;">${_escHtml(l.patName||'—')}<br><span style="color:#8A6200;">${_escHtml(l.work||'')} · ${_escHtml(l.lab||'')} · ${fmtDate(l.date)}</span></span><span style="text-align:right;white-space:nowrap;">เต็ม ${fmt(+l.price||0)}<br><b>หมอ ${fmt(Math.round((+l.price||0)*lp)/100)}</b></span></div>`).join('')}
-          <div style="display:flex;justify-content:space-between;border-top:1.5px solid #E0C070;margin-top:4px;padding-top:4px;font-weight:800;"><span>รวม ${it.length} รายการ · เต็ม ${fmt(full)}</span><span>หมอ −${fmt(labDed)}</span></div>
-          <div style="margin-top:4px;color:#8A6200;">ส่วนแบ่ง ${fmt(dfSum)} − แลป ${fmt(labDed)} = <b>${fmt(share)}</b></div>
-        </div>`; })():''}
       <div style="display:flex;justify-content:space-between;margin-top:8px;">
         <span style="font-size:11px;color:var(--text-light);">รายได้รวม</span>
         <span style="font-size:12px;font-weight:700;color:var(--wine-dark);">${fmt(tot)}</span>
@@ -7073,6 +7066,13 @@ function buildShareGrid(rows){
             ${days.map(d=>{ const o=by[d], net=o.df-o.lab; return `<div style="display:grid;grid-template-columns:1.1fr .6fr 1fr 1fr;gap:4px;padding:3px 0;border-top:1px dashed var(--border);"><span>${fmtDate(d)}</span><span style="text-align:right;">${o.n||'—'}</span><span style="text-align:right;">${o.tot?fmt(o.tot):'—'}</span><span style="text-align:right;font-weight:800;color:var(--gold);">${fmt(net)}${o.lab?`<br><span style="font-weight:600;color:#B45309;font-size:10px;">แลป −${fmt(o.lab)}</span>`:''}</span></div>`; }).join('')}
             <div style="display:grid;grid-template-columns:1.1fr .6fr 1fr 1fr;gap:4px;padding:4px 0 0;border-top:1.5px solid var(--border);font-weight:800;"><span>รวม</span><span style="text-align:right;">${dr.length}</span><span style="text-align:right;">${fmt(tot)}</span><span style="text-align:right;color:var(--gold);">${fmt(share)}</span></div>
           </div></details>`; })():''}
+      ${labDed?(()=>{ const it=incLabItems_(doc), lp=labDfPct_(doc.name), full=it.reduce((a,l)=>a+(+l.price||0),0);
+        return `<div style="margin-top:8px;padding:8px 10px;background:#FFF4DC;border:1px solid #F0D79A;border-radius:10px;font-size:11.5px;color:#6B4A00;">
+          <div style="font-weight:800;margin-bottom:4px;">🧪 หักค่าแลป (หมอรับผิดชอบ ${lp}%)</div>
+          ${it.map(l=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px dashed #E8CF8E;"><span style="min-width:0;">${_escHtml(l.patName||'—')}<br><span style="color:#8A6200;">${_escHtml(l.work||'')} · ${_escHtml(l.lab||'')} · ${fmtDate(l.date)}</span></span><span style="text-align:right;white-space:nowrap;">เต็ม ${fmt(+l.price||0)}<br><b>หมอ ${fmt(Math.round((+l.price||0)*lp)/100)}</b></span></div>`).join('')}
+          <div style="display:flex;justify-content:space-between;border-top:1.5px solid #E0C070;margin-top:4px;padding-top:4px;font-weight:800;"><span>รวม ${it.length} รายการ · เต็ม ${fmt(full)}</span><span>หมอ −${fmt(labDed)}</span></div>
+          <div style="margin-top:4px;color:#8A6200;">ส่วนแบ่ง ${fmt(dfSum)} − แลป ${fmt(labDed)} = <b>${fmt(share)}</b></div>
+        </div>`; })():''}
       <div class="share-card-more">ดูรายการรักษา ›</div>
     </div>`;
   }).join('');
