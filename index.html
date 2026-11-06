@@ -8279,15 +8279,15 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     const safeId = String(a.id).replace(/"/g,'');
     const _cx = a.status==='ยกเลิก';
     const ocode = orthoCodeOf_(a.hn,a.patName,a.orthoCode);
-    return `<div style="background:${_cx?'#F8D3D1':sc+'12'};border-left:3px solid ${sc};border-radius:5px;${_cx?'text-decoration:line-through;text-decoration-color:rgba(139,0,0,.5);':''}padding:1px 6px;margin-bottom:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12.5px;line-height:1.55;">
-      ${lineDot_(a)}${ocode?`<b style="color:var(--wine);font-size:11px;">${_escHtml(ocode)}</b>`:''}
-      <span style="font-weight:700;color:${sc};">${_escHtml(a.patName||'—')}</span>
-      ${procHtml}${noteHtml}
-      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:2px;">
-        <span class="${statusClass(a.status)}" data-apt-id="${safeId}" onclick="event.stopPropagation();openStatusDropdown(event,this.dataset.aptId)" style="font-size:9px;cursor:pointer;">${a.status||''}</span>
-        <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)" aria-label="แก้ไขนัด" title="แก้ไขนัด" style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:11px;">✏️</button>
-        <button data-apt-id="${safeId}" onclick="event.stopPropagation();deleteApt(this.dataset.aptId)" aria-label="ลบนัด" title="ลบนัด" style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:11px;">🗑️</button>
-      </span>
+    const extra = (procHtml||noteHtml) ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:0 0 1px 2px;">${procHtml}${noteHtml}</div>` : '';
+    return `<div style="background:${_cx?'#F8D3D1':sc+'12'};border-left:3px solid ${sc};border-radius:5px;${_cx?'text-decoration:line-through;text-decoration-color:rgba(139,0,0,.5);':''}padding:1px 6px;margin-bottom:2px;font-size:12.5px;line-height:1.55;">
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;">
+        ${lineDot_(a).replace('margin-right:5px','margin-right:0')}${ocode?`<b style="color:var(--wine);font-size:11px;flex-shrink:0;">${_escHtml(ocode)}</b>`:''}
+        <span style="font-weight:700;color:${sc};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escHtml(a.patName||'—')}</span>
+        <span class="${statusClass(a.status)}" data-apt-id="${safeId}" onclick="event.stopPropagation();openStatusDropdown(event,this.dataset.aptId)" style="font-size:9px;cursor:pointer;flex-shrink:0;">${a.status||''}</span>
+        <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)" aria-label="แก้ไขนัด" title="แก้ไขนัด" style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:11px;flex-shrink:0;">✏️</button>
+        <button data-apt-id="${safeId}" onclick="event.stopPropagation();deleteApt(this.dataset.aptId)" aria-label="ลบนัด" title="ลบนัด" style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:11px;flex-shrink:0;">🗑️</button>
+      </div>${extra}
     </div>`;
   }
   function aptCard(a){
