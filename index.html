@@ -7060,6 +7060,18 @@ function buildShareGrid(rows){
         <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--wine) 0%,var(--wine-light) 100%);border-radius:4px;transition:width 0.4s;"></div>
       </div>
 
+      ${(currentPeriod!=='day' && dr.length)?(()=>{
+        const by={}; dr.forEach(r=>{ const d=String(r.date||'').slice(0,10); const o=by[d]||(by[d]={n:0,tot:0,df:0,lab:0}); o.n++; o.tot+=totalPrice(r); o.df+=dfAmt(r,doc); });
+        if(labDed){ const lp=labDfPct_(doc.name); incLabItems_(doc).forEach(l=>{ const d=String(l.date||'').slice(0,10); const o=by[d]||(by[d]={n:0,tot:0,df:0,lab:0}); o.lab+=Math.round((+l.price||0)*lp)/100; }); }
+        const days=Object.keys(by).sort();
+        const open=(document.getElementById('income-doc-filter')?.value)?' open':'';
+        return `<details${open} onclick="event.stopPropagation()" style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">
+          <summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--wine-dark);">📅 แยกรายวัน (${days.length} วัน)</summary>
+          <div style="font-size:11.5px;margin-top:6px;">
+            <div style="display:grid;grid-template-columns:1.1fr .6fr 1fr 1fr;gap:4px;color:var(--text-light);font-weight:700;padding-bottom:3px;"><span>วันที่</span><span style="text-align:right;">ราย</span><span style="text-align:right;">ยอดรวม</span><span style="text-align:right;">ส่วนหมอ</span></div>
+            ${days.map(d=>{ const o=by[d], net=o.df-o.lab; return `<div style="display:grid;grid-template-columns:1.1fr .6fr 1fr 1fr;gap:4px;padding:3px 0;border-top:1px dashed var(--border);"><span>${fmtDate(d)}</span><span style="text-align:right;">${o.n||'—'}</span><span style="text-align:right;">${o.tot?fmt(o.tot):'—'}</span><span style="text-align:right;font-weight:800;color:var(--gold);">${fmt(net)}${o.lab?`<br><span style="font-weight:600;color:#B45309;font-size:10px;">แลป −${fmt(o.lab)}</span>`:''}</span></div>`; }).join('')}
+            <div style="display:grid;grid-template-columns:1.1fr .6fr 1fr 1fr;gap:4px;padding:4px 0 0;border-top:1.5px solid var(--border);font-weight:800;"><span>รวม</span><span style="text-align:right;">${dr.length}</span><span style="text-align:right;">${fmt(tot)}</span><span style="text-align:right;color:var(--gold);">${fmt(share)}</span></div>
+          </div></details>`; })():''}
       <div class="share-card-more">ดูรายการรักษา ›</div>
     </div>`;
   }).join('');
