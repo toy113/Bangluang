@@ -70,6 +70,7 @@
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:13px;color:var(--text-mid);margin-bottom:6px;font-weight:600;}
   .field input{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:16px;background:#fff;}
+  .bsel{flex:1;padding:13px 10px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:16px;background:#fff;}
   .field input:focus{outline:none;border-color:var(--wine);}
   .check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-mid);line-height:1.55;margin:4px 0 16px;}
   .check input{width:20px;height:20px;margin-top:1px;accent-color:var(--wine);flex-shrink:0;}
@@ -119,6 +120,9 @@
       <div class="err" id="bindErr"></div>
       <div class="field"><label>HN ของคนไข้ (7 หลัก)</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 65-12345" maxlength="8" autocomplete="off" oninput="fmtHn(this)"><div class="muted" style="margin-top:4px;">ดู HN ได้จากบัตรคนไข้หรือใบนัดของคลินิก</div></div>
       <div class="field"><label>เบอร์โทรที่ให้ไว้กับคลินิก</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
+      <div class="field"><label>วันเกิด (วัน / เดือน) — ไม่บังคับ</label>
+        <div style="display:flex;gap:8px;"><select id="b-bd" class="bsel"><option value="">วัน</option></select><select id="b-bm" class="bsel"><option value="">เดือน</option></select></div>
+        <div class="muted" style="margin-top:4px;">กรอกเพื่อรับสิทธิ์พิเศษในเดือนเกิด (เช่น ยาสีฟันฟรีเมื่อมาตามนัด) · ใช้เพื่อคำอวยพรและสิทธิ์วันเกิดเท่านั้น ไม่ต้องใส่ปี</div></div>
       <label class="check"><input type="checkbox" id="b-consent">
         <span>ยินยอมให้คลินิกเชื่อมบัญชี LINE นี้กับข้อมูลคนไข้ และส่งข้อความยืนยันนัด เตือนนัด คำแนะนำหลังการรักษา และติดตามอาการทาง LINE (ยกเลิกได้ทุกเมื่อในหน้านี้)</span></label>
       <button class="btn btn-primary" id="bindBtn" onclick="doBind()">ผูกบัญชี</button>
@@ -158,6 +162,12 @@
     <div id="panel-history" class="hide"></div>
     <div id="panel-ortho" class="hide"></div>
 
+    <div class="card" id="bdCard" style="margin-top:6px;display:none;">
+      <div style="font-weight:800;color:var(--wine);margin-bottom:6px;">🎂 รับสิทธิ์พิเศษในเดือนเกิด</div>
+      <div style="display:flex;gap:8px;"><select id="m-bd" class="bsel"><option value="">วัน</option></select><select id="m-bm" class="bsel"><option value="">เดือน</option></select></div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="saveBday()">บันทึกวันเกิด</button>
+      <p class="muted" style="margin-top:6px;">ใช้เพื่อคำอวยพรและสิทธิ์วันเกิดเท่านั้น (ไม่ต้องใส่ปี)</p>
+    </div>
     <div class="card" style="margin-top:6px;">
       <div class="toggle"><span>รับข้อความแจ้งเตือนนัดและคำแนะนำทาง LINE</span>
         <label class="switch"><input type="checkbox" id="consentToggle" onchange="setConsent(this.checked)"><span class="slider"></span></label></div>
@@ -265,6 +275,7 @@ function render(){
   $('pendingNote').style.display = d.pending.length ? '' : 'none';
   $('pendingNote').textContent = d.pending.length ? ('มีคำขอผูกบัญชีเพิ่มรอคลินิกยืนยัน ' + d.pending.length + ' รายการ') : '';
   renderNext(p); renderHistory(p); renderOrtho(p);
+  bdInit(); $('bdCard').style.display = p.birthday ? 'none' : '';
   setTab(TAB);
   show('mainView');
 }
@@ -367,10 +378,29 @@ function renderOrtho(p){
       <li>กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์เปลี่ยนเป็นชำระ 1,500 บาทจนกว่าจะเสร็จค่ะ</li>
     </ul></div>`;
 }
+// วันเกิด (วัน/เดือน) — เก็บเป็น MM-DD
+function bdInit(){
+  ['b','m'].forEach(x=>{
+    const d=$(x+'-bd'), m=$(x+'-bm'); if(!d||!m||d.options.length>1) return;
+    for(let i=1;i<=31;i++) d.add(new Option(String(i), String(i)));
+    TH_MONTHS.forEach((n,i)=>m.add(new Option(n, String(i+1))));
+  });
+}
+function bdVal(x){ const d=$(x+'-bd').value, m=$(x+'-bm').value; return (d&&m) ? (('0'+m).slice(-2)+'-'+('0'+d).slice(-2)) : ''; }
+async function saveBday(){
+  const v=bdVal('m'), p=DATA.patients[CUR];
+  if(!v){ alert('กรุณาเลือกวันและเดือนเกิด'); return; }
+  try{
+    const d=await api({ action:'crmBirthday', hn:p.hn, bday:v });
+    if(d && d.ok){ p.birthday=v; cacheSave(DATA); $('bdCard').style.display='none'; alert('บันทึกแล้วค่ะ 🎂 รับสิทธิ์ในเดือนเกิดได้เลย'); }
+    else alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งค่ะ');
+  }catch(e){ alert('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้งค่ะ'); }
+}
 function openBind(isAdd){
   $('bindTitle').textContent = isAdd ? 'ผูกบัญชีคนไข้เพิ่ม' : 'ผูกบัญชีคนไข้';
   $('bindCancel').classList.toggle('hide', !isAdd);
   $('bindErr').style.display = 'none';
+  bdInit();
   show('bindView');
 }
 async function doBind(){
@@ -380,9 +410,10 @@ async function doBind(){
   if(!/^\d{2}-?\d{4,5}$/.test(hn)) return err('กรุณากรอก HN 7 หลัก (ตัวอย่าง 65-12345)');
   if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)) return err('กรุณากรอกเบอร์โทร 10 หลัก (ตัวอย่าง 081-234-5678)');
   if(!consent) return err('กรุณากดยินยอมก่อนผูกบัญชี');
+  const bday = bdVal('b');
   $('bindBtn').disabled = true; $('bindBtn').textContent = 'กำลังส่งข้อมูล...';
   try{
-    const d = await api({ action:'crmBind', hn, phone, consent: '1' });
+    const d = await api({ action:'crmBind', hn, phone, bday, consent: '1' });
     if(d && d.ok){ if(d.portal && d.portal.ok){ DATA = d.portal; cacheSave(DATA); const ph = DATA.clinicPhone || CLINIC_PHONE_FALLBACK, tl = 'tel:'+ph.replace(/[^0-9+]/g,''); ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tl; }); $('bindPhone').textContent = ph; render(); } else { await load(); } }
     else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
   }catch(e){ console.error(e); err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }

@@ -2948,7 +2948,7 @@ function viewOnlyBlock_(){ if(isViewOnlyUser()){ showToast('บัญชีน�
 function crmDoctorSubs(){ return isOrthoOnlyUser() ? ['orthoapt'] : ['rating']; }
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
-var CRM_LOG_TYPE = { staff:'แจ้งแอดมิน', confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', test:'ทดสอบ' };
+var CRM_LOG_TYPE = { staff:'แจ้งแอดมิน', confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', birthday:'วันเกิด', test:'ทดสอบ' };
 
 function crmEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function crmHN(v){ return String(v==null?'':v).replace(/[-\s]/g,'').trim().toUpperCase(); }
@@ -4191,7 +4191,7 @@ function crmDrawQr(){
 function crmViewReport(){
   const d=CRM.data, st=d.stats||{}, q=d.quota||{};
   const months=Object.keys(st).sort().reverse().slice(0,12);
-  const types=['confirm','remind','aftercare','casenote','followup','campaign'];
+  const types=['confirm','remind','aftercare','casenote','followup','campaign','birthday'];
   const max=Math.max(1,...months.map(m=>st[m].sent||0));
   const thisM=todayStr().slice(0,7), cur=st[thisM]||{sent:0,byType:{}};
   const day=+todayStr().slice(8,10), dim=new Date(+thisM.slice(0,4), +thisM.slice(5,7), 0).getDate();
@@ -4263,7 +4263,7 @@ function crmViewSettings(){
       <div class="full">${inp('orthoKeywords','คำที่ถือว่าเป็นนัดจัดฟัน (นอกเหนือจากคนไข้จัดฟันในระบบ)')}</div>
       ${inp('receiptWaitMin','ถ้ายังไม่มียอดเงิน รอก่อนส่งสรุปการรักษา (นาที) — เผื่อพนักงานกรอกยอดทีหลัง · 0 = ไม่รอ','number')}
       ${inp('aftercareDelayMin','หน่วงส่ง Aftercare (นาที) — เผื่อเวลาเพิ่มคำแนะนำพิเศษ','number')}
-    </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
+    </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('birthdayOn','ส่งคำอวยพรวันเกิด (เช้าวันเกิด)')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
       <div class="full"><label>การผูกบัญชีของคนไข้</label><div class="crm-muted" style="padding:8px 0;">✅ ผูกอัตโนมัติเมื่อ <b>HN + เบอร์โทร</b> ตรงกับทะเบียนคนไข้ · ถ้าไม่ตรง จะเข้าคิวให้พนักงานอนุมัติ</div></div>
@@ -4272,6 +4272,7 @@ function crmViewSettings(){
       <div class="full"><label>ข้อความตอบรับเมื่อพบอาการฉุกเฉิน (ระบบสร้างงานด่วนเสมอ · เว้นว่าง = ไม่ตอบคนไข้)</label><textarea class="form-control" id="crmS_emergencyText">${crmEsc(s.emergencyText)}</textarea></div>
       <div class="full"><label>คำที่ถือว่าฉุกเฉินเมื่อคนไข้พิมพ์มา (คั่นด้วย ,)</label><textarea class="form-control" id="crmS_emergencyKeywords" style="min-height:60px;">${crmEsc(s.emergencyKeywords)}</textarea></div>
       <div class="full"><label>ข้อความตอบเมื่อคนไข้กดขอเลื่อนนัด</label><textarea class="form-control" id="crmS_rescheduleText">${crmEsc(s.rescheduleText)}</textarea></div>
+      <div class="full"><label>ข้อความอวยพรวันเกิด (ใช้ {name} ชื่อ · {month} เดือนเกิด · {phone} เบอร์คลินิก · {clinic} ชื่อคลินิก)</label><textarea class="form-control" id="crmS_birthdayText" style="min-height:110px;">${crmEsc(s.birthdayText)}</textarea></div>
       <div class="full"><label>ข้อความตอบเมื่อคนไข้กดยืนยันนัด</label><input class="form-control" id="crmS_confirmThanksText" value="${crmEsc(s.confirmThanksText)}"></div>
     </div></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;"><button class="crm-btn p" style="padding:10px 22px;font-size:14px;" onclick="crmSaveSettings()">💾 บันทึกการตั้งค่า</button></div>
@@ -4281,7 +4282,7 @@ function crmViewSettings(){
 }
 function crmSaveSettings(){
   const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','receiptWaitMin','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
-    'confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText'];
+    'confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText','birthdayText'];
   const s={};
   keys.forEach(k=>{ const el=document.getElementById('crmS_'+k); if(!el) return; s[k]= el.type==='checkbox' ? el.checked : (el.type==='number' ? +el.value : el.value); });
   { const on=document.getElementById('crmS_staffNotifyOn');
@@ -5692,9 +5693,23 @@ function lineDot_(o){
   if(LINE_BLOCKED.has(k)) return '<span title="ผูก LINE แล้วแต่บล็อก/เลิกติดตาม OA" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#bbb;margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>';
   return '';
 }
+// เดือนเกิดของคนไข้ = เดือนนี้ → ป้ายเตือนพนักงานแจกยาสีฟัน (อ่านจากข้อมูลผูกบัญชีที่ CRM โหลดไว้)
+let _bdMap=null,_bdSrc=null;
+function bdayBadge_(k){
+  try{
+    const L=(CRM&&CRM.data&&CRM.data.links)||null; if(!L) return '';
+    if(_bdSrc!==L){ _bdSrc=L; _bdMap={}; L.forEach(l=>{ if(l.status==='active' && /^\d\d-\d\d$/.test(String(l.birthday||''))) _bdMap[normHN(l.hn)]=String(l.birthday).slice(0,2); }); }
+    if(_bdMap[k]===todayStr().slice(5,7)) return '<span class="line-badge" title="เดือนเกิด — แจกยาสีฟัน 1 หลอด" style="background:#FFF1B8;color:#7A5600;">🎂 เดือนเกิด</span>';
+  }catch(e){}
+  return '';
+}
 function lineBadge(o){
   const k = o && o.hn ? normHN(o.hn) : '';
   if(!k) return '';
+  const _bd=bdayBadge_(k);
+  return _bd + lineBadge0_(o,k);
+}
+function lineBadge0_(o,k){
   if(LINE_HNS.has(k)) return '<span class="line-badge" title="ผูก LINE OA แล้ว">🟢 LINE</span>';
   if(LINE_BLOCKED.has(k)) return '<span class="line-badge off" title="ผูก LINE แล้วแต่บล็อก/เลิกติดตาม OA">🚫 LINE</span>';
   return '';

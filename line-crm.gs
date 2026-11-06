@@ -28,7 +28,7 @@ var CRM_DEFAULT_LIFF_ID = '2012312037-ZWyIL0I7';
 var CRM_DEFAULT_RICHMENU_IMG = 'https://toy113.github.io/Bangluang/richmenu-crm.png';
 
 var CRM_SHEETS = {
-  links:     ['id','lineUserId','hn','patName','status','source','consent','displayName','inputName','inputPhone','createdAt','approvedBy','approvedAt','note'],
+  links:     ['id','lineUserId','hn','patName','status','source','consent','displayName','inputName','inputPhone','createdAt','approvedBy','approvedAt','note','birthday'],
   followers: ['lineUserId','displayName','pictureUrl','status','followedAt','updatedAt','lastSeenAt'],
   log:       ['key','type','hn','patName','lineUserId','refId','status','detail','createdAt','pushCount'],
   tasks:     ['id','type','priority','status','hn','patName','lineUserId','aptId','aptDate','aptTime','detail','preference','createdAt','updatedAt','doneBy','resultNote'],
@@ -58,6 +58,8 @@ var CRM_DEFAULT_SETTINGS = {
   receiptWaitMin: 30,        // ยังไม่มียอดเงิน → รอกี่นาทีก่อนส่งสรุป (เผื่อพนักงานกรอกยอดทีหลังหมอ) · 0 = ไม่รอ
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
   aftercareOn: true, aftercareDelayMin: 0,
+  birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
+  birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
   followupOn: true, followupHour: '10:00',
   ratingOn: true, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
@@ -279,6 +281,7 @@ function crmRouteGet_(e) {
     if (a === 'crmRateOpen')  return crmJson_(crmRateOpen_(p));   // ปุ่ม 5 ดาวในไลน์ (สาธารณะ ตรวจด้วยลายเซ็น k)
     if (a === 'crmBind')      return crmJson_(crmBind_(p));
     if (a === 'crmConsent')   return crmJson_(crmConsent_(p));
+    if (a === 'crmBirthday')  return crmJson_(crmBirthday_(p));
     if (a === 'crmDashboard') return ContentService.createTextOutput(crmDashboardJson_(p.fresh === '1')).setMimeType(ContentService.MimeType.JSON);
     if (a === 'crmCall')      { var cb = JSON.parse(p.data || '{}'), cr = crmStaffAction_(cb); if (cr && cr.ok && cb.withDash) cr.dash = JSON.parse(crmDashboardJson_()); return crmJson_(cr); }
     return crmJson_({ ok: false, error: 'unknown_action' });
@@ -1057,6 +1060,25 @@ function crmTickInner_() {
       if (crmAllDone_(state, fk, tg)) crmMark_(state, fk, 'followup', { hn: g0.hn, patName: g0.patName, refId: fu.id }, 'done', '');
     });
   }
+  // 3.9) อวยพรวันเกิด — เช้าวันเกิด (ในช่วงเวลาที่ส่งได้) ปีละครั้งต่อคนไข้ · พร้อมสิทธิ์ยาสีฟันเมื่อมาตามนัดในเดือนเกิด
+  if (s.birthdayOn) {
+    try {
+      var md0 = today.slice(5, 10), yr0 = today.slice(0, 4);
+      crmRead_('links').forEach(function (l) {
+        if (l.status !== 'active' || String(l.birthday || '') !== md0) return;
+        var tg = (links[crmHN_(l.hn)] || []).filter(function (x) { return x.lineUserId === l.lineUserId && x.consent; });
+        if (!tg.length) return;
+        var bk = crmKey_(s, 'bday:' + crmHN_(l.hn) + ':' + yr0);
+        if (crmIsDone_(state, bk)) return;
+        var nm = String(l.patName || '').split(' ')[0];
+        var txt = String(s.birthdayText || '').replace(/\{name\}/g, nm).replace(/\{month\}/g, CRM_TH_MONTHS[+md0.slice(0, 2) - 1]).replace(/\{phone\}/g, s.clinicPhone || '').replace(/\{clinic\}/g, s.clinicName || '');
+        tg.forEach(function (t) {
+          if (crmSend_(s, state, { key: bk + '>' + t.lineUserId, type: 'birthday', hn: l.hn, patName: l.patName, lineUserId: t.lineUserId, refId: 'bday-' + yr0, detail: md0 }, [crmText_(txt)])) summary.birthday = (summary.birthday || 0) + 1;
+        });
+        if (crmAllDone_(state, bk, tg)) crmMark_(state, bk, 'birthday', { hn: l.hn, patName: l.patName, refId: 'bday-' + yr0 }, 'done', '');
+      });
+    } catch (eb) {}
+  }
   crmFlushMarks_(state);
   summary.at = crmNow_();
   PropertiesService.getScriptProperties().setProperty('CRM_LAST_TICK', JSON.stringify(summary));
@@ -1476,7 +1498,7 @@ function crmPortal_(p) {
   var links = crmRead_('links').filter(function (l) { return l.lineUserId === u.userId; });
   var active = {}, pending = [];
   links.forEach(function (l) {
-    if (l.status === 'active') active[crmHN_(l.hn)] = { hn: l.hn, name: l.patName, consent: String(l.consent).toUpperCase() !== 'FALSE' };
+    if (l.status === 'active') active[crmHN_(l.hn)] = { hn: l.hn, name: l.patName, consent: String(l.consent).toUpperCase() !== 'FALSE', birthday: String(l.birthday || '') };
     else if (l.status === 'pending') pending.push({ name: l.inputName || l.patName, createdAt: l.createdAt });
   });
   var orthoRows = crmReadByName_('ortho');
@@ -1525,6 +1547,7 @@ function crmPortal_(p) {
 }
 function crmBind_(p) {
   var r = crmBindCore_(p);
+  if (r && r.ok && p.bday) { try { crmBirthdaySave_(crmVerifyUser_(p), p.hn, p.bday); } catch (e) {} }   // วันเกิด (ไม่บังคับ) เพื่อรับสิทธิ์เดือนเกิด
   if (r && r.ok) { try { r.portal = crmPortal_(p); } catch (e) {} }   // ส่งข้อมูลหน้าหลักกลับพร้อมกัน ลดการเรียกเซิร์ฟเวอร์ซ้ำ
   return r;
 }
@@ -1590,6 +1613,31 @@ function crmBindCore_(p) {
     return { ok: true, status: anyActive ? 'active' : 'pending', matched: matches.length };
   } finally { lock.releaseLock(); }
 }
+/* วันเกิด (เก็บเฉพาะ วัน-เดือน รูปแบบ MM-DD ในแถวผูกบัญชีของ HN นั้น) */
+function crmBdayNorm_(v) {
+  var m = String(v || '').match(/^(\d{1,2})-(\d{1,2})$/); if (!m) return '';
+  var mo = +m[1], d = +m[2];
+  if (mo < 1 || mo > 12 || d < 1 || d > [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1]) return '';
+  return ('0' + mo).slice(-2) + '-' + ('0' + d).slice(-2);
+}
+function crmBirthdaySave_(u, hn, bday) {
+  var md = crmBdayNorm_(bday); if (!u || !md) return 0;
+  var k = crmHN_(hn), n = 0;
+  crmRead_('links').forEach(function (l) {
+    if (l.lineUserId !== u.userId || l.status === 'revoked' || l.status === 'rejected') return;
+    if (crmHN_(l.hn) && k && crmHN_(l.hn) !== k) return;
+    crmUpdate_('links', l._row, { birthday: md }); n++;
+  });
+  return n;
+}
+function crmBirthday_(p) {
+  var u = crmVerifyUser_(p);
+  if (!u) return { ok: false, error: 'auth' };
+  if (!crmBdayNorm_(p.bday)) return { ok: false, error: 'bad_date' };
+  var n = crmBirthdaySave_(u, p.hn, p.bday);
+  return n ? { ok: true } : { ok: false, error: 'no_link' };
+}
+var CRM_TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 function crmConsent_(p) {
   var u = crmVerifyUser_(p);
   if (!u) return { ok: false, error: 'auth' };
@@ -1710,9 +1758,9 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
+        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
-      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','followupOn','ratingOn','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
+      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);
