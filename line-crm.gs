@@ -1531,8 +1531,8 @@ function crmHandleText_(s, ev, uid) {
   if (!/^(นัด|ดูนัด|นัดครั้งถัดไป|ผูกบัญชี|ลงทะเบียน)$/.test(t)) {
     try {
       var cacheM = CacheService.getScriptCache(), ck = 'crm_msgn_' + uid;
-      if (crmSplitList_(s.staffNotifyIds).indexOf(uid) === -1 && !cacheM.get(ck)) {   // ไม่แจ้งเมื่อแอดมินพิมพ์เอง · พิมพ์รัว ๆ แจ้งครั้งเดียวต่อ 3 นาที
-        cacheM.put(ck, '1', 180);
+      if (crmSplitList_(s.staffNotifyIds).indexOf(uid) === -1 && !cacheM.get(ck)) {   // ไม่แจ้งเมื่อแอดมินพิมพ์เอง · คนเดิมพิมพ์ซ้ำภายใน 15 นาที แจ้งครั้งเดียว
+        cacheM.put(ck, '1', 900);
         var who = crmNameOfUid_(uid);
         crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: who.hn, patName: who.name, lineUserId: uid, detail: 'ข้อความ: ' + text.slice(0, 200) });
       }
