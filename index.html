@@ -3751,7 +3751,9 @@ function crmMarkConfirmed(id){
 function crmViewRemind(){
   const d=CRM.data, s=d.settings||{}, today=todayStr();
   const od=+s.orthoDays||2, xd=+s.otherDays||2;
-  const due=appointments.filter(a=>!['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status) && a.date===crmAddDays(today, crmIsOrtho(a)?od:xd))
+  // นัดจัดฟันที่มาจากการ์ด (คอลัมน์ นัดถัดไป — ไม่มีแถวในตารางนัด) ต้องนับด้วย เหมือนที่เซิร์ฟเวอร์ส่งจริง
+  const _od=crmAddDays(today,od), _virt=(()=>{ try{ return crmOrthoAptList(_od,_od).filter(a=>a._ortho); }catch(e){ return []; } })();
+  const due=appointments.filter(a=>!['ยกเลิก','เสร็จสิ้น','เสร็จ','walk-in'].includes(a.status) && a.date===crmAddDays(today, crmIsOrtho(a)?od:xd)).concat(_virt)
     .sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   const withLine=due.filter(a=>crmHasLine(a.hn)), noLine=due.filter(a=>!crmHasLine(a.hn));
   const recent=(d.log||[]).filter(r=>r.type==='remind' && r.status!=='done').slice(-40).reverse();
