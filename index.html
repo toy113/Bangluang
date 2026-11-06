@@ -571,6 +571,7 @@ select.form-control { cursor: pointer; }
 /* DOCTOR SHARE TABLE */
 .share-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
 .share-grid.share-list { display:flex; flex-direction:column; gap:8px; }
+.share-grid.share-one { grid-template-columns:1fr; }   /* เลือกหมอคนเดียว → การ์ดเต็มความกว้าง */
 .share-row { display:grid; grid-template-columns:minmax(150px,1.6fr) 70px repeat(2,minmax(90px,1fr)) 20px; gap:10px; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:12px; cursor:pointer; }
 .share-row:hover { border-color:var(--wine-light); box-shadow:0 2px 10px rgba(107,45,94,.1); }
 .share-row .n { font-weight:800; color:var(--wine-dark); }
@@ -1453,7 +1454,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div id="shareTotalBadge" style="font-size:13px;font-weight:700;color:var(--wine-mid);"></div>
         </div>
         <div style="padding:20px 24px;"><div class="share-grid" id="shareGrid"></div></div>
-        <div style="padding:0 24px 20px;"><div class="chart-wrap" style="height:220px;"><canvas id="doctorShareChart"></canvas></div></div>
       </div>
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
         <div class="stat-card purple"><div class="stat-icon">💰</div><div class="stat-label">รายได้รวม</div><div class="stat-value" id="i-total">0</div><div class="stat-sub">บาท</div></div>
@@ -7003,6 +7003,7 @@ function buildShareGrid(rows){
   // มุมมองรายวัน: แสดงเป็นรายการ และซ่อนหมอที่วันนั้นไม่มียอด
   const dayList = (currentPeriod==='day');
   el.classList.toggle('share-list', dayList);
+  el.classList.toggle('share-one', !dayList && docList.length===1);
   if(dayList){
     const shown = [];
     docList.forEach((doc,docIdx)=>{
