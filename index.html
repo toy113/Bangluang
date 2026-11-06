@@ -3559,13 +3559,14 @@ async function crmOrthoCameSave(){
       if(!String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์']=date;
       if((row['สถานะ']||'กำลังจัด')==='กำลังจัด' && orthoRetainerPlaced_(row)){ row['สถานะ']='เสร็จแล้ว'; retainerDone=true; }
     }
+    const bondSet=orthoApplyBondDates_(row, extras.map(x=>x.name).concat(others), date);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ด
     row._visitCount=visits; row._looseCount=looseN;
     await Promise.all([ orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row}) ]);
     const idx=orthoData.findIndex(x=>x===r); if(idx>=0) orthoData[idx]=row;
     orthoAdvanceNext_(r.hn, date);
     let trMsg=''; try{ trMsg=cameRecordTreatment_({ r, date, doc, lineItems, money, userNote, visitNo:visits, adj }); }catch(e){ console.error(e); trMsg='fail'; }
     closeModal('modalOrthoCame');
-    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(retainerDone?' · ใส่รีเทนเนอร์ '+date+' → ย้ายไป "เสร็จแล้ว"':'')+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
+    showToast('บันทึกแล้ว ✅ รวม '+money.toLocaleString()+' บาท'+(retainerDone?' · ใส่รีเทนเนอร์ '+date+' → ย้ายไป "เสร็จแล้ว"':'')+(bondSet.length?' · วันติดเครื่องมือ'+bondSet.join('/')+' '+date:'')+(loose?' · หลุดสะสม '+looseN+' ตัว':'')+(trMsg==='ok'?' · ลงบันทึกการรักษาแล้ว':''));
     if(trMsg==='nocaps'){ try{ orthoCloseDayApts_(r.hn, r['รหัสประจำตัว'], date, doc); try{ renderHome(); }catch(e){} }catch(e){} }
     if(trMsg==='nocaps') showToast('บันทึกประวัติจัดฟันแล้ว แต่ยังไม่ได้ลงบันทึกการรักษา/รายได้ — ต้องวาง line-crm.gs ฉบับล่าสุดก่อน','error');
     else if(trMsg==='fail') showToast('บันทึกประวัติจัดฟันแล้ว แต่ลงบันทึกการรักษาไม่สำเร็จ — กรุณาลงเองในหน้าบันทึกการรักษา','error');
@@ -5378,6 +5379,7 @@ function saveTreat(){
   if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
+  orthoBondFromTreat_(t);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ดจัดฟัน
 
   // Completing treatment completes the matching same-day appointment automatically.
   // HN is the primary match; use the patient name only when either record has no HN.
@@ -11154,7 +11156,9 @@ async function saveOrthoLog(){
     'note': document.getElementById('olog-note').value.trim()
   };
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
-  const visits = orthoVisitCount_(idx>=0?orthoData[idx]:null) + 1;
+  const _items = treatments.split(',').map(x=>x.trim());
+  const _prev = idx>=0?orthoData[idx]:null;
+  const visits = orthoVisitCount_(_prev) + ((_items.includes('ปรับเครื่องมือ') && String(_prev?.['ปรับล่าสุด']||'').slice(0,10)!==log['วันที่']) ? 1 : 0);   // นับเฉพาะครั้งที่ปรับเครื่องมือ
   const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
     'ปรับล่าสุด': log['วันที่'],
     'ครั้งที่มาแล้ว': visits
@@ -11165,6 +11169,7 @@ async function saveOrthoLog(){
     if(!String(row['วันใส่รีเทนเนอร์']||'').trim()) row['วันใส่รีเทนเนอร์'] = log['วันที่'];
     if((row['สถานะ']||'กำลังจัด')==='กำลังจัด' && orthoRetainerPlaced_(row)){ row['สถานะ']='เสร็จแล้ว'; retainerDone = true; }
   }
+  orthoApplyBondDates_(row, _items, log['วันที่']);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ด
   row._visitCount = visits; // กัน badge/การ์ดแสดงเลขเก่าค้างจนกว่าจะโหลดใหม่
   await Promise.all([
     orthoPost({action:'orthoLogAdd', log}),
@@ -11202,7 +11207,9 @@ async function openOrthoHistory(hn){
     chrono.forEach(({l})=>{
       const d = String(l['วันที่']||'').slice(0,10);
       if(isLoose(l)){ looseNo++; meta.set(l,{loose:true,no:looseNo}); }
+      else if(String(l['ทำอะไร']||'').indexOf('ปรับ')<0){ meta.set(l,{loose:false,other:true}); }   // มาติดเครื่องมือบน/ล่าง พิมพ์ปาก ใส่รีเทนเนอร์ ฯลฯ อย่างเดียว → ไม่นับเป็นครั้งที่ปรับ (เหมือนตัวนับในการ์ด)
       else{
+        if(d && d===prevVisitDate){ meta.set(l,{loose:false,no:visitNo,gapDays:null}); return; }   // ปรับวันเดียวกันนับครั้งเดียว
         visitNo++;
         let gapDays = null;
         if(prevVisitDate && d){ const g = Math.round((new Date(d+'T12:00')-new Date(prevVisitDate+'T12:00'))/86400000); if(!isNaN(g) && g>=0) gapDays = g; }
@@ -11211,12 +11218,12 @@ async function openOrthoHistory(hn){
       }
     });
     const gapText = g => g==null ? '' : (g<14 ? g+' วัน' : Math.round(g/7)+' สัปดาห์');
-    const summary = '<div style="font-size:13px;font-weight:700;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:8px 12px;margin-bottom:6px;">มาแล้ว '+visitNo+' ครั้ง'+(looseNo?' · เครื่องมือหลุด '+looseNo+' ครั้ง':'')+'</div>';
+    const summary = '<div style="font-size:13px;font-weight:700;color:var(--wine-dark);background:var(--wine-pale);border-radius:10px;padding:8px 12px;margin-bottom:6px;">ปรับเครื่องมือแล้ว '+visitNo+' ครั้ง'+(looseNo?' · เครื่องมือหลุด '+looseNo+' ครั้ง':'')+'</div>';
     box.innerHTML = summary + logs.map(l=>{
       const m = meta.get(l)||{};
       const badge = m.loose
         ? '<span style="background:#FDEDEC;color:#922B21;border-radius:20px;padding:1px 9px;font-size:11px;font-weight:800;">🔧 หลุดครั้งที่ '+m.no+'</span><span style="background:'+(m.no<=3?'#D5F5E3':'#FDEBD0')+';color:'+(m.no<=3?'#1D6B44':'#A04000')+';border-radius:20px;padding:1px 9px;font-size:11px;font-weight:800;">'+(m.no<=3?'ฟรี':'เก็บ 300 บาท')+'</span>'
-        : '<span style="background:var(--wine);color:#fff;border-radius:20px;padding:1px 10px;font-size:11px;font-weight:800;">ครั้งที่ '+m.no+'</span>';
+        : m.other ? '' : '<span style="background:var(--wine);color:#fff;border-radius:20px;padding:1px 10px;font-size:11px;font-weight:800;">ปรับครั้งที่ '+m.no+'</span>';
       const gap = (!m.loose && m.gapDays!=null && m.gapDays>0) ? '<span style="font-size:11px;color:var(--text-light);">ห่างครั้งก่อน '+gapText(m.gapDays)+'</span>' : '';
       return `
       <div style="border-bottom:1px dashed var(--border);padding:10px 0;">
@@ -11535,6 +11542,35 @@ async function orthoPost(payload){
   }catch(e){ console.warn('orthoPost error',e); showToast('บันทึกไม่สำเร็จ','error'); return {ok:false,error:String(e)}; }
 }
 // แก้บางช่องของการ์ดจัดฟัน + อัปเดตข้อมูลในเครื่องเมื่อสำเร็จ
+// วันติดเครื่องมือบน/ล่าง: บันทึก "ติดเครื่องมือบน/ล่าง" (ปุ่มมาตามนัด / บันทึกประวัติ / บันทึกการรักษา) → ใส่วันลงการ์ดจัดฟัน ถ้าช่องนั้นยังว่าง
+// (ติดซ้ำภายหลังไม่ทับวันเดิม · วันเริ่ม = วันที่เร็วกว่าของบน/ล่าง) · คืนรายการด้านที่ใส่วันใหม่ เช่น ['ล่าง']
+function orthoApplyBondDates_(row, items, date){
+  const has=n=>items.includes(n), d=String(date||'').slice(0,10);
+  const up=has('ติดเครื่องมือบน')||has('ติดเครื่องมือ'), lo=has('ติดเครื่องมือล่าง')||has('ติดเครื่องมือ');
+  if(!row || !/^\d{4}-\d{2}-\d{2}$/.test(d) || (!up && !lo)) return [];
+  const g=k=>String(row[k]||'').slice(0,10);
+  // การ์ดเก่า (มีแต่ วันเริ่ม) แล้ววันนี้มาติดอีกด้านเป็นครั้งแรก → ด้านแรกติดไปแล้วตั้งแต่ วันเริ่ม
+  const legacy=(!g('วันติดบน') && !g('วันติดล่าง')) ? g('วันเริ่ม') : '';
+  if(legacy && legacy<d){ if(up && !lo) row['วันติดล่าง']=legacy; if(lo && !up) row['วันติดบน']=legacy; }
+  const set=[];
+  if(up && !g('วันติดบน')){ row['วันติดบน']=d; set.push('บน'); }
+  if(lo && !g('วันติดล่าง')){ row['วันติดล่าง']=d; set.push('ล่าง'); }
+  row['วันเริ่ม']=[g('วันติดบน'),g('วันติดล่าง')].filter(Boolean).sort()[0] || row['วันเริ่ม'] || '';
+  return set;
+}
+// บันทึกการรักษา (ฟอร์มปกติ) ที่มี ติดเครื่องมือบน/ล่าง ของคนไข้ที่มีการ์ดจัดฟัน → อัปเดตวันติดในการ์ดด้วย
+function orthoBondFromTreat_(t){
+  try{
+    const items=String(t.proc||'').split(',').map(x=>x.trim());
+    if(!items.some(x=>/^ติดเครื่องมือ(บน|ล่าง)?$/.test(x))) return;
+    const r=t.hn?crmOrthoRec(t.hn):null; if(!r) return;
+    const row=Object.assign({}, r), set=orthoApplyBondDates_(row, items, t.date);
+    if(!set.length && row['วันเริ่ม']===r['วันเริ่ม'] && row['วันติดบน']===r['วันติดบน'] && row['วันติดล่าง']===r['วันติดล่าง']) return;
+    orthoPatchCard_(r.hn, {'วันติดบน':row['วันติดบน']||'', 'วันติดล่าง':row['วันติดล่าง']||'', 'วันเริ่ม':row['วันเริ่ม']||''})
+      .then(res=>{ if(res && res.ok!==false && set.length) showToast('ใส่วันติดเครื่องมือ'+set.join('/')+' '+t.date+' ลงการ์ดจัดฟันแล้ว 🦷'); })
+      .catch(()=>showToast('อัปเดตวันติดเครื่องมือในการ์ดจัดฟันไม่สำเร็จ','error'));
+  }catch(e){ console.warn('orthoBondFromTreat_', e); }
+}
 async function orthoPatchCard_(hn, fields){
   const k=crmHN(hn), i=orthoData.findIndex(x=>crmHN(x.hn)===k);
   const row=Object.assign({}, i>=0?orthoData[i]:{hn}, fields);
