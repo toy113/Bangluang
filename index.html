@@ -1097,6 +1097,68 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .login-select-label{color:#78516f;text-shadow:0 1px 0 rgba(255,255,255,.9);}
 .login-manager-btn,.login-doc-btn{backdrop-filter:blur(8px);}
 @media(max-width:560px){.login-step{padding:24px 18px;border-radius:24px}.login-logo-wrap{margin-bottom:26px}#loginScreen::after{width:120vw;height:120vw}}
+
+/* ======= MOBILE POLISH: โปร่ง สบายตา (เฉพาะมือถือ ไม่กระทบจอคอม) ======= */
+@media (max-width: 768px) {
+  body { -webkit-text-size-adjust: 100%; line-height: 1.55; }
+  .page { padding: 18px 14px 28px; }
+  /* การ์ด: มุมโค้งใหญ่ขึ้น เงานุ่ม ระยะห่างระหว่างการ์ดมากขึ้น */
+  .card-box, .crm-card, .crm-kpi, .stat-card, .share-card { border-radius: 18px; border-color: rgba(107,45,94,0.10); box-shadow: 0 2px 14px rgba(107,45,94,0.07); }
+  .card-box { margin-bottom: 18px; }
+  .card-box-hdr { padding: 15px 16px; }
+  .card-box-title { font-size: 15px; }
+  .crm-card { padding: 16px; margin-bottom: 16px; }
+  .crm-card h4 { font-size: 15.5px; margin-bottom: 12px; }
+  .crm-kpis, .stat-grid, .share-grid { gap: 12px; }
+  .crm-kpi { padding: 14px 15px; }
+  .crm-kpi .v { font-size: 24px; }
+  .stat-card { padding: 16px 14px; }
+  .section-title { font-size: 17px; }
+  /* รายการในการ์ด: เว้นบรรทัดและ padding ให้อ่านง่าย */
+  .crm-list { gap: 10px; }
+  .crm-item { padding: 12px 14px; border-radius: 14px; gap: 10px 12px; border-color: rgba(107,45,94,0.12); }
+  .crm-item .main { min-width: 0; flex-basis: 100%; }
+  .crm-item .nm { font-size: 15px; }
+  .crm-item .meta { font-size: 13px; line-height: 1.6; margin-top: 3px; }
+  .crm-item .acts { width: 100%; gap: 8px; }
+  .crm-chip { font-size: 12px; padding: 3px 10px; }
+  .crm-alert { padding: 12px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.65; }
+  .crm-status { border-radius: 14px; padding: 12px 14px; }
+  .crm-empty { padding: 26px 16px; }
+  /* ปุ่ม/ช่องกรอก: แตะง่าย และไม่ซูมอัตโนมัติบน iOS */
+  .btn { min-height: 42px; padding: 9px 16px; border-radius: 12px; font-size: 14px; }
+  .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+  .btn-icon { min-width: 40px; min-height: 40px; }
+  .crm-btn { min-height: 38px; padding: 7px 14px; border-radius: 11px; font-size: 13px; }
+  .crm-seg { border-radius: 12px; padding: 4px; }
+  .crm-seg button { padding: 8px 12px; border-radius: 9px; font-size: 13px; }
+  .crm-sub { gap: 8px; padding-bottom: 12px; margin-bottom: 8px; }
+  .crm-sub button { padding: 10px 15px; font-size: 13.5px; border-radius: 12px; }
+  .form-control { min-height: 44px; padding: 10px 13px; border-radius: 12px; font-size: 16px; }
+  textarea.form-control { line-height: 1.6; }
+  .crm-form { gap: 14px; }
+  .crm-form label { font-size: 13px; margin-bottom: 6px; }
+  .crm-tools { gap: 10px; margin-bottom: 14px; }
+  .crm-tools input.form-control, .crm-tools select.form-control { height: 44px; max-width: none; }
+  .crm-sw { padding: 12px 0; font-size: 14px; }
+  .date-nav-btn { height: 42px; border-radius: 12px; }
+  .period-tab { padding: 8px 14px; font-size: 13px; }
+  .contact-chip { padding: 9px 16px; }
+  /* ตาราง: เว้นแถวให้โปร่ง */
+  thead th { padding: 10px 12px; }
+  tbody td { padding: 11px 12px; }
+  .crm-table th { padding: 10px; }
+  .crm-table td { padding: 11px 10px; }
+  /* หน้าต่าง pop-up */
+  .modal-box { border-radius: 22px; padding: 22px 18px 18px; }
+  .modal-title { font-size: 16px; margin-bottom: 16px; }
+  .crm-modal { padding: 16px 10px; }
+  .crm-modal .box { border-radius: 22px; padding: 20px 18px 18px; }
+  .crm-modal .foot { gap: 10px; margin-top: 18px; }
+  .crm-opt { grid-template-columns: 1fr; gap: 8px; }
+  /* แท็บบนสุด */
+  .top-tab { padding-top: 9px; padding-bottom: 9px; }
+}
 </style>
 </head>
 <body>
