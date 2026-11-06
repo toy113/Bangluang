@@ -7003,7 +7003,7 @@ function buildShareGrid(rows){
   // มุมมองรายวัน: แสดงเป็นรายการ และซ่อนหมอที่วันนั้นไม่มียอด
   const dayList = (currentPeriod==='day');
   el.classList.toggle('share-list', dayList);
-  el.classList.toggle('share-one', !dayList && docList.length===1);
+  el.classList.toggle('share-one', !dayList);   // การ์ดหมอเรียงคอลัมน์เดียว เต็มความกว้าง
   if(dayList){
     const shown = [];
     docList.forEach((doc,docIdx)=>{
