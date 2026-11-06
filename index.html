@@ -7334,7 +7334,7 @@ function buildLabSummary(rows,month,docFilter){
     </div>`;
   }
   el.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-    ${labs_list.map(lb=>`<div style="flex:1;min-width:160px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+    ${labs_list.filter(lb=>totLab[lb]>0).map(lb=>`<div style="flex:1;min-width:160px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
       <div style="font-size:12px;color:var(--text-light);font-weight:700;">${lb}</div>
       <div style="font-size:20px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;">${fmt(totLab[lb])}</div>
     </div>`).join('')}
