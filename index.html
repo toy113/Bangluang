@@ -8245,7 +8245,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     const M={ yes:['✅ ยืนยันแล้ว','#E3F4EA','#1D6B44'], move:['📅 ขอเลื่อน','#FDEBD0','#A04000'], wait:['⏳ รอยืนยัน','#FFF4CC','#7A5600'], noline:['☎️ ยังไม่ผูกไลน์','#EEE','#666'] }[st]||['','#EEE','#666'];
     const canConfirm = (st==='wait'||st==='noline') && isManager && !isViewOnlyUser();
     return `<span style="background:${M[1]};color:${M[2]};border-radius:10px;padding:0 7px;font-weight:700;">${M[0]}</span>`
-      + (canConfirm ? `<button onclick="event.stopPropagation();crmOrthoConfirm('${String(a.id).replace(/'/g,'')}');setTimeout(renderScheduleDay,600);" title="คนไข้ยืนยันทางโทร/แชท" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:0 6px;font-size:10px;font-weight:700;color:#1E4FA0;cursor:pointer;">ตั้งยืนยัน</button>` : '');
+      + (canConfirm ? `<button onclick="event.stopPropagation();crmOrthoConfirm('${String(a.id).replace(/'/g,'')}');setTimeout(renderScheduleDay,600);" title="คนไข้ยืนยันทางโทร/แชท" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:0 6px;font-size:10px;font-weight:700;color:#1E4FA0;cursor:pointer;">คอนเฟิรมกับโบ</button>` : '');
   }
   // นัดที่ "เสร็จ/มาแล้ว": สถานะเสร็จสิ้น หรือคนไข้จัดฟันที่กดมาตามนัดวันนี้แล้ว
   function aptDone_(x){ if(['เสร็จสิ้น','เสร็จ'].includes(x.status)) return true; try{ const o=x.hn?crmOrthoRec(x.hn):null; return !!(o && String(o['ปรับล่าสุด']||'').slice(0,10)===date); }catch(e){ return false; } }
@@ -8253,7 +8253,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
   function schOrthoConfirmBtn_(a){
     let st='noline'; try{ st=crmOrthoState(a); }catch(e){}
     if(!((st==='wait'||st==='noline') && isManager && !isViewOnlyUser())) return '';
-    return `<button onclick="event.stopPropagation();crmOrthoConfirm('${String(a.id).replace(/'/g,'')}');setTimeout(renderScheduleDay,600);" title="คนไข้ยืนยันทางโทร/แชท" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:0 5px;font-size:10px;font-weight:700;color:#1E4FA0;cursor:pointer;">ตั้งยืนยัน</button>`;
+    return `<button onclick="event.stopPropagation();crmOrthoConfirm('${String(a.id).replace(/'/g,'')}');setTimeout(renderScheduleDay,600);" title="คนไข้ยืนยันทางโทร/แชท" style="background:#fff;border:1px solid #9DBCEB;border-radius:6px;padding:0 5px;font-size:10px;font-weight:700;color:#1E4FA0;cursor:pointer;">คอนเฟิรมกับโบ</button>`;
   }
   // จุดสถานะยืนยันนัดต่อท้ายชื่อ: เหลือง=รอยืนยัน · ส้ม=ขอเลื่อน · เทา=ยังไม่ผูกไลน์ (ยืนยันแล้ว = ไม่มีจุด)
   function schStateDot_(a){
