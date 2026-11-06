@@ -3667,7 +3667,7 @@ window.onload=function(){ fit(); setTimeout(function(){window.print()},300); };
 }
 function crmViewOrthoApts(){
   const today=todayStr();
-  const ranges={ today:[today,today], tomorrow:[crmAddDays(today,1),crmAddDays(today,1)], week:[today,crmAddDays(today,7)], d14:[today,crmAddDays(today,14)], d30:[today,crmAddDays(today,30)] };
+  const ranges={ yesterday:[crmAddDays(today,-1),crmAddDays(today,-1)], today:[today,today], tomorrow:[crmAddDays(today,1),crmAddDays(today,1)], week:[today,crmAddDays(today,7)], d14:[today,crmAddDays(today,14)], d30:[today,crmAddDays(today,30)] };
   const rk=ranges[CRM.orthoRange]?CRM.orthoRange:'week', r=ranges[rk];
   if(typeof orthoData!=='undefined' && !_orthoLoaded && typeof loadOrthoData==='function') loadOrthoData().then(()=>{ if(CRM.sub==='orthoapt') crmRender(); }).catch(()=>{});
   const list=crmOrthoAptList(r[0], r[1]).filter(orthoAimOnly_);   // เฉพาะนัดของหมอเอม (หมอวัจน์กร)
@@ -3724,7 +3724,7 @@ function crmViewOrthoApts(){
     return head+rows;
   }).join('');
   return `<div class="crm-card"><h4>😬 นัดจัดฟัน — ยืนยันแล้วกี่คนจากกี่คน<span class="sp"></span>
-      <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
+      <span class="crm-seg">${[['yesterday','เมื่อวาน'],['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
       <div class="meta">รวม <b>${list.length}</b> คน · ✅ ยืนยัน ${tot.yes} · ⏳ ยังไม่ยืนยัน ${tot.wait+tot.noline}${tot.move?` · 📅 ขอเลื่อน ${tot.move}`:''} · 🟢 ผูกไลน์แล้ว ${list.filter(a=>crmHasLine(a.hn)).length}/${list.length}</div>
       <p class="crm-muted" style="margin:6px 0 10px;">ยืนยัน = คนไข้กดยืนยันใน LINE · แตะป้าย <b>เหลือง/แดง</b> เพื่อตั้งเป็น "ยืนยัน" เอง (เช่น คนไข้ยืนยันทางโทร) · ปุ่ม "มาตามนัด" กดได้เมื่อถึงวันนัด เพื่อบันทึกปรับเครื่องมือลงการ์ดจัดฟัน</p>
       ${dates.length?`<div class="crm-tablewrap" style="overflow-x:hidden;"><table class="crm-table" style="overflow-wrap:anywhere;word-break:break-word;table-layout:fixed;width:100%;"><colgroup><col style="width:52px"><col></colgroup><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
