@@ -4227,8 +4227,8 @@ function crmViewReport(){
 const STAFF_NOTIFY_NAMES = ['toy','ดินสอ'];   // ชื่อ LINE ของแอดมินที่แสดงเป็นตัวเลือก (ตัวพิมพ์เล็ก)
 function crmStaffNotifyCard_(s, fol){
   const ids=String(s.staffNotifyIds||'').split(',').map(x=>x.trim()).filter(Boolean);
-  const types=String(s.staffNotifyTypes||'reschedule,emergency,callback').split(',').map(x=>x.trim());
-  const T=[['reschedule','📅 คนไข้ขอเลื่อนนัด'],['emergency','🚨 อาการฉุกเฉิน'],['callback','📞 ขอให้คลินิกโทรกลับ / อาการบวมมาก']];
+  const types=String(s.staffNotifyTypes||'reschedule,emergency,callback,message,receipt').split(',').map(x=>x.trim());
+  const T=[['reschedule','📅 คนไข้ขอเลื่อนนัด'],['emergency','🚨 อาการฉุกเฉิน'],['callback','📞 ขอให้คลินิกโทรกลับ / อาการบวมมาก'],['message','💬 คนไข้พิมพ์ข้อความเข้า LINE OA'],['receipt','🧾 ส่งสรุปการรักษาให้คนไข้แล้ว']];
   const missing=ids.filter(id=>!fol.some(f=>f.lineUserId===id));
   // แสดงเฉพาะบัญชีแอดมิน (TOY, ดินสอ) + บัญชีที่เลือกไว้แล้ว · ที่เหลือซ่อนไว้ใน "เลือกจากรายชื่อทั้งหมด"
   const isAdm=f=>STAFF_NOTIFY_NAMES.includes(String(f.displayName||'').trim().toLowerCase()) || ids.includes(f.lineUserId);

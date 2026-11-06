@@ -50,7 +50,7 @@ var CRM_DEFAULT_SETTINGS = {
   testUserId: '',
   staffNotifyOn: false,       // แจ้งแอดมินทาง LINE เมื่อคนไข้ขอเลื่อนนัด / ฉุกเฉิน / ขอให้โทรกลับ
   staffNotifyIds: '',         // lineUserId ของแอดมิน (คั่นด้วย ,) — ต้องเพิ่มเพื่อน LINE OA และทักแชทก่อน 1 ครั้ง
-  staffNotifyTypes: 'reschedule,emergency,callback',
+  staffNotifyTypes: 'reschedule,emergency,callback,message,receipt',
   sendStart: '08:00', sendEnd: '20:00',
   confirmOn: true,
   remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 2,
@@ -87,6 +87,13 @@ function crmSettings_() {
   // ย้ายค่าครั้งเดียว: ปิดการถามคะแนนบริการ (6 พ.ย. 69 ตามที่คลินิกสั่ง) — หลังจากนี้เปิดเองได้ในตั้งค่า "ให้คะแนนบริการ"
   if (raw && s.ratingOffMigrated !== true) {
     s.ratingOn = false; s.ratingOffMigrated = true;
+    try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
+  }
+  // ย้ายค่าครั้งเดียว: เพิ่มเรื่องแจ้งแอดมิน "คนไข้พิมพ์เข้ามา" + "ส่งสรุปการรักษาแล้ว" (6 พ.ย. 69) — ปิดได้ในตั้งค่า
+  if (raw && s.staffMsgMigrated !== true) {
+    var tl = String(s.staffNotifyTypes || 'reschedule,emergency,callback').split(',').map(function (x) { return x.trim(); }).filter(String);
+    ['message', 'receipt'].forEach(function (x) { if (tl.indexOf(x) === -1) tl.push(x); });
+    s.staffNotifyTypes = tl.join(','); s.staffMsgMigrated = true;
     try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
   }
   var out = {};
@@ -997,6 +1004,12 @@ function crmTickInner_() {
       tg.forEach(function (t) {
         if (crmSend_(s, state, { key: key + '>' + t.lineUserId, type: type, hn: t0.hn, patName: t0.patName, lineUserId: t.lineUserId, refId: refId, detail: detail }, msgs)) {
           sentAny = true; if (type === 'receipt') summary.receipt = (summary.receipt || 0) + 1; if (hasAfter) summary.aftercare++;
+          if (type === 'receipt' && !s.testMode) {   // แจ้งแอดมินว่าส่งสรุปให้คนไข้แล้ว
+            try {
+              var rsum = rowsR.map(function (x) { return String(x.proc || '').replace(/\s*,\s*/g, ', ') + ' ' + crmTreatAmt_(x); }).join(' | ');
+              crmNotifyStaff_(s, { id: 'RC-' + t0.hn + '-' + Date.now(), type: 'receipt', priority: 'normal', hn: t0.hn, patName: t0.patName, lineUserId: t.lineUserId, detail: rsum.slice(0, 200) });
+            } catch (eR) { Logger.log('notify receipt ' + eR); }
+          }
         }
       });
       if (crmAllDone_(state, key, tg)) {
@@ -1300,7 +1313,7 @@ function crmCreateTask_(t) {
   return task;
 }
 // ---- แจ้งแอดมินทาง LINE (push เข้า LINE ส่วนตัวของแอดมิน) ----
-var CRM_STAFF_LABEL = { reschedule: '📅 คนไข้ขอเลื่อนนัด', emergency: '🚨 อาการฉุกเฉิน', callback: '📞 ขอให้คลินิกโทรกลับ' };
+var CRM_STAFF_LABEL = { reschedule: '📅 คนไข้ขอเลื่อนนัด', emergency: '🚨 อาการฉุกเฉิน', callback: '📞 ขอให้คลินิกโทรกลับ', message: '💬 คนไข้พิมพ์เข้ามา', receipt: '🧾 ส่งสรุปการรักษาแล้ว' };
 /* รหัสจัดฟัน (A-###) ของ HN จากชีต ortho · ไม่มี/ไม่พบ → '' */
 function crmOrthoCodeOf_(hn) {
   var k = crmHN_(hn); if (!k) return '';
@@ -1313,9 +1326,19 @@ function crmOrthoCodeOf_(hn) {
   }
   return '';
 }
+/* ชื่อคนไข้จาก LINE userId: ชื่อที่ผูก HN ไว้ → ไม่มีใช้ชื่อ LINE */
+function crmNameOfUid_(uid) {
+  var name = '', hn = '';
+  try {
+    var l = crmRead_('links').filter(function (x) { return x.lineUserId === uid && x.status === 'active'; })[0];
+    if (l) { name = l.patName || ''; hn = l.hn || ''; }
+    if (!name) { var f = crmRead_('followers').filter(function (x) { return x.lineUserId === uid; })[0]; if (f) name = f.displayName || ''; }
+  } catch (e) {}
+  return { name: name, hn: hn };
+}
 function crmNotifyStaff_(s, task, force) {
   if (!force && !(s.staffNotifyOn === true || s.staffNotifyOn === 'true' || s.staffNotifyOn === 'TRUE')) return 0;
-  if (!force && crmSplitList_(s.staffNotifyTypes || 'reschedule,emergency,callback').indexOf(task.type) === -1) return 0;
+  if (!force && crmSplitList_(s.staffNotifyTypes || 'reschedule,emergency,callback,message,receipt').indexOf(task.type) === -1) return 0;
   var ids = crmSplitList_(s.staffNotifyIds); if (!ids.length) return 0;
   if (task.type !== 'emergency') {   // ฉุกเฉินส่งเสมอ · อย่างอื่นหยุดเมื่อโควตาหมด
     var q = crmQuota_(); if (q && q.remaining !== null && q.remaining !== undefined && q.remaining <= 0) return 0;
@@ -1324,9 +1347,10 @@ function crmNotifyStaff_(s, task, force) {
   var oc = ''; try { oc = crmOrthoCodeOf_(task.hn); } catch (eO) { Logger.log('crmOrthoCodeOf_ ' + eO); }
   // รหัสจัดฟัน + HN นำหน้าชื่อ
   lines.push((oc ? oc + ' ' : '') + (task.hn ? 'HN ' + task.hn + ' ' : '') + 'คุณ' + (task.patName || 'ไม่ทราบชื่อ') + (task.hn ? '' : ' · ยังไม่ผูก HN'));
-  if (task.aptDate) lines.push('นัดเดิม: ' + crmThaiDate_(task.aptDate) + (task.aptTime ? ' ' + task.aptTime + ' น.' : ''));
+  if (task.aptDate && task.type !== 'message' && task.type !== 'receipt') lines.push('นัดเดิม: ' + crmThaiDate_(task.aptDate) + (task.aptTime ? ' ' + task.aptTime + ' น.' : ''));
   if (task.detail) lines.push(String(task.detail).slice(0, 300));
-  lines.push('➡️ เปิดแอปคลินิก › LINE CRM › งานโทรกลับ');
+  lines.push(task.type === 'message' ? '➡️ เปิดแชท LINE OA เพื่อตอบ' : (task.type === 'receipt' ? '' : '➡️ เปิดแอปคลินิก › LINE CRM › งานโทรกลับ'));
+  if (!lines[lines.length - 1]) lines.pop();
   if (s.testMode) lines.unshift('🧪 (โหมดทดสอบ)');
   var n = 0;
   ids.forEach(function (to) {
@@ -1503,7 +1527,18 @@ function crmHandleText_(s, ev, uid) {
   } else if (/^(ผูกบัญชี|ลงทะเบียน)$/.test(t)) {
     crmReply_(ev.replyToken, [crmWelcome_(s)]);
   }
-  // ข้อความอื่น ๆ ปล่อยให้พนักงานตอบผ่าน LINE OA Chat ตามปกติ (ไม่มี AI ตอบแทน)
+  // ข้อความอื่น ๆ → แจ้งแอดมินทาง LINE (เหมือนจุดเขียวในแชท OA) แล้วให้พนักงานตอบผ่าน LINE OA Chat ตามปกติ
+  if (!/^(นัด|ดูนัด|นัดครั้งถัดไป|ผูกบัญชี|ลงทะเบียน)$/.test(t)) {
+    try {
+      var cacheM = CacheService.getScriptCache(), ck = 'crm_msgn_' + uid;
+      if (crmSplitList_(s.staffNotifyIds).indexOf(uid) === -1 && !cacheM.get(ck)) {   // ไม่แจ้งเมื่อแอดมินพิมพ์เอง · พิมพ์รัว ๆ แจ้งครั้งเดียวต่อ 3 นาที
+        cacheM.put(ck, '1', 180);
+        var who = crmNameOfUid_(uid);
+        crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: who.hn, patName: who.name, lineUserId: uid, detail: 'ข้อความ: ' + text.slice(0, 200) });
+      }
+    } catch (eM) { Logger.log('notify message ' + eM); }
+  }
+  // (เดิม) ข้อความอื่น ๆ ปล่อยให้พนักงานตอบผ่าน LINE OA Chat ตามปกติ (ไม่มี AI ตอบแทน)
 }
 
 /* ============================ PATIENT PORTAL (LIFF) ============================ */
