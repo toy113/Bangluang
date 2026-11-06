@@ -8124,6 +8124,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           <span style="background:#fff;border:1px solid #C9DAF7;color:#1E4FA0;border-radius:10px;padding:0 8px;font-weight:700;">${_escHtml(a.proc||'นัดจัดฟัน')}</span>
           ${schOrthoLineChip_(a)}
         </div>
+        ${a.note?`<div style="margin-top:4px;font-size:11.5px;color:#7A5600;">📝 ${_escHtml(a.note)}</div>`:''}
       </div>`;
     }
     const sc = STATUS_COLOR[a.status]||'#999';
