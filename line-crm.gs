@@ -623,15 +623,29 @@ function crmReceiptMessage_(s, trs, extra) {
     try { pp = JSON.parse(t.procPrices || '{}') || {}; } catch (e) { pp = {}; }
     var recTotal = (+t.cash || 0) + (+t.transfer || 0) + (+t.sso || 0);
     if (!procs.length) procs = ['-'];
+    var tm = {}, tp = {};
+    try { tm = JSON.parse(t.procTeeth || '{}') || {}; } catch (e) { tm = {}; }
+    try { tp = JSON.parse(t.toothPrices || '{}') || {}; } catch (e) { tp = {}; }
     procs.forEach(function (pr) {
+      var teeth = String(tm[pr] || '').trim(), perTooth = tp[pr] || null;
+      if (perTooth && Object.keys(perTooth).length) {            // หลายซี่ → แยกรายการต่อซี่ พร้อมราคา
+        Object.keys(perTooth).sort(function (a, b) { return a - b; }).forEach(function (n) {
+          anyPrice = true; items.push({ proc: pr + ' ซี่ ' + n, price: +perTooth[n] || 0 });
+        });
+        return;
+      }
       var price = +pp[pr] > 0 ? +pp[pr] : (procs.length === 1 && list.length > 1 && recTotal > 0 ? recTotal : null);
       if (price !== null) anyPrice = true;
-      items.push({ proc: pr, price: price });
+      items.push({ proc: pr + (teeth ? ' (ซี่ ' + teeth + ')' : ''), price: price });
     });
   });
   if (items.length === 1 || !anyPrice) {
     if (list.length === 1) rows.push(crmRow_('การรักษา', items.map(function (x) { return x.proc; }).join(', ') || '-'));
-    else list.forEach(function (t, i) { rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + (String(t.proc || '').replace(/\s*,\s*/g, ', ') || '-'))); });
+    else list.forEach(function (t, i) {
+      var tm2 = {}; try { tm2 = JSON.parse(t.procTeeth || '{}') || {}; } catch (e) { tm2 = {}; }
+      var txt = crmSplitList_(String(t.proc || '')).map(function (pr) { return pr + (tm2[pr] ? ' (ซี่ ' + tm2[pr] + ')' : ''); }).join(', ');
+      rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + (txt || '-')));
+    });
   } else {
     items.forEach(function (x, i) { rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + x.proc + (x.price !== null ? ' — ' + crmMoney_(x.price) : ''))); });
   }
