@@ -1450,7 +1450,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="card-box" style="margin-bottom:20px;">
         <div class="card-box-hdr" style="padding:18px 24px;">
-          <div class="card-box-title" style="font-size:17px;">👨‍⚕️ ส่วนแบ่งรายได้ตามหมอ</div>
+          <div class="card-box-title" style="font-size:17px;">👨‍⚕️ ส่วนแบ่งรายได้ตามหมอ <span id="sharePeriodLbl" style="color:var(--wine);font-weight:800;"></span></div>
           <div id="shareTotalBadge" style="font-size:13px;font-weight:700;color:var(--wine-mid);"></div>
         </div>
         <div style="padding:20px 24px;"><div class="share-grid" id="shareGrid"></div></div>
@@ -6667,6 +6667,15 @@ function incLabToggle(){
   try{ localStorage.setItem('bl_inc_labded', document.getElementById('income-lab-deduct').checked?'1':'0'); }catch(e){}
   renderIncome();
 }
+function incPeriodLabel_(){
+  const M=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const MS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const today=todayStr(), dt=d=>{ const x=String(d||'').slice(0,10).split('-'); return x.length===3?(+x[2])+' '+MS[+x[1]-1]+' '+(+x[0]+543):''; };
+  if(currentPeriod==='day') return '· '+dt(document.getElementById('income-filter-day')?.value||today);
+  if(currentPeriod==='month'){ const m=document.getElementById('income-filter-month')?.value||today.slice(0,7); return '· '+M[+m.slice(5,7)-1]+' '+(+m.slice(0,4)+543); }
+  if(currentPeriod==='year'){ const be=parseInt(document.getElementById('income-filter-year')?.value)||(new Date().getFullYear()+543); return '· ปี '+be; }
+  return '· '+dt(document.getElementById('income-range-start')?.value||today)+' – '+dt(document.getElementById('income-range-end')?.value||today);
+}
 function incPeriodOk_(d){
   d=String(d||'').slice(0,10); if(!d) return false;
   const today=todayStr();
@@ -6996,6 +7005,7 @@ function buildShareGrid(rows){
   const maxTot = Math.max(1,...docList.map(doc=>rows.filter(r=>r.docName===doc.name).reduce((s,r)=>s+totalPrice(r),0)));
   const grandTotal = docList.reduce((s,doc)=>s+rows.filter(r=>r.docName===doc.name).reduce((ss,r)=>ss+totalPrice(r),0),0);
   // Update badge
+  const _pl = document.getElementById('sharePeriodLbl'); if(_pl) _pl.textContent = incPeriodLabel_();
   const badge = document.getElementById('shareTotalBadge');
   if(badge) badge.textContent = 'รายได้รวมทั้งหมด '+fmt(grandTotal);
   const chartRows = []; // เก็บข้อมูลต่อหมอไว้เทียบกันเป็นกราฟ นอกเหนือจากการ์ดเดี่ยวๆ ด้านล่าง
