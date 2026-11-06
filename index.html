@@ -1437,10 +1437,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             </div>
             <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(1)" aria-label="ถัดไป" title="ถัดไป">›</button>
           </div>
-          <div class="inc-actions">
-            <select id="income-doc-filter" class="form-control" onchange="renderIncome()" style="height:36px;min-width:150px;display:none;font-weight:700;" aria-label="เลือกหมอ"><option value="">👨‍⚕️ ทุกหมอ</option></select>
+          <div class="inc-actions" style="flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:10px;flex:1 1 100%;">
+              <select id="income-doc-filter" class="form-control" onchange="renderIncome()" style="height:36px;flex:1;min-width:0;display:none;font-weight:700;" aria-label="เลือกหมอ"><option value="">👨‍⚕️ ทุกหมอ</option></select>
+              <label id="incLabDeductWrap" style="display:none;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--wine-dark);white-space:nowrap;cursor:pointer;" title="หักค่าแลปส่วนของหมอ (ค่าแลป × % DF ปกติ) ของช่วงที่เลือก ออกจากส่วนแบ่งหมอ"><input type="checkbox" id="income-lab-deduct" onchange="incLabToggle()" style="width:18px;height:18px;"> 🧪 หักค่าแลป</label>
+            </div>
             <button type="button" class="date-nav-btn date-nav-today" id="incomeTodayBtn" onclick="incomeGoToday()">วันนี้</button>
-            <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
+            <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;white-space:nowrap;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
           </div>
         </div>
       </div>
@@ -6659,6 +6662,25 @@ function setPeriod(p,btn){
   if(tb) tb.textContent = p==='month' ? 'เดือนนี้' : (p==='year' ? 'ปีนี้' : 'วันนี้');
   renderIncome();
 }
+// ---- หักค่าแลป (ส่วนของหมอ = ค่าแลป × % DF ปกติ) ของช่วงเวลาที่เลือก ----
+function incLabToggle(){
+  try{ localStorage.setItem('bl_inc_labded', document.getElementById('income-lab-deduct').checked?'1':'0'); }catch(e){}
+  renderIncome();
+}
+function incPeriodOk_(d){
+  d=String(d||'').slice(0,10); if(!d) return false;
+  const today=todayStr();
+  if(currentPeriod==='day') return d===(document.getElementById('income-filter-day')?.value||today);
+  if(currentPeriod==='month') return d.startsWith(document.getElementById('income-filter-month')?.value||today.slice(0,7));
+  if(currentPeriod==='year'){ const be=parseInt(document.getElementById('income-filter-year')?.value)||(new Date().getFullYear()+543); return d.startsWith(String(be-543)); }
+  const rs=document.getElementById('income-range-start')?.value||today, re=document.getElementById('income-range-end')?.value||today;
+  return d>=rs && d<=re;
+}
+function incLabDeduct_(doc){
+  if(!document.getElementById('income-lab-deduct')?.checked) return 0;
+  const sum=labs.filter(l=>l.docName===doc.name && incPeriodOk_(l.date)).reduce((s,l)=>s+(+l.price||0),0);
+  return Math.round(sum*labDfPct_(doc.name))/100;
+}
 function incDocOk_(r){
   if(!isManager) return r.docName===currentUser.name;
   const f = document.getElementById('income-doc-filter')?.value || '';
@@ -6676,6 +6698,12 @@ function renderIncome(){
   if(_docSel){
     _docSel.style.display = isManager ? '' : 'none';
     if(isManager && _docSel.options.length<=1){ doctors.forEach(d=>{ const o=document.createElement('option'); o.value=d.name; o.textContent=(d.emoji||'🦷')+' '+d.name; _docSel.appendChild(o); }); }
+  }
+  const _lw = document.getElementById('incLabDeductWrap');
+  if(_lw){
+    _lw.style.display = isManager ? 'inline-flex' : 'none';
+    const _lc = document.getElementById('income-lab-deduct');
+    if(_lc && !_lc.dataset.init){ _lc.dataset.init='1'; try{ _lc.checked = localStorage.getItem('bl_inc_labded')==='1'; }catch(e){} }
   }
   let rows=treatments.filter(incDocOk_);
   if(currentPeriod==='day') rows=rows.filter(t=>t.date===selDay);
@@ -6978,14 +7006,15 @@ function buildShareGrid(rows){
       const dr=rows.filter(r=>r.docName===doc.name);
       const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
       if(!dr.length || tot<=0) return;
-      const share=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
-      shown.push({doc,docIdx,n:dr.length,tot,share,clinic:tot-share});
+      const labDed=incLabDeduct_(doc);
+      const share=dr.reduce((s,r)=>s+dfAmt(r,doc),0)-labDed;
+      shown.push({doc,docIdx,n:dr.length,tot,share,clinic:tot-share,labDed});
     });
     shown.forEach(x=>chartRows.push({name:x.doc.name, share:x.share, clinicShare:x.clinic}));
     el.innerHTML = shown.length
       ? '<div class="share-row hd"><span class="k">หมอ</span><span class="k">จำนวน</span><span class="k">รายได้รวม</span><span class="k">ส่วนแบ่งหมอ</span><span class="k">ส่วนแบ่งคลินิก</span><span></span></div>'
         + shown.map(x=>`<div class="share-row" role="button" tabindex="0" onclick="openDoctorBreakdown(${x.docIdx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDoctorBreakdown(${x.docIdx});}">
-            <span class="n">${x.doc.emoji||'🦷'} ${x.doc.name}</span>
+            <span class="n">${x.doc.emoji||'🦷'} ${x.doc.name}${x.labDed?` <span style="font-size:10px;color:#B45309;font-weight:700;">(หักแลป ${fmt(x.labDed)})</span>`:''}</span>
             <span><span class="k" style="display:block;">จำนวน</span><span class="v">${x.n} ราย</span></span>
             <span><span class="k" style="display:block;">รายได้รวม</span><span class="v" style="color:var(--wine-dark);">${fmt(x.tot)}</span></span>
             <span><span class="k" style="display:block;">ส่วนแบ่งหมอ</span><span class="v" style="color:var(--gold);">${fmt(x.share)}</span></span>
@@ -6996,12 +7025,14 @@ function buildShareGrid(rows){
   el.innerHTML=docList.map((doc,docIdx)=>{
     const dr=rows.filter(r=>r.docName===doc.name);
     const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
-    const share=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
+    const dfSum=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
+    const labDed=incLabDeduct_(doc);
+    const share=dfSum-labDed;
     const clinicShare=tot-share;
     const pct=maxTot>0?Math.round(tot/maxTot*100):0;
     chartRows.push({name:doc.name, share, clinicShare});
     // % ที่โชว์คำนวณย้อนจากยอดจริง (ไม่ใช่ doc.share ตรงๆ) เผื่อรายการในช่วงนี้มี % สแนปช็อตไม่เท่ากัน (เพิ่งเปลี่ยน % ระหว่างทาง)
-    const effectivePct = tot>0 ? Math.round(share/tot*100) : doc.share;
+    const effectivePct = tot>0 ? Math.round(dfSum/tot*100) : doc.share;
     return `<div class="share-card share-card-click" role="button" tabindex="0" onclick="openDoctorBreakdown(${docIdx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDoctorBreakdown(${docIdx});}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
@@ -7011,6 +7042,7 @@ function buildShareGrid(rows){
         <div style="background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;">${effectivePct}%</div>
       </div>
       <div class="share-card-amount">${fmt(share)}</div>
+      ${labDed?`<div style="font-size:11px;color:#B45309;font-weight:700;margin-top:2px;">หักค่าแลป −${fmt(labDed)} (จากส่วนแบ่ง ${fmt(dfSum)})</div>`:''}
       <div style="display:flex;justify-content:space-between;margin-top:8px;">
         <span style="font-size:11px;color:var(--text-light);">รายได้รวม</span>
         <span style="font-size:12px;font-weight:700;color:var(--wine-dark);">${fmt(tot)}</span>
