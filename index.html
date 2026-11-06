@@ -3015,7 +3015,7 @@ function crmOrthoAptRec(r){
   const recs=(CRM.data&&CRM.data.apt)||[]; if(!recs.length) return null;
   const dup=crmCalDupOf(r.hn, r['นัดถัดไป'], r['นัดถัดไปเวลา'], r['หมอ']);
   const id=dup ? String(dup.id) : crmOrthoAptId(r.hn, r['นัดถัดไป']);
-  return recs.find(x=>String(x.aptId)===id) || null;
+  return crmReschedResolved_(recs.find(x=>String(x.aptId)===id) || null, [id]);
 }
 function crmOrthoAptBadge(r){
   const rec=crmOrthoAptRec(r); if(!rec) return '';
@@ -3270,8 +3270,16 @@ function crmViewToday(){
 // สถานะ LINE ของนัด — ถ้านัดในตารางนัดมาแทนนัดจากการ์ด (วันเดียวกัน) ใช้สถานะที่คนไข้กดไว้กับนัดจากการ์ดด้วย
 function crmAptIdsFor_(a){ const ids=[String(a.id)]; if(!a._ortho && a.hn && a.date) ids.push(crmOrthoAptId(a.hn, a.date)); return ids; }
 function crmLocalTs_(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
+// งาน "ขอเลื่อนนัด" ของนัดนี้ปิดแล้ว (หลังคนไข้กดขอเลื่อนล่าสุด) → ถือว่าจัดการแล้ว ไม่ต้องขึ้นป้าย "ขอเลื่อน"
+function crmReschedResolved_(rec, ids){
+  if(!rec || !rec.rescheduleAt) return rec;
+  const rs=String(rec.rescheduleAt), tasks=(CRM.data&&CRM.data.tasks)||[];
+  const done=tasks.some(t=>t.type==='reschedule' && t.status==='done' && String(t.updatedAt||'')>rs
+    && String(t.aptId||'').split(',').some(x=>ids.indexOf(String(x).trim())!==-1));
+  return done ? Object.assign({}, rec, { rescheduleAt:'' }) : rec;
+}
 function crmAptRecFor_(a){
-  const r0=crmAptRecFor0_(a);
+  const r0=crmReschedResolved_(crmAptRecFor0_(a), crmAptIdsFor_(a));
   // นัดที่ถูกย้ายวันแล้ว (movedAt) → การยืนยัน/ขอเลื่อนที่เกิดก่อนย้าย เป็นของวันเดิม ไม่ใช้กับวันใหม่
   if(r0 && a && a.movedAt){
     const mv=String(a.movedAt), c=String(r0.confirmedAt||''), rs=String(r0.rescheduleAt||'');
