@@ -5519,8 +5519,11 @@ function openCertificateModal(t){
   document.getElementById('cert-treatDate-display').textContent = fmtDate(t.date);
   document.getElementById('cert-age').value = '';
   const docSel = document.getElementById('cert-doc');
-  const eligible = doctors.filter(d=>d.fullName && d.licenseNo);
-  docSel.innerHTML = eligible.map(d=>`<option value="${d.id}" ${d.name===t.docName?'selected':''}>${escapeHtml(d.fullName)}</option>`).join('')
+  // แสดงหมอทุกคนที่มีชื่อเต็ม · คนที่ยังไม่ใส่เลขใบอนุญาตจะเลือกไม่ได้ (ไปใส่ที่ ตั้งค่า → หมอ → เลขใบอนุญาต)
+  const eligible = doctors.filter(d=>d.fullName);
+  docSel.innerHTML = eligible.map(d=>d.licenseNo
+      ? `<option value="${d.id}" ${d.name===t.docName?'selected':''}>${escapeHtml(d.fullName)}</option>`
+      : `<option value="${d.id}" disabled>${escapeHtml(d.fullName)} — ยังไม่ใส่เลขใบอนุญาต</option>`).join('')
     || `<option value="">— ยังไม่มีหมอที่ตั้งค่าเลขใบอนุญาตไว้ —</option>`;
   document.getElementById('cert-needsRest').checked = false;
   document.getElementById('cert-restDays').value = 1;
