@@ -8220,7 +8220,8 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     // สีพื้นหลัง slot ตามสถานะนัดแรกในช่องนั้น
     let slotBg = '#fff';
     if(!blocked && slotApts.length > 0){
-      slotBg = statusBgColor(slotApts[0].status);
+      // นัดที่ยกเลิกแล้วไม่ควรทำให้ทั้งช่องเป็นสีแดง ถ้ามีนัดอื่นที่ยังใช้งานอยู่ในช่องเดียวกัน → ใช้สีของนัดนั้น
+      slotBg = statusBgColor((slotApts.find(x=>x.status!=='ยกเลิก')||slotApts[0]).status);
     }
     // วันที่มีงานจัดฟัน: slot ว่างของคอลัมน์หมอจัดฟันใช้พื้นสีส้ม
     const _orthoDay = dayApts.some(x=>crmIsOrthoVisit(x) && orthoAimOnly_(x));   // เฉพาะงานจัดฟันของหมอเอม (คนไข้จัดฟันที่นัดกับหมออื่นไม่นับ)
