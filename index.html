@@ -7849,8 +7849,8 @@ function _writeDeletedMap(date, map){
   }catch(e){}
   try{ const sm = _slotMap(date); sm['#del'] = map; _writeSlotMap(date, sm); }catch(e){}
 }
-// หมอเอม (ทพญ.วัจน์กร) ใช้ slot ตั้งต้นทุก 15 นาที (10:00–18:00 เว้นพักเที่ยง 12:30–13:00)
-const AIM_DEFAULT_SLOTS = (()=>{ const o=[]; for(let m=600;m<=1080;m+=15){ if(m===750||m===765) continue; o.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return o; })();
+// หมอเอม (ทพญ.วัจน์กร) ใช้ slot ตั้งต้นทุก 10 นาที (09:00–18:00 เว้นพักเที่ยง 12:30–13:00)
+const AIM_DEFAULT_SLOTS = (()=>{ const o=[]; for(let m=540;m<=1080;m+=10){ if(m>=750&&m<780) continue; o.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); } return o; })();
 function isAimDoc_(name){ const a=(typeof doctors!=='undefined'?doctors:[]).find(d=>d.id==='aim'); return !!(a && name && String(name)===String(a.name)); }
 function getSchSlots(date, doc, defDoc){
   try {
