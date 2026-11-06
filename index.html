@@ -8038,6 +8038,8 @@ function renderScheduleDay(){
 
 // ส่งตารางนัดของหมอ 1 คน / 1 วัน เข้าไลน์ (เปิดหน้าเลือกแชทใน LINE พร้อมข้อความ + คัดลอกไว้ในคลิปบอร์ดด้วย)
 function schExportLine(date, docName){
+  // หมอจัดฟัน (หมอเอม): กดปุ่มแล้วสั่งพิมพ์ใบนัดทันที (ใบเดียวกับปุ่ม พิมพ์รายการให้หมอ) · หมออื่นยังเป็นคัดลอกไปวางไลน์
+  try{ if(isAimDoc_(docAlias(docName)) && crmOrthoAptList(date,date).filter(orthoAimOnly_).length){ crmOrthoPrint(date); return; } }catch(e){}
   const apts=appointments.filter(a=>a.date===date).concat(orthoVirtualApts_(date,date))
     .filter(a=>a.docName===docName && a.status!=='ยกเลิก')
     .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
@@ -8221,7 +8223,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
 
   // ชื่อหมอใน header
   const docTagsHtml = docList.map(name=>
-    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="คัดลอกตารางนัดของหมอคนนี้ แล้วไปวางในไลน์เอง" style="margin-left:5px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">📋 คัดลอก</button></span>`
+    `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="${isAimDoc_(docAlias(name))?'พิมพ์ใบนัดของหมอจัดฟันทันที':'คัดลอกตารางนัดของหมอคนนี้ แล้วไปวางในไลน์เอง'}" style="margin-left:5px;background:${isAimDoc_(docAlias(name))?'#6B2D5E':'#06C755'};color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">${isAimDoc_(docAlias(name))?'🖨 พิมพ์':'📋 คัดลอก'}</button></span>`
   ).join('');
 
   const colWidth = has2Docs ? 680 : 340;
