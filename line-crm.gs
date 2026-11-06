@@ -1691,7 +1691,7 @@ function crmDashboard_() {
   var lastTick = null; try { lastTick = JSON.parse(crmProp_('CRM_LAST_TICK', 'null')); } catch (e) {}
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
   var links = crmRead_('links'), orthoAll = crmReadByName_('ortho'), followersAll = crmRead_('followers');
-  return { ok: true, caps: { orthoTreat: true, confirmOne: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
+  return { ok: true, caps: { orthoTreat: true, confirmOne: true, followerDelete: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
     followups: recentRated('followups', 'sentAt', since, crmAddDays_(crmToday_(), -400)),
     links: strip(links.slice()), followers: strip(followersAll.slice()), apt: strip(crmRead_('apt')),
     casenotes: recent('casenotes', 'createdAt', since),
@@ -1826,6 +1826,13 @@ function crmStaffAction_(b) {
       crmAppend_('links', { id: crmId_('LK'), lineUserId: b.lineUserId, hn: b.hn, patName: b.patName || '', status: 'active', source: 'staff', consent: 'TRUE',
         displayName: fl ? fl.displayName : '', createdAt: now, approvedBy: by, approvedAt: now, note: 'ผูกโดยพนักงาน (คนไข้ยินยอมด้วยวาจา)' });
       return { ok: true };
+    }
+    if (act === 'followerDelete') {   // ลบรายชื่อเพื่อนที่ยังไม่ผูก ออกจากรายการ (ลบแถวในชีต crm_followers) — ถ้าเขาทักมาใหม่จะกลับมาในรายการเอง
+      if (!b.lineUserId) return { ok: false, error: 'missing_field' };
+      var linkedNow = crmRead_('links').filter(function (l) { return l.lineUserId === b.lineUserId && l.status === 'active'; })[0];
+      if (linkedNow) return { ok: false, error: 'คนนี้ผูกกับ HN แล้ว ลบไม่ได้' };
+      var flD = crmFind_(crmRead_('followers'), 'lineUserId', b.lineUserId); if (!flD) return { ok: false, error: 'not_found' };
+      crmSheet_('followers').deleteRow(flD._row); return { ok: true };
     }
     if (act === 'caseNoteAdd') {
       if (!b.treatId || !b.text) return { ok: false, error: 'missing_field' };

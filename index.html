@@ -3096,6 +3096,7 @@ function crmOptimistic(payload){
   else if(payload.crm==='caseNoteApprove'||payload.crm==='caseNoteReject'){ const n=find(d.casenotes,payload.id); if(n) n.status = payload.crm==='caseNoteApprove'?'approved':'rejected'; }
   else if(payload.crm==='approveTemplate'){ const t=find(d.templates,payload.id); if(t){ t.status='approved'; t.approvedBy=by; t.approvedAt=now; } }
   else if(payload.crm==='setTemplateStatus'){ const t=find(d.templates,payload.id); if(t){ t.status = payload.status==='disabled'?'disabled':'draft'; if(t.status==='draft') t.approvedBy=''; } }
+  else if(payload.crm==='followerDelete'){ d.followers=(d.followers||[]).filter(x=>x.lineUserId!==payload.lineUserId); }
   else if(payload.crm==='deleteTemplate'){ d.templates=(d.templates||[]).filter(x=>String(x.id)!==String(payload.id)); }
   else if(payload.crm==='saveTemplate' && payload.template && payload.template.id){ const t=find(d.templates,payload.template.id), n=payload.template; if(t){
     const fu=n.followupEnabled?'TRUE':'FALSE';
@@ -4140,7 +4141,7 @@ function crmViewLinks(){
     <p class="crm-muted" style="margin-bottom:8px;">ผูกให้คนไข้ที่อยู่หน้าเคาน์เตอร์และยินยอมด้วยวาจา — ตรวจชื่อ LINE ให้ตรงตัวก่อนทุกครั้ง</p>
     <div class="crm-list">${unlinked.slice(0,100).map(f=>`<div class="crm-item"><div class="main"><div class="nm">${f.pictureUrl?`<img src="${crmEsc(f.pictureUrl)}" style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">`:''}${crmEsc(f.displayName||'(ไม่มีชื่อ)')}</div>
       <div class="meta">เพิ่มเพื่อน ${crmEsc(crmTs(f.followedAt||f.updatedAt))} · ใช้งานล่าสุด ${crmEsc(crmTs(f.lastSeenAt))}</div></div>
-      <div class="acts"><input class="form-control" list="crmPatList" id="crmFol_${crmEsc(f.lineUserId)}" placeholder="HN" style="height:34px;width:150px;"><button class="crm-btn p" onclick="crmManualLink('${crmEsc(f.lineUserId)}')">ผูก</button></div></div>`).join('')||'<div class="crm-empty">ไม่มี</div>'}</div></div>
+      <div class="acts"><input class="form-control" list="crmPatList" id="crmFol_${crmEsc(f.lineUserId)}" placeholder="HN" style="height:34px;width:150px;"><button class="crm-btn p" onclick="crmManualLink('${crmEsc(f.lineUserId)}')">ผูก</button>${(d.caps&&d.caps.followerDelete&&!isViewOnlyUser())?`<button class="crm-btn r" title="ลบออกจากรายการ (ถ้าเขาทักมาใหม่จะกลับมาในรายการเอง)" data-uid="${crmEsc(f.lineUserId)}" data-nm="${crmEsc(f.displayName||'')}" onclick="crmFollowerDelete(this)">🗑 ลบ</button>`:''}</div></div>`).join('')||'<div class="crm-empty">ไม่มี</div>'}</div></div>
   <div class="crm-card"><h4>✅ ผูกแล้ว (${links.filter(l=>l.status==='active').length})<span class="sp"></span><input class="form-control" style="height:34px;max-width:220px;" placeholder="🔍 ค้นหา" value="${crmEsc(CRM.linkQ)}" oninput="CRM.linkQ=this.value;clearTimeout(window._crmLkT);window._crmLkT=setTimeout(crmRender,250)"></h4>
     <p class="crm-muted" style="margin-bottom:8px;">คนไข้จัดฟันที่เคยผูกผ่านหน้าจัดฟันเดิม (${Object.keys(d.linked||{}).length - new Set(links.filter(l=>l.status==='active').map(l=>crmHN(l.hn))).size} HN) ใช้งานได้ทันทีโดยไม่ต้องผูกใหม่</p>
     <div class="crm-tablewrap"><table class="crm-table"><tr><th>คนไข้</th><th>LINE</th><th>ที่มา</th><th>รับข้อความ</th><th></th></tr>${active.map(l=>`<tr><td><b>${crmEsc(l.patName)}</b><div class="crm-muted">HN ${crmEsc(l.hn)}</div></td>
@@ -4156,6 +4157,11 @@ function crmApproveLink(id, hasHn){
     hn=p.hn; name=p.name;
   }
   crmDo({crm:'linkApprove', id, hn, patName:name}, 'อนุมัติการผูกบัญชีแล้ว ✅');
+}
+function crmFollowerDelete(btn){
+  const uid=btn.dataset.uid, nm=btn.dataset.nm||'(ไม่มีชื่อ)';
+  if(!confirm('ลบ "'+nm+'" ออกจากรายการ "เพิ่มเพื่อนแล้วแต่ยังไม่ผูก" ?\n\n(ไม่ได้บล็อกเขาใน LINE — ถ้าเขาทักมาอีกจะกลับมาในรายการเอง)')) return;
+  crmDo({crm:'followerDelete', lineUserId:uid}, 'ลบแล้ว');
 }
 function crmManualLink(uid){
   const v=(document.getElementById('crmFol_'+uid)||{}).value||''; const p=crmPatient(v);
