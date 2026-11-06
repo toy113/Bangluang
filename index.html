@@ -9589,15 +9589,15 @@ function openToothPicker(proc){
   const old=document.getElementById('toothPicker'); if(old) old.remove();
   const m=document.createElement('div'); m.id='toothPicker';
   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
-  const cell=n=>`<button type="button" data-n="${n}" class="tp-cell${sel.has(String(n))?' on':''}" onclick="this.classList.toggle('on')" style="min-width:34px;height:34px;border:1.5px solid var(--border);border-radius:8px;background:${sel.has(String(n))?'var(--wine)':'#fff'};color:${sel.has(String(n))?'#fff':'var(--text-dark)'};font-weight:700;font-size:13px;cursor:pointer;padding:0 4px;">${n}</button>`;
-  const row=a=>`<div style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap;margin-bottom:4px;">${a.map(cell).join('')}</div>`;
+  const cell=n=>`<button type="button" data-n="${n}" class="tp-cell${sel.has(String(n))?' on':''}" onclick="this.classList.toggle('on')" style="flex:1 1 0;min-width:0;height:38px;border:1.5px solid var(--border);border-radius:8px;background:${sel.has(String(n))?'var(--wine)':'#fff'};color:${sel.has(String(n))?'#fff':'var(--text-dark)'};font-weight:700;font-size:13px;cursor:pointer;padding:0;">${n}</button>`;
+  const row=(a,lbl)=>`<div style="display:flex;align-items:center;gap:3px;margin-bottom:4px;"><span style="width:44px;font-size:10px;color:var(--text-light);line-height:1.1;flex:none;">${lbl}</span>${a.map(cell).join('')}</div>`;
   m.innerHTML=`<div style="background:#fff;border-radius:16px;padding:18px;width:620px;max-width:96vw;max-height:92vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.25);">
     <div style="font-size:16px;font-weight:800;color:var(--wine-dark);margin-bottom:2px;">🦷 เลือกซี่ฟัน — ${_escHtml(proc)}</div>
-    <div style="font-size:12px;color:var(--text-light);margin-bottom:10px;">ระบบ FDI · แถวบน = ขากรรไกรบน · แถวล่าง = ขากรรไกรล่าง (ซ้ายมือของภาพ = ขวาของคนไข้)</div>
+    <div style="font-size:12px;color:var(--text-light);margin-bottom:10px;">ระบบ FDI · ขวา/ซ้าย = ด้านขวา/ซ้ายของคนไข้ · กดเลือกได้หลายซี่</div>
     <style>.tp-cell.on{background:var(--wine)!important;color:#fff!important;border-color:var(--wine)!important;}</style>
-    ${row(FDI_PERM_UP)}${row(FDI_PERM_LO)}
+    ${row(FDI_PERM_UP.slice(0,8),'บนขวา')}${row(FDI_PERM_UP.slice(8),'บนซ้าย')}${row(FDI_PERM_LO.slice(0,8),'ล่างขวา')}${row(FDI_PERM_LO.slice(8),'ล่างซ้าย')}
     <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin:10px 0 4px;">ฟันน้ำนม</div>
-    ${row(FDI_DEC_UP)}${row(FDI_DEC_LO)}
+    ${row(FDI_DEC_UP.slice(0,5),'บนขวา')}${row(FDI_DEC_UP.slice(5),'บนซ้าย')}${row(FDI_DEC_LO.slice(0,5),'ล่างขวา')}${row(FDI_DEC_LO.slice(5),'ล่างซ้าย')}
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button type="button" class="btn btn-outline" onclick="document.getElementById('toothPicker').remove()">ยกเลิก</button>
     <button type="button" class="btn btn-primary" onclick="toothPickerDone_('${_escHtml(proc)}')">ตกลง</button></div></div>`;
   document.body.appendChild(m);
@@ -9606,6 +9606,7 @@ function toothPickerDone_(proc){
   const m=document.getElementById('toothPicker'); if(!m) return;
   const arr=[...m.querySelectorAll('.tp-cell.on')].map(b=>b.dataset.n).sort((a,b)=>+a-+b);
   _toothVals[proc]=arr.join(', '); m.remove();
+  document.querySelectorAll('#treat-teeth-list input[data-tproc]').forEach(i=>{ if(i.dataset.tproc===proc) i.value=_toothVals[proc]; });
   const _sel=getProcSelected().split(',').map(x=>x.trim()).filter(Boolean);
   renderTeeth_(_sel); renderProcPrices(_sel);
 }
