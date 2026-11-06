@@ -7287,6 +7287,12 @@ function renderLabPage(){
   if(billBadge) billBadge.textContent = rows.length ? ('ตรงบิลแล้ว '+rows.filter(isLabBillOk).length+'/'+rows.length) : '';
   buildLabSummary(rows,month,docF);
 }
+// % DF ปกติของหมอ (ที่ตั้งไว้ในตั้งค่า) ใช้คิดส่วนค่าแลปที่หมอรับผิดชอบ
+function labDfPct_(docName){
+  const d = doctors.find(x=>x.name===docName) || DOCTORS_DATA.find(x=>x.name===docName);
+  const v = d && d.share!==undefined && d.share!=='' ? +d.share : 50;
+  return isNaN(v) ? 50 : Math.min(100, Math.max(0, v));
+}
 function buildLabSummary(rows,month,docFilter){
   const el=document.getElementById('labSummary');
   const labs_list=['สายน้ำทิพย์','SC','PC','Dentaneer','Hexa','อื่นๆ'];
@@ -7300,7 +7306,8 @@ function buildLabSummary(rows,month,docFilter){
     const docTotals = doctors.map(d=>({
       name:d.name, emoji:d.emoji||'🦷',
       total:rows.filter(r=>r.docName===d.name).reduce((s,r)=>s+(+r.price||0),0),
-      count:rows.filter(r=>r.docName===d.name).length
+      count:rows.filter(r=>r.docName===d.name).length,
+      pct:labDfPct_(d.name)
     })).filter(d=>d.total>0);
     if(docTotals.length){
       docBreakdown = `<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
@@ -7310,10 +7317,21 @@ function buildLabSummary(rows,month,docFilter){
             <div style="font-size:12px;color:var(--wine-dark);font-weight:700;">${d.emoji} ${d.name}</div>
             <div style="font-size:18px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${fmt(d.total)}</div>
             <div style="font-size:11px;color:var(--text-light);">${d.count} รายการ</div>
+            <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:11.5px;color:var(--text-mid);">ส่วนหมอ (DF ${d.pct}%) <b style="color:var(--wine-dark);">${fmt(Math.round(d.total*d.pct)/100)}</b><br>ส่วนคลินิก <b>${fmt(Math.round(d.total*(100-d.pct))/100)}</b></div>
           </div>`).join('')}
         </div>
       </div>`;
     }
+  }
+  // ค่าแลปส่วนของหมอ = ค่าแลป × % DF ปกติของหมอคนนั้น (เมื่อเลือกดูหมอคนเดียว / หมอดูของตัวเอง)
+  let docShareBox = '';
+  if(docFilter || !isManager){
+    const nm = docFilter || currentUser.name, pct = labDfPct_(nm);
+    docShareBox = `<div style="flex:1;min-width:160px;background:#FFF4DC;border:1px solid #F0D79A;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:12px;color:#8A6200;font-weight:700;">ส่วนค่าแลปของหมอ (DF ${pct}%)</div>
+      <div style="font-size:20px;font-weight:800;color:#8A6200;font-family:'Prompt',sans-serif;">${fmt(Math.round(grand*pct)/100)}</div>
+      <div style="font-size:11px;color:var(--text-light);">ส่วนคลินิก ${fmt(Math.round(grand*(100-pct))/100)}</div>
+    </div>`;
   }
   el.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
     ${labs_list.map(lb=>`<div style="flex:1;min-width:160px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
@@ -7323,7 +7341,7 @@ function buildLabSummary(rows,month,docFilter){
     <div style="flex:1;min-width:160px;background:var(--wine-pale);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
       <div style="font-size:12px;color:var(--wine);font-weight:700;">รวมทั้งหมด</div>
       <div style="font-size:20px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${fmt(grand)}</div>
-    </div>
+    </div>${docShareBox}
   </div>${docBreakdown}`;
 }
 function labBadgeClass(lab){ return {สายน้ำทิพย์:'lab-snt',SC:'lab-sc',PC:'lab-pc',Dentaneer:'lab-dent',Hexa:'lab-hexa',อื่นๆ:'lab-other'}[lab]||'lab-snt'; }
