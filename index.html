@@ -8261,6 +8261,12 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     const M={ wait:['#E53935','รอยืนยัน'], move:['#F2C200','ขอเลื่อน'], noline:['#9E9E9E','ยังไม่ผูกไลน์'] }[st];
     return M ? `<span title="${M[1]}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${M[0]};flex-shrink:0;"></span>` : '';
   }
+  // ยืนยันแล้วแต่ไม่ได้ยืนยันผ่านไลน์ (ไม่ผูกไลน์/บล็อก → แอดมินคอนเฟิรมให้) → ขึ้นป้าย "คอนเฟิรมแล้ว"
+  function schConfirmedChip_(a){
+    let st=''; try{ st=crmOrthoState(a); }catch(e){}
+    if(st!=='yes' || lineDot_(a).indexOf('#06C755')>=0) return '';
+    return `<span style="background:#E3F4EA;color:#1D6B44;border-radius:8px;padding:0 6px;font-size:10.5px;font-weight:700;">✓ คอนเฟิรมแล้ว</span>`;
+  }
   function aptCardCompact(a){
     const procX = String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ' && x!=='นัดจัดฟัน' && x!=='จัดฟัน').join(', ');
     const procHtml = procX ? `<span style="background:#fff;border:1px solid #C9DAF7;color:#1E4FA0;border-radius:8px;padding:0 6px;font-size:10.5px;font-weight:700;">${_escHtml(procX)}</span>` : '';
@@ -8272,7 +8278,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       return `<div onclick="event.stopPropagation();openOrthoHistory('${hnE}')" title="แตะเพื่อเปิดการ์ดจัดฟัน" style="background:${_dn?'#E3F7EA':'#EEF4FF'};border-left:3px solid ${_dn?'#2E9E5B':'#1E6FD9'};border-radius:5px;padding:1px 6px;margin-bottom:2px;cursor:pointer;display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12.5px;line-height:1.55;">
         <span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${lineDot_(a).replace('margin-right:5px','margin-right:0')}${schStateDot_(a)}</span>${oc?`<b style="color:var(--wine);font-size:11px;">${_escHtml(oc)}</b>`:'<span>🦷</span>'}
         <span style="font-weight:800;color:#17407F;">${_escHtml(a.patName||'—')}</span>
-        ${orthoPayBadge(a)}${procHtml}${noteHtml}${schOrthoConfirmBtn_(a)}
+        ${orthoPayBadge(a)}${procHtml}${noteHtml}${schOrthoConfirmBtn_(a)}${schConfirmedChip_(a)}
       </div>`;
     }
     const sc = STATUS_COLOR[a.status]||'#999';
@@ -8280,7 +8286,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     const _cx = a.status==='ยกเลิก';
     const ocode = orthoCodeOf_(a.hn,a.patName,a.orthoCode);
     const _ov = (()=>{ try{ return crmIsOrthoVisit(a); }catch(e){ return false; } })();   // นัดจัดฟันที่อยู่ในตารางนัดจริง (ไม่ใช่นัดเสมือนจากการ์ดจัดฟัน) → มีจุดสถานะ/ปุ่มคอนเฟิรมเหมือนกัน
-    const _cbtn = _ov ? schOrthoConfirmBtn_(a) : '';
+    const _cbtn = _ov ? schOrthoConfirmBtn_(a)+schConfirmedChip_(a) : '';
     const extra = (procHtml||noteHtml||_cbtn) ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:0 0 1px 2px;">${procHtml}${noteHtml}${_cbtn}</div>` : '';
     return `<div style="background:${_cx?'#F8D3D1':sc+'12'};border-left:3px solid ${sc};border-radius:5px;${_cx?'text-decoration:line-through;text-decoration-color:rgba(139,0,0,.5);':''}padding:1px 6px;margin-bottom:2px;font-size:12.5px;line-height:1.55;">
       <div style="display:flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap;">
