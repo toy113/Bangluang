@@ -1098,103 +1098,168 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .login-manager-btn,.login-doc-btn{backdrop-filter:blur(8px);}
 @media(max-width:560px){.login-step{padding:24px 18px;border-radius:24px}.login-logo-wrap{margin-bottom:26px}#loginScreen::after{width:120vw;height:120vw}}
 
-/* ======= MOBILE POLISH: โปร่ง สบายตา (เฉพาะมือถือ ไม่กระทบจอคอม) ======= */
-@media (max-width: 768px) {
-  body { -webkit-text-size-adjust: 100%; line-height: 1.55; }
-  .page { padding: 18px 14px 28px; }
-  /* การ์ด: มุมโค้งใหญ่ขึ้น เงานุ่ม ระยะห่างระหว่างการ์ดมากขึ้น */
-  .card-box, .crm-card, .crm-kpi, .stat-card, .share-card { border-radius: 18px; border-color: rgba(107,45,94,0.10); box-shadow: 0 2px 14px rgba(107,45,94,0.07); }
-  .card-box { margin-bottom: 18px; }
-  .card-box-hdr { padding: 15px 16px; }
-  .card-box-title { font-size: 15px; }
-  .crm-card { padding: 16px; margin-bottom: 16px; }
-  .crm-card h4 { font-size: 15.5px; margin-bottom: 12px; }
-  .crm-kpis, .stat-grid, .share-grid { gap: 12px; }
-  .crm-kpi { padding: 14px 15px; }
-  .crm-kpi .v { font-size: 24px; }
-  .stat-card { padding: 16px 14px; }
-  .section-title { font-size: 17px; }
-  /* รายการในการ์ด: เว้นบรรทัดและ padding ให้อ่านง่าย */
-  .crm-list { gap: 10px; }
-  .crm-item { padding: 12px 14px; border-radius: 14px; gap: 10px 12px; border-color: rgba(107,45,94,0.12); }
-  .crm-item .main { min-width: 0; flex-basis: 100%; }
-  .crm-item .nm { font-size: 15px; }
-  .crm-item .meta { font-size: 13px; line-height: 1.6; margin-top: 3px; }
-  .crm-item .acts { width: 100%; gap: 8px; }
-  .crm-chip { font-size: 12px; padding: 3px 10px; }
-  .crm-alert { padding: 12px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.65; }
-  .crm-status { border-radius: 14px; padding: 12px 14px; }
-  .crm-empty { padding: 26px 16px; }
-  /* ปุ่ม/ช่องกรอก: แตะง่าย และไม่ซูมอัตโนมัติบน iOS */
-  .btn { min-height: 42px; padding: 9px 16px; border-radius: 12px; font-size: 14px; }
-  .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 13px; border-radius: 10px; }
-  .btn-icon { min-width: 40px; min-height: 40px; }
-  .crm-btn { min-height: 38px; padding: 7px 14px; border-radius: 11px; font-size: 13px; }
-  .crm-seg { border-radius: 12px; padding: 4px; }
-  .crm-seg button { padding: 8px 12px; border-radius: 9px; font-size: 13px; }
-  .crm-sub { gap: 8px; padding-bottom: 12px; margin-bottom: 8px; }
-  .crm-sub button { padding: 10px 15px; font-size: 13.5px; border-radius: 12px; }
-  .form-control { min-height: 44px; padding: 10px 13px; border-radius: 12px; font-size: 16px; }
-  textarea.form-control { line-height: 1.6; }
-  .crm-form { gap: 14px; }
-  .crm-form label { font-size: 13px; margin-bottom: 6px; }
-  .crm-tools { gap: 10px; margin-bottom: 14px; }
-  .crm-tools input.form-control, .crm-tools select.form-control { height: 44px; max-width: none; }
-  .crm-sw { padding: 12px 0; font-size: 14px; }
-  .date-nav-btn { height: 42px; border-radius: 12px; }
-  .period-tab { padding: 8px 14px; font-size: 13px; }
-  .contact-chip { padding: 9px 16px; }
-  /* ตาราง: เว้นแถวให้โปร่ง */
-  thead th { padding: 10px 12px; }
-  tbody td { padding: 11px 12px; }
-  .crm-table th { padding: 10px; }
-  .crm-table td { padding: 11px 10px; }
-  /* หน้าต่าง pop-up */
-  .modal-box { border-radius: 22px; padding: 22px 18px 18px; }
-  .modal-title { font-size: 16px; margin-bottom: 16px; }
-  .crm-modal { padding: 16px 10px; }
-  .crm-modal .box { border-radius: 22px; padding: 20px 18px 18px; }
-  .crm-modal .foot { gap: 10px; margin-top: 18px; }
-  .crm-opt { grid-template-columns: 1fr; gap: 8px; }
-  /* แท็บบนสุด */
-  .top-tab { padding-top: 9px; padding-bottom: 9px; }
-}
 
-/* ---- มือถือ: ตารางนัดหน้าหลัง = การ์ดต่อคนไข้ (ชื่อเด่น เวลาซ้าย รายการ/สถานะเรียงใต้ชื่อ) ---- */
+/* =====================================================================
+   MOBILE REDESIGN — กระชับ สวยงาม โทนสีเดิม (ใช้เฉพาะจอ ≤ 768px · จอคอมไม่เปลี่ยน)
+   ===================================================================== */
 @media (max-width: 768px) {
+  :root { --m-r: 14px; --m-r-sm: 10px; --m-shadow: 0 1px 2px rgba(74,30,66,.05), 0 4px 14px rgba(107,45,94,.07); --m-line: rgba(107,45,94,.10); }
+  body { line-height: 1.5; -webkit-text-size-adjust: 100%; }
+
+  /* ---------- แถบบน + แท็บ ---------- */
+  .topbar { height: 52px !important; padding: 0 12px !important; box-shadow: 0 1px 0 var(--m-line); }
+  .topbar-title { font-size: 16px !important; line-height: 1.25; }
+  .topbar-date { font-size: 11px !important; }
+  .topbar-right { gap: 8px !important; }
+  #topbarUserName { font-size: 12px !important; }
+  .sync-badge { font-size: 11px !important; padding: 3px 8px !important; }
+  .mobile-logout-btn { width: 36px !important; height: 36px !important; border-radius: 10px !important; }
+  .top-tab-bar { border-bottom: 0 !important; box-shadow: 0 2px 8px rgba(50,15,45,.18); }
+  .top-tab { min-width: 62px !important; padding: 7px 4px 6px !important; font-size: 10.5px !important; border-bottom-width: 2px !important; }
+  .top-tab .mn-icon { font-size: 19px !important; margin-bottom: 1px !important; }
+  .top-tab.active { background: rgba(255,255,255,.07) !important; }
+
+  /* ---------- หน้า + การ์ด ---------- */
+  .page { padding: 10px 10px 28px !important; }
+  .card-box, .crm-card, .crm-kpi, .stat-card, .share-card { border-radius: var(--m-r) !important; border: 1px solid var(--m-line) !important; box-shadow: var(--m-shadow) !important; }
+  .card-box { margin-bottom: 12px !important; }
+  .card-box-hdr { padding: 10px 12px !important; gap: 8px !important; min-height: 0; background: linear-gradient(90deg, rgba(107,45,94,.05), transparent) !important; }
+  .card-box-title { font-size: 14.5px !important; }
+  .card-box-hdr .dental-3d-orb { width: 30px !important; height: 30px !important; flex-basis: 30px !important; border-radius: 10px !important; }
+  .card-box-hdr .dental-3d-orb::before { font-size: 16px !important; }
+  .section-title { font-size: 15px !important; }
+  .crm-card { padding: 12px !important; margin-bottom: 10px !important; }
+  .crm-card h4 { font-size: 14.5px !important; margin-bottom: 8px !important; }
+  .crm-kpis, .stat-grid, .share-grid { gap: 8px !important; margin-bottom: 10px !important; }
+  .crm-kpi { padding: 10px 12px !important; }
+  .crm-kpi .v { font-size: 21px !important; }
+  .crm-kpi .l, .crm-kpi .s { font-size: 11.5px !important; }
+  .stat-card { padding: 10px 12px !important; }
+  .stat-value { font-size: 19px !important; }
+
+  /* ---------- รายการ / ชิป ---------- */
+  .crm-list { gap: 8px !important; }
+  .crm-item { padding: 10px 12px !important; border-radius: 12px !important; gap: 8px !important; border-color: var(--m-line) !important; }
+  .crm-item .main { min-width: 0 !important; flex: 1 1 100% !important; }
+  .crm-item .nm { font-size: 14.5px !important; }
+  .crm-item .meta { font-size: 12.5px !important; line-height: 1.55 !important; }
+  .crm-item .acts { gap: 6px !important; }
+  .crm-chip { font-size: 11.5px !important; padding: 2px 8px !important; }
+  .crm-alert { padding: 10px 12px !important; border-radius: 12px !important; font-size: 13px !important; }
+  .crm-status { padding: 8px 12px !important; border-radius: 12px !important; margin-bottom: 10px !important; }
+  .crm-empty { padding: 18px 12px !important; }
+  .badge { font-size: 11.5px; }
+
+  /* ---------- ปุ่ม / ช่องกรอก ---------- */
+  .btn { min-height: 38px; padding: 7px 14px; border-radius: 10px; font-size: 13.5px; }
+  .btn-sm { min-height: 32px; padding: 5px 11px; font-size: 12.5px; border-radius: 9px; }
+  .btn-icon { min-width: 38px; min-height: 38px; }
+  .crm-btn { min-height: 32px; padding: 5px 12px !important; border-radius: 9px !important; font-size: 12.5px !important; }
+  .crm-sub { gap: 6px !important; padding: 0 0 8px !important; margin-bottom: 6px !important; }
+  .crm-sub button { padding: 7px 12px !important; font-size: 13px !important; border-radius: 999px !important; }
+  .crm-seg { border-radius: 10px !important; padding: 3px !important; }
+  .crm-seg button { padding: 6px 10px !important; font-size: 12.5px !important; }
+  .form-control { min-height: 40px; padding: 8px 11px; border-radius: 10px; font-size: 15px; background: #fff; }
+  select.form-control { padding-right: 28px; }
+  textarea.form-control { line-height: 1.55; }
+  .filter-row { gap: 8px !important; }
+  .filter-row .form-control { height: 40px !important; font-size: 14px !important; }
+  .crm-tools { gap: 8px !important; margin-bottom: 10px !important; }
+  .crm-tools input.form-control, .crm-tools select.form-control { height: 40px !important; max-width: none !important; min-width: 0 !important; }
+  .crm-form { gap: 10px !important; }
+  .crm-form label { font-size: 12.5px !important; margin-bottom: 4px !important; }
+  .crm-sw { padding: 9px 0 !important; font-size: 13.5px !important; }
+  .date-nav-btn { height: 40px !important; min-width: 40px; border-radius: 10px !important; }
+  .period-tabs { gap: 4px; }
+  .period-tab { padding: 7px 12px !important; font-size: 13px !important; border-radius: 9px !important; }
+
+  /* ---------- ตาราง ---------- */
+  thead th { padding: 8px 10px !important; font-size: 11.5px !important; }
+  tbody td { padding: 9px 10px !important; }
+  .crm-table th { padding: 8px !important; }
+  .crm-table td { padding: 9px 8px !important; }
+
+  /* ---------- pop-up ---------- */
+  .modal-box { border-radius: 18px !important; padding: 16px 14px 14px !important; }
+  .modal-title { font-size: 16px !important; margin-bottom: 12px !important; }
+  .crm-modal { padding: 12px 8px !important; }
+  .crm-modal .box { border-radius: 18px !important; padding: 16px 14px 14px !important; }
+  .crm-modal .foot { gap: 8px !important; margin-top: 14px !important; }
+  .crm-opt { grid-template-columns: 1fr !important; }
+
+  /* ---------- หน้าหลัก: รายการนัดวันนี้ (แถวกระชับ 2 บรรทัด) ---------- */
   .apt-hdr { display: none !important; }
-  #aptList .apt-row { display: grid !important; grid-template-columns: 58px auto minmax(0,1fr) !important; column-gap: 8px !important; row-gap: 6px !important; align-items: start !important; padding: 14px 14px 14px 12px !important; font-size: 13px !important; }
-  #aptList .apt-row > div { display: block !important; min-width: 0; }
-  #aptList .apt-row > div:first-child { grid-column: 1; grid-row: 1 / span 6; font-size: 16px; font-family: 'Prompt',sans-serif; padding-top: 1px; }
-  /* ผู้จัดการ (มีเบอร์โทร/หมอ): 1 เวลา 2 HN 3 ชื่อ 4 เบอร์ 5 รายการ 6 หมายเหตุ 7 หมอ 8 สถานะ */
-  #aptList .apt-row.with-phone > div:nth-child(2) { grid-column: 2; grid-row: 1; font-size: 12px; }
-  #aptList .apt-row.with-phone > div:nth-child(4) { grid-column: 3; grid-row: 1; font-size: 12px; text-align: right; }
-  #aptList .apt-row.with-phone > div:nth-child(3) { grid-column: 2 / -1; grid-row: 2; font-size: 15px; line-height: 1.5; }
-  #aptList .apt-row.with-phone > div:nth-child(5) { grid-column: 2 / -1; grid-row: 3; }
-  #aptList .apt-row.with-phone > div:nth-child(6) { grid-column: 2 / -1; grid-row: 4; }
-  #aptList .apt-row.with-phone > div:nth-child(7) { grid-column: 2 / -1; grid-row: 5; }
-  #aptList .apt-row.with-phone.grouped > div:nth-child(7) { display: none !important; }
-  #aptList .apt-row.with-phone > div:nth-child(8) { grid-column: 2 / -1; grid-row: 6; display: flex !important; flex-wrap: wrap; align-items: center; gap: 8px; }
-  /* หมอ (ไม่มีเบอร์): 1 เวลา 2 HN 3 ชื่อ 4 รายการ 5 หมายเหตุ 6 สถานะ */
-  #aptList .apt-row.no-phone > div:nth-child(2) { grid-column: 2 / -1; grid-row: 1; font-size: 12px; }
-  #aptList .apt-row.no-phone > div:nth-child(3) { grid-column: 2 / -1; grid-row: 2; font-size: 15px; line-height: 1.5; }
-  #aptList .apt-row.no-phone > div:nth-child(4) { grid-column: 2 / -1; grid-row: 3; }
-  #aptList .apt-row.no-phone > div:nth-child(5) { grid-column: 2 / -1; grid-row: 4; }
-  #aptList .apt-row.no-phone > div:nth-child(6) { grid-column: 2 / -1; grid-row: 5; display: flex !important; flex-wrap: wrap; align-items: center; gap: 8px; }
+  #aptList .apt-row { display: flex !important; flex-wrap: wrap !important; align-items: center !important; gap: 3px 8px !important; position: relative; padding: 9px 12px 9px 64px !important; font-size: 13px !important; border-bottom: 1px solid var(--m-line) !important; grid-template-columns: none !important; }
+  #aptList .apt-row > div { display: block !important; min-width: 0; order: 5; }
+  #aptList .apt-row > div:first-child { position: absolute; left: 12px; top: 10px; font-family: 'Prompt', sans-serif; font-size: 15px; line-height: 1.3; }
+  #aptList .apt-row > div:nth-child(3) { order: 1; flex: 1 1 calc(100% - 100px); font-size: 14.5px; line-height: 1.45; }
+  #aptList .apt-row > div:nth-child(3) > div { font-weight: 700 !important; }
+  #aptList .apt-row.with-phone > div:nth-child(4) { order: 2; margin-left: auto; font-size: 11.5px !important; color: var(--text-light) !important; }
+  #aptList .apt-row > div:nth-child(2) { order: 3; font-size: 11.5px; color: var(--text-light); }
+  #aptList .apt-row > div:nth-child(2):empty { display: none !important; }
+  #aptList .apt-row .apt-note { font-size: 12px !important; font-style: normal !important; color: var(--text-mid) !important; }
   #aptList .apt-row .apt-note.empty { display: none !important; }
-  #aptList .apt-row > div:last-child > div { margin: 0; }
-  #aptList .apt-row > div:last-child .crm-chip, #aptList .apt-row > div:last-child .btn, #aptList .apt-row > div:last-child .crm-btn { margin-top: 0 !important; }
-  #aptList .apt-row > div:last-child .btn, #aptList .apt-row > div:last-child .crm-btn { min-height: 36px; padding: 6px 14px !important; font-size: 13px !important; border-radius: 10px; }
-  #aptList .apt-row > div:last-child .badge { font-size: 12px; padding: 4px 12px; }
-  #aptList > div[style*="border-left:4px"] { margin: 14px 10px 6px !important; padding: 10px 14px !important; border-radius: 12px !important; font-size: 14px !important; }
-  /* ---- การ์ดแท็บจัดฟัน ---- */
-  .oc-card { border-radius: 18px !important; padding: 16px !important; margin-bottom: 14px !important; border-color: rgba(107,45,94,0.14) !important; box-shadow: 0 2px 12px rgba(107,45,94,0.06); }
-  .oc-card.oc-over { border-color: rgba(225,31,49,0.45) !important; background: #fffafa !important; }
-  .oc-card .oc-stats { text-align: left !important; width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 4px; padding: 10px 12px; background: var(--cream); border-radius: 12px; font-size: 13px !important; }
+  #aptList .apt-row.with-phone > div:nth-child(7) { font-size: 11.5px !important; }
+  #aptList .apt-row.with-phone.grouped > div:nth-child(7) { display: none !important; }
+  #aptList .apt-row > div:last-child { order: 9; margin-left: auto; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 5px; }
+  #aptList .apt-row > div:last-child > div { margin: 0 !important; }
+  #aptList .apt-row > div:last-child .badge { font-size: 11px !important; padding: 3px 10px !important; }
+  #aptList .apt-row > div:last-child .crm-chip, #aptList .apt-row > div:last-child .btn, #aptList .apt-row > div:last-child .crm-btn { margin-top: 0 !important; min-height: 26px !important; padding: 2px 9px !important; font-size: 11.5px !important; border-radius: 999px !important; }
+  #aptList > div[style*="border-left:4px"] { margin: 10px 10px 2px !important; padding: 6px 10px !important; border-radius: 9px !important; font-size: 13px !important; }
+
+  /* ---------- ตารางรักษา/แลป → แถวกระชับ (ไม่ต้องเลื่อนข้าง) ---------- */
+  .table-scroll:has(#treatListBody), .table-scroll:has(#treatPageBody), .table-scroll:has(#labPageBody) { overflow: visible !important; }
+  table:has(#treatListBody), table:has(#treatPageBody), table:has(#labPageBody) { display: block; width: 100%; white-space: normal !important; }
+  table:has(#treatListBody) thead, table:has(#treatPageBody) thead, table:has(#labPageBody) thead { display: none !important; }
+  #treatListBody, #treatPageBody, #labPageBody { display: block; }
+  #treatListBody > tr, #treatPageBody > tr, #labPageBody > tr { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; padding: 9px 12px; border-bottom: 1px solid var(--m-line); }
+  #treatListBody > tr > td, #treatPageBody > tr > td, #labPageBody > tr > td { display: block; padding: 0 !important; border: 0 !important; white-space: normal; order: 5; font-size: 12.5px; min-width: 0; }
+  #treatListBody > tr > td:empty, #treatPageBody > tr > td:empty, #labPageBody > tr > td:empty { display: none; }
+  #treatListBody > tr > td[colspan], #treatPageBody > tr > td[colspan], #labPageBody > tr > td[colspan] { flex: 1 1 100%; padding: 2px 0 !important; }
+  #treatListBody > tr:has(> td[colspan]), #treatPageBody > tr.treat-grp-hdr { padding: 0; border: 0; }
+  #treatListBody > tr > td[colspan], #treatPageBody > tr.treat-grp-hdr > td { padding: 7px 12px !important; font-size: 13px !important; }
+  #treatListBody > tr > td:nth-child(3), #treatPageBody > tr > td:nth-child(3), #labPageBody > tr > td:nth-child(3) { order: 1; flex: 1 1 calc(100% - 72px); font-size: 14px; }
+  #treatPageBody > tr > td:nth-child(5), #treatListBody:has(td[colspan]) > tr > td:nth-child(5) { display: none; }
+  #treatListBody > tr > td:nth-child(9), #treatPageBody > tr > td:nth-child(9), #labPageBody > tr > td:nth-child(6) { order: 2; margin-left: auto; font-size: 14.5px !important; font-weight: 800; }
+  #treatListBody > tr > td:nth-child(1), #treatPageBody > tr > td:nth-child(1), #labPageBody > tr > td:nth-child(1) { order: 3; font-size: 11.5px; color: var(--text-light); box-shadow: none !important; border: 0 !important; }
+  #treatListBody > tr > td:nth-child(2), #treatPageBody > tr > td:nth-child(2), #labPageBody > tr > td:nth-child(2) { order: 3; font-size: 11.5px; }
+  #treatListBody > tr > td:nth-child(6)::before, #treatPageBody > tr > td:nth-child(6)::before { content: 'สด '; color: var(--text-light); font-weight: 400; }
+  #treatListBody > tr > td:nth-child(7)::before, #treatPageBody > tr > td:nth-child(7)::before { content: 'โอน '; color: var(--text-light); font-weight: 400; }
+  #treatListBody > tr > td:nth-child(8)::before, #treatPageBody > tr > td:nth-child(8)::before { content: 'ปกส '; color: var(--text-light); font-weight: 400; }
+  #treatListBody > tr > td:nth-child(10), #treatPageBody > tr > td:nth-child(10) { order: 8; margin-left: auto; }
+  #treatPageBody > tr > td:nth-child(11), #labPageBody > tr > td:nth-child(10) { order: 9; }
+  #labPageBody > tr > td:nth-child(7) { order: 8; margin-left: auto; }
+  #labPageBody > tr > td:nth-child(9) { flex-basis: 100%; }
+  #labPageBody > tr > td:nth-child(9):not([style*="normal"]) { display: none; }
+  #treatListBody .btn-icon, #treatPageBody .btn-icon, #labPageBody .btn-icon { min-width: 30px !important; min-height: 30px !important; padding: 3px !important; font-size: 13px; }
+
+  /* ---------- แท็บจัดฟัน: ตัวกรองจัดเป็นตาราง 6 ช่อง ---------- */
+  #page-ortho .card-box-hdr > .filter-row { display: grid !important; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 7px !important; width: 100%; }
+  #page-ortho .filter-row > * { width: 100% !important; height: 38px !important; min-height: 38px; margin: 0 !important; font-size: 13.5px !important; }
+  #orthoSearch { order: 1; grid-column: span 3; }
+  #orthoStatusFilter { order: 2; grid-column: span 3; }
+  #orthoPayFilter { order: 3; grid-column: span 3; }
+  #orthoSortSel { order: 4; grid-column: span 3; }
+  #page-ortho .filter-row > label { order: 5; grid-column: span 2; justify-content: center; border: 1px solid rgba(225,31,49,.25); border-radius: 10px; background: #fff; }
+  #orthoPskChip { order: 6; grid-column: span 4; justify-content: center; }
+  #page-ortho .filter-row > button.btn { order: 7; grid-column: span 1; justify-content: center; padding: 0 !important; }
+  #page-ortho .filter-row > button.btn:nth-last-child(2) { order: 8; grid-column: span 2; }
+  #page-ortho .filter-row > #btnAddOrtho { order: 9; grid-column: span 3 !important; }
+  #orthoCalendarBox { padding: 10px 12px !important; }
+
+  /* ---------- แท็บจัดฟัน: การ์ดคนไข้กระชับ ---------- */
+  .oc-card { border-radius: var(--m-r) !important; padding: 11px 12px !important; margin-bottom: 8px !important; border: 1px solid var(--m-line) !important; box-shadow: var(--m-shadow); }
+  .oc-card.oc-over { border-color: rgba(225,31,49,.35) !important; box-shadow: inset 3px 0 0 var(--red), var(--m-shadow); }
+  .oc-card > div:first-child > div:first-child { flex: 1 1 100%; min-width: 0; }
+  .oc-card > div:first-child > div:first-child > div:first-child { gap: 5px !important; }
+  .oc-card > div:first-child > div:first-child > div:first-child > span { font-size: 10.5px; }
+  .oc-card > div:first-child > div:first-child > div:first-child > span:nth-child(-n+3) { font-size: inherit; }
+  .oc-card .oc-stats { text-align: left !important; width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; margin-top: 2px; font-size: 12px !important; color: var(--text-mid); }
   .oc-card .oc-stats > div { white-space: nowrap; }
-  .oc-card .oc-acts { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; margin-top: 14px !important; }
-  .oc-card .oc-acts .btn { width: 100%; justify-content: center; padding: 8px 6px; font-size: 13px; }
-  .oc-card .oc-acts .btn:first-child { grid-column: 1 / -1; }
+  .oc-card .oc-stats > div + div::before { content: '·'; margin: 0 6px; color: var(--text-light); font-weight: 400; }
+  .oc-card .oc-acts { display: flex !important; flex-wrap: nowrap !important; overflow-x: auto; gap: 6px !important; margin: 9px -12px 0 !important; padding: 0 12px 2px; scrollbar-width: none; }
+  .oc-card .oc-acts::-webkit-scrollbar { display: none; }
+  .oc-card .oc-acts .btn { flex: none; white-space: nowrap; min-height: 30px; padding: 4px 11px; font-size: 12px; border-radius: 999px; background: var(--wine-pale); border-color: transparent; color: var(--wine-dark); }
 }
 </style>
 </head>
