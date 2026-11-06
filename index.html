@@ -2119,8 +2119,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </select>
       </div>
       <div class="form-group">
-        <label>วันติดเครื่องมือ</label>
-        <input type="date" class="form-control" id="ortho-start">
+        <label>วันติดเครื่องมือบน</label>
+        <input type="date" class="form-control" id="ortho-start-up">
+      </div>
+      <div class="form-group">
+        <label>วันติดเครื่องมือล่าง</label>
+        <input type="date" class="form-control" id="ortho-start-low">
       </div>
       <div class="form-group">
         <label>ปักหมุด (ตัว)</label>
@@ -2175,7 +2179,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
-          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือบน"> ติดเครื่องมือบน</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ติดเครื่องมือล่าง"> ติดเครื่องมือล่าง</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ทำรีเทนเนอร์"> ทำรีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปักหมุด"> ปักหมุด</label>
@@ -2224,7 +2229,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ทำรีเทนเนอร์" onchange="cameCalc()"> ทำรีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="พิมพ์ปาก" onchange="cameCalc()"> พิมพ์ปาก</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="X-ray" onchange="cameCalc()"> X-ray</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
-          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ติดเครื่องมือ" onchange="cameCalc()"> ติดเครื่องมือ</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ติดเครื่องมือบน" onchange="cameCalc()"> ติดเครื่องมือบน</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ติดเครื่องมือล่าง" onchange="cameCalc()"> ติดเครื่องมือล่าง</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ปักหมุด" onchange="cameCalc()"> ปักหมุด</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
         </div>
       </div>
@@ -2288,7 +2294,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ปรับเครื่องมือ"> ปรับเครื่องมือ</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="พิมพ์ปาก"> พิมพ์ปาก</label>
-          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือ"> ติดเครื่องมือ</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือบน"> ติดเครื่องมือบน</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ติดเครื่องมือล่าง"> ติดเครื่องมือล่าง</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ใส่รีเทนเนอร์"> ใส่รีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ปักหมุด"> ปักหมุด</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ถอดเครื่องมือจัดฟัน"> ถอดเครื่องมือจัดฟัน</label>
@@ -2531,7 +2538,7 @@ const DOCTORS_DATA = [
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
-const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ปรึกษาจัดฟัน','ปรับเครื่องมือ','ติดเครื่องมือ','ติดเหล็กหลุด','ปักหมุด','ทำรีเทนเนอร์','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
+const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ปรึกษาจัดฟัน','ปรับเครื่องมือ','ติดเครื่องมือบน','ติดเครื่องมือล่าง','ติดเหล็กหลุด','ปักหมุด','ทำรีเทนเนอร์','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
 
 const PROC_COLORS = {
   'ขูดหินปูน':    '#2980B9',
@@ -2554,7 +2561,7 @@ const PROC_COLORS = {
   'จัดฟัน':      '#6C3483',
   'ปรึกษาจัดฟัน':'#9C27B0',
   'ปรับเครื่องมือ':'#D81B60',
-  'ติดเครื่องมือ':'#5E35B1',
+  'ติดเครื่องมือ':'#5E35B1', 'ติดเครื่องมือบน':'#5E35B1', 'ติดเครื่องมือล่าง':'#5E35B1',
   'ติดเหล็กหลุด':'#F4511E',
   'ปักหมุด':'#3949AB',
   'ทำรีเทนเนอร์':'#7CB342',
@@ -3577,6 +3584,7 @@ async function crmOrthoCameSave(){
 // นัดปรับครั้งที่เท่าไร: นับจากครั้งที่มาแล้วจริงใน ortho_log (+1 ถ้ายังไม่ได้มาในวันนัดนั้น)
 function crmOrthoVisitNo(a){
   const o=crmOrthoRec(a.hn); if(!o) return 0;
+  { const _p=String(a.proc||'').split(',').map(x=>x.trim()).filter(Boolean); if(_p.length && !_p.includes('ปรับเครื่องมือ')) return 0; }   // นัดที่ไม่ได้ปรับเครื่องมือ (ติดบน/ล่าง พิมพ์ปาก ฯลฯ) ไม่มีเลข "ปรับครั้งที่"
   const n=orthoVisitCount_(o), came=String(o['ปรับล่าสุด']||'').slice(0,10)===a.date;
   return came ? Math.max(n,1) : n+1;
 }
@@ -9350,11 +9358,11 @@ function xrayMixedPrice(t){
 // อัตราส่วนแบ่งหมอ (DF) ต่อรายการ — งานจัดฟัน: ปรับ/ติดเครื่องมือ/ติดเหล็กหลุด/ปักหมุด/ใส่รีเทนเนอร์ 80% · พิมพ์ปาก 50% · X-Ray 0% (กฎ X-Ray ด้านบน)
 // รายการนอกตารางนี้ใช้ % ปกติของหมอ · ใช้กับรายการที่ลงตั้งแต่ itemDfStart() เป็นต้นไป (รายการเก่าไม่ถูกคิดย้อนหลัง) แก้อัตราได้ที่นี่ที่เดียว
 // หมอเริ่มต้นของงานจัดฟันกลุ่มนี้ = หมอเอม (เปลี่ยนได้ในฟอร์มเสมอ)
-const ORTHO_DEFAULT_DOC_ITEMS = ['ปรับเครื่องมือ','ติดเครื่องมือ','ติดเหล็กหลุด','ปักหมุด'];
+const ORTHO_DEFAULT_DOC_ITEMS = ['ปรับเครื่องมือ','ติดเครื่องมือ','ติดเครื่องมือบน','ติดเครื่องมือล่าง','ติดเหล็กหลุด','ปักหมุด'];
 function orthoDefaultDoc_(){ return docAlias('หมอเอม'); }
 // รายการที่ใช้อัตราพิเศษเฉพาะหมอคนนั้น: ทุกรายการในตาราง (80% / พิมพ์ปาก 50%) เฉพาะหมอเอม · หมอคนอื่นคิดตาม % ปกติของหมอนั้น
-const ITEM_DF_ONLY_DOC = { 'ปรับเครื่องมือ':'หมอเอม', 'ติดเครื่องมือ':'หมอเอม', 'ติดเหล็กหลุด':'หมอเอม', 'ปักหมุด':'หมอเอม', 'ใส่รีเทนเนอร์':'หมอเอม', 'พิมพ์ปาก':'หมอเอม' };
-const ITEM_DF_RATES = { 'ปรับเครื่องมือ':80, 'ติดเครื่องมือ':80, 'ติดเหล็กหลุด':80, 'ปักหมุด':80, 'ใส่รีเทนเนอร์':80, 'พิมพ์ปาก':50 };
+const ITEM_DF_ONLY_DOC = { 'ปรับเครื่องมือ':'หมอเอม', 'ติดเครื่องมือ':'หมอเอม', 'ติดเครื่องมือบน':'หมอเอม', 'ติดเครื่องมือล่าง':'หมอเอม', 'ติดเหล็กหลุด':'หมอเอม', 'ปักหมุด':'หมอเอม', 'ใส่รีเทนเนอร์':'หมอเอม', 'พิมพ์ปาก':'หมอเอม' };
+const ITEM_DF_RATES = { 'ปรับเครื่องมือ':80, 'ติดเครื่องมือ':80, 'ติดเครื่องมือบน':80, 'ติดเครื่องมือล่าง':80, 'ติดเหล็กหลุด':80, 'ปักหมุด':80, 'ใส่รีเทนเนอร์':80, 'พิมพ์ปาก':50 };
 function itemDfStart(){ return '2026-11-03'; }
 function itemDfParts(t){
   const out = { base:0, df:0, items:[] };
@@ -11054,7 +11062,9 @@ function openOrthoForm(hn){
   document.getElementById('ortho-plan').value = r?.['แผนเดือน'] || '28 ครั้ง';
   document.getElementById('ortho-doc').value = r?.['หมอ'] || (isManager?doctors.find(d=>d.id==='aim')?.name:currentUser.name);
   document.getElementById('ortho-status').value = r ? orthoEffStatus_(r) : 'กำลังจัด';
-  document.getElementById('ortho-start').value = r?.['วันเริ่ม'] || '';
+  { const _up=r?.['วันติดบน']||'', _lo=r?.['วันติดล่าง']||'', _st=r?.['วันเริ่ม']||'';   // การ์ดเก่าที่มีแต่ วันเริ่ม → ใส่ให้ทั้งบน/ล่าง (แก้แยกได้)
+    document.getElementById('ortho-start-up').value = (_up||_lo) ? _up : _st;
+    document.getElementById('ortho-start-low').value = (_up||_lo) ? _lo : _st; }
   document.getElementById('ortho-screw').value = r?.['ปักหมุด'] || 'ไม่ปัก';
   document.getElementById('ortho-note').value = r?.['note'] || '';
   document.getElementById('modalOrtho').classList.add('open');
@@ -11093,7 +11103,9 @@ async function saveOrthoProfile(){
     'แบบจัด': document.getElementById('ortho-type').value,
     'หมอ': document.getElementById('ortho-doc').value,
     'สถานะ': document.getElementById('ortho-status').value,
-    'วันเริ่ม': document.getElementById('ortho-start').value,
+    'วันติดบน': document.getElementById('ortho-start-up').value,
+    'วันติดล่าง': document.getElementById('ortho-start-low').value,
+    'วันเริ่ม': [document.getElementById('ortho-start-up').value, document.getElementById('ortho-start-low').value].filter(Boolean).sort()[0] || '',   // วันเริ่ม = วันที่ติดครั้งแรก (บน/ล่างอันที่เร็วกว่า) ให้ส่วนอื่นที่ใช้ วันเริ่ม ทำงานเหมือนเดิม
     'แผนเดือน': document.getElementById('ortho-plan').value,
     'ปักหมุด': document.getElementById('ortho-screw').value,
     'note': document.getElementById('ortho-note').value.trim()
@@ -11280,6 +11292,7 @@ function openReschedule(hn){
   document.getElementById('resched-time').value = r?.['นัดถัดไปเวลา'] || '';
   document.getElementById('resched-note').value = r?.['หมายเหตุนัดถัดไป'] || '';
   const sel = String(r?.['รายการนัดถัดไป']||'').split(',').map(s=>s.trim());
+  if(sel.includes('ติดเครื่องมือ')) sel.push('ติดเครื่องมือบน','ติดเครื่องมือล่าง');   // นัดเก่าที่เลือก ติดเครื่องมือ → ติ๊กทั้งบน/ล่าง
   document.querySelectorAll('.resched-do-chk').forEach(c=> c.checked = sel.includes(c.value));
   // รายการเดิมที่เคยเลือกเป็นช่องติ๊ก (ขูดหินปูน/อุดฟัน/BK หลุด) → ย้ายมาอยู่ในหมายเหตุ ไม่ให้หาย
   const nEl=document.getElementById('resched-note');

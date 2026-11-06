@@ -347,7 +347,9 @@ function renderOrtho(p){
   $('panel-ortho').innerHTML = `
     <div class="overdue-banner" style="display:${overdue?'block':'none'}">⚠️ คุณไม่ได้มาปรับเครื่องมือ ${since} วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาปรับเครื่องมือ</div>
     <div class="card"><h3>📈 ความคืบหน้า ${esc(braceLabel(pr['แบบจัด']))} *</h3><p class="muted" style="margin:-4px 0 8px;font-size:12px;">* ข้อมูลยึดตามบัตรจัดฟันที่คลินิกเป็นหลัก</p>${prog}
-      <div class="row"><span class="k">วันติดเครื่องมือ</span><span class="v">${pr['วันเริ่ม']?esc(thaiDateShort(pr['วันเริ่ม'])):'—'}</span></div>
+      ${(pr['วันติดบน']||pr['วันติดล่าง'])
+        ? `<div class="row"><span class="k">วันติดเครื่องมือบน</span><span class="v">${pr['วันติดบน']?esc(thaiDateShort(pr['วันติดบน'])):'—'}</span></div><div class="row"><span class="k">วันติดเครื่องมือล่าง</span><span class="v">${pr['วันติดล่าง']?esc(thaiDateShort(pr['วันติดล่าง'])):'—'}</span></div>`
+        : `<div class="row"><span class="k">วันติดเครื่องมือ</span><span class="v">${pr['วันเริ่ม']?esc(thaiDateShort(pr['วันเริ่ม'])):'—'}</span></div>`}
       <div class="row"><span class="k">ทันตแพทย์</span><span class="v">${esc(pr['หมอ']||'—')}</span></div>
       ${pr['วันใส่รีเทนเนอร์']?`<div class="row"><span class="k">วันใส่รีเทนเนอร์</span><span class="v">${esc(thaiDateShort(pr['วันใส่รีเทนเนอร์']))}</span></div>`:''}
     </div>
