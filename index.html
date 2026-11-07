@@ -8559,8 +8559,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       const _addDoc = orthoFree?String((doctors.find(d=>d.id==='aim')||{}).name||dparam).replace(/'/g,''):dparam;
       const cbtn = _hasOrtho ? '' : blocked
         ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" aria-label="เปิดช่องเวลานี้" style="font-size:10px;background:#e8e8e8;border:none;border-radius:5px;padding:1px 7px;cursor:pointer;color:#555;">เปิด</button>`
-        : `<button onclick="openAddApt(null,'${date}','${slotLbl}','${_addDoc}'${orthoFree?',true':''})" style="font-size:10px;background:var(--wine);color:#fff;border:none;border-radius:5px;padding:1px 7px;cursor:pointer;font-weight:700;">+นัด</button>
-           <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" aria-label="เว้นว่างช่องเวลานี้" style="font-size:11px;background:#f5f5f5;border:1px solid #ddd;border-radius:5px;padding:0 5px;cursor:pointer;color:#aaa;">⊘</button>`;
+        : `<button onclick="openAddApt(null,'${date}','${slotLbl}','${_addDoc}'${orthoFree?',true':''})" style="font-size:10px;background:var(--wine);color:#fff;border:none;border-radius:5px;padding:1px 7px;cursor:pointer;font-weight:700;">+นัด</button>`;
       const body = blocked ? '<span style="font-size:10px;color:#bbb;">— เว้นว่าง —</span>'
         : (slotApts.length ? aptCards : '<span style="font-size:11px;color:#b9a;">ว่าง</span>');
       return `<div style="background:${slotBg};border:1px solid ${blocked?'#e0e0e0':slotApts.length>0?(aimDone?'#8FD1A6':aimBusy?'#9CC2EE':'rgba(0,0,0,0.1)'):orthoFree?'#F0B36A':'var(--border)'};border-radius:7px;padding:2px 6px;margin-bottom:3px;opacity:${blocked?'0.5':'1'};display:flex;align-items:flex-start;gap:6px;">
@@ -8580,8 +8579,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
         <div style="flex:1;"></div>
         ${(!blocked && slotApts.some(x=>String(x.id||'').indexOf('ORTHO-')===0)) ? '' : blocked
           ? `<button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" aria-label="เปิดช่องเวลานี้" style="font-size:10px;min-height:26px;background:#e8e8e8;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;color:#555;">เปิด</button>`
-          : `<button onclick="openAddApt(null,'${date}','${slotLbl}','${orthoFree?String((doctors.find(d=>d.id==='aim')||{}).name||dparam).replace(/'/g,''):dparam}'${orthoFree?',true':''})" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>
-             <button onclick="toggleSlotBlocked('${date}','${slot}','${dparam}')" title="เว้นว่าง" aria-label="เว้นว่างช่องเวลานี้" style="font-size:12px;min-width:26px;min-height:26px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:1px 7px;cursor:pointer;color:#aaa;">⊘</button>`
+          : `<button onclick="openAddApt(null,'${date}','${slotLbl}','${orthoFree?String((doctors.find(d=>d.id==='aim')||{}).name||dparam).replace(/'/g,''):dparam}'${orthoFree?',true':''})" style="font-size:10px;min-height:26px;background:var(--wine);color:#fff;border:none;border-radius:6px;padding:2px 9px;cursor:pointer;font-weight:700;">+นัด</button>`
         }
         <button onclick="schRemoveSlot('${date}','${slot}','${dparam}')" title="ลบช่องเวลานี้" aria-label="ลบช่องเวลานี้" style="font-size:10px;min-width:22px;min-height:26px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;display:inline;">✕</button>
       </div>
