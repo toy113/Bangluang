@@ -4309,7 +4309,8 @@ function crmViewLinks(){
   const linkShow=CRM.linkShow||10, active=activeAll.slice(0,linkShow);
   const linkedUids=new Set(links.filter(l=>l.status==='active').map(l=>l.lineUserId));
   Object.values(d.linked||{}).forEach(arr=>arr.forEach(x=>linkedUids.add(x.lineUserId)));
-  const unlinked=(d.followers||[]).filter(f=>f.status!=='unfollow' && !linkedUids.has(f.lineUserId));
+  const unlinked=(d.followers||[]).filter(f=>f.status!=='unfollow' && !linkedUids.has(f.lineUserId))
+    .sort((x,y)=>String(y.followedAt||y.updatedAt||'').localeCompare(String(x.followedAt||x.updatedAt||'')));   // เพิ่มเพื่อนล่าสุดอยู่บนสุด (เดิมคนใหม่ไปต่อท้ายสุด ต้องเลื่อนลงหา)
   const src={ self:'คนไข้ผูกเอง', 'ortho-code':'รหัสจัดฟัน', staff:'พนักงานผูก' };
   return `<datalist id="crmPatList">${crmPatOptions()}</datalist>
   <div class="crm-card"><h4>🔗 ลิงก์ให้คนไข้ผูกบัญชี</h4>
@@ -4324,7 +4325,7 @@ function crmViewLinks(){
     <div class="acts"><button class="crm-btn g" onclick="crmApproveLink('${l.id}', ${l.hn?'true':'false'})">อนุมัติ</button><button class="crm-btn r" onclick="crmDo({crm:'linkReject',id:'${l.id}'},'ปฏิเสธแล้ว')">ปฏิเสธ</button></div></div>`).join('')||'<div class="crm-empty">ไม่มีคำขอ</div>'}</div></div>
   <div class="crm-card"><h4>👋 เพิ่มเพื่อนแล้วแต่ยังไม่ผูก (${unlinked.length})</h4>
     <p class="crm-muted" style="margin-bottom:8px;">ผูกให้คนไข้ที่อยู่หน้าเคาน์เตอร์และยินยอมด้วยวาจา — ตรวจชื่อ LINE ให้ตรงตัวก่อนทุกครั้ง</p>
-    <div class="crm-list">${unlinked.slice(0,100).map(f=>`<div class="crm-item"><div class="main"><div class="nm">${f.pictureUrl?`<img src="${crmEsc(f.pictureUrl)}" style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">`:''}${crmEsc(f.displayName||'(ไม่มีชื่อ)')}</div>
+    <div class="crm-list">${unlinked.slice(0,100).map(f=>`<div class="crm-item"><div class="main"><div class="nm">${f.pictureUrl?`<img src="${crmEsc(f.pictureUrl)}" style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">`:''}${crmEsc(f.displayName||'(ไม่มีชื่อ)')}${(Date.now()-new Date(String(f.followedAt||f.updatedAt||'').replace(' ','T')).getTime()<864e5)?' <span class="crm-chip g" style="margin-left:4px;">ใหม่</span>':''}</div>
       <div class="meta">เพิ่มเพื่อน ${crmEsc(crmTs(f.followedAt||f.updatedAt))} · ใช้งานล่าสุด ${crmEsc(crmTs(f.lastSeenAt))}</div></div>
       <div class="acts"><input class="form-control" list="crmPatList" id="crmFol_${crmEsc(f.lineUserId)}" placeholder="HN" style="height:34px;width:150px;"><button class="crm-btn p" onclick="crmManualLink('${crmEsc(f.lineUserId)}')">ผูก</button>${(d.caps&&d.caps.followerDelete&&!isViewOnlyUser())?`<button class="crm-btn r" title="ลบออกจากรายการ (ถ้าเขาทักมาใหม่จะกลับมาในรายการเอง)" data-uid="${crmEsc(f.lineUserId)}" data-nm="${crmEsc(f.displayName||'')}" onclick="crmFollowerDelete(this)">🗑 ลบ</button>`:''}</div></div>`).join('')||'<div class="crm-empty">ไม่มี</div>'}</div></div>
   <div class="crm-card"><h4>✅ ผูกแล้ว (${links.filter(l=>l.status==='active').length})<span class="sp"></span><input class="form-control" style="height:34px;max-width:220px;" placeholder="🔍 ค้นหา" value="${crmEsc(CRM.linkQ)}" oninput="CRM.linkQ=this.value;CRM.linkShow=10;clearTimeout(window._crmLkT);window._crmLkT=setTimeout(crmRender,250)"></h4>
