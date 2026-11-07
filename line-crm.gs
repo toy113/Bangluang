@@ -1225,9 +1225,8 @@ function crmHandleWebhook_(events, destination) {
 }
 function crmWelcome_(s) {
   return { type: 'flex', altText: 'ยินดีต้อนรับสู่' + s.clinicName,
-    contents: crmBubble_(s, 'ยินดีต้อนรับค่ะ 🦷', 'ผูกบัญชีคนไข้เพื่อดูนัดครั้งถัดไป ประวัติการรักษา และรับการแจ้งเตือนนัดทาง LINE', [],
-      [{ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'uri', label: 'ผูกบัญชีคนไข้', uri: crmLiffUrl_('next') } },
-       crmInquiryNote_(s)]) };
+    contents: crmBubble_(s, 'ยินดีต้อนรับค่ะ 🦷', 'ขอบคุณที่เป็นเพื่อนกับคลินิกค่ะ ทางคลินิกจะแจ้งเตือนนัดและส่งสรุปการรักษาให้ทาง LINE นี้', [],
+      [crmInquiryNote_(s)]) };
 }
 function crmUpsertFollower_(uid, status) {
   if (!uid) return;
