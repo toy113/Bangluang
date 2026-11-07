@@ -3849,17 +3849,17 @@ function crmOrthoPrint(d){
     return `<tr${untilDone?' style="background:#EAF3FB;"':''}><td class="c b">${E(a.time||'-')}</td><td>${(o['รหัสประจำตัว']||a.orthoCode)?'<b>'+E(o['รหัสประจำตัว']||a.orthoCode)+'</b> ':''}<b>${E(String(a.patName||'').trim().split(/\s+/)[0])}</b> ${untilDone?'<div style="margin-top:2px;"><span style="border:1.5px solid #1F5F8B;color:#1F5F8B;border-radius:4px;padding:0 5px;font-weight:700;font-size:.9em;">ปรับจนกว่าจะเสร็จ</span></div>':''}</td><td>${String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ' && x!=='นัดจัดฟัน').map(x=>'<span style="color:#00B140;font-weight:800;">'+E(x)+'</span>').join(', ')}</td><td class="n">${E(a.note||'')}</td></tr>`;
   }).join('');
   const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>นัดจัดฟัน ${E(crmThaiShort(d))}</title>
-<style>@page{size:A4 portrait;margin:8mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:13px;margin:0}
-h1{font-size:1.4em;margin:0 0 2px}.sub{color:#555;margin-bottom:.6em;font-size:.9em}table{width:auto;border-collapse:collapse}
-th,td{border:1px solid #999;padding:.3em .45em;vertical-align:top}td{height:2.2em}th{background:#eee;font-size:.92em}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:.88em}td:nth-child(2),td:nth-child(3){white-space:nowrap}td.n{font-size:.88em;color:#444;min-width:13em}td:nth-child(1){font-size:1.25em;padding:.35em .9em;vertical-align:middle}td:nth-child(2){font-size:1.2em;padding:.35em 1.1em .35em .7em;vertical-align:middle;min-width:11em}th:nth-child(1),th:nth-child(2){padding:.4em .9em}td:nth-child(3),td.n{vertical-align:middle}
+<style>@page{size:A4 portrait;margin:8mm}body{font-family:'Sarabun','Noto Sans Thai',Tahoma,sans-serif;color:#222;font-size:19px;margin:0}
+h1{font-size:1.35em;margin:0 0 2px}.sub{color:#555;margin-bottom:.6em;font-size:.9em}table{width:100%;border-collapse:collapse}thead{display:table-header-group}
+th,td{border:1px solid #999;padding:.3em .45em;vertical-align:top}td{height:2.4em}th{background:#eee;font-size:.92em}.c{text-align:center;white-space:nowrap}.b{font-weight:700}.m{color:#666;font-size:.88em}td:nth-child(2){white-space:nowrap}td.n{font-size:.9em;color:#444;min-width:10em}td:nth-child(1){font-size:1.25em;padding:.35em .9em;vertical-align:middle}td:nth-child(2){font-size:1.2em;padding:.35em 1.1em .35em .7em;vertical-align:middle;min-width:11em}th:nth-child(1),th:nth-child(2){padding:.4em .9em}td:nth-child(3),td.n{vertical-align:middle}
 tr{page-break-inside:avoid}</style></head><body>
 <h1>คลินิกทันตกรรมบางหลวง — นัดจัดฟัน ${E(crmThaiShort(d))} · ${list.length} คน</h1>
 <table><tr><th>เวลา</th><th>คนไข้</th><th>รายการนัด</th><th>หมายเหตุ</th></tr>${rows}</table>
 ${aimOther.length?`<div style="font-weight:700;margin:.9em 0 .3em;">นัดอื่นของหมอวัจน์กรวันนี้ (จากแท็บดูนัด) ${aimOther.length} นัด</div>
 <table><tr><th>เวลา</th><th>คนไข้</th><th>รายการนัด</th></tr>${aimOther.slice().sort((x,y)=>String(x.time||'').localeCompare(String(y.time||''))).map((a,i)=>'<tr><td class="c b">'+E(a.time||'-')+'</td><td><b>'+E(String(a.patName||'').trim().split(/\s+/)[0])+'</b></td><td>'+E(a.proc||'-')+'</td></tr>').join('')}</table>`:''}
 <script>
-/* ย่อขนาดตัวอักษรอัตโนมัติให้ทั้งรายการพอดี 1 แผ่น A4 แนวตั้ง (ใหญ่สุด 13px ลงไปถึง 5.5px) */
-function fit(){ var max=1035; for(var f=13; f>=5.5; f-=0.5){ document.body.style.fontSize=f+'px'; if(document.body.scrollHeight<=max) break; } }
+/* ตัวอักษรใหญ่ — ถ้ารายการยาวจะขึ้นหน้าที่ 2 เอง */
+function fit(){}
 window.onload=function(){ fit(); setTimeout(function(){window.print()},300); };
 <\/script></body></html>`;
   const w=window.open('','_blank'); if(!w){ showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — กรุณาอนุญาต pop-up','error'); return; }
