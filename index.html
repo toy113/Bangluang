@@ -8192,16 +8192,26 @@ function confirmAddSlot(date, doc){
   const dk = doc || '';
   const map = _slotMap(date);
   const list = new Set(map[dk]||[]);
-  list.add(t);
+  // ถ้าเวลานี้มี slot อยู่แล้ว → เพิ่มเป็น "ช่องที่ 2" ของเวลาเดิม (เดิม: ไม่มีอะไรเปลี่ยน ดูเหมือนปุ่มไม่ทำงาน)
+  let slotAdd = t, dupNote = '';
+  try{
+    const onlyDoc = dk || (()=>{ const n=[...new Set(appointments.filter(a=>a.date===date).map(a=>a.docName).filter(Boolean))]; return n.length===1?n[0]:''; })();
+    const cur = getSchSlots(date, dk, onlyDoc);
+    if(cur.includes(t)){
+      if(cur.includes(t+'#2')){ showToast(`เวลา ${t} มี 2 ช่องอยู่แล้ว`,'error'); return; }
+      slotAdd = t+'#2'; dupNote = ' (ช่องที่ 2 ของเวลาเดิม)';
+    }
+  }catch(e){}
+  list.add(slotAdd);
   map[dk] = [...list].sort();
   // เอาออกจาก blacklist ถ้าเคยถูกลบ
   const dmap = _deletedMap(date);
-  if(dmap[dk]) dmap[dk] = dmap[dk].filter(s=>s!==t);
+  if(dmap[dk]) dmap[dk] = dmap[dk].filter(s=>s!==t && s!==slotAdd);
   map['#del'] = dmap;   // เขียนรวมครั้งเดียว (กันค่า #del เก่าทับ)
   try{ const all=JSON.parse(localStorage.getItem('bl_deleted_slots')||'{}'); delete all[date]; localStorage.setItem('bl_deleted_slots', JSON.stringify(all)); }catch(e){}
   _writeSlotMap(date, map);
   renderScheduleDay();
-  showToast(`เพิ่ม slot ${t} แล้ว`);
+  showToast(`เพิ่ม slot ${t} แล้ว${dupNote}`);
 }
 function schRemoveSlot(date, slot, doc){
   const dk = doc || '';
