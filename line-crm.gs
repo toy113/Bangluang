@@ -558,7 +558,7 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
     body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [] } };
   if (subtitle) bubble.body.contents.push({ type: 'text', text: subtitle, wrap: true, size: 'sm', color: '#4A3347' });
   if (bodyRows && bodyRows.length) bubble.body.contents.push({ type: 'box', layout: 'vertical', spacing: 'sm', contents: bodyRows });
-  if (buttons && buttons.length) bubble.footer = { type: 'box', layout: 'vertical', spacing: 'sm', contents: buttons };
+  if (buttons && buttons.length) bubble.footer = { type: 'box', layout: 'vertical', spacing: 'xl', contents: buttons };
   return bubble;
 }
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
@@ -599,8 +599,8 @@ function crmAptMessage_(s, apt, kind, mv) {
   if (apt.proc) rows.push(crmRow_('รายการ', apt.proc));
   var buttons = [];
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
-  if (kind === 'remind') buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(apt.date, 'ยืนยันนัด') } });
-  buttons.push({ type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(apt.date) } });
+  if (kind === 'remind') buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(apt.date, 'ยืนยันนัด') } });
+  buttons.push({ type: 'button', style: 'secondary', height: 'md', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(apt.date) } });
   buttons.push(crmInquiryNote_(s));
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
@@ -613,8 +613,8 @@ function crmAptGroupMessage_(s, list) {
     rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace(':', '.') + ' น.', [a.proc, a.docName].filter(Boolean).join('\n')));
   });
   var buttons = [
-    { type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(a0.date, 'ยืนยันนัด') } },
-    { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(a0.date) } },
+    { type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(a0.date, 'ยืนยันนัด') } },
+    { type: 'button', style: 'secondary', height: 'md', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(a0.date) } },
     crmInquiryNote_(s)];
   return { type: 'flex', altText: 'เตือนนัดหมาย ' + crmThaiDate_(a0.date) + ' ' + list.length + ' นัด',
     contents: crmBubble_(s, '🔔 เตือนนัดหมาย', 'คุณ' + (a0.patName || '') + ' อย่าลืมนัดหมายของคุณนะคะ (' + list.length + ' นัดในวันเดียวกัน)', rows, buttons) };
