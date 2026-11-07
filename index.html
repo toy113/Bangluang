@@ -3465,7 +3465,7 @@ function crmAptLogFor_(type, a){ return crmAptIdsFor_(a).reduce((o,id)=>o.concat
 function crmAptLineChips(a){
   const d=CRM.data, rec=crmAptRecFor_(a);
   const out=[];
-  if(orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE) out.push('<span class="crm-chip b">💳 ชำระจนเสร็จ</span>');
+  if(orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE) out.push('<span class="opay-badge" style="margin-left:0;" title="คนไข้จัดฟัน — ชำระจนเสร็จ">💳 ชำระจนเสร็จ</span>');
   if(!crmHasLine(a.hn)) out.push(crmLinked(a.hn).some(x=>x.blocked) ? '<span class="crm-chip r">🚫 บล็อก LINE OA</span>' : '<span class="crm-chip x">ไม่มี LINE</span>');
   else {
     if(crmSentOk(crmAptLogFor_('confirm',a))) out.push('<span class="crm-chip w">ส่งยืนยันแล้ว</span>');
