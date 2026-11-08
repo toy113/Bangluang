@@ -61,6 +61,7 @@ var CRM_DEFAULT_SETTINGS = {
   birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
   birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
   followupOn: true, followupHour: '10:00',
+  reviewDocRules: 'สรวิศ=tpl_extraction,tpl_surgery',   // จำกัดการเด้งไปหน้ารีวิว: หมอที่ชื่อมีคำนี้ → เฉพาะเทมเพลตที่ระบุ (รูปแบบ  คำในชื่อหมอ=tplId,tplId ; อีกคน=...) · หมอที่ไม่อยู่ในรายการ = เด้งได้ทุกงาน · ว่าง = ไม่จำกัด
   reviewOnOk: true,          // คนไข้ตอบ "ปกติดี" ในข้อความถามอาการ → ส่งการ์ดปุ่มไปหน้ารีวิว Google ทันที (ต่อคนไข้ไม่เกิน 1 ครั้งต่อ 360 วัน) · ใช้เมื่อปิดการให้คะแนนอยู่
   ratingOn: false, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
@@ -699,13 +700,27 @@ function crmAftercareMessages_(s, patName, date, tpls, notes) {
   if (cur) msgs.push(crmText_(cur));
   return msgs.slice(0, 4);
 }
-function crmFollowupMessage_(s, fu, tpl, patName, procText) {
+/* กติกาว่าหมอคนไหน "เด้งไปหน้ารีวิว" ได้เฉพาะเทมเพลตไหน — s.reviewDocRules = 'สรวิศ=tpl_extraction,tpl_surgery;อีกคน=tpl_x'
+   docNames = ชื่อหมอของรายการรักษาที่ทำให้เกิดข้อความถามอาการนี้ · หมอที่ชื่อไม่ตรงกติกาข้อไหน = ไม่จำกัด */
+function crmReviewAllowed_(s, docNames, tplId) {
+  var rules = String(s.reviewDocRules || '').split(';').map(function (x) { return x.trim(); }).filter(String);
+  if (!rules.length) return true;
+  var ok = true;
+  rules.forEach(function (r) {
+    var i = r.indexOf('='); if (i < 1) return;
+    var key = r.slice(0, i).trim(), allow = crmSplitList_(r.slice(i + 1));
+    var hit = (docNames || []).some(function (d) { return String(d || '').indexOf(key) !== -1; });
+    if (hit && allow.indexOf(String(tplId)) === -1) ok = false;
+  });
+  return ok;
+}
+function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
   var opts = [];
   try { opts = JSON.parse(tpl.followupOptions || '[]'); } catch (e) {}
   var q = String(tpl.followupQuestion || '').replace(/\{name\}/g, patName || '').replace(/\{proc\}/g, procText || tpl.name);
   var okReview = false;   // ปุ่ม "ปกติดี" เปิดหน้ารีวิวทันที: ต้องเปิดตัวเลือก + มีลิงก์รีวิว + ไม่ใช้โหมดถามคะแนน + คนไข้ยังไม่ถูกขอรีวิวใน 360 วัน
   try {
-    if (s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim()) && !crmRatingApplies_(s, fu)) {
+    if (docOk !== false && s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim()) && !crmRatingApplies_(s, fu)) {
       var since0 = crmAddDays_(crmToday_(), -360), hk0 = crmHN_(fu.hn);
       okReview = !crmRead_('followups').some(function (r) { return crmHN_(r.hn) === hk0 && r.reviewAt && String(r.reviewAt).slice(0, 10) > since0; });
     }
@@ -1127,10 +1142,12 @@ function crmTickInner_() {
       var g0 = groups[k][0];
       var fu = { id: crmId_('FU'), hn: g0.hn, patName: g0.patName, lineUserId: tg[0].lineUserId, treatDate: yday, templateId: best.id, proc: procText,
         sentAt: crmNow_(), answer: '', answerKind: '', answeredAt: '', taskId: '' };
+      var docsF = []; groups[k].forEach(function (t2) { if (t2.docName && crmTemplatesFor_(t2.proc, templates).some(function (x) { return x.id === best.id; }) && docsF.indexOf(t2.docName) === -1) docsF.push(t2.docName); });
+      var docOkF = crmReviewAllowed_(s, docsF, best.id);
       var ok = false;
       tg.forEach(function (t) {
         if (crmSend_(s, state, { key: fk + '>' + t.lineUserId, type: 'followup', hn: g0.hn, patName: g0.patName, lineUserId: t.lineUserId, refId: fu.id, detail: procText },
-          [crmFollowupMessage_(s, fu, best, g0.patName, procText)])) { ok = true; summary.followup++; }
+          [crmFollowupMessage_(s, fu, best, g0.patName, procText, docOkF)])) { ok = true; summary.followup++; }
       });
       if (ok) { fu.status = s.testMode ? 'test' : 'sent'; crmAppend_('followups', fu); }
       if (crmAllDone_(state, fk, tg)) crmMark_(state, fk, 'followup', { hn: g0.hn, patName: g0.patName, refId: fu.id }, 'done', '');
@@ -1525,7 +1542,9 @@ function crmHandlePostback_(s, ev, uid) {
     }
     var out = reply ? [crmText_(reply)] : [];
     if (opt.kind === 'ok' && crmRatingApplies_(s, fu)) out.push(crmRatingMessage_(s, fu));
-    else if (opt.kind === 'ok' && s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim())) {
+    else if (opt.kind === 'ok' && s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim()) && (function () {
+      var dn = []; try { crmReadByName_('บันทึกการรักษา').forEach(function (x) { if (crmHN_(x.hn) === crmHN_(fu.hn) && crmDateOnly_(x.date) === crmDateOnly_(fu.treatDate) && x.docName && dn.indexOf(x.docName) === -1) dn.push(x.docName); }); } catch (eD) {}
+      return crmReviewAllowed_(s, dn, fu.templateId); })()) {
       // ปกติดี → การ์ดไปหน้ารีวิว Google (คนไข้คนเดียวกันไม่เกิน 1 ครั้งต่อ 360 วัน กันรบกวน)
       var since = crmAddDays_(crmToday_(), -360), hk = crmHN_(fu.hn);
       var askedRecently = crmRead_('followups').some(function (r) { return crmHN_(r.hn) === hk && r.reviewAt && String(r.reviewAt).slice(0, 10) > since; });
@@ -1912,7 +1931,7 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
+        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','reviewDocRules','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
       ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
