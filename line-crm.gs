@@ -1427,7 +1427,16 @@ function crmRateOpen_(p) {
       try { JSON.parse((tplO && tplO.followupOptions) || '[]').forEach(function (o) { if (o.kind === 'ok') lblO = o.label; }); } catch (eL) {}
       patch.answer = lblO; patch.answerKind = 'ok'; patch.answeredAt = crmNow_();
     }
+    var firstOk = !String(fr.answeredAt || '');
     crmUpdate_('followups', fr._row, patch); crmTouch_();
+    if (firstOk && fr.lineUserId) {   // เด้งไปรีวิวแล้ว → ส่งข้อความขอบคุณ + นัดครั้งถัดไปตามเข้าแชท (คนไข้เห็นตอนกลับมา)
+      try {
+        var tplR = crmFind_(crmRead_('templates'), 'id', fr.templateId), replyO = '';
+        try { JSON.parse((tplR && tplR.followupOptions) || '[]').forEach(function (o) { if (o.kind === 'ok' && o.reply) replyO = o.reply; }); } catch (eR) {}
+        var txt = (replyO || CRM_REPLY_OK) + crmNextAptText_(fr.hn, crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), crmReadByName_('ortho')));
+        crmSend_(s, { done: {}, fails: {} }, { key: 'fuok:' + fr.id, type: 'followup', hn: fr.hn || '', patName: fr.patName || '', lineUserId: fr.lineUserId, refId: fr.id, detail: 'ตอบ ปกติดี → ขอบคุณ+นัดถัดไป' }, [crmText_(txt)]);
+      } catch (eS) { Logger.log('fu ok thanks ' + eS); }
+    }
     return { ok: true, url: url, kind: 'ok' };
   }
   if (String(fr.rating || '') === '') { crmUpdate_('followups', fr._row, { rating: '5', ratedAt: crmNow_() }); crmTouch_(); }
