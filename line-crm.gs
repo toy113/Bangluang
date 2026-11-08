@@ -1411,6 +1411,20 @@ function crmReviewMessages_(s) {
   return [thanks, { type: 'flex', altText: 'ช่วยรีวิวคลินิกให้เราหน่อยนะคะ', contents: crmBubble_(s, '💬 ช่วยรีวิวให้เราหน่อยนะคะ', 'ถ้าคุณประทับใจ รบกวนแบ่งปันประสบการณ์ให้คนอื่นได้รู้จักเรา ใช้เวลาไม่ถึงนาทีค่ะ 🙏', [],
     [{ type: 'button', style: 'primary', color: '#1D825C', height: 'sm', action: { type: 'uri', label: '⭐ รีวิวให้เรา', uri: url } }], '#1D825C') }];
 }
+/* คนไข้กดยืนยันนัดทาง LINE → ตั้งสถานะนัดในชีต "ตารางนัด" เป็น คอนเฟิร์ม (เปลี่ยนเฉพาะนัดที่ยัง "ไม่คอนเฟิร์ม"/ว่าง — ไม่แตะ เสร็จสิ้น/ยกเลิก/อื่นๆ)
+   นัดจัดฟันที่เป็นนัดเสมือนจากชีต ortho (ไม่มีแถวในตารางนัด) ข้าม — ระบบนับยืนยันจาก confirmedAt อยู่แล้ว */
+function crmSetAptConfirmed_(x) {
+  if (!x || x._ortho || !x._row || String(x.id || '').indexOf('ORTHO-') === 0) return false;
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ตารางนัด'); if (!sh) return false;
+  var lc = sh.getLastColumn(), hdr = sh.getRange(1, 1, 1, lc).getValues()[0];
+  var cs = hdr.indexOf('status'), ci = hdr.indexOf('id'); if (cs === -1) return false;
+  if (ci !== -1 && String(sh.getRange(x._row, ci + 1).getValue()) !== String(x.id)) return false;   // แถวเลื่อนไปแล้ว → ไม่เขียนผิดแถว
+  var cur = String(sh.getRange(x._row, cs + 1).getValue() || '').trim();
+  if (cur !== '' && cur !== 'ไม่คอนเฟิร์ม') return false;
+  sh.getRange(x._row, cs + 1).setValue('คอนเฟิร์ม');
+  crmTouch_();
+  return true;
+}
 function crmHandlePostback_(s, ev, uid) {
   var data = String((ev.postback && ev.postback.data) || ''), parts = data.split('|');
   var hns = crmUserHns_(uid);
@@ -1431,6 +1445,7 @@ function crmHandlePostback_(s, ev, uid) {
     };
     if (parts[1] === 'confirm') {
       found.forEach(function (x) { recAct(x, { confirmedAt: now, lastAction: 'confirm', updatedAt: now }); });
+      found.forEach(function (x) { try { crmSetAptConfirmed_(x); } catch (eC) { Logger.log('crmSetAptConfirmed_ ' + eC); } });   // อัปเดตสถานะในตารางนัด (ดูนัด) เป็น "คอนเฟิร์ม" อัตโนมัติ
       crmReply_(ev.replyToken, [crmText_(s.confirmThanksText + found.map(function (x) { return '\n\n📅 ' + crmThaiDate_(crmDateOnly_(x.date)) + ' เวลา ' + (x.time || '-') + ' น.' + (found.length > 1 && x.proc ? ' (' + x.proc + ')' : ''); }).join(''))]);
     } else if (parts[1] === 'resched') {
       found.forEach(function (x) { recAct(x, { rescheduleAt: now, lastAction: 'reschedule', updatedAt: now }); });
