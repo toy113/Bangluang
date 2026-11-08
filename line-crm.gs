@@ -1343,12 +1343,17 @@ function crmNameOfUid_(uid) {
   } catch (e) {}
   return { name: name, hn: hn };
 }
+function crmStaffSkip_(task, why) {   // บันทึกใน log ว่าทำไมไม่ได้ส่งแจ้งแอดมิน (ไว้ไล่สาเหตุ)
+  try { crmAppend_('log', { key: 'staff-skip:' + task.id, type: 'staff', hn: task.hn || '', patName: task.patName || '', lineUserId: '', refId: task.id,
+    status: 'skipped', detail: task.type + ' → ไม่ส่ง: ' + why, createdAt: crmNow_(), pushCount: 0 }); } catch (e) {}
+  return 0;
+}
 function crmNotifyStaff_(s, task, force) {
-  if (!force && !(s.staffNotifyOn === true || s.staffNotifyOn === 'true' || s.staffNotifyOn === 'TRUE')) return 0;
-  if (!force && crmSplitList_(s.staffNotifyTypes || 'reschedule,emergency,callback,message,receipt').indexOf(task.type) === -1) return 0;
-  var ids = crmSplitList_(s.staffNotifyIds); if (!ids.length) return 0;
+  if (!force && !(s.staffNotifyOn === true || s.staffNotifyOn === 'true' || s.staffNotifyOn === 'TRUE')) return crmStaffSkip_(task, 'สวิตช์ "ส่ง LINE เข้ามือถือแอดมิน" ปิดอยู่ในตั้งค่าที่บันทึกไว้');
+  if (!force && crmSplitList_(s.staffNotifyTypes || 'reschedule,emergency,callback,message,receipt').indexOf(task.type) === -1) return crmStaffSkip_(task, 'ประเภทเรื่องนี้ไม่ได้ติ๊กรับแจ้ง');
+  var ids = crmSplitList_(s.staffNotifyIds); if (!ids.length) return crmStaffSkip_(task, 'ยังไม่ได้เลือกบัญชีแอดมิน');
   if (task.type !== 'emergency') {   // ฉุกเฉินส่งเสมอ · อย่างอื่นหยุดเมื่อโควตาหมด
-    var q = crmQuota_(); if (q && q.remaining !== null && q.remaining !== undefined && q.remaining <= 0) return 0;
+    var q = crmQuota_(); if (q && q.remaining !== null && q.remaining !== undefined && q.remaining <= 0) return crmStaffSkip_(task, 'โควตา LINE หมด');
   }
   var lines = [(CRM_STAFF_LABEL[task.type] || ('🔔 ' + task.type)) + (task.priority === 'urgent' ? ' (ด่วน)' : (task.priority === 'high' ? ' (สำคัญ)' : ''))];
   var oc = ''; try { oc = crmOrthoCodeOf_(task.hn); } catch (eO) { Logger.log('crmOrthoCodeOf_ ' + eO); }
