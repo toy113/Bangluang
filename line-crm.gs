@@ -1332,11 +1332,6 @@ function crmOrthoVisitMessage_(s, v) {
     if (pc > 0 && pt > 0) { rows.push(crmRow_('  เงินสด', crmMoney_(pc))); rows.push(crmRow_('  โอนเงิน', crmMoney_(pt))); }
     else rows.push(crmRow_('ชำระโดย', pc > 0 ? 'เงินสด' : 'โอนเงิน'));
   }
-  if (v.care && v.tpls && v.tpls.length) {   // คำแนะนำจากเทมเพลต Aftercare ที่อนุมัติแล้ว (ปรับเครื่องมือ / ติดเครื่องมือ / รีเทนเนอร์ ฯลฯ)
-    rows.push({ type: 'separator', margin: 'md' });
-    rows.push({ type: 'text', text: '🩹 คำแนะนำหลังการรักษา', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
-    v.tpls.forEach(function (tp) { var tx = String(tp.aftercareText || '').trim(); if (tx) rows.push({ type: 'text', text: tx, wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' }); });
-  }
   if (v.care) {
     rows.push({ type: 'separator', margin: 'md' });
     rows.push({ type: 'text', text: '📝 ข้อควรปฏิบัติ', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
@@ -2025,8 +2020,7 @@ function crmStaffAction_(b) {
       if (!tgV.length) return { ok: true, sent: 0, reason: 'no_line' };
       var itemsV = (b.items || []).slice(0, 12).map(function (x) { return { name: String(x.name || '').slice(0, 60), price: (x.price === null || x.price === undefined) ? null : (+x.price || 0), note: String(x.note || '').slice(0, 60) }; });
       if (!itemsV.length) return { ok: false, error: 'no_items' };
-      var tplsV = []; try { tplsV = crmTemplatesFor_(itemsV.map(function (x) { return x.name; }).join(', '), crmRead_('templates')); } catch (eT) { Logger.log('orthoVisit tpls ' + eT); }
-      var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60), care: b.care !== false, tpls: tplsV, cash: +b.cash || 0, transfer: +b.transfer || 0 });
+      var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60), care: b.care !== false, cash: +b.cash || 0, transfer: +b.transfer || 0 });
       var stV = { done: {}, fails: {} }, nV = 0;
       tgV.forEach(function (t) {
         if (crmSend_(sV, stV, { key: 'orthovisit:' + hnV + ':' + crmDateOnly_(b.date) + ':' + now + ':' + t.lineUserId, type: 'receipt', hn: hnV, patName: b.patName || '', lineUserId: t.lineUserId, refId: 'ORTHOVISIT-' + crmHN_(hnV) + '-' + crmDateOnly_(b.date), detail: 'สรุปการมาจัดฟัน' }, [cardV])) nV++;
