@@ -12009,7 +12009,7 @@ async function openQuickLog(hn){
     const res = await fetch(url+'?action=orthoLogsByHn&hn='+encodeURIComponent(hn), {cache:'no-store'});
     const d = await res.json();
     const logs = (d && d.ok && Array.isArray(d.logs)) ? d.logs : [];
-    const existingDates = logs.filter(l=> l['ทำอะไร']==='ปรับเครื่องมือ').map(l=> l['วันที่']).filter(Boolean).sort();
+    const existingDates = logs.filter(l=> String(l['ทำอะไร']||'').indexOf('ปรับเครื่องมือ')>=0).map(l=> l['วันที่']).filter(Boolean).sort();   // รวมแถวที่บันทึกพ่วงรายการอื่น เช่น "ปรับเครื่องมือ, ใส่ยาง"
     if(!existingDates.length) return;
     while(document.querySelectorAll('#qlog-dates .qlog-date-input').length < existingDates.length){
       addQuickLogSlot();

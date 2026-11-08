@@ -284,7 +284,7 @@ function orthoLogUpdateDatesBatch(hn, updates) {
       if (usedRows[r]) continue;
       var rowDate = data[r][dateCol];
       var rowDateStr = rowDate instanceof Date ? Utilities.formatDate(rowDate, ORTHO_TZ, 'yyyy-MM-dd') : String(rowDate);
-      if (orthoNormHN_(data[r][hnCol]) === hn && data[r][doCol] === 'ปรับเครื่องมือ' && rowDateStr === u.oldDate) {
+      if (orthoNormHN_(data[r][hnCol]) === hn && String(data[r][doCol]).indexOf('ปรับเครื่องมือ') !== -1 && rowDateStr === u.oldDate) {
         sh.getRange(r + 1, dateCol + 1).setValue(u.newDate);
         usedRows[r] = true;
         updated++;
@@ -330,7 +330,7 @@ function orthoLogDeleteDatesBatch(hn, dates) {
       if (usedRows[r]) continue;
       var rowDate = data[r][dateCol];
       var rowDateStr = rowDate instanceof Date ? Utilities.formatDate(rowDate, ORTHO_TZ, 'yyyy-MM-dd') : String(rowDate);
-      if (orthoNormHN_(data[r][hnCol]) === hn && data[r][doCol] === 'ปรับเครื่องมือ' && rowDateStr === target) {
+      if (orthoNormHN_(data[r][hnCol]) === hn && String(data[r][doCol]).indexOf('ปรับเครื่องมือ') !== -1 && rowDateStr === target) {
         usedRows[r] = true;
         rowsToDelete.push(r + 1); // เลขแถวจริงในชีต (1-indexed, +1 เผื่อหัวตาราง)
         break;
