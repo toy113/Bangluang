@@ -8550,7 +8550,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     if(orthoFree) slotBg = '#FFE2B8';
     // หมอเอม: ช่องที่มีนัดแล้วพื้นฟ้า (ว่าง = ส้มเหมือนเดิม)
     const aimBusy = !blocked && slotApts.length>0 && (filterDoc ? isAimDoc_(filterDoc) : slotApts.every(x=>isAimDoc_(x.docName)));
-    if(aimBusy) slotBg = '#D3E6FB';
+    if(aimBusy) slotBg = '#F4F9FE';
     // หมอเอม: ทุกนัดในช่องนี้ "บันทึกการรักษา/มาตามนัดแล้ว" → พื้นเขียวอ่อนทั้งช่อง
     const aimDone = aimBusy && slotApts.every(aptDone_);
     if(aimDone) slotBg = '#D9F2E1';
@@ -8564,14 +8564,14 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
         : `<button onclick="openAddApt(null,'${date}','${slotLbl}','${_addDoc}'${orthoFree?',true':''})" style="font-size:10px;background:var(--wine);color:#fff;border:none;border-radius:5px;padding:1px 7px;cursor:pointer;font-weight:700;">+นัด</button>`;
       const body = blocked ? '<span style="font-size:10px;color:#bbb;">— เว้นว่าง —</span>'
         : (slotApts.length ? aptCards : '<span style="font-size:11px;color:#b9a;">ว่าง</span>');
-      return `<div style="background:${slotBg};border:1px solid ${blocked?'#e0e0e0':slotApts.length>0?(aimDone?'#8FD1A6':aimBusy?'#9CC2EE':'rgba(0,0,0,0.1)'):orthoFree?'#F0B36A':'var(--border)'};border-radius:7px;padding:2px 6px;margin-bottom:3px;opacity:${blocked?'0.5':'1'};display:flex;align-items:flex-start;gap:6px;">
+      return `<div style="background:${slotBg};border:1px solid ${blocked?'#e0e0e0':slotApts.length>0?(aimDone?'#8FD1A6':aimBusy?'#D5E5F7':'rgba(0,0,0,0.1)'):orthoFree?'#F0B36A':'var(--border)'};border-radius:7px;padding:2px 6px;margin-bottom:3px;opacity:${blocked?'0.5':'1'};display:flex;align-items:flex-start;gap:6px;">
         <span style="font-size:13px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;min-width:40px;padding-top:2px;">${slotLbl}</span>
         <div style="flex:1;min-width:0;padding-top:1px;">${body}</div>
         <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;padding-top:1px;">${cbtn}<button onclick="schRemoveSlot('${date}','${slot}','${dparam}')" title="ลบช่องเวลานี้" aria-label="ลบช่องเวลานี้" style="font-size:10px;background:none;border:none;cursor:pointer;color:#ccc;padding:0 3px;">✕</button></div>
       </div>`;
     }
     return `<div style="background:${slotBg};
-      border:1.5px solid ${blocked?'#e0e0e0':slotApts.length>0?(aimDone?'#8FD1A6':aimBusy?'#9CC2EE':'rgba(0,0,0,0.1)'):orthoFree?'#F0B36A':'var(--border)'};
+      border:1.5px solid ${blocked?'#e0e0e0':slotApts.length>0?(aimDone?'#8FD1A6':aimBusy?'#D5E5F7':'rgba(0,0,0,0.1)'):orthoFree?'#F0B36A':'var(--border)'};
       border-radius:10px;padding:8px 10px;box-shadow:var(--shadow);
       opacity:${blocked?'0.5':'1'};margin-bottom:6px;transition:background 0.2s;">
       <div style="display:flex;align-items:center;gap:4px;">
