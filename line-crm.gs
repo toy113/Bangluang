@@ -61,7 +61,7 @@ var CRM_DEFAULT_SETTINGS = {
   birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
   birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
   followupOn: true, followupHour: '10:00',
-  reviewDocRules: 'สรวิศ=tpl_extraction,tpl_surgery;พัทธนันท์=tpl_extraction,tpl_filling;ภาคภูมิ=tpl_extraction,tpl_filling,tpl_surgery',   // จำกัดการเด้งไปหน้ารีวิว: หมอที่ชื่อมีคำนี้ → เฉพาะเทมเพลตที่ระบุ (รูปแบบ  คำในชื่อหมอ=tplId,tplId ; อีกคน=...) · หมอที่ไม่อยู่ในรายการ = เด้งได้ทุกงาน · ว่าง = ไม่จำกัด
+  reviewDocRules: 'สรวิศ=tpl_extraction,tpl_surgery;พัทธนันท์=tpl_extraction,tpl_filling;ภาคภูมิ=tpl_extraction,tpl_filling,tpl_surgery',   // จำกัดการเด้งไปหน้ารีวิว: หมอที่ชื่อมีคำนี้ → เฉพาะเทมเพลตที่ระบุ (รูปแบบ  คำในชื่อหมอ=tplId,tplId ; อีกคน=...) · หมอที่ไม่อยู่ในรายการ = ไม่เด้งไปรีวิว · ว่าง = ไม่จำกัด
   reviewOnOk: true,          // คนไข้ตอบ "ปกติดี" ในข้อความถามอาการ → ส่งการ์ดปุ่มไปหน้ารีวิว Google ทันที (ต่อคนไข้ไม่เกิน 1 ครั้งต่อ 360 วัน) · ใช้เมื่อปิดการให้คะแนนอยู่
   ratingOn: false, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
@@ -706,18 +706,18 @@ function crmAftercareMessages_(s, patName, date, tpls, notes) {
   return msgs.slice(0, 4);
 }
 /* กติกาว่าหมอคนไหน "เด้งไปหน้ารีวิว" ได้เฉพาะเทมเพลตไหน — s.reviewDocRules = 'สรวิศ=tpl_extraction,tpl_surgery;อีกคน=tpl_x'
-   docNames = ชื่อหมอของรายการรักษาที่ทำให้เกิดข้อความถามอาการนี้ · หมอที่ชื่อไม่ตรงกติกาข้อไหน = ไม่จำกัด */
+   docNames = ชื่อหมอของรายการรักษาที่ทำให้เกิดข้อความถามอาการนี้ · หมอที่ชื่อไม่ตรงกติกาข้อไหน = ไม่เด้งไปรีวิว */
 function crmReviewAllowed_(s, docNames, tplId) {
   var rules = String(s.reviewDocRules || '').split(';').map(function (x) { return x.trim(); }).filter(String);
-  if (!rules.length) return true;
-  var ok = true;
+  if (!rules.length) return true;   // ไม่ตั้งกติกา = ไม่จำกัด
+  var ok = false;
   rules.forEach(function (r) {
     var i = r.indexOf('='); if (i < 1) return;
     var key = r.slice(0, i).trim(), allow = crmSplitList_(r.slice(i + 1));
     var hit = (docNames || []).some(function (d) { return String(d || '').indexOf(key) !== -1; });
-    if (hit && allow.indexOf(String(tplId)) === -1) ok = false;
+    if (hit && allow.indexOf(String(tplId)) !== -1) ok = true;
   });
-  return ok;
+  return ok;   // หมอที่ไม่อยู่ในกติกา = ไม่เด้งไปรีวิว
 }
 function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
   var opts = [];
