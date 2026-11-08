@@ -1680,6 +1680,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <input type="checkbox" id="orthoOverdueFilter" onchange="renderOrthoPage()"> เกิน <span id="orthoOverdueDays">50</span> วัน
             </label>
             <button type="button" class="ortho-chip" id="orthoPskChip" onclick="toggleOrthoPskFilter()" aria-pressed="false" title="คนไข้ที่มี ปกส แต่ปีนี้ยังไม่ได้ใช้สิทธิประกันสังคม">🏛️ ปกส ปีนี้ยังไม่ใช้สิทธิ <span id="orthoPskChipN">0</span></button>
+            <button type="button" class="ortho-chip" onclick="orthoPskAudit()" title="ดูว่าระบบนับ ปกส ปีนี้จากรายการไหน">🔍 ตรวจข้อมูล ปกส</button>
             <select class="form-control" id="orthoPayFilter" onchange="renderOrthoPage()" aria-label="กลุ่มการชำระ" style="height:36px;width:170px;"><option value="">ทุกกลุ่มการชำระ</option><option value="ชำระ 28 ครั้ง">ชำระ 28 ครั้ง</option><option value="ชำระจนเสร็จ">ชำระจนเสร็จ</option><option value="อื่นๆ">อื่นๆ</option><option value="__none">ยังไม่ระบุ</option></select>
             <select class="form-control" id="orthoSortSel" onchange="setOrthoSort(this.value)" aria-label="เรียงลำดับ" style="height:36px;width:200px;"></select>
             <button class="btn btn-ghost btn-sm" onclick="loadOrthoData(true).then(renderOrthoPage)">↻</button>
@@ -4219,7 +4220,7 @@ function crmLastVisitMap(){
 }
 function crmSegments(){
   const today=todayStr(), cut=crmAddDays(today,-365), year=today.slice(0,4), last=crmLastVisitMap();
-  const ssoThisYear=new Set(); treatments.forEach(t=>{ if((+t.sso||0)>0 && String(t.date).slice(0,4)===year) ssoThisYear.add(crmHN(t.hn)); });
+  const ssoThisYear=new Set(); treatments.forEach(t=>{ if(ssoAmt_(t.sso)>0 && String(t.date).slice(0,4)===year) ssoThisYear.add(crmHN(t.hn)); });
   try{ refreshPskSet_(); }catch(e){}
   const rows=(patients||[]).filter(p=>p.hn).map(p=>{ const k=crmHN(p.hn); const lv=last[k]||'';
     return { hn:p.hn, name:p.name||'', phone:p.phone||'', last:lv, months: lv? Math.floor((Date.parse(today)-Date.parse(lv))/86400000/30.44) : null,
@@ -5878,7 +5879,7 @@ function refreshPskSet_(){
   const set = new Set();
   try{
     patients.forEach(p=>{ if(p && (p.sso===true || String(p.sso).toUpperCase()==='TRUE')){ const k=normHN(p.hn); if(k) set.add(k); } });
-    treatments.forEach(t=>{ if((+t.sso||0)>0){ const k=normHN(t.hn); if(k) set.add(k); } });
+    treatments.forEach(t=>{ if(ssoAmt_(t.sso)>0){ const k=normHN(t.hn); if(k) set.add(k); } });
   }catch(e){}
   _pskKeys = set;
 }
@@ -10130,6 +10131,7 @@ function getPatientList(){
 
 // ---- visit counts ----
 // normalize HN สำหรับเปรียบเทียบ (ลบ dash และ space)
+function ssoAmt_(v){ const n=parseFloat(String(v==null?'':v).replace(/[,฿\s]/g,'')); return isNaN(n)?0:n; }   // ยอดประกันสังคม — รองรับ '1,500' / '฿500' / ข้อความ
 function normHN(hn){ return String(hn||'').replace(/[-\s]/g,'').trim().toLowerCase(); }
 
 // index การรักษาต่อ HN (สร้างครั้งเดียวต่อรุ่นข้อมูล) — เดิมกรองทั้งตารางทุกครั้งต่อคนไข้ 1 คน
@@ -10797,7 +10799,7 @@ function recallYearData_(){
   const today = todayStr(), year = today.slice(0,4);
   const used = new Set(), lastSso = new Map(), nextApt = new Map();
   treatments.forEach(t=>{
-    if((+t.sso||0)<=0) return; const k=normHN(t.hn); if(!k) return;
+    if(ssoAmt_(t.sso)<=0) return; const k=normHN(t.hn); if(!k) return;
     const d=String(t.date||'').slice(0,10);
     if(d.slice(0,4)===year) used.add(k);
     if(!lastSso.has(k) || d>lastSso.get(k)) lastSso.set(k,d);
@@ -10810,7 +10812,7 @@ function recallYearData_(){
     const procsOf = list => { const set=new Set(); list.forEach(t=>(Array.isArray(t.proc)?t.proc:String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean).forEach(x=>set.add(x))); return [...set]; };
     const lastD = tr.length ? String(tr[0].date||'').slice(0,10) : '';
     const lastDay = lastD ? tr.filter(t=>String(t.date||'').slice(0,10)===lastD) : [];
-    const ssoTr = tr.filter(t=>(+t.sso||0)>0);
+    const ssoTr = tr.filter(t=>ssoAmt_(t.sso)>0);
     const ssoD = ssoTr.length ? String(ssoTr[0].date||'').slice(0,10) : '';
     const ssoDay = ssoD ? ssoTr.filter(t=>String(t.date||'').slice(0,10)===ssoD) : [];
     return { ...p, k, used:used.has(k), lastSso:lastSso.get(k)||'', lastVisit:tr.length?tr[0].date:null,
@@ -11459,7 +11461,7 @@ function orthoBuildPsk_(){
   (typeof patients!=='undefined' ? patients : []).forEach(p=>{ if(p && (p.sso===true || String(p.sso).toUpperCase()==='TRUE')) psk.add(orthoHnKey_(p.hn)); });
   treatments.forEach(t=>{
     const k = orthoHnKey_(t.hn); if(!k) return;
-    if((+t.sso||0) > 0){ psk.add(k); if(String(t.date||'').slice(0,4)===yr) used.add(k); }
+    if(ssoAmt_(t.sso) > 0){ psk.add(k); if(String(t.date||'').slice(0,4)===yr) used.add(k); }
     const pr = Array.isArray(t.proc) ? t.proc.join(',') : String(t.proc||'');
     if(/ขูดหินปูน/.test(pr)){ const d = String(t.date||'').slice(0,10); if(d && (!scale.has(k) || d>scale.get(k))) scale.set(k,d); }
   });
@@ -11468,6 +11470,45 @@ function orthoBuildPsk_(){
 // มี ปกส แต่ปีนี้ยังไม่มีรายการรักษาที่จ่ายด้วยประกันสังคม (ปีปฏิทิน ค.ศ. เหมือนแท็บ Recall)
 function orthoPskPending_(r){ return orthoHasPsk_(r) && !_orthoPsk.used.has(orthoHnKey_(r.hn)); }
 var orthoPskOnly = false;
+/* ตรวจข้อมูล ปกส ของคนไข้จัดฟัน: ทำไมคนนี้ถึงถูกนับว่า "ใช้สิทธิปีนี้แล้ว" / "ไม่มีสิทธิ" — แสดงรายการรักษาที่ระบบใช้ตัดสิน */
+function orthoPskAudit(){
+  orthoBuildPsk_();
+  const yr=todayStr().slice(0,4), E=_escHtml;
+  const byHn=new Map();
+  treatments.forEach(t=>{ const k=orthoHnKey_(t.hn); if(!k) return; (byHn.get(k)||byHn.set(k,[]).get(k)).push(t); });
+  const flagOf=hn=>{ const p=(patients||[]).find(x=>orthoHnKey_(x.hn)===orthoHnKey_(hn)); return !!(p && (p.sso===true||String(p.sso).toUpperCase()==='TRUE')); };
+  const rows=orthoData.map(r=>{
+    const k=orthoHnKey_(r.hn), tr=byHn.get(k)||[];
+    const ssoAll=tr.filter(t=>ssoAmt_(t.sso)>0).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    const ssoYr=ssoAll.filter(t=>String(t.date||'').slice(0,4)===yr);
+    const oddDate=ssoAll.filter(t=>!/^\d{4}-\d{2}-\d{2}$/.test(String(t.date||'')));
+    const flag=flagOf(r.hn), has=_orthoPsk.psk.has(k), used=_orthoPsk.used.has(k);
+    return { r, flag, has, used, ssoAll, ssoYr, oddDate, nTr:tr.length };
+  }).filter(x=>x.has);
+  const pend=rows.filter(x=>!x.used), usedRows=rows.filter(x=>x.used);
+  // รายการ sso ปีนี้ที่ไม่มี HN / HN ไม่ตรงกับคนไข้จัดฟันคนไหน
+  const orthoKeys=new Set(orthoData.map(r=>orthoHnKey_(r.hn)));
+  const noHn=treatments.filter(t=>ssoAmt_(t.sso)>0 && String(t.date||'').slice(0,4)===yr && !orthoHnKey_(t.hn));
+  const line=t=>E(String(t.date||'').slice(0,10))+' ฿'+E(String(t.sso))+' '+E(Array.isArray(t.proc)?t.proc.join(','):String(t.proc||''))+' ('+E(t.docName||'-')+')';
+  const tr1=x=>'<div style="border:1px solid #e3d7e0;border-radius:8px;padding:7px 9px;margin-bottom:6px;">'+
+    '<div style="font-weight:700;">'+E(x.r.hn)+' · '+E(x.r['ชื่อ']||'')+' <span style="font-weight:600;font-size:11px;color:'+(x.flag?'#1D825C':'#999')+';">'+(x.flag?'✓ ติ๊กสิทธิ์ ปกส ในรายชื่อ':'ไม่ได้ติ๊กสิทธิ์ (นับจากประวัติรักษา)')+'</span></div>'+
+    '<div style="font-size:12px;margin-top:3px;">'+
+    (x.ssoYr.length? x.ssoYr.map(line).join('<br>') : '<span style="color:#999;">ไม่มีรายการ ปกส ปีนี้</span>')+
+    (x.ssoYr.length===0&&x.ssoAll.length? '<div style="color:#999;font-size:11px;">ล่าสุด: '+line(x.ssoAll[0])+'</div>':'')+
+    (x.oddDate.length?'<div style="color:#c00;font-size:11px;">⚠ รูปแบบวันที่แปลก '+x.oddDate.length+' รายการ</div>':'')+'</div></div>';
+  const tbl=(list,empty)=>list.length?list.map(tr1).join(''):'<div style="color:#888;padding:6px;">'+empty+'</div>';
+  const html='<div style="font-weight:800;font-size:17px;margin-bottom:6px;">🔍 ตรวจข้อมูล ปกส (ปี '+yr+')</div>'+
+    '<div style="font-size:13px;color:#555;margin-bottom:10px;">ระบบถือว่า "ใช้ปีนี้แล้ว" เมื่อมีรายการรักษาของ HN นั้น วันที่ปี '+yr+' และช่องประกันสังคม &gt; 0 · ถ้าคนไหนไม่ได้ใช้จริงแต่อยู่ในกลุ่ม "ใช้แล้ว" ให้ดูรายการในตารางว่ามาจากรายการไหน</div>'+
+    '<div style="font-weight:700;margin:8px 0 4px;">ยังไม่ใช้สิทธิปีนี้ ('+pend.length+')</div>'+tbl(pend,'ไม่มี')+
+    '<div style="font-weight:700;margin:12px 0 4px;">ถูกนับว่าใช้แล้ว ('+usedRows.length+')</div>'+tbl(usedRows,'ไม่มี')+
+    (noHn.length?'<div style="font-weight:700;margin:12px 0 4px;color:#c00;">⚠ รายการ ปกส ปีนี้ที่ไม่มี HN ('+noHn.length+') — ระบบจับคู่กับคนไข้ไม่ได้</div>'+noHn.map(t=>'<div style="font-size:12px;">'+line(t)+' · '+E(t.patName||'')+'</div>').join(''):'')+
+    '<div style="text-align:right;margin-top:12px;"><button class="btn btn-secondary" onclick="document.getElementById(\'orthoPskAuditBox\').remove()">ปิด</button></div>';
+  const old=document.getElementById('orthoPskAuditBox'); if(old) old.remove();
+  const box=document.createElement('div'); box.id='orthoPskAuditBox';
+  box.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px;';
+  box.innerHTML='<div style="background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:16px;">'+html+'</div>';
+  document.body.appendChild(box);
+}
 function toggleOrthoPskFilter(){ orthoPskOnly = !orthoPskOnly; renderOrthoPage(); }
 function orthoManualScale_(r){
   const v = String((r&&r['ขูดหินปูนล่าสุด'])||'').slice(0,10);
