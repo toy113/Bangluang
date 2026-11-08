@@ -3762,7 +3762,8 @@ async function crmOrthoCameSave(){
     if(trMsg==='nocaps') showToast('บันทึกประวัติจัดฟันแล้ว แต่ยังไม่ได้ลงบันทึกการรักษา/รายได้ — ต้องวาง line-crm.gs ฉบับล่าสุดก่อน','error');
     else if(trMsg==='fail') showToast('บันทึกประวัติจัดฟันแล้ว แต่ลงบันทึกการรักษาไม่สำเร็จ — กรุณาลงเองในหน้าบันทึกการรักษา','error');
     if(sendLine){
-      crmCall({crm:'orthoVisitSend', hn:r.hn, patName:r['ชื่อ']||'', date, doc, items:lineItems, care:careOn, by:crmBy()}).then(res=>{
+      const _payV=camePayVals_();
+      crmCall({crm:'orthoVisitSend', hn:r.hn, patName:r['ชื่อ']||'', date, doc, items:lineItems, care:careOn, cash:_payV.cash, transfer:_payV.transfer, by:crmBy()}).then(res=>{
         if(res && res.ok && res.sent) showToast('ส่งสรุปให้คนไข้ทาง LINE แล้ว 📤');
         else if(res && res.ok) showToast('คนไข้ยังไม่ผูกไลน์ — ไม่ได้ส่งสรุป','error');
         else showToast('ส่งสรุปทาง LINE ไม่สำเร็จ: '+((res&&res.error)||'ไม่ทราบสาเหตุ'),'error');
