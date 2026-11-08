@@ -4712,7 +4712,8 @@ function renderAptList(today){
     if(!o || !(a._ortho || crmIsOrthoVisit(a))) return '';
     if(!orthoAimOnly_(a)) return '';   // มาตามนัด: เฉพาะนัดของหมอวัจน์กร (หมอคนอื่นไม่มีปุ่ม)
     const bs='margin-top:4px;padding:4px 8px;font-size:11px;white-space:nowrap;';
-    if(String(o['ปรับล่าสุด']||'').slice(0,10)===a.date || treatedApt_(a)) return `<div><span class="crm-chip g" style="${bs}">🦷 มาแล้ว</span></div>`;   // บันทึกการรักษาแล้ว (แถวเขียว) = มาแล้ว แม้การ์ดจัดฟันยังไม่อัปเดตวันปรับล่าสุด
+    if(treatedApt_(a)) return '';   // บันทึกการรักษาแล้ว → ป้าย "✅ บันทึกแล้ว" บอกอยู่แล้ว ไม่ต้องซ้ำด้วย "มาแล้ว"
+    if(String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<div><span class="crm-chip g" style="${bs}">🦷 มาแล้ว</span></div>`;   // บันทึกการรักษาแล้ว (แถวเขียว) = มาแล้ว แม้การ์ดจัดฟันยังไม่อัปเดตวันปรับล่าสุด
     if(isViewOnlyUser()) return '';
     if(a.date>todayStr()) return '';
     return `<div><button class="crm-btn p" style="${bs}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button></div>`;
