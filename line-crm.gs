@@ -61,7 +61,7 @@ var CRM_DEFAULT_SETTINGS = {
   birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
   birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
   followupOn: true, followupHour: '10:00',
-  reviewDocRules: 'สรวิศ=tpl_extraction,tpl_surgery',   // จำกัดการเด้งไปหน้ารีวิว: หมอที่ชื่อมีคำนี้ → เฉพาะเทมเพลตที่ระบุ (รูปแบบ  คำในชื่อหมอ=tplId,tplId ; อีกคน=...) · หมอที่ไม่อยู่ในรายการ = เด้งได้ทุกงาน · ว่าง = ไม่จำกัด
+  reviewDocRules: 'สรวิศ=tpl_extraction,tpl_surgery;พัทธนันท์=tpl_extraction,tpl_filling',   // จำกัดการเด้งไปหน้ารีวิว: หมอที่ชื่อมีคำนี้ → เฉพาะเทมเพลตที่ระบุ (รูปแบบ  คำในชื่อหมอ=tplId,tplId ; อีกคน=...) · หมอที่ไม่อยู่ในรายการ = เด้งได้ทุกงาน · ว่าง = ไม่จำกัด
   reviewOnOk: true,          // คนไข้ตอบ "ปกติดี" ในข้อความถามอาการ → ส่งการ์ดปุ่มไปหน้ารีวิว Google ทันที (ต่อคนไข้ไม่เกิน 1 ครั้งต่อ 360 วัน) · ใช้เมื่อปิดการให้คะแนนอยู่
   ratingOn: false, ratingTpls: 'tpl_extraction,tpl_surgery', reviewUrl: 'https://g.page/r/CXrZfNExDQq4EBM/review',   // ถามคะแนนบริการ 0-5 หลังตอบ "ปกติดี" (เฉพาะเทมเพลตใน ratingTpls) · ได้ 5 ส่งลิงก์รีวิว reviewUrl
   clinicName: 'คลินิกทันตกรรมบางหลวง',
@@ -95,6 +95,11 @@ function crmSettings_() {
     var tl = String(s.staffNotifyTypes || 'reschedule,emergency,callback').split(',').map(function (x) { return x.trim(); }).filter(String);
     ['message', 'receipt'].forEach(function (x) { if (tl.indexOf(x) === -1) tl.push(x); });
     s.staffNotifyTypes = tl.join(','); s.staffMsgMigrated = true;
+    try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
+  }
+  // ย้ายค่าครั้งเดียว: กติกาเด้งไปรีวิวต่อหมอ (หมอทอย: ถอนฟัน/ผ่าฟันคุด · หมอก้อย: ถอนฟัน/อุดฟัน)
+  if (raw && s.reviewRulesV2 !== true) {
+    s.reviewDocRules = CRM_DEFAULT_SETTINGS.reviewDocRules; s.reviewRulesV2 = true;
     try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
   }
   var out = {};
