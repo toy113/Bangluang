@@ -703,11 +703,20 @@ function crmFollowupMessage_(s, fu, tpl, patName, procText) {
   var opts = [];
   try { opts = JSON.parse(tpl.followupOptions || '[]'); } catch (e) {}
   var q = String(tpl.followupQuestion || '').replace(/\{name\}/g, patName || '').replace(/\{proc\}/g, procText || tpl.name);
+  var okReview = false;   // ปุ่ม "ปกติดี" เปิดหน้ารีวิวทันที: ต้องเปิดตัวเลือก + มีลิงก์รีวิว + ไม่ใช้โหมดถามคะแนน + คนไข้ยังไม่ถูกขอรีวิวใน 360 วัน
+  try {
+    if (s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim()) && !crmRatingApplies_(s, fu)) {
+      var since0 = crmAddDays_(crmToday_(), -360), hk0 = crmHN_(fu.hn);
+      okReview = !crmRead_('followups').some(function (r) { return crmHN_(r.hn) === hk0 && r.reviewAt && String(r.reviewAt).slice(0, 10) > since0; });
+    }
+  } catch (eOk) { okReview = false; }
   var buttons = opts.slice(0, 9).map(function (o, i) {
     var em = o.kind === 'emergency', sev = o.kind === 'severe';
     return { type: 'button', height: 'sm', style: em ? 'primary' : (o.kind === 'ok' ? 'primary' : 'secondary'),
       color: em ? '#C0392B' : (o.kind === 'ok' ? '#1D825C' : (sev ? '#F5D7DB' : undefined)),
-      action: { type: 'postback', label: String(o.label).slice(0, 20), data: 'fu|' + fu.id + '|' + i, displayText: String(o.label) } };
+      action: (o.kind === 'ok' && okReview)   // ปกติดี → เด้งไปหน้ารีวิว Google ทันที (ผ่านหน้า rate.html ที่บันทึกคำตอบก่อน)
+        ? { type: 'uri', label: String(o.label).slice(0, 20), uri: crmRateUrl_(fu.id) + '&kind=ok' }
+        : { type: 'postback', label: String(o.label).slice(0, 20), data: 'fu|' + fu.id + '|' + i, displayText: String(o.label) } };
   });
   buttons.forEach(function (b) { if (b.color === undefined) delete b.color; });
   return { type: 'flex', altText: 'ติดตามอาการหลังการรักษา', contents: crmBubble_(s, '🩺 ติดตามอาการ', q, [], buttons) };
@@ -1411,6 +1420,16 @@ function crmRateOpen_(p) {
   if (!/^https:\/\//i.test(url)) return { ok: false, error: 'no_review_url' };
   var fr = crmFind_(crmRead_('followups'), 'id', id);
   if (!fr) return { ok: false, error: 'not_found' };
+  if (String(p.kind || '') === 'ok') {   // กด "ปกติดี" ในข้อความถามอาการ → บันทึกคำตอบ + วันที่ขอรีวิว แล้วเด้งไปหน้ารีวิว
+    var patch = { reviewAt: String(fr.reviewAt || '') || crmNow_() };
+    if (!String(fr.answeredAt || '')) {
+      var tplO = crmFind_(crmRead_('templates'), 'id', fr.templateId), lblO = 'ปกติดี';
+      try { JSON.parse((tplO && tplO.followupOptions) || '[]').forEach(function (o) { if (o.kind === 'ok') lblO = o.label; }); } catch (eL) {}
+      patch.answer = lblO; patch.answerKind = 'ok'; patch.answeredAt = crmNow_();
+    }
+    crmUpdate_('followups', fr._row, patch); crmTouch_();
+    return { ok: true, url: url, kind: 'ok' };
+  }
   if (String(fr.rating || '') === '') { crmUpdate_('followups', fr._row, { rating: '5', ratedAt: crmNow_() }); crmTouch_(); }
   return { ok: true, url: url };
 }

@@ -24,9 +24,11 @@
 (function(){
   var API='https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
   var q=new URLSearchParams(location.search), go=document.getElementById('go');
+  var isOk=q.get('kind')==='ok';
+  if(isOk){ document.querySelector('.star').textContent='💚'; document.title='ขอบคุณค่ะ'; document.getElementById('t').textContent='ดีใจที่อาการปกติดีค่ะ 💚'; }
   function fallback(msg, url){ if(url) go.href=url; go.style.display='inline-block'; document.getElementById('m').textContent=msg; }
   var done=false, timer=setTimeout(function(){ if(!done) fallback('กดปุ่มด้านล่างเพื่อไปหน้ารีวิวได้เลยค่ะ'); }, 6000);
-  fetch(API+'?action=crmRateOpen&fu='+encodeURIComponent(q.get('fu')||'')+'&k='+encodeURIComponent(q.get('k')||''),{cache:'no-store'})
+  fetch(API+'?action=crmRateOpen&fu='+encodeURIComponent(q.get('fu')||'')+'&k='+encodeURIComponent(q.get('k')||'')+(isOk?'&kind=ok':''),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(d){
       done=true; clearTimeout(timer);
