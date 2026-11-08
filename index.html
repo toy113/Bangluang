@@ -9033,7 +9033,7 @@ function renderSchedulePage(){
           <td style="font-weight:600;">${ocTag_(a.hn,a.patName,a.orthoCode)}${a.patName||'—'}${orthoPayBadge({hn:a.hn})}${pskBadge(a)}${lineBadge(a)}${endoBadge(a)}</td>
           <td style="font-size:12px;color:var(--text-mid);">${a.phone||'—'}${contactTag(a.contactChannel)}</td>
           <td style="font-size:12px;">${procBadge(a.proc)}</td>
-          <td>${docBadge(a.docName)}</td>
+          <td>${docBadge(a.docName,true)}</td>
           <td><span class="${statusClass(a.status)}" data-apt-id="${a.id}" onclick="openStatusDropdown(event,this.dataset.aptId)" style="cursor:${isManager?'pointer':'default'};">${a.status||'รอ'}</span></td>
           <td>
             <div style="display:flex;gap:6px;">
@@ -9855,13 +9855,14 @@ function docColor(name){
   return doc?.color || 'var(--text-mid)';
 }
 // ป้ายชื่อหมอแบบชัดเจน: อีโมจิ + ชื่อ ในแคปซูลสีประจำตัว (ไม่ตัดบรรทัดกลางชื่อ)
-function docBadge(name){
+function docBadge(name, short){
   if(!name) return '—';
   const doc = doctors.find(d=>d.name===name) || DOCTORS_DATA.find(d=>d.name===name);
   const col = /^#[0-9a-f]{6}$/i.test(doc?.color||'') ? doc.color : '#7A6A78';
   const nm = String(name).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const nowrap = nm.length<=12 ? 'white-space:nowrap;' : '';
-  return `<span style="display:inline-flex;align-items:center;gap:4px;background:${col}1A;color:${col};color:color-mix(in srgb,${col} 78%,#000);border:1.5px solid ${col}66;border-radius:999px;padding:2px 10px 2px 7px;font-size:12px;font-weight:800;line-height:1.4;${nowrap}"><span style="font-size:13px;">${doc?.emoji||''}</span>${nm}</span>`;
+  const shown = short ? nm.split(/\s+/)[0] : nm;   // short = แสดงเฉพาะชื่อ ไม่แสดงนามสกุล
+  const nowrap = shown.length<=12 ? 'white-space:nowrap;' : '';
+  return `<span style="display:inline-flex;align-items:center;gap:4px;background:${col}1A;color:${col};color:color-mix(in srgb,${col} 78%,#000);border:1.5px solid ${col}66;border-radius:999px;padding:2px 10px 2px 7px;font-size:12px;font-weight:800;line-height:1.4;${nowrap}"><span style="font-size:13px;">${doc?.emoji||''}</span>${shown}</span>`;
 }
 // แถบสี + พื้นอ่อนตามหมอ ใช้กับแถวในตาราง
 function docRowStyle(name){
