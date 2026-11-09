@@ -6116,13 +6116,22 @@ function receiptRowsFor_(t){
   return treatments.filter(x=>x.date===t.date && x.status!=='ยกเลิก' && (k ? normHN(x.hn)===k : (!x.hn && String(x.patName||'').trim()===nm)))
     .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
 }
-function receiptItemsOf_(t){   // แยกรายการตามราคาต่อหัตถการ (procPrices) ถ้ารวมไม่ตรงยอดจริง ใช้ 1 บรรทัดยอดรวม
-  const tot=totalPrice(t); let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
+function receiptItemsOf_(t){   // แยกรายการตามหัตถการ/ซี่ฟัน/ราคาที่บันทึกไว้ (procPrices, toothPrices, procTeeth) · ถ้ารวมไม่ตรงยอดจริง ใช้ 1 บรรทัดยอดรวม (ยังบอกซี่ในชื่อรายการ)
+  const tot=totalPrice(t); let pp={}, tp={};
+  try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
+  try{ tp=typeof t.toothPrices==='string'?JSON.parse(t.toothPrices||'{}'):(t.toothPrices||{}); }catch(e){}
   const names=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
-  const items=names.map(n=>({ name:n, price:+pp[n]||0 })).filter(x=>x.price>0);
+  const teeth=n=>toothText_(t,n);
+  const items=[];
+  names.forEach(n=>{
+    const per=tp&&tp[n]&&typeof tp[n]==='object'?tp[n]:null, keys=per?Object.keys(per).filter(k=>+per[k]>0).sort((x,y)=>+x-+y):[];
+    if(keys.length){ keys.forEach(k=>items.push({ name:n+' ซี่ '+k, price:+per[k] })); }
+    else if(+pp[n]>0){ const tx=teeth(n); items.push({ name:n+(tx?' ซี่ '+tx:''), price:+pp[n] }); }
+  });
   const sum=items.reduce((a,x)=>a+x.price,0);
   if(items.length && Math.abs(sum-tot)<0.01) return items;
-  return [{ name:names.join(', ')||'ค่ารักษาทางทันตกรรม', price:tot }];
+  const label=names.map(n=>{ const tx=teeth(n); return n+(tx?' ซี่ '+tx:''); }).join(', ');
+  return [{ name:label||'ค่ารักษาทางทันตกรรม', price:tot }];
 }
 async function openReceiptModal(treatId){
   const t=treatments.find(x=>String(x.id)===String(treatId)); if(!t) return;
