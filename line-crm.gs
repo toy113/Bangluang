@@ -2068,7 +2068,7 @@ function crmPortal_(p) {
       ortho = { profile: prof, logs: logs.filter(function (l) { return crmHN_(l.hn) === k; }).map(function (l) { var o = {}; for (var f2 in l) if (f2 !== '_row') o[f2] = l[f2]; return o; })
         .sort(function (x, y) { return String(y['วันที่']).localeCompare(String(x['วันที่'])); }) };
     }
-    return { hn: a.hn, name: a.name, consent: a.consent, next: next, history: hist, ortho: ortho };
+    return { hn: a.hn, name: a.name, consent: a.consent, birthday: a.birthday || '', next: next, history: hist, ortho: ortho };   // birthday: ให้หน้า LIFF รู้ว่ากรอกแล้ว (ไม่ถามซ้ำ)
   });
   var s = crmSettings_();
   return { ok: true, user: { name: u.name }, patients: patients, pending: pending, clinicPhone: s.clinicPhone, clinicName: s.clinicName };
