@@ -1646,6 +1646,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <button type="button" class="date-nav-btn date-nav-today" id="treatTodayBtn" onclick="treatGoToday()">วันนี้</button>
             </div>
             <div class="search-box"><input type="text" class="form-control" placeholder="ค้นหาชื่อ/HN" id="treatSearch" oninput="debounceTreatSearch()" style="height:36px;padding-left:32px;width:180px;"></div>
+            <button class="btn btn-ghost btn-sm" onclick="openReceiptList()" title="ใบเสร็จที่ออกแล้ว ค้นหา/พิมพ์ซ้ำ/ยกเลิก">🧾 ใบเสร็จ</button>
             <button class="btn btn-primary btn-sm" id="btnAddTreat" onclick="openAddTreat()">+ เพิ่มรายการ</button>
           </div>
         </div>
@@ -1666,7 +1667,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
         <div class="table-scroll">
         <table>
-          <thead id="treatPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ-สกุล</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปกส</th><th>รวม</th><th>ใบรับรอง</th><th id="treatPageColMgr">จัดการ</th></tr></thead>
+          <thead id="treatPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ-สกุล</th><th>รายการรักษา</th><th>หมอ</th><th>เงินสด</th><th>โอน</th><th>ปกส</th><th>รวม</th><th>เอกสาร</th><th id="treatPageColMgr">จัดการ</th></tr></thead>
           <tbody id="treatPageBody"></tbody>
         </table>
         </div>
@@ -2214,6 +2215,21 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<!-- ใบเสร็จรับเงิน -->
+<div class="modal-overlay" id="modalReceipt">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-title">🧾 ใบเสร็จรับเงิน</div>
+    <button class="modal-close" onclick="closeModal('modalReceipt')" aria-label="ปิดหน้าต่าง">×</button>
+    <div id="rcptBody"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalReceiptList">
+  <div class="modal-box" style="max-width:720px;">
+    <div class="modal-title">🧾 ใบเสร็จที่ออกแล้ว</div>
+    <button class="modal-close" onclick="closeModal('modalReceiptList')" aria-label="ปิดหน้าต่าง">×</button>
+    <div id="rcptListBody"></div>
+  </div>
+</div>
 <!-- ใบรับรองแพทย์ -->
 <div class="modal-overlay" id="modalCertificate">
   <div class="modal-box">
@@ -6036,6 +6052,186 @@ async function issueCertificateAndPrint(){
   }
 }
 
+// ============================================================
+//  ใบเสร็จรับเงิน — รวมทุกรายการรักษาของคนไข้คนเดียวในวันเดียว (หลายหมอได้) · A5 · เลขที่รายปี BL69-00001 (ออกที่เซิร์ฟเวอร์ กันเลขซ้ำ)
+// ============================================================
+const RCPT={ t:null, rows:[], existing:null, cfg:null, list:[] };
+function bahtText(n){   // จำนวนเงินเป็นตัวอักษรไทย (ปัดสตางค์ 2 ตำแหน่ง)
+  n=Math.round((+n||0)*100)/100; if(n===0) return 'ศูนย์บาทถ้วน';
+  const D=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'], P=['','สิบ','ร้อย','พัน','หมื่น','แสน'];
+  const rd=num=>{ let s='', str=String(num); const len=str.length;
+    if(len>6){ return rd(+str.slice(0,len-6))+'ล้าน'+rd(+str.slice(len-6)); }
+    for(let i=0;i<len;i++){ const d=+str[i], pos=len-i-1; if(!d) continue;
+      if(pos===0 && d===1 && len>1) s+='เอ็ด'; else if(pos===1 && d===2) s+='ยี่'; else if(!(pos===1 && d===1)) s+=D[d];
+      s+=P[pos]; }
+    return s; };
+  const b=Math.floor(n), st=Math.round((n-b)*100);
+  return (b?rd(b)+'บาท':'')+(st?rd(st)+'สตางค์':'ถ้วน');
+}
+function receiptRowsFor_(t){
+  const k=normHN(t.hn), nm=String(t.patName||'').trim();
+  return treatments.filter(x=>x.date===t.date && x.status!=='ยกเลิก' && (k ? normHN(x.hn)===k : (!x.hn && String(x.patName||'').trim()===nm)))
+    .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+}
+function receiptItemsOf_(t){   // แยกรายการตามราคาต่อหัตถการ (procPrices) ถ้ารวมไม่ตรงยอดจริง ใช้ 1 บรรทัดยอดรวม
+  const tot=totalPrice(t); let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
+  const names=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const items=names.map(n=>({ name:n, price:+pp[n]||0 })).filter(x=>x.price>0);
+  const sum=items.reduce((a,x)=>a+x.price,0);
+  if(items.length && Math.abs(sum-tot)<0.01) return items;
+  return [{ name:names.join(', ')||'ค่ารักษาทางทันตกรรม', price:tot }];
+}
+async function openReceiptModal(treatId){
+  const t=treatments.find(x=>String(x.id)===String(treatId)); if(!t) return;
+  RCPT.t=t; RCPT.rows=receiptRowsFor_(t); RCPT.existing=null;
+  const body=document.getElementById('rcptBody');
+  body.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-light);">กำลังตรวจใบเสร็จเดิม...</div>';
+  document.getElementById('modalReceipt').classList.add('open');
+  try{
+    const r=await (await fetch(APPS_SCRIPT_URL+'?action=getReceipts&treatIds='+encodeURIComponent(RCPT.rows.map(x=>x.id).join(',')),{cache:'no-store'})).json();
+    if(r && r.ok){ RCPT.cfg=r.cfg; RCPT.existing=(r.receipts||[]).filter(x=>x.status!=='void'); }
+    else { body.innerHTML='<div class="crm-alert r">โหลดข้อมูลใบเสร็จไม่สำเร็จ — ต้องวาง Code.gs ฉบับล่าสุดและ Deploy ก่อน</div>'; return; }
+  }catch(e){ body.innerHTML='<div class="crm-alert r">เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ลองใหม่อีกครั้ง</div>'; return; }
+  renderReceiptModal_();
+}
+function renderReceiptModal_(){
+  const body=document.getElementById('rcptBody'), t=RCPT.t, E=escapeHtml;
+  const ex=RCPT.existing||[];
+  const taken=new Set(); ex.forEach(r=>r.treatIds.forEach(id=>taken.add(String(id))));
+  const rowHtml=RCPT.rows.map(x=>{ const inR=ex.find(r=>r.treatIds.includes(String(x.id)));
+    return `<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;${inR?'background:#f6f4f8;':''}">
+      <input type="checkbox" class="rcpt-pick" value="${E(x.id)}" ${inR?'disabled':''} ${!inR && totalPrice(x)>0?'checked':''} onchange="rcptCalc_()" style="margin-top:3px;width:18px;height:18px;">
+      <span style="flex:1;min-width:0;"><b>${E(String(x.proc||'—'))}</b><br><span style="font-size:12px;color:var(--text-mid);">${[E(x.docName||''), x.time?E(x.time):'', inR?'อยู่ในใบเสร็จ <b>'+E(inR.receiptNo)+'</b>':''].filter(Boolean).join(' · ')}</span></span>
+      <b style="white-space:nowrap;">${fmt(totalPrice(x))}</b></label>`; }).join('');
+  const exHtml=ex.length?`<div style="background:#f1fbf5;border:1px solid rgba(29,130,92,.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+      ${ex.map(r=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:3px 0;"><b>✅ ${E(r.receiptNo)}</b><span style="font-size:12.5px;color:var(--text-mid);">${fmt(+r.paid||0)} บาท · พิมพ์ ${r.printCount} ครั้ง</span><span style="flex:1"></span>
+        <button class="btn btn-ghost btn-sm" onclick="rcptReprint_('${E(r.receiptNo)}')">🖨️ พิมพ์ซ้ำ (สำเนา)</button>${isManager?`<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="rcptVoid_('${E(r.receiptNo)}')">ยกเลิก</button>`:''}</div>`).join('')}</div>`:'';
+  const free=RCPT.rows.filter(x=>!taken.has(String(x.id)));
+  body.innerHTML=`<div style="background:var(--cream);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px;">
+      <b>${E(t.patName||'')}</b>${t.hn?' · HN '+E(t.hn):''}<br><span style="color:var(--text-light);font-size:12.5px;">วันที่ ${fmtDateThai(t.date)} · ${RCPT.rows.length} รายการของวันนี้</span></div>
+    ${exHtml}
+    ${free.length?`<div style="font-size:13px;font-weight:700;color:var(--wine-dark);margin-bottom:6px;">เลือกรายการที่จะรวมในใบเสร็จใหม่</div>${rowHtml}
+    <div class="form-group" style="margin-top:10px;"><label>ชื่อผู้รับบริการในใบเสร็จ</label><input class="form-control" id="rcpt-name" value="${E(t.patName||'')}"></div>
+    <div class="form-group"><label>ที่อยู่ (ใส่เฉพาะเมื่อคนไข้ขอ — ว่างไว้จะไม่พิมพ์)</label><input class="form-control" id="rcpt-addr" placeholder="เช่น ที่อยู่บริษัทสำหรับเบิก"></div>
+    <div class="form-group"><label>หมายเหตุในใบเสร็จ (ไม่บังคับ)</label><input class="form-control" id="rcpt-note"></div>
+    <div id="rcpt-sum" style="background:var(--wine-pale);border-radius:10px;padding:10px 14px;margin:6px 0 12px;font-size:13.5px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-ghost" onclick="closeModal('modalReceipt')">ปิด</button><button class="btn btn-primary" id="rcpt-issue" onclick="rcptIssue_()">🧾 ออกใบเสร็จ + พิมพ์</button></div>`
+    : `<div style="font-size:13px;color:var(--text-mid);margin-bottom:10px;">ทุกรายการของวันนี้ออกใบเสร็จแล้ว — ถ้าข้อมูลผิด ให้ยกเลิกใบเดิมแล้วออกใบใหม่</div><div style="text-align:right;"><button class="btn btn-ghost" onclick="closeModal('modalReceipt')">ปิด</button></div>`}
+    ${isManager?`<div style="margin-top:12px;text-align:right;"><a href="javascript:void(0)" onclick="rcptCfgEdit_()" style="font-size:12px;color:var(--text-light);">⚙️ ตั้งค่าหัวใบเสร็จ (ชื่อ/ที่อยู่/เลขผู้เสียภาษีคลินิก)</a></div>`:''}`;
+  rcptCalc_();
+}
+function rcptPicked_(){ const ids=[...document.querySelectorAll('.rcpt-pick:checked')].map(c=>c.value); return RCPT.rows.filter(x=>ids.includes(String(x.id))); }
+function rcptCalc_(){
+  const el=document.getElementById('rcpt-sum'); if(!el) return;
+  const rows=rcptPicked_(), sub=rows.reduce((a,x)=>a+totalPrice(x),0), sso=rows.reduce((a,x)=>a+(+x.sso||0),0), cash=rows.reduce((a,x)=>a+(+x.cash||0),0), tr=rows.reduce((a,x)=>a+(+x.transfer||0),0);
+  el.innerHTML=`ค่ารักษารวม <b>${fmt(sub)}</b>${sso?` · ประกันสังคมจ่าย <b>${fmt(sso)}</b>`:''} · <span style="color:var(--wine);">ชำระ <b>${fmt(cash+tr)}</b> บาท</span><br><span style="font-size:12px;color:var(--text-mid);">${cash?'เงินสด '+fmt(cash):''}${cash&&tr?' · ':''}${tr?'โอน '+fmt(tr):''}${!cash&&!tr?'ไม่มียอดชำระจากคนไข้':''}</span>`;
+  const b=document.getElementById('rcpt-issue'); if(b) b.disabled=!rows.length;
+}
+function rcptPayload_(rows){
+  const items=[]; rows.forEach(x=>receiptItemsOf_(x).forEach(it=>items.push(it)));
+  const sum=f=>rows.reduce((a,x)=>a+(+x[f]||0),0);
+  const banks=[...new Set(rows.map(x=>x.transferBank).filter(Boolean))];
+  return { date:RCPT.t.date, hn:RCPT.t.hn||'', patName:(document.getElementById('rcpt-name')?.value||RCPT.t.patName||'').trim(),
+    address:(document.getElementById('rcpt-addr')?.value||'').trim(), note:(document.getElementById('rcpt-note')?.value||'').trim(),
+    items, subtotal:rows.reduce((a,x)=>a+totalPrice(x),0), sso:sum('sso'), cash:sum('cash'), transfer:sum('transfer'), paid:sum('cash')+sum('transfer'),
+    bank:banks.join(', '), doctors:[...new Set(rows.map(x=>x.docName).filter(Boolean))].join(', '), treatIds:rows.map(x=>String(x.id)), issuedBy:crmBy() };
+}
+function rcptOpenWin_(){ const w=window.open('','_blank'); if(w){ w.document.write('<p style="font-family:sans-serif;padding:30px;">กำลังออกใบเสร็จ...</p>'); } return w; }
+async function rcptIssue_(){
+  const rows=rcptPicked_(); if(!rows.length) return;
+  const btn=document.getElementById('rcpt-issue'); btn.disabled=true; btn.textContent='⏳ กำลังออกเลขที่...';
+  const w=rcptOpenWin_();   // เปิดหน้าต่างพิมพ์ทันทีตอนกด (ถ้ารอผลก่อน เบราว์เซอร์จะบล็อกป๊อปอัป)
+  try{
+    const r=await (await fetch(APPS_SCRIPT_URL+'?action=issueReceipt&data='+encodeURIComponent(JSON.stringify(rcptPayload_(rows))),{cache:'no-store'})).json();
+    if(!r || !r.ok){ if(w) w.close(); showToast('ออกใบเสร็จไม่สำเร็จ: '+((r&&r.error)||'ไม่ทราบสาเหตุ'),'error'); btn.disabled=false; btn.textContent='🧾 ออกใบเสร็จ + พิมพ์'; return; }
+    RCPT.cfg=r.cfg||RCPT.cfg;
+    rcptPrint_(w, r.receipt, r.receipt.printCount>1);
+    showToast((r.reused?'ใช้เลขที่เดิม ':'ออกใบเสร็จแล้ว ')+r.receipt.receiptNo+' 🧾');
+    closeModal('modalReceipt');
+  }catch(e){ if(w) w.close(); showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ยังไม่ได้ออกใบเสร็จ','error'); btn.disabled=false; btn.textContent='🧾 ออกใบเสร็จ + พิมพ์'; }
+}
+async function rcptReprint_(no){
+  const rec=(RCPT.existing||[]).concat(RCPT.list||[]).find(x=>x.receiptNo===no); if(!rec) return;
+  const w=rcptOpenWin_();
+  // พิมพ์ซ้ำ = ส่งชุดเดิมไปออกอีกครั้ง → ได้เลขเดิม + นับครั้งที่พิมพ์ (ข้อมูลที่พิมพ์ใช้ตามที่บันทึกไว้ในใบเสร็จ)
+  const d=Object.assign({}, rec, { items:rec.items, treatIds:rec.treatIds });
+  try{
+    const r=await (await fetch(APPS_SCRIPT_URL+'?action=issueReceipt&data='+encodeURIComponent(JSON.stringify(d)),{cache:'no-store'})).json();
+    if(!r || !r.ok){ if(w) w.close(); showToast('พิมพ์ซ้ำไม่สำเร็จ: '+((r&&r.error)||''),'error'); return; }
+    rcptPrint_(w, r.receipt, true);
+  }catch(e){ if(w) w.close(); showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','error'); }
+}
+async function rcptVoid_(no){
+  const reason=window.prompt('ยกเลิกใบเสร็จ '+no+'\nเหตุผล (เช่น ยอดผิด / ชื่อผิด):',''); if(reason===null) return;
+  try{
+    const r=await (await fetch(APPS_SCRIPT_URL+'?action=voidReceipt&receiptNo='+encodeURIComponent(no)+'&reason='+encodeURIComponent(reason)+'&by='+encodeURIComponent(crmBy()),{cache:'no-store'})).json();
+    if(r && r.ok){ showToast('ยกเลิกใบเสร็จ '+no+' แล้ว — ออกใบใหม่ได้'); if(document.getElementById('modalReceipt').classList.contains('open') && RCPT.t) openReceiptModal(RCPT.t.id); if(document.getElementById('modalReceiptList').classList.contains('open')) openReceiptList(); }
+    else showToast('ยกเลิกไม่สำเร็จ: '+((r&&r.error)||''),'error');
+  }catch(e){ showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','error'); }
+}
+async function rcptCfgEdit_(){
+  const c=RCPT.cfg||{}, f=[['name','ชื่อคลินิก'],['nameEn','ชื่อภาษาอังกฤษ'],['address','ที่อยู่คลินิก'],['phone','เบอร์โทร'],['taxId','เลขประจำตัวผู้เสียภาษี (13 หลัก)'],['footer','ข้อความท้ายใบเสร็จ']];
+  const out={}; for(const [k,l] of f){ const v=window.prompt(l, c[k]||''); if(v===null) return; out[k]=v.trim(); }
+  try{ const r=await (await fetch(APPS_SCRIPT_URL+'?action=saveReceiptCfg&data='+encodeURIComponent(JSON.stringify(out)),{cache:'no-store'})).json(); if(r&&r.ok){ RCPT.cfg=r.cfg; showToast('บันทึกหัวใบเสร็จแล้ว'); } else showToast('บันทึกไม่สำเร็จ','error'); }catch(e){ showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','error'); }
+}
+function buildReceiptHtml_(r, cfg, copy){
+  const E=escapeHtml, c=cfg||{}, items=r.items||[], sub=+r.subtotal||0, sso=+r.sso||0, paid=+r.paid||0, cash=+r.cash||0, tr=+r.transfer||0;
+  const pay=[cash?'เงินสด '+fmt(cash)+' บาท':'', tr?'โอน '+fmt(tr)+' บาท'+(r.bank?' ('+E(r.bank)+')':''):''].filter(Boolean).join(' · ')||'—';
+  return `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ใบเสร็จ ${E(r.receiptNo)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>@page{size:A5 portrait;margin:9mm}*{box-sizing:border-box}body{font-family:'Sarabun',sans-serif;color:#222;margin:0;font-size:12.5px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hd{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #6B2D5E;padding-bottom:7px}.cn{font-size:16px;font-weight:800;color:#6B2D5E}.ce{font-size:11px;color:#777}.ca{text-align:right;font-size:11px;color:#444}
+.tt{display:flex;justify-content:space-between;align-items:flex-end;margin:10px 0 6px}.tt h1{font-size:19px;margin:0;color:#3d1435}.tt .en{font-size:11px;color:#888;font-weight:600}.cp{border:1.5px solid #6B2D5E;color:#6B2D5E;border-radius:6px;padding:1px 8px;font-weight:800;font-size:11.5px}
+.mt{display:grid;grid-template-columns:1fr auto;gap:2px 12px;margin-bottom:8px}.mt b{font-weight:700}
+table{width:100%;border-collapse:collapse;margin-top:4px}th{background:#f3e9f0;font-size:11.5px;text-align:left;padding:5px 6px;border-bottom:1px solid #cdb}td{padding:5px 6px;border-bottom:1px solid #eee;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap}
+.tot td{border:0;padding:3px 6px}.tot .g td{font-size:14px;font-weight:800;border-top:1.5px solid #6B2D5E;padding-top:5px}.words{background:#f7f2f5;border-radius:6px;padding:5px 8px;margin-top:6px;font-weight:700}
+.sg{display:flex;justify-content:space-between;margin-top:26px;gap:20px}.sg div{flex:1;text-align:center;font-size:11.5px}.ln{border-top:1px dotted #555;margin:0 10px 3px}
+.ft{text-align:center;color:#888;font-size:11px;margin-top:12px}.void{position:fixed;top:38%;left:0;right:0;text-align:center;font-size:72px;font-weight:800;color:rgba(200,30,40,.22);transform:rotate(-18deg)}</style></head><body>
+${r.status==='void'?'<div class="void">ยกเลิก</div>':''}
+<div class="hd"><div><div class="cn">${E(c.name||'')}</div><div class="ce">${E(c.nameEn||'')}</div></div>
+<div class="ca">${E(c.address||'')}${c.phone?'<br>โทร. '+E(c.phone):''}${c.taxId?'<br>เลขประจำตัวผู้เสียภาษี '+E(c.taxId):''}</div></div>
+<div class="tt"><div><h1>ใบเสร็จรับเงิน</h1><div class="en">RECEIPT</div></div><span class="cp">${copy?'สำเนา':'ต้นฉบับ'}</span></div>
+<div class="mt"><div>ได้รับเงินจาก <b>${E(r.patName||'')}</b>${r.hn?' &nbsp;HN '+E(r.hn):''}</div><div>เลขที่ <b>${E(r.receiptNo)}</b></div>
+<div>${r.address?'ที่อยู่ '+E(r.address):''}</div><div>วันที่ <b>${fmtDateThai(String(r.date||'').slice(0,10))}</b></div></div>
+<table><tr><th style="width:28px;">#</th><th>รายการ</th><th class="n">จำนวนเงิน (บาท)</th></tr>
+${items.map((it,i)=>`<tr><td>${i+1}</td><td>${E(it.name)}</td><td class="n">${fmt(+it.price||0)}</td></tr>`).join('')}</table>
+<table class="tot">${sso?`<tr><td></td><td class="n">รวมค่ารักษา</td><td class="n" style="width:110px;">${fmt(sub)}</td></tr><tr><td></td><td class="n">หัก สิทธิประกันสังคม</td><td class="n">−${fmt(sso)}</td></tr>`:''}
+<tr class="g"><td></td><td class="n">รวมรับชำระ</td><td class="n" style="width:110px;">${fmt(paid)}</td></tr></table>
+<div class="words">(${bahtText(paid)})</div>
+<div style="margin-top:6px;">ชำระโดย: ${pay}</div>
+${r.doctors?`<div>ทันตแพทย์ผู้รักษา: ${E(r.doctors)}</div>`:''}${r.note?`<div>หมายเหตุ: ${E(r.note)}</div>`:''}
+<div class="sg"><div><div class="ln"></div>ผู้รับเงิน${r.issuedBy?'<br>('+E(r.issuedBy)+')':''}</div><div><div class="ln"></div>ผู้ชำระเงิน</div></div>
+<div class="ft">${E(c.footer||'')}</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
+}
+function rcptPrint_(w, r, copy){
+  const html=buildReceiptHtml_(r, RCPT.cfg, copy);
+  if(!w){ showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — อนุญาตป๊อปอัปแล้วกดพิมพ์ซ้ำ','error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+async function openReceiptList(){
+  const body=document.getElementById('rcptListBody');
+  const m=RCPT.listMonth || todayStr().slice(0,7);
+  document.getElementById('modalReceiptList').classList.add('open');
+  body.innerHTML=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"><input type="month" class="form-control" style="height:36px;width:170px;" value="${m}" onchange="RCPT.listMonth=this.value;openReceiptList()"><input class="form-control" id="rcptQ" placeholder="ค้นหา เลขที่ / ชื่อ / HN" style="height:36px;flex:1;min-width:160px;" oninput="rcptListDraw_()"></div><div id="rcptListRows" style="color:var(--text-light);padding:12px;">กำลังโหลด...</div>`;
+  try{
+    const r=await (await fetch(APPS_SCRIPT_URL+'?action=getReceipts&month='+encodeURIComponent(m),{cache:'no-store'})).json();
+    if(!r || !r.ok){ document.getElementById('rcptListRows').innerHTML='<div class="crm-alert r">โหลดไม่สำเร็จ — ต้องวาง Code.gs ฉบับล่าสุดและ Deploy ก่อน</div>'; return; }
+    RCPT.cfg=r.cfg; RCPT.list=(r.receipts||[]).sort((a,b)=>String(b.receiptNo).localeCompare(String(a.receiptNo)));
+    rcptListDraw_();
+  }catch(e){ document.getElementById('rcptListRows').innerHTML='<div class="crm-alert r">เชื่อมต่อเซิร์ฟเวอร์ไม่ได้</div>'; }
+}
+function rcptListDraw_(){
+  const el=document.getElementById('rcptListRows'); if(!el) return; const E=escapeHtml;
+  const q=String(document.getElementById('rcptQ')?.value||'').trim().toLowerCase();
+  const list=(RCPT.list||[]).filter(r=>!q || [r.receiptNo,r.patName,r.hn].some(x=>String(x||'').toLowerCase().includes(q)));
+  const act=list.filter(r=>r.status!=='void');
+  el.innerHTML = list.length ? `<div style="font-size:12.5px;color:var(--text-mid);margin-bottom:6px;">${act.length} ใบ · รวมรับชำระ ${fmt(act.reduce((a,r)=>a+(+r.paid||0),0))} บาท${list.length>act.length?' · ยกเลิก '+(list.length-act.length)+' ใบ':''}</div>`+
+    list.map(r=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;${r.status==='void'?'opacity:.55;':''}">
+      <b style="min-width:92px;">${E(r.receiptNo)}</b><span style="flex:1;min-width:140px;">${E(r.patName||'')} <span style="font-size:12px;color:var(--text-light);">${r.hn?'HN '+E(r.hn)+' · ':''}${fmtDateThai(String(r.date).slice(0,10))}</span>${r.status==='void'?` <span class="crm-chip r">ยกเลิก${r.voidReason?' — '+E(r.voidReason):''}</span>`:''}</span>
+      <b>${fmt(+r.paid||0)}</b>${r.status==='void'?'':`<button class="btn btn-ghost btn-sm" onclick="rcptReprint_('${E(r.receiptNo)}')">🖨️ พิมพ์ซ้ำ</button>${isManager?`<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="rcptVoid_('${E(r.receiptNo)}')">ยกเลิก</button>`:''}`}</div>`).join('')
+    : '<div style="padding:16px;text-align:center;color:var(--text-light);">ยังไม่มีใบเสร็จในเดือนนี้</div>';
+}
 function buildCertPrintHtml(cert){
   const procList = String(cert.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
   const needsRest = cert.needsRest === true || cert.needsRest === 'TRUE';
@@ -7024,7 +7220,7 @@ function renderTreatPage(){
       <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer):''}${bankTag(t)}</td>
       <td style="color:var(--orange)">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
       <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
-      <td><button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
+      <td style="white-space:nowrap;">${isViewOnlyUser()?'':`<button class="btn btn-ghost btn-sm btn-icon" onclick="openReceiptModal('${t.id}')" title="ใบเสร็จรับเงิน (รวมทุกรายการของคนไข้วันนี้)" aria-label="ใบเสร็จรับเงิน">🧾</button>`}<button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
       ${isManager?`<td>
         ${canEditTreat(t) ? `<div style="display:flex;gap:6px;">
           <button class="btn btn-ghost btn-sm btn-icon" onclick='openAddTreat(${JSON.stringify(t)})' aria-label="แก้ไขรายการรักษา" title="แก้ไข">✏️</button>

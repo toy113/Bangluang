@@ -32,6 +32,115 @@ function cellToStr(cell, colName) {
 // ============================================================
 var CERT_HEADERS_ = ['docNo','issuedAt','treatId','hn','patName','age','treatDate','proc','docId','docFullName','docLicense','needsRest','restDays','restStart','restEnd','purpose'];
 
+// ============================================================
+//  ใบเสร็จรับเงิน (ชีต receipts) — เลขที่รายปี BL69-00001 · รวมหลายรายการรักษาของคนไข้ในวันเดียว
+//  key = รหัสรายการรักษาที่รวมในใบ (เรียง) → ออกซ้ำชุดเดิม = ได้เลขเดิม (พิมพ์ซ้ำ)
+//  รายการรักษาหนึ่งรายการอยู่ได้ในใบเสร็จที่ยังใช้งานใบเดียว · ยกเลิกแล้วเลขไม่ถูกนำกลับมาใช้
+// ============================================================
+var RECEIPT_HEADERS_ = ['receiptNo','issuedAt','date','key','hn','patName','address','items','subtotal','sso','paid','cash','transfer','bank','doctors','treatIds','issuedBy','status','voidReason','voidAt','voidBy','printCount','note'];
+var RECEIPT_CFG_DEFAULT_ = { name:'คลินิกทันตกรรมบางหลวง', nameEn:'Bangluang Dental Clinic', address:'119/14 ถ.ปทุมธานีสายใน อ.เมืองปทุมธานี จ.ปทุมธานี 12000', phone:'095-947-6759', taxId:'', footer:'ขอบคุณที่ใช้บริการค่ะ' };
+function getReceiptSheet_() {
+  var sh = orthoGetSheet_('receipts', RECEIPT_HEADERS_);
+  try { sh.getRange('A:A').setNumberFormat('@STRING@'); sh.getRange('C:C').setNumberFormat('@STRING@'); } catch (e) {}
+  return sh;
+}
+function receiptCfg_() {
+  var c = {}; try { c = JSON.parse(PropertiesService.getScriptProperties().getProperty('RECEIPT_CFG') || '{}'); } catch (e) {}
+  var out = {}; for (var k in RECEIPT_CFG_DEFAULT_) out[k] = (c[k] === undefined || c[k] === null) ? RECEIPT_CFG_DEFAULT_[k] : c[k];
+  return out;
+}
+function receiptRowToObj_(hdr, row) {
+  var o = {}; hdr.forEach(function (h, i) { o[h] = row[i] instanceof Date ? Utilities.formatDate(row[i], TZ, h === 'date' ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm:ss") : row[i]; });
+  try { o.items = JSON.parse(o.items || '[]'); } catch (e) { o.items = []; }
+  o.treatIds = String(o.treatIds || '').split(',').filter(String);
+  o.printCount = +o.printCount || 0;
+  return o;
+}
+function nextReceiptNo_(vals, beYear) {
+  var prefix = 'BL' + String(beYear).slice(-2) + '-', maxSeq = 0;
+  for (var i = 1; i < vals.length; i++) {
+    var no = String(vals[i][0] || '');
+    if (no.indexOf(prefix) === 0) { var n = parseInt(no.slice(prefix.length), 10); if (!isNaN(n) && n > maxSeq) maxSeq = n; }
+  }
+  return prefix + ('00000' + (maxSeq + 1)).slice(-5);
+}
+function receiptJson_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+function receiptRoute_(p) {
+  var a = p.action;
+  if (a === 'getReceipts') {
+    var sh = getReceiptSheet_(), vals = sh.getDataRange().getValues(), hdr = vals[0], out = [];
+    var ids = String(p.treatIds || '').split(',').filter(String), month = String(p.month || ''), hn = String(p.hn || '');
+    for (var i = 1; i < vals.length; i++) {
+      var r = receiptRowToObj_(hdr, vals[i]);
+      if (ids.length && !r.treatIds.some(function (x) { return ids.indexOf(x) !== -1; })) continue;
+      if (month && String(r.date).slice(0, 7) !== month) continue;
+      if (hn && String(r.hn) !== hn) continue;
+      out.push(r);
+    }
+    return receiptJson_({ ok: true, receipts: out, cfg: receiptCfg_() });
+  }
+  if (a === 'saveReceiptCfg') {
+    var c = {}; try { c = JSON.parse(p.data || '{}'); } catch (e) {}
+    var cur = receiptCfg_(); for (var k in RECEIPT_CFG_DEFAULT_) if (c[k] !== undefined) cur[k] = String(c[k]).slice(0, 300);
+    PropertiesService.getScriptProperties().setProperty('RECEIPT_CFG', JSON.stringify(cur));
+    return receiptJson_({ ok: true, cfg: cur });
+  }
+  if (a === 'issueReceipt' || a === 'voidReceipt') {
+    var lock = LockService.getScriptLock(); lock.waitLock(30000);
+    try {
+      var sh = getReceiptSheet_(), vals = sh.getDataRange().getValues(), hdr = vals[0];
+      var col = function (h) { return hdr.indexOf(h); };
+      if (a === 'voidReceipt') {
+        for (var i = 1; i < vals.length; i++) {
+          if (String(vals[i][0]) === String(p.receiptNo)) {
+            sh.getRange(i + 1, col('status') + 1).setValue('void');
+            sh.getRange(i + 1, col('voidReason') + 1).setValue(String(p.reason || '').slice(0, 200));
+            sh.getRange(i + 1, col('voidAt') + 1).setValue(new Date().toISOString());
+            sh.getRange(i + 1, col('voidBy') + 1).setValue(String(p.by || '').slice(0, 60));
+            return receiptJson_({ ok: true });
+          }
+        }
+        return receiptJson_({ ok: false, error: 'ไม่พบใบเสร็จเลขที่ ' + p.receiptNo });
+      }
+      var d = {}; try { d = JSON.parse(p.data || '{}'); } catch (e) { return receiptJson_({ ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+      var ids = (d.treatIds || []).map(String).filter(String).sort();
+      if (!ids.length) return receiptJson_({ ok: false, error: 'ไม่มีรายการรักษา' });
+      var key = ids.join(',');
+      var rowVals = function (no, issuedAt, pc) {
+        return RECEIPT_HEADERS_.map(function (h) {
+          switch (h) {
+            case 'receiptNo': return no; case 'issuedAt': return issuedAt; case 'key': return key; case 'treatIds': return key;
+            case 'items': return JSON.stringify(d.items || []); case 'status': return 'active'; case 'printCount': return pc;
+            case 'voidReason': case 'voidAt': case 'voidBy': return '';
+            case 'date': return String(d.date || '');
+            default: return (d[h] === undefined || d[h] === null) ? '' : (typeof d[h] === 'object' ? JSON.stringify(d[h]) : d[h]);
+          }
+        });
+      };
+      for (var i = 1; i < vals.length; i++) {
+        if (String(vals[i][col('status')]) === 'void') continue;
+        var tIds = String(vals[i][col('treatIds')] || '').split(',');
+        if (String(vals[i][col('key')]) === key) {   // ชุดเดิม → เลขเดิม (อัปเดตชื่อ/ที่อยู่/ยอดล่าสุด) นับครั้งที่พิมพ์
+          var pc = (+vals[i][col('printCount')] || 0) + 1, row = rowVals(vals[i][0], vals[i][1], pc);
+          sh.getRange(i + 1, 1, 1, row.length).setValues([row]);
+          return receiptJson_({ ok: true, reused: true, receipt: receiptRowToObj_(hdr, row), cfg: receiptCfg_() });
+        }
+        if (ids.some(function (x) { return tIds.indexOf(x) !== -1; }))
+          return receiptJson_({ ok: false, conflict: String(vals[i][0]), error: 'บางรายการอยู่ในใบเสร็จเลขที่ ' + vals[i][0] + ' แล้ว — ยกเลิกใบเดิมก่อนออกใบใหม่' });
+      }
+      var now = new Date(), beYear = Utilities.formatDate(now, TZ, 'yyyy') * 1 + 543;
+      if (/^\d{4}-/.test(String(d.date || ''))) beYear = (+String(d.date).slice(0, 4)) + 543;   // ปีของเลขที่ = ปีของวันที่ใบเสร็จ
+      var no = nextReceiptNo_(vals, beYear), row = rowVals(no, now.toISOString(), 1);
+      sh.appendRow(row);
+      sh.getRange(sh.getLastRow(), 1).setNumberFormat('@STRING@').setValue(no);
+      sh.getRange(sh.getLastRow(), col('date') + 1).setNumberFormat('@STRING@').setValue(String(d.date || ''));
+      return receiptJson_({ ok: true, reused: false, receipt: receiptRowToObj_(hdr, row), cfg: receiptCfg_() });
+    } catch (err) { return receiptJson_({ ok: false, error: err.message }); }
+    finally { lock.releaseLock(); }
+  }
+  return null;
+}
+
 function getCertificateSheet_() {
   return orthoGetSheet_('certificates', CERT_HEADERS_);
 }
@@ -645,6 +754,7 @@ function doGet(e) {
 
     var p = (e && e.parameter) || {};
     if (p.action === 'getAll') return gaFastGetAll_(p);
+    { var _rc = receiptRoute_(p); if (_rc) return _rc; }   // ใบเสร็จรับเงิน
 
     // เช็คว่าเคยออกใบรับรองแพทย์ให้ treatment นี้แล้วหรือยัง (สำหรับพิมพ์ซ้ำ)
     if (p.action === 'getCertificate') {
