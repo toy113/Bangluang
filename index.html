@@ -5056,6 +5056,7 @@ function renderDailyInsightResult_(result, generatedAt){
 
 let _dailyInsightGenerating = false;
 async function generateDailyInsight(){
+  return;   // ปิดถาวร — ไม่ส่งข้อมูลคนไข้ไป AI
   if(_dailyInsightGenerating) return;
   _dailyInsightGenerating = true;
   const body = document.getElementById('dailyInsightBody');

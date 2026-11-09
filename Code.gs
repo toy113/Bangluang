@@ -134,6 +134,8 @@ function buildDailyInsightPrompt_(docName, dateStr, appts, historyByHn) {
 }
 
 function callClaudeForInsight_(prompt) {
+  // ปิดถาวร (9 พ.ย. 69 ตามที่คลินิกสั่ง): ไม่ส่งข้อมูลคนไข้ออกไปยัง AI ภายนอก ไม่ว่าจะตั้ง CLAUDE_API_KEY ไว้หรือไม่
+  throw new Error('ปิดฟีเจอร์แผนเตรียมตัววันนี้แล้ว (ไม่ส่งข้อมูลคนไข้ไปยัง AI)');
   var apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
   if (!apiKey) throw new Error('ยังไม่ได้ตั้งค่า CLAUDE_API_KEY ใน Script Properties');
 
@@ -731,6 +733,7 @@ function doGet(e) {
             })).setMimeType(ContentService.MimeType.JSON);
           }
         }
+        return ContentService.createTextOutput(JSON.stringify({ ok: false, disabled: true, error: 'ปิดฟีเจอร์แผนเตรียมตัววันนี้แล้ว' })).setMimeType(ContentService.MimeType.JSON);   // ปิดถาวร — ไม่ส่งข้อมูลคนไข้ไป AI
         var data = computeDailyAppointmentsAndHistory_(docName, dateStr);
         if (!data.appts.length) {
           return ContentService.createTextOutput(JSON.stringify({ ok: true, empty: true })).setMimeType(ContentService.MimeType.JSON);
