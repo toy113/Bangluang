@@ -6231,7 +6231,7 @@ async function rcptCfgEdit_(){
 }
 function buildReceiptHtml_(r, cfg, copy){
   const E=escapeHtml, c=cfg||{}, items=r.items||[], sub=+r.subtotal||0, sso=+r.sso||0, paid=+r.paid||0, cash=+r.cash||0, tr=+r.transfer||0;
-  const pay=[cash?'เงินสด '+fmt(cash)+' บาท':'', tr?'โอน '+fmt(tr)+' บาท'+(r.bank?' ('+E(r.bank)+')':''):''].filter(Boolean).join(' · ')||'—';
+  const pay=[cash?'เงินสด '+fmt(cash)+' บาท':'', tr?'โอน '+fmt(tr)+' บาท':''].filter(Boolean).join(' · ')||'—';
   return `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ใบเสร็จ ${E(r.receiptNo)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>@page{size:A5 portrait;margin:0}*{box-sizing:border-box}body{font-family:'Sarabun',sans-serif;color:#222;margin:0;padding:15mm 16mm;font-size:12.5px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
