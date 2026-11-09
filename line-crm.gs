@@ -902,7 +902,7 @@ function crmTickInner_() {
   var orthoAll = crmReadByName_('ortho');
   var apts = crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), orthoAll);
   // แถวที่ลงอัตโนมัติจากปุ่ม "มาตามนัด" (จัดฟัน) ส่งสรุปให้คนไข้ไปแล้วทาง orthoVisitSend → ไม่ส่งใบเสร็จ/คำแนะนำ/ติดตามอาการซ้ำ
-  var treats = crmReadByName_('บันทึกการรักษา').filter(function (t) { return String(t.note || '').indexOf('มาตามนัดจัดฟัน') < 0; });
+  var treats = crmReadByName_('บันทึกการรักษา').filter(function (t) { return String(t.note || '').indexOf('มาตามนัดจัดฟัน') < 0 && String(t.id || '').indexOf('orth-') !== 0; });   // ดูทั้งโน้ตและรหัสแถว (orth-…) — แก้โน้ตทิ้งก็ยังไม่ส่งซ้ำ
   var orthoActive = {};
   orthoAll.forEach(function (o) { if (!o['สถานะ'] || o['สถานะ'] === 'กำลังจัด') orthoActive[crmHN_(o.hn)] = true; });
   var closed = ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ', 'walk-in'];
