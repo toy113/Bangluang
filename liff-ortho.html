@@ -44,6 +44,28 @@
   .row:last-child{border-bottom:none;}
   .row .k{color:var(--text-mid);white-space:nowrap;}
   .row .v{font-weight:700;text-align:right;}
+
+  /* ===== บัตรนัดแวววาว (Wallet Card) ===== */
+  .wl-wrap{position:relative;padding-top:18px;margin-bottom:14px;perspective:900px;}
+  .wl-back{position:absolute;left:14px;right:14px;top:0;height:60px;border-radius:20px;background:linear-gradient(120deg,#3a0f33,#8E4A7C);opacity:.45;}
+  .wl{position:relative;border-radius:20px;padding:18px 18px 16px;color:#fff;overflow:hidden;min-height:196px;
+    background:linear-gradient(120deg,#3a0f33 0%,#6B2D5E 38%,#a2609a 68%,#E0C273 100%);box-shadow:0 18px 32px rgba(74,26,64,.35);
+    transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .15s ease-out;}
+  .wl::after{content:'';position:absolute;top:-20%;bottom:-20%;width:45%;left:-60%;
+    background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.08) 30%,rgba(255,255,255,.45) 50%,rgba(255,255,255,.08) 70%,transparent 100%);
+    transform:skewX(-12deg);animation:wlShine 4.5s ease-in-out infinite;pointer-events:none;}
+  .wl.tilt::after{animation:none;left:calc(var(--sx,20%) - 25%);}
+  @keyframes wlShine{0%,55%{left:-60%}100%{left:120%}}
+  .wl .wl-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:2px;font-weight:800;}
+  .wl .wl-chip{width:40px;height:30px;border-radius:7px;margin-top:14px;background:linear-gradient(135deg,#f7e3a3,#c99a3b 60%,#f1d58a);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);}
+  .wl .wl-date{font-size:31px;font-weight:800;letter-spacing:1.5px;margin-top:12px;font-variant-numeric:tabular-nums;text-shadow:0 2px 6px rgba(0,0,0,.25);}
+  .wl .wl-sub{font-size:13px;opacity:.95;margin-top:2px;}
+  .wl .wl-proc{position:absolute;right:18px;bottom:16px;font-size:13px;font-weight:800;text-align:right;max-width:60%;text-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .wl .wl-when{display:inline-block;margin-top:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:3px 11px;font-size:12.5px;font-weight:700;backdrop-filter:blur(4px);}
+  .wl-info .row b{color:var(--text);}
+  .btn-cal{display:flex;align-items:center;justify-content:center;gap:6px;}
+  .appt-more{border-left:4px solid var(--gold);padding:12px 14px;}
+  .appt-more .when{font-size:15px;}
   .appt{border-left:4px solid var(--gold);}
   .appt .when{font-size:18px;font-weight:800;color:var(--wine);line-height:1.35;}
   .appt .time{font-size:15px;font-weight:700;color:var(--gold);margin-top:2px;}
@@ -289,17 +311,69 @@ function renderNext(p){
       <a class="btn btn-primary" href="${esc($('mainCall').href)}">📞 โทรนัดหมาย</a></div>`;
     return;
   }
-  $('panel-next').innerHTML = p.next.map((a,i)=>{
-    const n = daysUntil(a.date);
-    const cnt = n===0 ? 'วันนี้' : (n===1 ? 'พรุ่งนี้' : ('อีก '+n+' วัน'));
-    return `<div class="card appt">
-      ${i===0?'<h3>นัดครั้งถัดไป</h3>':''}
-      <div class="when">${esc(thaiDateFull(a.date))}</div>
-      <div class="time">${a.time?esc(a.time)+' น.':''}</div>
-      <div class="sub">${a.kind==='ortho'?'😬 จัดฟัน · ':''}${[a.proc, a.docName].filter(Boolean).map(esc).join(' · ')}</div>
-      <span class="count">${cnt}</span>
+  const ocode = p.ortho && p.ortho.profile && String(p.ortho.profile['รหัสประจำตัว']||'').trim();
+  const cntText = n => n===0 ? 'วันนี้' : (n===1 ? 'พรุ่งนี้' : ('อีก '+n+' วัน'));
+  const a = p.next[0], n = daysUntil(a.date), pd = ymd(a.date);
+  const dd = pd ? String(pd.d).padStart(2,'0')+' · '+String(pd.m).padStart(2,'0')+' · '+String((pd.y+543)%100).padStart(2,'0') : esc(a.date);
+  const dow = pd ? TH_DAYS[new Date(Date.UTC(pd.y,pd.m-1,pd.d)).getUTCDay()] : '';
+  const status = a.status==='คอนเฟิร์ม' ? '<b style="color:var(--green)">✅ ยืนยันแล้ว</b>' : (a.status ? esc(a.status) : '');
+  const card = `<div class="wl-wrap">${p.next.length>1?'<div class="wl-back"></div>':''}
+    <div class="wl" id="wlCard">
+      <div class="wl-top"><span>BANGLUANG</span><span>${esc(ocode || ('HN '+(p.hn||'')))}</span></div>
+      <div class="wl-chip"></div>
+      <div class="wl-date">${dd}</div>
+      <div class="wl-sub">${esc(dow)}${a.time?' · '+esc(a.time)+' น.':''}${a.docName?' · '+esc(a.docName):''}</div>
+      <span class="wl-when">⏳ ${esc(cntText(n))}</span>
+      <div class="wl-proc">${a.kind==='ortho'?'😬 ':''}${esc(a.proc||'')}</div>
+    </div></div>`;
+  const info = `<div class="card wl-info">
+      <div class="row"><span class="k">🗓️ วันนัด</span><b>${esc(thaiDateFull(a.date))}</b></div>
+      ${a.time?`<div class="row"><span class="k">⏰ เวลา</span><b>${esc(a.time)} น.</b></div>`:''}
+      ${a.docName?`<div class="row"><span class="k">👩‍⚕️ ทันตแพทย์</span><b>${esc(a.docName)}</b></div>`:''}
+      ${a.proc?`<div class="row"><span class="k">🦷 รายการ</span><b>${esc(a.proc)}</b></div>`:''}
+      ${status?`<div class="row"><span class="k">สถานะ</span>${status}</div>`:''}
+      <a class="btn btn-primary btn-cal" style="margin-top:12px;" href="#" onclick="addToCalendar(0);return false;">＋ เพิ่มลงปฏิทินมือถือ</a>
+      <a class="btn btn-ghost" href="https://maps.google.com/?cid=13261426560365025658" onclick="return openExt(this.href)">📍 นำทางมาคลินิก</a>
     </div>`;
-  }).join('') + `<p class="muted center" style="margin:4px 0 12px;">ต้องการเลื่อนนัด กดปุ่ม "ขอเลื่อนนัด" ในข้อความเตือนนัด หรือโทรหาคลินิก</p>`;
+  const more = p.next.slice(1).map(x=>`<div class="card appt appt-more">
+      <div class="when">${esc(thaiDateFull(x.date))}${x.time?' · '+esc(x.time)+' น.':''}</div>
+      <div class="sub">${x.kind==='ortho'?'😬 จัดฟัน · ':''}${[x.proc, x.docName].filter(Boolean).map(esc).join(' · ')}</div>
+      <span class="count">${esc(cntText(daysUntil(x.date)))}</span></div>`).join('');
+  $('panel-next').innerHTML = card + info + (more?'<h3 style="font-size:14px;color:var(--wine);margin:4px 2px 8px;">นัดถัดๆ ไป</h3>'+more:'') +
+    `<p class="muted center" style="margin:4px 0 12px;">ต้องการเลื่อนนัด กดปุ่ม "ขอเลื่อนนัด" ในข้อความเตือนนัด หรือโทรหาคลินิก</p>`;
+  wlTiltInit_();
+}
+/* แสงบนบัตรขยับตามการเอียงมือถือ (ถ้าเครื่องอนุญาต) · ไม่อนุญาต = แสงวิ่งเองทุก 4.5 วิ */
+let _wlTiltOn = false;
+function wlTiltInit_(){
+  if(_wlTiltOn || !window.DeviceOrientationEvent) return;
+  const on = e => {
+    const el = document.getElementById('wlCard'); if(!el || e.gamma==null) return;
+    const g = Math.max(-25, Math.min(25, e.gamma)), b = Math.max(-25, Math.min(25, (e.beta||45) - 45));
+    el.classList.add('tilt');
+    el.style.setProperty('--ry', (g/3).toFixed(1)+'deg'); el.style.setProperty('--rx', (-b/4).toFixed(1)+'deg');
+    el.style.setProperty('--sx', (50 + g*2.4).toFixed(0)+'%');
+  };
+  try{ if(typeof DeviceOrientationEvent.requestPermission !== 'function'){ window.addEventListener('deviceorientation', on); _wlTiltOn = true; } }catch(e){}
+}
+function openExt(url){
+  try{ if(window.liff && liff.isInClient && liff.isInClient()){ liff.openWindow({ url, external:true }); return false; } }catch(e){}
+  return true;
+}
+/* เพิ่มลง Google Calendar (เปิดนอก LINE) — นัด 1 ชั่วโมง + แจ้งเตือนในปฏิทินของคนไข้ */
+function addToCalendar(i){
+  const p = DATA.patients[CUR], a = p && p.next[i]; if(!a) return;
+  const d = ymd(a.date); if(!d) return;
+  const [hh, mm] = String(a.time||'10:30').split(':').map(x=>+x||0);
+  const pad = x => String(x).padStart(2,'0');
+  const st = new Date(Date.UTC(d.y, d.m-1, d.d, hh-7, mm)), en = new Date(st.getTime()+3600000);
+  const f = t => t.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    + '&text=' + encodeURIComponent('นัดทำฟัน · ' + (a.proc||'คลินิกทันตกรรมบางหลวง'))
+    + '&dates=' + f(st) + '/' + f(en)
+    + '&details=' + encodeURIComponent([a.docName, 'คลินิกทันตกรรมบางหลวง โทร 095-947-6759'].filter(Boolean).join('\n'))
+    + '&location=' + encodeURIComponent('คลินิกทันตกรรมบางหลวง 119/14 หมู่ 3 ซ.ปทุมธานี-สายใน ต.บ้านฉาง อ.เมือง จ.ปทุมธานี');
+  if(openExt(url)) window.open(url, '_blank');
 }
 function renderHistory(p){
   if(!p.history){ $('panel-history').innerHTML = '<div class="card"><div class="empty">ประวัติการรักษาจะเปิดให้ดูได้เร็ว ๆ นี้</div></div>'; return; }

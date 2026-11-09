@@ -2040,7 +2040,7 @@ function crmPortal_(p) {
   var patients = keys.map(function (k) {
     var a = active[k];
     var next = apts.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) >= today && ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ'].indexOf(x.status) === -1; })
-      .map(function (x) { return { id: x.id, date: crmDateOnly_(x.date), time: x.time || '', proc: x.proc || '', docName: x.docName || '' }; })
+      .map(function (x) { return { id: x.id, date: crmDateOnly_(x.date), time: x.time || '', proc: x.proc || '', docName: x.docName || '', status: x.status || '' }; })
       .sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); }).slice(0, 5);
     // นัดจัดฟัน (เก็บแยกในชีตจัดฟัน คอลัมน์ นัดถัดไป) รวมเข้ารายการนัด · ซ้ำกับตารางนัดเมื่อวัน+เวลาตรงกัน ให้ใช้รายการตารางนัด
     var oNext = null;
