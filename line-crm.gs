@@ -2045,12 +2045,12 @@ function crmPortalJson_(p) {
   var u = crmVerifyUser_(p);
   if (!u) return JSON.stringify({ ok: false, error: 'auth' });
   var c = CacheService.getScriptCache();
-  var g = c.getAll(['crm_gen', 'ga2g:appointments', 'ga2g:treatments']);
-  var ver = [g['crm_gen'] || '', g['ga2g:appointments'] || '', g['ga2g:treatments'] || ''].join('|');
+  var g = c.getAll(['crm_gen', 'ga2g:appointments', 'ga2g:treatments', 'ga2g:ortho']);
+  var ver = [g['crm_gen'] || '', g['ga2g:appointments'] || '', g['ga2g:treatments'] || '', g['ga2g:ortho'] || '', crmToday_()].join('|');   // + วันที่: นัดที่ผ่านไปแล้วหลุดจาก "นัดครั้งถัดไป" ทุกวัน
   var key = 'crm_portal_' + u.userId;
   try { var hit = JSON.parse(c.get(key) || 'null'); if (hit && hit.v === ver) return hit.j; } catch (e) {}
   var json = JSON.stringify(crmPortal_(p));
-  try { if (json.length < 30000) c.put(key, JSON.stringify({ v: ver, j: json }), 120); } catch (e) {}
+  try { if (json.length < 95000) c.put(key, JSON.stringify({ v: ver, j: json }), 21600); } catch (e) {}   // แคช 6 ชม. — หมดอายุทันทีเมื่อข้อมูลนัด/การรักษา/จัดฟัน/CRM เปลี่ยน (ver)
   return json;
 }
 /* "ถอนฟัน, อุดฟัน" + procTeeth {"ถอนฟัน":"38","อุดฟัน":"16, 26"} → "ถอนฟัน ซี่ 38, อุดฟัน ซี่ 16, 26" */

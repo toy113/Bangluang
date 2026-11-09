@@ -65,6 +65,15 @@ function orthoRoutePost_(e) {
   // 2) action จาก LIFF / admin tab
   var action = body.action || (e.parameter && e.parameter.action);
   if (action === 'orthoBind' || action === 'orthoGet') return orthoJsonOut_({ ok: false, error: 'disabled' });
+  if (/^ortho(Save|Patch|LogAdd|LogAddBatch|LogUpdateDatesBatch|LogDeleteDay|LogDeleteDatesBatch|SetLine)$/.test(String(action || ''))) {
+    var out = orthoDispatchWrite_(action, body);
+    try { CacheService.getScriptCache().put('ga2g:ortho', String(Date.now()) + '-' + Math.random(), 21600); } catch (eT) {}   // หน้า LINE ของคนไข้ (แคช) รู้ว่าข้อมูลจัดฟันเปลี่ยน
+    return out;
+  }
+  return null; // ไม่ใช่งานของ ortho
+}
+/* งานเขียนข้อมูลจัดฟันจากหน้า admin */
+function orthoDispatchWrite_(action, body) {
   if (action === 'orthoSave')   return orthoJsonOut_(orthoSave(body.row));     // admin: เพิ่ม/แก้ profile
   if (action === 'orthoPatch')  return orthoJsonOut_(orthoPatch(body.hn, body.fields)); // admin: แก้เฉพาะบางช่อง (ไม่ทับช่องอื่น)
   if (action === 'orthoLogAdd') return orthoJsonOut_(orthoLogAdd(body.log));   // admin: เพิ่ม log adjust
@@ -73,8 +82,7 @@ function orthoRoutePost_(e) {
   if (action === 'orthoLogDeleteDay') return orthoJsonOut_(orthoLogDeleteDay(body.hn, body.date)); // admin: ย้อน "มาตามนัด" ของวันนั้น (ลบประวัติทุกแถวของวันนั้น)
   if (action === 'orthoLogDeleteDatesBatch') return orthoJsonOut_(orthoLogDeleteDatesBatch(body.hn, body.dates)); // admin: ลบ log เดิม
   if (action === 'orthoSetLine')return orthoJsonOut_(orthoSetLineId(body.hn, body.lineUserId)); // admin ผูกมือ (fallback)
-
-  return null; // ไม่ใช่งานของ ortho
+  return null;
 }
 
 /* ======================= BINDING (verify) ======================= */

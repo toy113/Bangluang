@@ -6,7 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>คลินิกทันตกรรมบางหลวง</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com">
 <link rel="preconnect" href="https://api.line.me">
@@ -120,7 +121,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-09c';
+  const APP_VER = '2026-11-09d';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -256,13 +257,19 @@ async function api(params, noToken){
 }
 async function boot(){
   TAB = initialTab();
+  // แสดงข้อมูลรอบก่อนทันที "ก่อน" รอ LINE เริ่มระบบ (เครื่องเดิม บัญชีเดิม) — ตรวจตัวตนจริงอีกครั้งหลัง liff.init
+  let early = false;
+  try{ const lk = localStorage.getItem('bl_portal_last'); if(lk){ CKEY = lk; const c0 = cacheGet(); if(c0){ DATA = c0; applyPhone(c0); render(); early = true; } } }catch(e){}
   try{
     await Promise.race([liff.init({ liffId: LIFF_ID }), new Promise((_,r)=>setTimeout(()=>r(new Error('liff init timeout')),15000))]);
     if(!liff.isLoggedIn()){ liff.login({ redirectUri: location.href }); return; }
     const idt = liff.getIDToken();
     TOKEN = idt ? { idToken: idt } : { accessToken: liff.getAccessToken() };
-    try{ const dt = liff.getDecodedIDToken && liff.getDecodedIDToken(); if(dt && dt.sub) CKEY = 'bl_portal_' + dt.sub; }catch(e){}
-  }catch(e){ console.error(e); return fail('กรุณาเปิดหน้านี้จากเมนูในแอป LINE ของคลินิก'); }
+    const prevKey = CKEY; CKEY = '';
+    try{ const dt = liff.getDecodedIDToken && liff.getDecodedIDToken(); if(dt && dt.sub){ CKEY = 'bl_portal_' + dt.sub; try{ localStorage.setItem('bl_portal_last', CKEY); }catch(e){} } }catch(e){}
+    if(early && CKEY !== prevKey){ early = false; DATA = null; show('loading'); }   // คนละบัญชีกับข้อมูลที่แสดงไว้ → ล้างทิ้ง
+  }catch(e){ console.error(e); if(early) return; return fail('กรุณาเปิดหน้านี้จากเมนูในแอป LINE ของคลินิก'); }
+  if(early) return load(true);
   // แสดงข้อมูลรอบก่อนทันที (เก็บในเครื่องคนไข้เอง) แล้วอัปเดตเบื้องหลัง
   const c = cacheGet();
   if(c){ DATA = c; applyPhone(c); render(); return load(true); }
