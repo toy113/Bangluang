@@ -570,6 +570,25 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
   if (buttons && buttons.length) bubble.footer = { type: 'box', layout: 'vertical', spacing: 'xl', contents: buttons };
   return bubble;
 }
+/* ============================ คำที่คนไข้เห็น (แปลงชื่อหัตถการ/คำย่อภายใน) ============================
+   ใช้กับทุกข้อความถึงคนไข้ (LINE + หน้า LIFF) · ในโปรแกรมคลินิกยังใช้คำเดิม · ตรวจคำแบบเต็มคำ (ตามด้วยเว้นวรรค/วงเล็บ/จบ) */
+var CRM_PAT_TERMS = [
+  ['X-Ray BW', 'เอ็กซเรย์ตรวจฟันผุ'], ['X-Ray', 'เอ็กซเรย์ฟัน'], ['TP', 'ฟันปลอมถอดได้ฐานพลาสติก'], ['recheck', 'ตรวจติดตามอาการ'],
+  ['onlay', 'ครอบฟันบางส่วน (Onlay)'], ['RPD', 'ฟันปลอมถอดได้ (โครงโลหะ)'], ['Valplast', 'ฟันปลอมฐานนิ่ม'],
+  ['Bite Block', 'บันทึกการสบฟัน'], ['Biteblock', 'บันทึกการสบฟัน'], ['MI', 'รักษารากฟัน (รอบย่อย)'], ['FRC', 'อุดคลองรากฟัน'],
+  ['ใส่ฟัน', 'ใส่ฟันปลอม'], ['ลองโครง', 'ลองโครงฟันปลอม'], ['ลองฟัน', 'ลองฟันปลอม'], ['พิมพ์ปาก', 'พิมพ์แบบฟัน'],
+  ['ปักหมุด', 'ปักหมุดจัดฟัน'], ['ติดเหล็กหลุด', 'ติดเครื่องมือจัดฟันที่หลุด'], ['ปรับเครื่องมือ', 'ปรับเครื่องมือจัดฟัน'],
+  ['เกลารากฟัน', 'เกลารากฟัน (รักษาโรคเหงือก)'], ['เสียวฟัน', 'รักษาอาการเสียวฟัน'], ['จ่ายยา', 'รับยา'], ['ดูอาการ', 'ตรวจดูอาการ'], ['อื่นๆ', 'พบทันตแพทย์']
+];
+function crmPT1_(item) {
+  var t = String(item || '').trim(), low = t.toLowerCase();
+  for (var i = 0; i < CRM_PAT_TERMS.length; i++) {
+    var k = CRM_PAT_TERMS[i][0], kl = k.toLowerCase();
+    if (low === kl || (low.indexOf(kl) === 0 && /^[\s(]/.test(t.charAt(k.length)))) return CRM_PAT_TERMS[i][1] + t.slice(k.length);
+  }
+  return t;
+}
+function crmPT_(text) { return String(text || '').split(/\s*,\s*/).filter(String).map(crmPT1_).join(', '); }
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
 function crmPhoneFmt_(p) { var d = String(p || '').replace(/[^0-9]/g, ''); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : String(p || ''); }
 function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม\nโทร. ' + crmPhoneFmt_((s && s.clinicPhone) || '0959476759') + '\nพิมพ์ในแชทนี้ได้เลยค่ะ', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
@@ -609,7 +628,7 @@ function crmAptMessage_(s, apt, kind, mv) {
   if (kind === 'move' && mv) rows.push(crmRow_('นัดเดิม', (sameDay ? '' : crmThaiDate_(mv.date) + ' ') + (mv.time ? mv.time + ' น. ' : '') + '(ยกเลิกแล้ว)'));
   rows.push(crmRow_(kind === 'move' ? 'นัดใหม่' : (kind === 'change' ? 'วัน (ใหม่)' : 'วัน'), crmThaiDate_(apt.date)), crmRow_(kind === 'change' ? 'เวลา (ใหม่)' : 'เวลา', (apt.time || '-') + ' น.'));
   if (apt.docName) rows.push(crmRow_('ทันตแพทย์', apt.docName));
-  if (apt.proc) rows.push(crmRow_('รายการ', apt.proc));
+  if (apt.proc) rows.push(crmRow_('รายการ', crmPT_(apt.proc)));
   var buttons = [];
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
   if (kind === 'remind') { buttons.push(crmConfirmAsk_()); buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(apt.date, 'ยืนยันนัด') } }); }
@@ -624,7 +643,7 @@ function crmAptGroupMessage_(s, list) {
   var a0 = list[0], ids = list.map(function (a) { return a.id; }).join(',');
   var rows = [crmRow_('วัน', crmThaiDate_(a0.date))];
   list.forEach(function (a, i) {
-    rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace('.', ':') + ' น.', [a.proc, a.docName].filter(Boolean).join('\n')));
+    rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace('.', ':') + ' น.', [crmPT_(a.proc), a.docName].filter(Boolean).join('\n')));
   });
   var buttons = [
     crmConfirmAsk_(),
@@ -661,20 +680,20 @@ function crmReceiptMessage_(s, trs, extra) {
       var teeth = String(tm[pr] || '').trim(), perTooth = tp[pr] || null;
       if (perTooth && Object.keys(perTooth).length) {            // หลายซี่ → แยกรายการต่อซี่ พร้อมราคา
         Object.keys(perTooth).sort(function (a, b) { return a - b; }).forEach(function (n) {
-          anyPrice = true; items.push({ proc: pr + ' ซี่ ' + n, price: +perTooth[n] || 0 });
+          anyPrice = true; items.push({ proc: crmPT1_(pr) + ' ซี่ ' + n, price: +perTooth[n] || 0 });
         });
         return;
       }
       var price = +pp[pr] > 0 ? +pp[pr] : (procs.length === 1 && list.length > 1 && recTotal > 0 ? recTotal : null);
       if (price !== null) anyPrice = true;
-      items.push({ proc: pr + (teeth ? ' (ซี่ ' + teeth + ')' : ''), price: price });
+      items.push({ proc: crmPT1_(pr) + (teeth ? ' (ซี่ ' + teeth + ')' : ''), price: price });
     });
   });
   if (items.length === 1 || !anyPrice) {
     if (list.length === 1) rows.push(crmRow_('การรักษา', items.map(function (x) { return x.proc; }).join(', ') || '-'));
     else list.forEach(function (t, i) {
       var tm2 = {}; try { tm2 = JSON.parse(t.procTeeth || '{}') || {}; } catch (e) { tm2 = {}; }
-      var txt = crmSplitList_(String(t.proc || '')).map(function (pr) { return pr + (tm2[pr] ? ' (ซี่ ' + tm2[pr] + ')' : ''); }).join(', ');
+      var txt = crmSplitList_(String(t.proc || '')).map(function (pr) { return crmPT1_(pr) + (tm2[pr] ? ' (ซี่ ' + tm2[pr] + ')' : ''); }).join(', ');
       rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + (txt || '-')));
     });
   } else {
@@ -744,7 +763,7 @@ var CRM_HIDDEN_OPT_LABELS_ = ['เลือดออกไม่หยุด', '
 function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
   var opts = [];
   try { opts = JSON.parse(tpl.followupOptions || '[]'); } catch (e) {}
-  var q = String(tpl.followupQuestion || '').replace(/\{name\}/g, crmWho_(patName, fu.hn)).replace(/\{proc\}/g, procText || tpl.name);
+  var q = String(tpl.followupQuestion || '').replace(/\{name\}/g, crmWho_(patName, fu.hn)).replace(/\{proc\}/g, crmPT_(procText) || tpl.name);
   var okReview = false;   // ปุ่ม "ปกติดี" เปิดหน้ารีวิวทันที: ต้องเปิดตัวเลือก + มีลิงก์รีวิว + ไม่ใช้โหมดถามคะแนน + คนไข้ยังไม่ถูกขอรีวิวใน 360 วัน
   try {
     if (docOk !== false && s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim()) && !crmRatingApplies_(s, fu)) {
@@ -1347,7 +1366,7 @@ function crmOrthoVisitMessage_(s, v) {
   var total = 0;
   v.items.forEach(function (x, i) {
     if (x.price !== null) total += x.price;
-    rows.push(crmRow_(i === 0 ? 'รายการ' : '', (i + 1) + '. ' + x.name + (x.note ? ' (' + x.note + ')' : '') + (x.price === null ? '' : ' — ' + (x.price > 0 ? crmMoney_(x.price) : 'ฟรี'))));
+    rows.push(crmRow_(i === 0 ? 'รายการ' : '', (i + 1) + '. ' + crmPT1_(x.name) + (x.note ? ' (' + x.note + ')' : '') + (x.price === null ? '' : ' — ' + (x.price > 0 ? crmMoney_(x.price) : 'ฟรี'))));
   });
   rows.push({ type: 'separator', margin: 'md' });
   rows.push(crmRow_('รวม', total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'));
@@ -2038,7 +2057,7 @@ function crmPortalJson_(p) {
 function crmProcWithTeeth_(t) {
   var tm = {}; try { tm = JSON.parse(t.procTeeth || '{}') || {}; } catch (e) { tm = {}; }
   return String(t.proc || '').split(',').map(function (x) { return x.trim(); }).filter(String).map(function (n) {
-    var th = String(tm[n] || '').trim(); return th ? n + ' ซี่ ' + th : n;
+    var th = String(tm[n] || '').trim(), lb = crmPT1_(n); return th ? lb + ' ซี่ ' + th : lb;
   }).join(', ');
 }
 function crmPortal_(p) {
@@ -2061,7 +2080,7 @@ function crmPortal_(p) {
   var patients = keys.map(function (k) {
     var a = active[k];
     var next = apts.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) >= today && ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ'].indexOf(x.status) === -1; })
-      .map(function (x) { return { id: x.id, date: crmDateOnly_(x.date), time: x.time || '', proc: x.proc || '', docName: x.docName || '', status: x.status || '' }; })
+      .map(function (x) { return { id: x.id, date: crmDateOnly_(x.date), time: x.time || '', proc: crmPT_(x.proc || ''), docName: x.docName || '', status: x.status || '' }; })
       .sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); }).slice(0, 5);
     // นัดจัดฟัน (เก็บแยกในชีตจัดฟัน คอลัมน์ นัดถัดไป) รวมเข้ารายการนัด · ซ้ำกับตารางนัดเมื่อวัน+เวลาตรงกัน ให้ใช้รายการตารางนัด
     var oNext = null;
@@ -2072,7 +2091,7 @@ function crmPortal_(p) {
         var ot = String(oNext['นัดถัดไปเวลา'] || '').trim().slice(0, 5);
         var dup = apts.some(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) === od && (!ot || !x.time || String(x.time).slice(0, 5) === ot) && crmSameDoc_(x.docName, oNext['หมอ']); });
         if (!dup) {
-          next.push({ id: 'ortho-' + k, date: od, time: ot, proc: oNext['รายการนัดถัดไป'] || 'นัดจัดฟัน', docName: oNext['หมอ'] || '', kind: 'ortho' });
+          next.push({ id: 'ortho-' + k, date: od, time: ot, proc: crmPT_(oNext['รายการนัดถัดไป'] || 'นัดจัดฟัน'), docName: oNext['หมอ'] || '', kind: 'ortho' });
           next.sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); });
           if (next.length > 5) next = next.slice(0, 5);
         }
