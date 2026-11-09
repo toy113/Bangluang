@@ -569,6 +569,8 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
 }
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
 function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม\nโทร. ' + String((s && s.clinicPhone) || '0959476759').replace(/[^0-9]/g, '') + '\nพิมพ์ในแชทนี้ได้เลยค่ะ', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
+/* ข้อความเน้นขอให้กดยืนยันนัด — ใส่เหนือปุ่มในการ์ดเตือนนัด */
+function crmConfirmAsk_() { return { type: 'text', text: 'ถ้าสะดวกมาตามนัด รบกวนกด ✅ ยืนยันนัด ด้วยนะคะ 🙏', wrap: true, size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'center' }; }
 function crmTelUri_(s) { return 'tel:' + String(s.clinicPhone || '').replace(/[^0-9+]/g, ''); }
 /* ปุ่มขอเลื่อนนัด = ส่งข้อความจริงเข้าแชท (เด้งเตือนใน LINE OA Manager) เช่น "ขอเลื่อนนัด 12/11" · วัน/เดือนใช้จับคู่นัด */
 function crmReschedText_(date, word) {
@@ -605,7 +607,7 @@ function crmAptMessage_(s, apt, kind, mv) {
   if (apt.proc) rows.push(crmRow_('รายการ', apt.proc));
   var buttons = [];
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
-  if (kind === 'remind') buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(apt.date, 'ยืนยันนัด') } });
+  if (kind === 'remind') { buttons.push(crmConfirmAsk_()); buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(apt.date, 'ยืนยันนัด') } }); }
   buttons.push({ type: 'button', style: 'secondary', height: 'md', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(apt.date) } });
   buttons.push(crmInquiryNote_(s));
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
@@ -619,6 +621,7 @@ function crmAptGroupMessage_(s, list) {
     rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace(':', '.') + ' น.', [a.proc, a.docName].filter(Boolean).join('\n')));
   });
   var buttons = [
+    crmConfirmAsk_(),
     { type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(a0.date, 'ยืนยันนัด') } },
     { type: 'button', style: 'secondary', height: 'md', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(a0.date) } },
     crmInquiryNote_(s)];
