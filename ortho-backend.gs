@@ -191,7 +191,8 @@ function orthoPatch(hn, fields) {
   try {
     var sh = orthoGetSheet_(SHEET_ORTHO, ORTHO_HEADERS);
     orthoEnsureCol_(sh, 'รูปแบบชำระ');
-    orthoEnsureCol_(sh, 'DFหมอ%');
+    orthoEnsureCol_(sh, 'วันถอดเครื่องมือ');   // วันถอดเครื่องมือจัดฟัน (ลงจากปุ่ม มาตามนัด)
+  orthoEnsureCol_(sh, 'DFหมอ%');
     orthoEnsureCol_(sh, 'วันติดบน'); orthoEnsureCol_(sh, 'วันติดล่าง'); orthoEnsureCol_(sh, 'วันเช็ครีเทนเนอร์');
     var data = sh.getDataRange().getValues(), head = data[0], hnCol = head.indexOf('hn'), key = orthoNormHN_(hn), rowNo = -1;
     for (var r = 1; r < data.length; r++) { if (orthoNormHN_(data[r][hnCol]) === key) { rowNo = r + 1; break; } }

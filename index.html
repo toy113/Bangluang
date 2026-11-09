@@ -2409,6 +2409,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ติดเครื่องมือบน" onchange="cameCalc()"> ติดเครื่องมือบน</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ติดเครื่องมือล่าง" onchange="cameCalc()"> ติดเครื่องมือล่าง</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ปักหมุด" onchange="cameCalc()"> ปักหมุด</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ถอดเครื่องมือจัดฟัน" onchange="cameCalc()"> ถอดเครื่องมือจัดฟัน</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
         </div>
       </div>
       <div class="form-group"><label>หมอ</label><select class="form-control" id="came-doc"></select></div>
@@ -3541,7 +3542,7 @@ function crmOrthoState(a){
   return (crmHasLine(a.hn) && !a._hnFromCode) ? 'wait' : 'noline';
 }
 // นัดจัดฟัน: คนไข้มาแล้ว → บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟันในคลิกเดียว (เหมือนปุ่มบันทึกการรักษาในหน้าจัดฟัน)
-const ORTHO_ONLY_PROC_RE_=/ปรับเครื่องมือ|เหล็กหลุด|เครื่องมือหลุด|รีเทนเนอร์|ติดเครื่องมือ|ปักหมุด/;   // รายการที่ต้องลงผ่านปุ่ม "มาตามนัด"
+const ORTHO_ONLY_PROC_RE_=/ปรับเครื่องมือ|เหล็กหลุด|เครื่องมือหลุด|รีเทนเนอร์|ติดเครื่องมือ|ถอดเครื่องมือ|ปักหมุด/;   // รายการที่ต้องลงผ่านปุ่ม "มาตามนัด"
 function crmOrthoRec(hn){ const k=crmHN(hn); return (typeof orthoData!=='undefined' && orthoData||[]).find(o=>crmHN(o.hn)===k) || null; }
 // แอดมินตั้งนัดจัดฟันเป็น "ยืนยัน" เอง (คนไข้ยืนยันทางโทร/แชท) — นัดในตารางนัดเปลี่ยนสถานะเป็นคอนเฟิร์มด้วย
 function crmOrthoConfirm(id){
@@ -3751,6 +3752,7 @@ async function crmOrthoCameSave(){
       if(!String(row['วันเช็ครีเทนเนอร์']||'').trim()) row['วันเช็ครีเทนเนอร์']=date;
       if((row['สถานะ']||'กำลังจัด')==='กำลังจัด' && orthoRetainerPlaced_(row)){ row['สถานะ']='เสร็จแล้ว'; retainerDone=true; }
     }
+    if(extras.some(x=>x.name==='ถอดเครื่องมือจัดฟัน') && !String(row['วันถอดเครื่องมือ']||'').trim()) row['วันถอดเครื่องมือ']=date;   // ถอดเครื่องมือ → บันทึกวันถอดลงการ์ด (ยังไม่จบเคส · จบเมื่อเช็ครีเทนเนอร์)
     const bondSet=orthoApplyBondDates_(row, extras.map(x=>x.name).concat(others), date);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ด
     row._visitCount=visits; row._looseCount=looseN;
     await Promise.all([ orthoPost({action:'orthoLogAddBatch', logs}), orthoPost({action:'orthoSave', row}) ]);
@@ -5664,6 +5666,7 @@ async function orthoRevertDay_(hn, date){
     if(rec){
       if(String(rec['ปรับล่าสุด']||'').slice(0,10)===date) f['ปรับล่าสุด']='';
       if(String(rec['วันใส่รีเทนเนอร์']||'').slice(0,10)===date) f['วันใส่รีเทนเนอร์']='';
+      if(String(rec['วันถอดเครื่องมือ']||'').slice(0,10)===date) f['วันถอดเครื่องมือ']='';
       if(String(rec['วันเช็ครีเทนเนอร์']||'').slice(0,10)===date){ f['วันเช็ครีเทนเนอร์']=''; if(rec['สถานะ']==='เสร็จแล้ว') f['สถานะ']='กำลังจัด'; }
       if(Object.keys(f).length) await orthoPatchCard_(rec.hn, f);
     }
@@ -11633,6 +11636,7 @@ function orthoCardHtml(r){
         ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
         ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>${crmOrthoAptBadge(r)}`:''}
         ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
+        ${String(r['วันถอดเครื่องมือ']||'').trim()?`<div style="color:var(--text-mid);">ถอดเครื่องมือ ${thaiDate_(String(r['วันถอดเครื่องมือ']).slice(0,10))}</div>`:''}
       </div>
     </div>
     ${isViewOnlyUser()?'':`<div class="oc-acts" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;" onclick="event.stopPropagation()">
