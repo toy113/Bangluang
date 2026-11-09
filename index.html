@@ -3744,6 +3744,39 @@ function crmOrthoAptList(r0, r1){
   return list.sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
 }
 // 'yes' ยืนยันแล้ว (คนไข้กดใน LINE หรือพนักงานตั้งคอนเฟิร์ม) · 'move' ขอเลื่อน · 'wait' มี LINE ยังไม่ยืนยัน · 'noline' ต้องโทร
+/* สถานะยืนยันนัดแบบเดียวกันทุกการ์ดในหน้าดูนัด
+   yes ยืนยันแล้ว · move ขอเลื่อน · reminded เตือนแล้วรอตอบ · wait มี LINE ยังไม่ถึงรอบเตือน · noline ไม่มี LINE ต้องโทร · blocked บล็อก LINE ต้องโทร · '' ไม่ต้องแสดง (ผ่านไปแล้ว/เสร็จ/ยกเลิก) */
+function aptConfirmState_(a){
+  if(!a || a.status==='ยกเลิก' || ['เสร็จสิ้น','เสร็จ','กำลังทำ','walk-in'].includes(a.status) || String(a.date||'') < todayStr()) return '';
+  let st='noline'; try{ st=crmOrthoState(a); }catch(e){}
+  const k=normHN(a.hn||'');
+  const linked = (()=>{ try{ return crmHasLine(a.hn) || (k && LINE_HNS.has(k)); }catch(e){ return !!(k && LINE_HNS.has(k)); } })();
+  if(st==='yes' || st==='move') return st;
+  if(!linked) return (k && LINE_BLOCKED.has(k)) ? 'blocked' : 'noline';
+  try{ if(crmSentOk(crmAptLogFor_('remind',a))) return 'reminded'; }catch(e){}
+  return 'wait';
+}
+var APT_CONFIRM_LBL_ = {
+  yes:['✅ ยืนยันแล้ว','#E3F4EA','#1D6B44','#9BD3B0'], move:['📅 ขอเลื่อนนัด','#FDEBD0','#A04000','#F0B27A'],
+  reminded:['⏳ เตือนแล้ว รอตอบ','#FFF4CC','#7A5600','#F2D272'], wait:['🟢 มี LINE · รอรอบเตือน','#EEF7F1','#2E7D4F','#C6E5D1'],
+  noline:['📵 ไม่มี LINE · ต้องโทร','#F1F1F1','#555','#CFCFCF'], blocked:['🚫 บล็อก LINE · ต้องโทร','#FDE8E8','#B42318','#F3B4B4']
+};
+var APT_CONFIRM_SHORT_ = { yes:'✅', move:'📅 ขอเลื่อน', reminded:'⏳ รอตอบ', wait:'🟢 รอเตือน', noline:'📵 โทร', blocked:'🚫 โทร' };
+function aptConfirmChip_(a, small){
+  const st=aptConfirmState_(a); if(!st) return '';
+  const m=APT_CONFIRM_LBL_[st];
+  if(small) return `<span title="${m[0]}" style="display:inline-block;white-space:nowrap;background:${m[1]};color:${m[2]};border:1px solid ${m[3]};border-radius:999px;padding:0 5px;font-size:10px;font-weight:800;line-height:1.5;">${APT_CONFIRM_SHORT_[st]}</span>`;
+  let via=''; if(st==='yes'){ try{ const r=crmAptRecFor_(a); via = r&&r.confirmedAt ? ' (LINE)' : ' (แอดมิน)'; }catch(e){} }
+  return `<span title="สถานะยืนยันนัด" style="display:inline-block;white-space:nowrap;background:${m[1]};color:${m[2]};border:1px solid ${m[3]};border-radius:999px;padding:0 ${small?6:8}px;font-size:${small?10:10.5}px;font-weight:800;line-height:1.55;">${m[0]}${via}</span>`;
+}
+/* สรุปทั้งวัน (หัวคอลัมน์ในหน้าดูนัด) */
+function aptConfirmSummary_(list, fg){
+  const c={yes:0,move:0,reminded:0,wait:0,call:0};
+  list.forEach(a=>{ const st=aptConfirmState_(a); if(!st) return; if(st==='noline'||st==='blocked') c.call++; else c[st]++; });
+  const n=c.yes+c.move+c.reminded+c.wait+c.call; if(!n) return '';
+  const pill=(t,v,bg,col)=> v?`<span style="background:${bg};color:${col};border-radius:999px;padding:0 7px;font-size:10.5px;font-weight:800;white-space:nowrap;">${t} ${v}</span>`:'';
+  return `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${pill('✅',c.yes,'#E3F4EA','#1D6B44')}${pill('📅 เลื่อน',c.move,'#FDEBD0','#A04000')}${pill('⏳ รอตอบ',c.reminded,'#FFF4CC','#7A5600')}${pill('🟢 รอเตือน',c.wait,'#EEF7F1','#2E7D4F')}${pill('📵 ต้องโทร',c.call,'#fff','#B42318')}</div>`;
+}
 function crmOrthoState(a){
   const rec=crmAptRecFor_(a);
   const resched = rec && rec.rescheduleAt && (!rec.confirmedAt || String(rec.rescheduleAt)>String(rec.confirmedAt));
@@ -5338,7 +5371,7 @@ function toggleAptContact(v){
 }
 // ป้ายเล็กๆ บอกช่องทางติดต่อ (LINE / โทร / FB) — ว่างถ้าไม่ได้เลือก
 function contactBadge(v){
-  const m = { line:{t:'LINE',c:'#06A94D'}, phone:{t:'โทร',c:'#8E4A86'}, fb:{t:'FB',c:'#1877F2'} }[v];
+  const m = { line:{t:'จองทาง LINE',c:'#06A94D'}, phone:{t:'จองทางโทร',c:'#8E4A86'}, fb:{t:'จองทาง FB',c:'#1877F2'} }[v];
   if(!m) return '';
   return `<span title="ช่องทางติดต่อ: ${CONTACT_CHANNELS[v]}" style="display:inline-block;white-space:nowrap;font-size:10px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:999px;background:${m.c}1F;border:1px solid ${m.c}55;color:${m.c};color:color-mix(in srgb,${m.c} 80%,#000);">${m.t}</span>`;
 }
@@ -9186,9 +9219,9 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       const oc = orthoCodeOf_(a.hn,a.patName);
       const _dn=aptDone_(a);
       return `<div onclick="event.stopPropagation();openOrthoHistory('${hnE}')" title="แตะเพื่อเปิดการ์ดจัดฟัน" style="background:${_dn?'#E3F7EA':'#EEF4FF'};border-left:3px solid ${_dn?'#2E9E5B':'#1E6FD9'};border-radius:5px;padding:1px 6px;margin-bottom:2px;cursor:pointer;display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12.5px;line-height:1.55;">
-        <span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${lineDot_(a).replace('margin-right:5px','margin-right:0')}${schStateDot_(a)}${schPayDot_(a)}</span>${oc?`<b style="color:var(--wine);font-size:11px;">${_escHtml(oc)}</b>`:'<span>🦷</span>'}
+        <span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${lineDot_(a).replace('margin-right:5px','margin-right:0')}${schPayDot_(a)}</span>${oc?`<b style="color:var(--wine);font-size:11px;">${_escHtml(oc)}</b>`:'<span>🦷</span>'}
         <span style="font-weight:800;color:#17407F;">${_escHtml(a.patName||'—')}</span>
-        ${procHtml}${noteHtml}${schOrthoConfirmBtn_(a)}${schConfirmedChip_(a)}
+        ${procHtml}${noteHtml}${aptConfirmChip_(a, true)}${schOrthoConfirmBtn_(a)}
       </div>`;
     }
     const sc = STATUS_COLOR[a.status]||'#999';
@@ -9196,11 +9229,11 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     const _cx = a.status==='ยกเลิก';
     const ocode = orthoCodeOf_(a.hn,a.patName,a.orthoCode);
     const _ov = (()=>{ try{ return crmIsOrthoVisit(a); }catch(e){ return false; } })();   // นัดจัดฟันที่อยู่ในตารางนัดจริง (ไม่ใช่นัดเสมือนจากการ์ดจัดฟัน) → มีจุดสถานะ/ปุ่มคอนเฟิรมเหมือนกัน
-    const _cbtn = _ov ? schOrthoConfirmBtn_(a)+schConfirmedChip_(a) : '';
+    const _cbtn = aptConfirmChip_(a, true) + (_ov ? schOrthoConfirmBtn_(a) : '');
     const extra = (procHtml||noteHtml||_cbtn) ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:0 0 1px 2px;">${procHtml}${noteHtml}${_cbtn}</div>` : '';
     return `<div style="background:${_cx?'#F8D3D1':sc+'12'};border-left:3px solid ${sc};border-radius:5px;padding:1px 6px;margin-bottom:2px;font-size:12.5px;line-height:1.55;">
       <div style="display:flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap;">
-        ${lineDot_(a).replace('margin-right:5px','margin-right:0')}${_ov?schStateDot_(a):''}${ocode?`<b style="color:var(--wine);font-size:11px;flex-shrink:0;">${_escHtml(ocode)}</b>`:''}
+        ${lineDot_(a).replace('margin-right:5px','margin-right:0')}${ocode?`<b style="color:var(--wine);font-size:11px;flex-shrink:0;">${_escHtml(ocode)}</b>`:''}
         <span style="font-weight:700;color:${sc};flex:1 1 70px;min-width:0;">${_escHtml(a.patName||'—')}</span>
         <span class="${statusClass(a.status)}" data-apt-id="${safeId}" onclick="event.stopPropagation();openStatusDropdown(event,this.dataset.aptId)" style="font-size:9px;cursor:pointer;flex-shrink:0;margin-left:auto;">${a.status||''}</span>
         <button data-apt-id="${safeId}" onclick="event.stopPropagation();openEditApt(this.dataset.aptId)" aria-label="แก้ไขนัด" title="แก้ไขนัด" style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:11px;flex-shrink:0;">✏️</button>
@@ -9222,7 +9255,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:11px;">
           <span style="background:#fff;border:1px solid #C9DAF7;color:#1E4FA0;border-radius:10px;padding:0 8px;font-weight:700;">${_escHtml(a.proc||'นัดจัดฟัน')}</span>
-          ${schOrthoLineChip_(a)}
+          ${aptConfirmChip_(a)}${(()=>{ const st=aptConfirmState_(a); return (st==='noline'||st==='blocked'||st==='wait'||st==='reminded') && isManager && !isViewOnlyUser() ? `<button onclick="event.stopPropagation();crmOrthoConfirm('${String(a.id).replace(/'/g,'')}');setTimeout(renderScheduleDay,600);" title="คนไข้ยืนยันทางโทร/แชท" style="background:#fff;border:1px solid #9DBCEB;border-radius:8px;padding:0 7px;font-size:10.5px;font-weight:700;color:#1E4FA0;cursor:pointer;">☎️ ยืนยันแทน</button>` : ''; })()}
         </div>
         ${a.note?`<div style="margin-top:4px;font-size:11.5px;color:#7A5600;">📝 ${_escHtml(a.note)}</div>`:''}
       </div>`;
@@ -9246,7 +9279,8 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
             style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:4px 6px;min-width:24px;min-height:24px;cursor:pointer;font-size:11px;">🗑️</button>
         </div>
       </div>
-      ${(a.proc||a.note||a.contactChannel)?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
+      ${(a.proc||a.note||a.contactChannel||aptConfirmState_(a))?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
+        ${aptConfirmChip_(a)}
         ${a.proc?procBadge(a.proc):''}
         ${contactBadge(a.contactChannel)}
         ${a.note?`<span style="font-size:10px;color:var(--text-mid);">📝 ${a.note}</span>`:''}
@@ -9354,6 +9388,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           ${isToday?`<span style="font-size:9px;background:#FFD700;color:#333;border-radius:8px;padding:0 5px;font-weight:800;margin-left:5px;">วันนี้</span>`:''}
           <div style="font-size:20px;font-weight:900;color:${fg};font-family:'Prompt',sans-serif;line-height:1.1;">${fmtDate(date)}</div>
           ${docTagsHtml?`<div style="margin-top:4px;">${docTagsHtml}</div>`:''}
+          ${aptConfirmSummary_(dayApts, fg)}
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:${fg};opacity:0.8;">นัด</div>
