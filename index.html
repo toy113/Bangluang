@@ -3541,6 +3541,7 @@ function crmOrthoState(a){
   return (crmHasLine(a.hn) && !a._hnFromCode) ? 'wait' : 'noline';
 }
 // นัดจัดฟัน: คนไข้มาแล้ว → บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟันในคลิกเดียว (เหมือนปุ่มบันทึกการรักษาในหน้าจัดฟัน)
+const ORTHO_ONLY_PROC_RE_=/ปรับเครื่องมือ|เหล็กหลุด|เครื่องมือหลุด|รีเทนเนอร์|ติดเครื่องมือ|ปักหมุด/;   // รายการที่ต้องลงผ่านปุ่ม "มาตามนัด"
 function crmOrthoRec(hn){ const k=crmHN(hn); return (typeof orthoData!=='undefined' && orthoData||[]).find(o=>crmHN(o.hn)===k) || null; }
 // แอดมินตั้งนัดจัดฟันเป็น "ยืนยัน" เอง (คนไข้ยืนยันทางโทร/แชท) — นัดในตารางนัดเปลี่ยนสถานะเป็นคอนเฟิร์มด้วย
 function crmOrthoConfirm(id){
@@ -5529,6 +5530,23 @@ function saveTreat(){
     const bw = document.getElementById('treat-bank-wrap');
     if(bw){ bw.style.display=''; bw.classList.add('bank-missing'); if(bw.scrollIntoView) bw.scrollIntoView({block:'center',behavior:'smooth'}); }
     return;
+  }
+  // งานจัดฟันของคนไข้ที่มีการ์ดจัดฟัน → ต้องลงผ่านปุ่ม "มาตามนัด" เท่านั้น (ไม่งั้นประวัติจัดฟัน/ครั้งที่ปรับ/เหล็กหลุด/รีเทนเนอร์ ไม่อัปเดต)
+  // ใช้กับการลงรายการใหม่เท่านั้น · แก้รายการเดิมได้ตามปกติ · การรักษาอื่นของคนไข้จัดฟัน (ขูดหินปูน อุดฟัน X-ray ฯลฯ) ลงหน้านี้ได้
+  if(!existingTreat){
+    const _hn=document.getElementById('treat-hn').value, _proc=String(getProcSelected()||document.getElementById('treat-proc').value||'');
+    const _o=_hn?crmOrthoRec(_hn):null;
+    const _orthoHit=_proc.split(',').map(x=>x.trim()).filter(x=>ORTHO_ONLY_PROC_RE_.test(x));
+    if(_o && _orthoHit.length){
+      _treatSaving=false;
+      const _d=document.getElementById('treat-date').value||todayStr();
+      const _again=String(_o['ปรับล่าสุด']||'').slice(0,10)===_d;
+      if(confirm('คนไข้จัดฟัน: "'+_orthoHit.join(', ')+'" ต้องลงผ่านปุ่ม "มาตามนัด" เท่านั้น\nเพื่อให้ประวัติจัดฟัน ครั้งที่ปรับ เหล็กหลุด และรีเทนเนอร์อัปเดตครบ\n\nกด OK เพื่อเปิดหน้า "มาตามนัด" ของวันที่ '+_d+(_again?' (วันนี้ลงไปแล้ว → เพิ่มรายการ)':'')+'\n(รายการอื่นที่ไม่ใช่จัดฟัน ให้เอาออกจากรายการแล้วบันทึกที่นี่ได้)')){
+        closeModal('modalTreat');
+        crmOrthoCame(_o.hn, _d, docName, _again);
+      }
+      return;
+    }
   }
   const doc = doctors.find(d=>d.name===docName);
   // manager พิมพ์ % เจาะจงรายการนี้ไว้ (ช่อง treat-share) ให้ใช้ค่านั้นเสมอ ข้ามการ snapshot อัตโนมัติ
