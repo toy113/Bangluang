@@ -58,7 +58,8 @@
   @keyframes wlShine{0%,55%{left:-60%}100%{left:120%}}
   .wl .wl-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:2px;font-weight:800;}
   .wl .wl-chip{width:40px;height:30px;border-radius:7px;margin-top:14px;background:linear-gradient(135deg,#f7e3a3,#c99a3b 60%,#f1d58a);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);}
-  .wl .wl-date{font-size:31px;font-weight:800;letter-spacing:1.5px;margin-top:12px;font-variant-numeric:tabular-nums;text-shadow:0 2px 6px rgba(0,0,0,.25);}
+  .wl .wl-dow{font-size:19px;font-weight:800;margin-top:12px;color:#F7E3A3;text-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .wl .wl-date{font-size:31px;font-weight:800;letter-spacing:1.5px;margin-top:0;font-variant-numeric:tabular-nums;text-shadow:0 2px 6px rgba(0,0,0,.25);}
   .wl .wl-sub{font-size:13px;opacity:.95;margin-top:2px;}
   .wl .wl-proc{position:absolute;right:18px;bottom:16px;font-size:13px;font-weight:800;text-align:right;max-width:60%;text-shadow:0 1px 4px rgba(0,0,0,.25);}
   .wl .wl-when{display:inline-block;margin-top:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:3px 11px;font-size:12.5px;font-weight:700;backdrop-filter:blur(4px);}
@@ -322,8 +323,9 @@ function renderNext(p){
     <div class="wl" id="wlCard">
       <div class="wl-top"><span>BANGLUANG</span><span>${esc(ocode || ('HN '+(p.hn||'')))}</span></div>
       <div class="wl-chip"></div>
+      ${dow?`<div class="wl-dow">วัน${esc(dow)}</div>`:''}
       <div class="wl-date">${dd}</div>
-      <div class="wl-sub">${esc(dow)}${a.time?' · '+esc(a.time)+' น.':''}${a.docName?' · '+esc(a.docName):''}</div>
+      <div class="wl-sub">${a.time?esc(a.time)+' น.':''}${a.time&&a.docName?' · ':''}${a.docName?esc(a.docName):''}</div>
       <span class="wl-when">⏳ ${esc(cntText(n))}</span>
       <div class="wl-proc">${a.kind==='ortho'?'😬 ':''}${esc(a.proc||'')}</div>
     </div></div>`;
