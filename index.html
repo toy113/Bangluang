@@ -2215,6 +2215,14 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   </div>
 </div>
 
+<!-- ใบส่งต่อผู้ป่วย -->
+<div class="modal-overlay" id="modalReferral">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-title">📨 ใบส่งต่อผู้ป่วย</div>
+    <button class="modal-close" onclick="closeModal('modalReferral')" aria-label="ปิดหน้าต่าง">×</button>
+    <div id="refBody"></div>
+  </div>
+</div>
 <!-- ใบเสร็จรับเงิน -->
 <div class="modal-overlay" id="modalReceipt">
   <div class="modal-box" style="max-width:560px;">
@@ -5143,7 +5151,7 @@ function treatRow(t){
     <td style="color:var(--blue);font-weight:600">${t.transfer&&+t.transfer?fmt(+t.transfer):''}${bankTag(t)}</td>
     <td style="color:var(--orange);font-weight:600">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
     <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
-    <td><button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
+    <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button>${isViewOnlyUser()?'':`<button class="btn btn-ghost btn-sm btn-icon" onclick="openReferralModal('${t.id}')" title="พิมพ์ใบส่งต่อผู้ป่วยไปรักษาที่อื่น" aria-label="ใบส่งต่อผู้ป่วย">📨</button>`}</td>
   </tr>`;
 }
 
@@ -6278,6 +6286,82 @@ function rcptListDraw_(){
       ${r.status!=='void' && rcptDiff_(r)?`<div style="flex-basis:100%;font-size:12px;color:#A04000;font-weight:700;">⚠️ ${E(rcptDiff_(r))}</div>`:''}${r.status==='void' && r.voidAt?`<div style="flex-basis:100%;font-size:11.5px;color:var(--text-light);">ยกเลิกโดย ${E(r.voidBy||'-')} · ${E(String(r.voidAt).slice(0,16).replace('T',' '))}</div>`:''}</div>`).join('')
     : '<div style="padding:16px;text-align:center;color:var(--text-light);">ยังไม่มีใบเสร็จในเดือนนี้</div>';
 }
+// ============================================================
+//  ใบส่งต่อผู้ป่วย (Referral) — พิมพ์อย่างเดียว ไม่เก็บข้อมูลลงชีต · A4 · มีส่วนตอบกลับจากสถานพยาบาลปลายทาง
+// ============================================================
+const REF_REASONS=['เกินขอบเขตการรักษาของคลินิก','ต้องการการรักษาโดยผู้เชี่ยวชาญเฉพาะทาง','ต้องการตรวจเพิ่มเติม (เช่น CBCT / ตรวจเลือด)','มีโรคประจำตัว ต้องดูแลร่วมกับแพทย์','ต้องรักษาภายใต้การดมยา / ในโรงพยาบาล','คนไข้ประสงค์ไปรักษาต่อที่อื่น'];
+let _refT=null;
+function openReferralModal(treatId){
+  const t=treatments.find(x=>String(x.id)===String(treatId)); if(!t) return; _refT=t;
+  const E=escapeHtml, pt=t.hn?(patients||[]).find(p=>normHN(p.hn)===normHN(t.hn)):null;
+  const docs=doctors.filter(d=>d.fullName||d.name);
+  const last=(()=>{ try{ return JSON.parse(localStorage.getItem('bl_ref_last')||'{}'); }catch(e){ return {}; } })();   // จำปลายทางล่าสุดไว้ในเครื่อง (ไม่มีข้อมูลคนไข้)
+  document.getElementById('refBody').innerHTML=`
+    <div style="background:var(--cream);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px;"><b>${E(t.patName||'')}</b>${t.hn?' · HN '+E(t.hn):''}<br><span style="color:var(--text-light);font-size:12.5px;">รักษาวันที่ ${fmtDateThai(t.date)} · ${E(t.docName||'')}</span></div>
+    <div class="form-grid">
+      <div class="form-group"><label>ส่งต่อไปที่ (โรงพยาบาล/คลินิก) *</label><input class="form-control" id="ref-to" value="${E(last.to||'')}" placeholder="เช่น รพ.ปทุมธานี"></div>
+      <div class="form-group"><label>เรียน</label><input class="form-control" id="ref-attn" value="${E(last.attn||'แพทย์/ทันตแพทย์ผู้รับผิดชอบ')}"></div>
+      <div class="form-group"><label>แผนก (ถ้ามี)</label><input class="form-control" id="ref-dept" value="${E(last.dept||'')}" placeholder="เช่น ศัลยกรรมช่องปาก"></div>
+      <div class="form-group"><label>ความเร่งด่วน</label><select class="form-control" id="ref-urg"><option>ปกติ</option><option>ด่วน</option><option>ฉุกเฉิน</option></select></div>
+      <div class="form-group"><label>อายุ (ปี)</label><input class="form-control" id="ref-age" inputmode="numeric"></div>
+      <div class="form-group"><label>เบอร์ติดต่อคนไข้</label><input class="form-control" id="ref-phone" value="${E((pt&&pt.phone)||'')}"></div>
+    </div>
+    <div class="form-group"><label>อาการสำคัญ / ปัญหาที่พบ</label><textarea class="form-control" id="ref-cc" style="min-height:56px;"></textarea></div>
+    <div class="form-group"><label>การวินิจฉัยเบื้องต้น (ระบุซี่ฟันถ้ามี)</label><input class="form-control" id="ref-dx"></div>
+    <div class="form-group"><label>การรักษาที่ให้แล้ว</label><input class="form-control" id="ref-tx" value="${E(String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).join(', '))}"></div>
+    <div class="form-group"><label>เหตุผลการส่งต่อ</label><div style="display:grid;gap:4px;">${REF_REASONS.map(r=>`<label style="display:flex;gap:8px;align-items:center;font-size:13.5px;"><input type="checkbox" class="ref-rsn" value="${E(r)}" style="width:17px;height:17px;"> ${E(r)}</label>`).join('')}
+      <input class="form-control" id="ref-rsn-other" placeholder="อื่นๆ (ระบุ)" style="margin-top:4px;"></div></div>
+    <div class="form-grid">
+      <div class="form-group"><label>ประวัติแพ้ยา</label><input class="form-control" id="ref-allergy" placeholder="ไม่มี / ระบุชื่อยา"></div>
+      <div class="form-group"><label>โรคประจำตัว / ยาที่ใช้ประจำ</label><input class="form-control" id="ref-pmh" placeholder="ไม่มี / ระบุ"></div>
+    </div>
+    <div class="form-group"><label>เอกสารแนบ</label><input class="form-control" id="ref-attach" placeholder="เช่น ฟิล์ม X-ray 1 แผ่น, ภาพถ่ายในช่องปาก"></div>
+    <div class="form-group"><label>สิ่งที่ขอให้ช่วยดำเนินการ (ไม่บังคับ)</label><input class="form-control" id="ref-req" placeholder="เช่น ขอพิจารณาผ่าฟันคุดซี่ 38 และแจ้งผลกลับ"></div>
+    <div class="form-group"><label>ทันตแพทย์ผู้ส่ง</label><select class="form-control" id="ref-doc">${docs.map(d=>`<option value="${E(d.id)}" ${d.name===t.docName?'selected':''}>${E(d.fullName||d.name)}${d.licenseNo?'':' (ยังไม่ใส่เลขใบอนุญาต)'}</option>`).join('')}</select></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;"><button class="btn btn-ghost" onclick="closeModal('modalReferral')">ปิด</button><button class="btn btn-primary" onclick="printReferral()">🖨️ พิมพ์ใบส่งต่อ</button></div>
+    <div style="font-size:11.5px;color:var(--text-light);margin-top:8px;">ใบส่งต่อพิมพ์อย่างเดียว ระบบไม่บันทึกข้อมูลในฟอร์มนี้ (ถ้าต้องการเก็บไว้ ให้บันทึกในหมายเหตุการรักษา)</div>`;
+  document.getElementById('modalReferral').classList.add('open');
+}
+function printReferral(){
+  const t=_refT; if(!t) return; const v=id=>(document.getElementById(id)?.value||'').trim(), E=escapeHtml;
+  const to=v('ref-to'); if(!to){ showToast('กรุณาระบุสถานพยาบาลที่ส่งต่อ','error'); document.getElementById('ref-to').focus(); return; }
+  try{ localStorage.setItem('bl_ref_last', JSON.stringify({ to, attn:v('ref-attn'), dept:v('ref-dept') })); }catch(e){}
+  const rs=[...document.querySelectorAll('.ref-rsn:checked')].map(c=>c.value); if(v('ref-rsn-other')) rs.push(v('ref-rsn-other'));
+  const d=doctors.find(x=>String(x.id)===v('ref-doc'))||{}, urg=v('ref-urg');
+  const c=(typeof RCPT!=='undefined' && RCPT.cfg) || {};
+  const clinic=c.name||'คลินิกทันตกรรมบางหลวง', addr=c.address||'119/14 ถ.ปทุมธานีสายใน อ.เมืองปทุมธานี จ.ปทุมธานี 12000', phone=c.phone||'095-947-6759';
+  const row=(k,val)=>`<tr><th>${k}</th><td>${val?E(val):'<span class="dash">—</span>'}</td></tr>`;
+  const red=urg!=='ปกติ';
+  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ใบส่งต่อผู้ป่วย ${E(t.patName||'')}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>@page{size:A4 portrait;margin:14mm 15mm}*{box-sizing:border-box}body{font-family:'Sarabun',sans-serif;color:#222;font-size:14px;line-height:1.5;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hd{display:flex;justify-content:space-between;border-bottom:2px solid #6B2D5E;padding-bottom:8px}.cn{font-size:19px;font-weight:800;color:#6B2D5E}.ce{font-size:12px;color:#777}.ca{text-align:right;font-size:12px;color:#444}
+h1{text-align:center;font-size:21px;margin:14px 0 2px;color:#3d1435}.en{text-align:center;font-size:12px;color:#888;margin-bottom:10px}
+.urg{display:inline-block;border:2px solid ${red?'#C0392B':'#888'};color:${red?'#C0392B':'#555'};border-radius:6px;padding:0 10px;font-weight:800}
+.meta{display:flex;justify-content:space-between;margin-bottom:8px}table{width:100%;border-collapse:collapse}th{width:30%;text-align:left;vertical-align:top;padding:5px 8px;background:#f6eff4;border:1px solid #e3d5df;font-weight:700}td{padding:5px 8px;border:1px solid #e3d5df;vertical-align:top}
+.dash{color:#aaa}.sg{display:flex;justify-content:flex-end;margin-top:28px}.sg > div{width:46%;text-align:center}.ln{border-top:1px dotted #555;margin-bottom:4px}
+.reply{margin-top:22px;border-top:2px dashed #999;padding-top:10px}.reply h2{font-size:15px;margin:0 0 6px}.lines div{border-bottom:1px dotted #999;height:26px}</style></head><body>
+<div class="hd"><div><div class="cn">${E(clinic)}</div><div class="ce">${E(c.nameEn||'Bangluang Dental Clinic')}</div></div><div class="ca">${E(addr)}<br>โทร. ${E(phone)}</div></div>
+<h1>ใบส่งต่อผู้ป่วย</h1><div class="en">PATIENT REFERRAL LETTER</div>
+<div class="meta"><div>วันที่ <b>${fmtDateThai(todayStr())}</b></div><div>ความเร่งด่วน <span class="urg">${E(urg)}</span></div></div>
+<div style="margin-bottom:8px;">เรียน <b>${E(v('ref-attn')||'แพทย์ผู้รับผิดชอบ')}</b>${v('ref-dept')?' แผนก'+E(v('ref-dept')):''} &nbsp;<b>${E(to)}</b></div>
+<div style="margin-bottom:10px;">ขอส่งผู้ป่วยมาเพื่อรับการตรวจรักษาต่อ ตามรายละเอียดดังนี้</div>
+<table>${row('ชื่อ-สกุล',t.patName)}${row('HN (คลินิก)',t.hn)}${row('อายุ',v('ref-age')?v('ref-age')+' ปี':'')}${row('เบอร์ติดต่อ',v('ref-phone'))}
+${row('อาการสำคัญ / ปัญหาที่พบ',v('ref-cc'))}${row('การวินิจฉัยเบื้องต้น',v('ref-dx'))}${row('การรักษาที่ให้แล้ว',(v('ref-tx')||'')+(v('ref-tx')&&t.date?' (วันที่ '+fmtDateThai(t.date)+')':''))}
+${row('ประวัติแพ้ยา',v('ref-allergy'))}${row('โรคประจำตัว / ยาที่ใช้',v('ref-pmh'))}
+<tr><th>เหตุผลการส่งต่อ</th><td>${rs.length?rs.map(r=>'• '+E(r)).join('<br>'):'<span class="dash">—</span>'}</td></tr>
+${row('สิ่งที่ขอให้ช่วยดำเนินการ',v('ref-req'))}${row('เอกสารแนบ',v('ref-attach'))}</table>
+<div style="margin-top:10px;">จึงเรียนมาเพื่อโปรดพิจารณาให้การรักษาต่อ และขอความกรุณาแจ้งผลการรักษากลับมายังคลินิกด้วย จักขอบพระคุณยิ่ง</div>
+<div class="sg"><div><div class="ln"></div>(${E(d.fullName||d.name||'')})<br>ทันตแพทย์ผู้ส่ง${d.licenseNo?'<br>ใบอนุญาตประกอบวิชาชีพเลขที่ '+E(d.licenseNo):''}</div></div>
+<div class="reply"><h2>ส่วนตอบกลับจากสถานพยาบาลที่รับการส่งต่อ</h2>
+<div>ผลการตรวจ / การวินิจฉัย</div><div class="lines"><div></div><div></div></div>
+<div style="margin-top:6px;">การรักษาที่ให้ / คำแนะนำ</div><div class="lines"><div></div><div></div></div>
+<div style="display:flex;justify-content:space-between;margin-top:16px;"><div>วันที่ ................................</div><div>ลงชื่อ .................................................. ผู้ตรวจ</div></div></div>
+<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
+  const w=window.open('','_blank'); if(!w){ showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — อนุญาตป๊อปอัปก่อน','error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  closeModal('modalReferral');
+}
 function buildCertPrintHtml(cert){
   const procList = String(cert.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
   const needsRest = cert.needsRest === true || cert.needsRest === 'TRUE';
@@ -7266,7 +7350,7 @@ function renderTreatPage(){
       <td style="color:var(--blue)">${t.transfer&&+t.transfer?fmt(+t.transfer):''}${bankTag(t)}</td>
       <td style="color:var(--orange)">${t.sso&&+t.sso?fmt(+t.sso):''}</td>
       <td style="font-weight:800;color:var(--wine-dark)">${fmt(totalPrice(t))}</td>
-      <td style="white-space:nowrap;">${isViewOnlyUser()?'':`<button class="btn btn-ghost btn-sm btn-icon" onclick="openReceiptModal('${t.id}')" title="ใบเสร็จรับเงิน (รวมทุกรายการของคนไข้วันนี้)" aria-label="ใบเสร็จรับเงิน">🧾</button>`}<button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button></td>
+      <td style="white-space:nowrap;">${isViewOnlyUser()?'':`<button class="btn btn-ghost btn-sm btn-icon" onclick="openReceiptModal('${t.id}')" title="ใบเสร็จรับเงิน (รวมทุกรายการของคนไข้วันนี้)" aria-label="ใบเสร็จรับเงิน">🧾</button>`}<button class="btn btn-ghost btn-sm btn-icon" onclick='openCertificateModal(${JSON.stringify(t)})' title="ออกใบรับรองแพทย์" aria-label="ออกใบรับรองแพทย์">🖨️</button>${isViewOnlyUser()?'':`<button class="btn btn-ghost btn-sm btn-icon" onclick="openReferralModal('${t.id}')" title="พิมพ์ใบส่งต่อผู้ป่วยไปรักษาที่อื่น" aria-label="ใบส่งต่อผู้ป่วย">📨</button>`}</td>
       ${isManager?`<td>
         ${canEditTreat(t) ? `<div style="display:flex;gap:6px;">
           <button class="btn btn-ghost btn-sm btn-icon" onclick='openAddTreat(${JSON.stringify(t)})' aria-label="แก้ไขรายการรักษา" title="แก้ไข">✏️</button>
