@@ -726,6 +726,13 @@ function crmReviewAllowed_(s, docNames, tplId) {
   });
   return ok;   // หมอที่ไม่อยู่ในกติกา = ไม่เด้งไปรีวิว
 }
+/* ป้ายปุ่ม LINE ยาวได้ไม่เกิน 20 ตัวอักษร → ย่อคำยาวที่รู้จัก ไม่ให้ถูกตัดกลางคำ (ข้อความที่คนไข้ส่งยังเป็นคำเต็ม) */
+var CRM_BTN_SHORT_ = { 'เสียวฟัน/เจ็บเล็กน้อย': 'เสียว/เจ็บเล็กน้อย', 'ครอบฟันชั่วคราวหลุด/ครอบหลุด': 'ครอบฟันหลุด', 'กัดแล้วรู้สึกสูง/ชนก่อน': 'กัดแล้วสูง/ชนก่อน' };
+function crmBtnLabel_(l) {
+  var t = String(l || '').trim(); if (CRM_BTN_SHORT_[t]) t = CRM_BTN_SHORT_[t];
+  if (t.length <= 20) return t;
+  var cut = t.lastIndexOf('/', 20); return cut > 5 ? t.slice(0, cut) : t.slice(0, 20);
+}
 var CRM_HIDDEN_OPT_LABELS_ = ['เลือดออกไม่หยุด', 'หายใจ/กลืนลำบาก'];   // ไม่แสดงเป็นปุ่มในการ์ดติดตามอาการ (คนไข้ยังพิมพ์แจ้งเองได้ — ระบบจับคำฉุกเฉินจากข้อความเหมือนเดิม)
 function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
   var opts = [];
@@ -745,8 +752,8 @@ function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
     return { type: 'button', height: 'sm', style: em ? 'primary' : (o.kind === 'ok' ? 'primary' : 'secondary'),
       color: em ? '#C0392B' : (o.kind === 'ok' ? '#1D825C' : (sev ? '#F5D7DB' : undefined)),
       action: (o.kind === 'ok' && okReview)   // ปกติดี → เด้งไปหน้ารีวิว Google ทันที (ผ่านหน้า rate.html ที่บันทึกคำตอบก่อน)
-        ? { type: 'uri', label: String(o.label).slice(0, 20), uri: crmRateUrl_(fu.id) + '&kind=ok' }
-        : { type: 'postback', label: String(o.label).slice(0, 20), data: 'fu|' + fu.id + '|' + i, displayText: String(o.label) } };
+        ? { type: 'uri', label: crmBtnLabel_(o.label), uri: crmRateUrl_(fu.id) + '&kind=ok' }
+        : { type: 'postback', label: crmBtnLabel_(o.label), data: 'fu|' + fu.id + '|' + i, displayText: String(o.label) } };
   });
   buttons.forEach(function (b) { if (b.color === undefined) delete b.color; });
   return { type: 'flex', altText: 'ติดตามอาการหลังการรักษา', contents: crmBubble_(s, '🩺 ติดตามอาการ', q, [], buttons) };
