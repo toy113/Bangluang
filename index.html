@@ -12334,7 +12334,9 @@ function orthoCardHtml(r){
       <div class="oc-stats" style="text-align:right;font-size:12px;">
         <div>มาแล้ว <strong style="color:var(--wine);">${orthoVisitCount_(r)}</strong> ครั้ง</div>
         ${(isActive && orthoDaysSince_(r)!=null) ? `<div style="color:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'var(--red)':'var(--text-light)'};font-weight:${orthoDaysSince_(r)>ORTHO_OVERDUE_DAYS?'700':'500'};">ไม่ได้มา ${orthoDaysSince_(r)} วัน</div>` : ''}
-        ${r['นัดถัดไป']?`<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>${crmOrthoAptBadge(r)}`:''}
+        ${r['นัดถัดไป']?(String(r['นัดถัดไป']).slice(0,10) < todayStr()
+          ? `<div style="color:var(--red);font-weight:700;" title="วันนัดผ่านไปแล้ว — ถ้าคนไข้มาแล้วให้กด มาตามนัด ถ้าไม่มาให้ลงนัดใหม่ (คนไข้จะไม่เห็นนัดนี้ใน LINE เพราะเลยวันแล้ว)">⚠️ เลยนัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div><div style="color:var(--red);font-size:11px;">ยังไม่ได้บันทึกมา/ลงนัดใหม่</div>`
+          : `<div style="color:var(--text-mid);">นัด ${thaiDate_(r['นัดถัดไป'])}${r['นัดถัดไปเวลา']?' '+r['นัดถัดไปเวลา']+' น.':''}</div>${crmOrthoAptBadge(r)}`):''}
         ${orthoLooseCount_(r)>0?`<div style="color:var(--text-mid);">หลุดแล้ว ${orthoLooseCount_(r)} ครั้ง</div>`:''}
         ${String(r['วันถอดเครื่องมือ']||'').trim()?`<div style="color:var(--text-mid);">ถอดเครื่องมือ ${thaiDate_(String(r['วันถอดเครื่องมือ']).slice(0,10))}</div>`:''}
       </div>
