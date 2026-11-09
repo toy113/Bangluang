@@ -1147,8 +1147,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 @media print {
   body * { visibility: hidden; }
   #certPrintArea, #certPrintArea * { visibility: visible; }
-  #certPrintArea { display: block; position: absolute; top: 0; left: 0; width: 100%; }
-  @page { size: A4; margin: 0; }
+  /* ซ่อนทุกอย่างที่ไม่ใช่ใบรับรองให้หลุดจาก layout จริง (visibility:hidden ยังกินที่ ทำให้เกิดหน้าว่างหน้าที่ 2) */
+  body *:not(#certPrintArea):not(#certPrintArea *):not(:has(#certPrintArea)) { display: none !important; }
+  html, body, body *:has(#certPrintArea) { display: block !important; height: auto !important; min-height: 0 !important; overflow: visible !important; position: static !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
+  #certPrintArea { display: block !important; position: static !important; width: 210mm; }
+  #certPrintArea .cert-paper { min-height: 0 !important; height: auto !important; width: 210mm; padding: 14mm 18mm !important; page-break-inside: avoid; break-inside: avoid; }
+  @page { size: A4 portrait; margin: 0; }
 }
 .cert-paper { font-family: 'Sarabun', sans-serif; color: var(--text-dark); width: 210mm; min-height: 297mm; padding: 20mm 18mm; box-sizing: border-box; }
 .cert-letterhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--gold); }
