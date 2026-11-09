@@ -570,7 +570,7 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
 function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม\nโทร. ' + String((s && s.clinicPhone) || '0959476759').replace(/[^0-9]/g, '') + '\nพิมพ์ในแชทนี้ได้เลยค่ะ', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
 /* ข้อความเน้นขอให้กดยืนยันนัด — ใส่เหนือปุ่มในการ์ดเตือนนัด */
-function crmConfirmAsk_() { return { type: 'text', text: 'ถ้าสะดวกมาตามนัด รบกวนกด ✅ ยืนยันนัด ด้วยนะคะ 🙏', wrap: true, size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'center' }; }
+function crmConfirmAsk_() { return { type: 'text', text: 'ถ้ามาได้ รบกวนกด ✅ ยืนยันนัด ด้วยค่ะ 🙏', wrap: true, size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'center' }; }
 function crmTelUri_(s) { return 'tel:' + String(s.clinicPhone || '').replace(/[^0-9+]/g, ''); }
 /* ปุ่มขอเลื่อนนัด = ส่งข้อความจริงเข้าแชท (เด้งเตือนใน LINE OA Manager) เช่น "ขอเลื่อนนัด 12/11" · วัน/เดือนใช้จับคู่นัด */
 function crmReschedText_(date, word) {
