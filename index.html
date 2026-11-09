@@ -3264,7 +3264,7 @@ function viewOnlyBlock_(){ if(isViewOnlyUser()){ showToast('บัญชีน�
 function crmDoctorSubs(){ return isOrthoOnlyUser() ? ['orthoapt'] : ['followup']; }   // หมอทั่วไป: เห็นเฉพาะ ติดตามอาการ (เคสตัวเอง)
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { message:'💬 ข้อความ', reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
-var CRM_LOG_TYPE = { promo:'🦷 การ์ดราคาจัดฟัน', staff:'แจ้งแอดมิน', confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', birthday:'วันเกิด', test:'ทดสอบ' };
+var CRM_LOG_TYPE = { promo:'🦷 การ์ดราคาจัดฟัน', faq:'🤖 ตอบอัตโนมัติ', staff:'แจ้งแอดมิน', confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', birthday:'วันเกิด', test:'ทดสอบ' };
 
 function crmEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 const _crmHNMemo=new Map();

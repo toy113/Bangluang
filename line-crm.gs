@@ -75,7 +75,8 @@ var CRM_DEFAULT_SETTINGS = {
   rescheduleText: 'รับเรื่องขอเลื่อนนัดแล้วค่ะ 🙏\nพนักงานจะติดต่อกลับเพื่อยืนยันวันเวลาใหม่\n\n*นัดเดิมยังคงอยู่จนกว่าคลินิกจะยืนยันการเปลี่ยนแปลง*\n\nสะดวกช่วงเวลาไหนคะ?',
   confirmThanksText: 'ขอบคุณค่ะ ✅ ยืนยันนัดเรียบร้อย แล้วพบกันนะคะ',
   // ตอบอัตโนมัติด้วยการ์ดราคาจัดฟัน เมื่อคนที่ยังไม่ใช่คนไข้จัดฟันพิมพ์ถามเรื่องจัดฟัน
-  orthoPromoOn: true, orthoPromoDays: 7, orthoPromoOpen: '10:00', orthoPromoClose: '20:00', orthoPromoBackTime: '10:00'
+  orthoPromoOn: true, orthoPromoDays: 7,
+  faqOn: true               // ตอบอัตโนมัติ: ประกันสังคม / เวลาทำการ-แผนที่ / ราคาโดยประมาณ (วันละ 1 ครั้งต่อหัวข้อต่อคน)
 };
 
 function crmSettings_() {
@@ -1602,8 +1603,10 @@ function crmHandleText_(s, ev, uid) {
     if (ack) crmReply_(ev.replyToken, [crmText_(ack)]);
     return;
   }
-  // โปรจัดฟัน: ปุ่มในการ์ด + ตอบอัตโนมัติเมื่อถามเรื่องจัดฟัน
-  if (crmOrthoPromoHandle_(s, ev, uid, text)) return;
+  // ตอบอัตโนมัติ: โปรจัดฟัน / ประกันสังคม / เวลาทำการ-แผนที่ / ราคา (+ ปุ่มในการ์ด)
+  var chatting = crmConvTouch_(uid);
+  if (crmOrthoPromoHandle_(s, ev, uid, text, chatting)) return;
+  if (crmFaqHandle_(s, ev, uid, text, chatting)) return;
   // ขอเลื่อนนัด / ยืนยันนัด (ปุ่มในการ์ดส่งเป็นข้อความจริง หรือคนไข้พิมพ์เอง) → จับคู่นัดข้างหน้าของคนไข้แล้วเข้ากระบวนการเดียวกับปุ่มเดิม
   var tm = text.replace(/\s+/g, ' ').trim(), aptWord = /^ขอเลื่อนนัด(\s|$)/.test(tm) ? 'resched' : (/^ยืนยันนัด(\s|$)/.test(tm) ? 'confirm' : '');
   if (aptWord && tm.length <= 40) {
@@ -1661,11 +1664,14 @@ function crmIsOrthoPatientUid_(uid) {
   return crmReadByName_('ortho').some(function (o) { return o.lineUserId && o.lineUserId === uid; });
 }
 function crmHm_(d) { return Utilities.formatDate(d || new Date(), CRM_TZ, 'HH:mm'); }
-function crmOrthoPromoHandle_(s, ev, uid, text) {
+/* มีข้อความจากคนนี้ภายใน 30 นาทีก่อนหน้า = กำลังคุยกับแอดมินอยู่ (ระบบมองไม่เห็นข้อความที่แอดมินตอบใน OA Chat จึงใช้ข้อความฝั่งคนไข้แทน) */
+function crmConvTouch_(uid) {
+  var cache = CacheService.getScriptCache(), k = 'crm_conv_' + uid, was = !!cache.get(k);
+  cache.put(k, '1', 1800);
+  return was;
+}
+function crmOrthoPromoHandle_(s, ev, uid, text, chatting) {
   var tm = String(text || '').replace(/\s+/g, ' ').trim();
-  var cache = CacheService.getScriptCache(), convKey = 'crm_conv_' + uid;
-  var chatting = !!cache.get(convKey);            // มีข้อความจากคนนี้ภายใน 30 นาทีก่อนหน้า = กำลังคุยอยู่
-  cache.put(convKey, '1', 1800);
   var who = null; var whoOf = function () { return who || (who = crmNameOfUid_(uid)); };
   // ปุ่ม "นัดปรึกษาฟรี" → งานโทรกลับ (แจ้งแอดมินผ่าน crmCreateTask_)
   if (tm === CRM_PROMO_BOOK_TXT) {
@@ -1707,13 +1713,19 @@ function crmOrthoPromoHandle_(s, ev, uid, text) {
 function crmOrthoPromoPlain_() {
   return '🦷 จัดฟันกับทันตแพทย์เฉพาะทางจัดฟัน ทพญ.วัจน์กร เสือดี\n🎁 ตรวจ + วางแผนการรักษา ฟรี\n\n1) พิมพ์ปาก + X-ray 2,200\n2) เคลียร์ช่องปาก: อุด/ถอน/ขูดหินปูน 800–1,200 ต่อรายการ · ผ่าฟันคุด 3,000–4,000\n3) วันติดเครื่องมือ 3,000\n4) ปรับเครื่องมือ เดือนละ 1,500 ชำระ 28 ครั้ง (มาต่อเนื่อง ไม่ขาดการรักษาเกิน 60 วัน)\n5) ใส่รีเทนเนอร์ 4,000\n\nตรวจสอบรายชื่อหมอจัดฟัน: ' + CRM_PROMO_VERIFY_URL + '\nพิมพ์ "' + CRM_PROMO_BOOK_TXT + '" เพื่อนัดปรึกษาได้เลยค่ะ';
 }
+/* เวลาทำการคลินิก (ตามเว็บ bangluangsmile.com) — index = วันในสัปดาห์ 0=อาทิตย์ */
+var CRM_CLINIC_HOURS = [['10:30', '17:30'], ['10:30', '18:30'], ['10:30', '18:30'], ['10:30', '17:30'], ['10:30', '18:30'], ['10:30', '18:30'], ['10:30', '17:30']];
+var CRM_DAY_TH = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+function crmDow_(d) { return +Utilities.formatDate(d || new Date(), CRM_TZ, 'u') % 7; }   // u: 1=จันทร์..7=อาทิตย์ → 0=อาทิตย์
 function crmPromoInHours_(s) {
-  var now = crmHm_(), a = String(s.orthoPromoOpen || '10:00'), b = String(s.orthoPromoClose || '20:00');
-  return now >= a && now < b;
+  var h = CRM_CLINIC_HOURS[crmDow_()], now = crmHm_();
+  return now >= h[0] && now < h[1];
 }
 function crmPromoBackText_(s) {
-  var t = String(s.orthoPromoBackTime || s.orthoPromoOpen || '10:00');
-  return (crmHm_() >= String(s.orthoPromoClose || '20:00') ? 'พรุ่งนี้ ' : 'วันนี้ ') + t + ' น.';
+  var h = CRM_CLINIC_HOURS[crmDow_()], now = crmHm_();
+  if (now < h[0]) return 'วันนี้ ' + h[0] + ' น.';
+  var tmr = CRM_CLINIC_HOURS[(crmDow_() + 1) % 7];
+  return 'พรุ่งนี้ ' + tmr[0] + ' น.';
 }
 function crmOrthoPromoMessage_(s) {
   var W = '#6B2D5E', D = '#2b1026', G = '#999999';
@@ -1760,6 +1772,169 @@ function crmOrthoPromoMessage_(s) {
       { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_PROMO_ASK_TXT } }
     ] }
   } };
+}
+
+
+/* ============================ FAQ อัตโนมัติ: ประกันสังคม / เวลาทำการ-แผนที่ / ราคา ============================
+   ตอบเมื่อ faqOn · ไม่ใช่เรื่องอาการ · ไม่ได้กำลังคุย (30 นาที) · หัวข้อเดิมต่อคนไม่เกินวันละครั้ง · โหมดทดสอบตอบเฉพาะบัญชีทดสอบ
+   ข้อมูลคลินิกจาก bangluangsmile.com (llms.txt) — แก้ที่ค่าคงที่ด้านล่าง */
+var CRM_CLINIC_ADDR = '119/14 หมู่ 3 ซ.ปทุมธานี-สายใน ต.บ้านฉาง อ.เมือง จ.ปทุมธานี 12000';
+var CRM_CLINIC_MAP = 'https://maps.google.com/?cid=13261426560365025658';
+var CRM_SSO_URL = 'https://bangluangsmile.com/prakan-sangkom-tamfun.html';
+var CRM_SSO_LIMIT = 900;   // อุด/ถอน/ขูดหินปูน รวมต่อปี (ตามข้อตกลงที่มีผล 1 พ.ค. 2569)
+var CRM_FAQ_BOOK = { 'ขอนัดใช้สิทธิประกันสังคม': '🏛️ ขอนัดใช้สิทธิประกันสังคม (กดจากการ์ดประกันสังคม)', 'ขอนัดตรวจฟัน': '🦷 ขอนัดตรวจฟัน (กดจากการ์ดราคา)' };
+var CRM_FAQ_ASK = 'ขอสอบถามแอดมินค่ะ';
+var CRM_PRICE_ROWS = [   // [คำค้น(regex), ชื่อ, ราคา, หมายเหตุ]
+  [/ขูดหินปูน|หินปูน/, 'ขูดหินปูน', '800–1,200', ''],
+  [/อุดฟัน|อุด/, 'อุดฟัน', '800–1,200', 'ต่อซี่'],
+  [/ถอนฟัน|ถอน(?!.*คุด)/, 'ถอนฟัน', '800–1,200', 'ต่อซี่'],
+  [/ฟันคุด|คุด/, 'ผ่าฟันคุด', '3,000–4,000', 'ต่อซี่ · ต้องเอ็กซเรย์ก่อน'],
+  [/ฟันปลอม|ฟันเทียมถอด/, 'ฟันปลอม', 'เริ่ม 3,000', 'ต่อชิ้น'],
+  [/รีเทนเนอร์/, 'รีเทนเนอร์ทำใหม่', '4,000', 'ต่อคู่ บน+ล่าง'],
+  [/รักษาราก|รากฟัน(?!เทียม)/, 'รักษารากฟัน', 'ประเมินหลังตรวจ', ''],
+  [/ครอบ|วีเนียร์/, 'ครอบฟัน / วีเนียร์', 'ประเมินหลังตรวจ', ''],
+  [/รากฟันเทียม|รากเทียม|implant/i, 'รากฟันเทียม', 'ประเมินหลังตรวจ', '']
+];
+function crmFaqTopic_(t) {
+  if (/ประกันสังคม|ปกส|ป\.ก\.ส|ใช้สิทธิ|สิทธิ์?ทำฟัน|สิทธิ์?ทันต|สิทธิ์?เหลือ/.test(t)) return 'sso';
+  if (!/นัด/.test(t) && /เปิดกี่โมง|ปิดกี่โมง|เปิดกี่|ปิดกี่|เปิดถึง|ปิดถึง|ถึงกี่โมง|เวลาเปิด|เวลาทำการ|เปิดไหม|เปิดมั้ย|เปิดมั๊ย|เปิดหรือเปล่า|เปิดวัน|ปิดวัน|หยุดวัน|วันหยุด|เปิดทุกวัน|อยู่ตรงไหน|อยู่ที่ไหน|ที่อยู่|แผนที่|ไปยังไง|ไปทางไหน|เดินทาง|จอดรถ|โลเคชั่น|location|พิกัด/i.test(t)) return 'hours';
+  var priceQ = /ราคา|เท่าไ[หร]|เท่าไร|กี่บาท|ค่าทำ|ค่ารักษา|ค่าใช้จ่าย/.test(t);
+  if (priceQ && CRM_PRICE_ROWS.some(function (r) { return r[0].test(t); })) return 'price';
+  return '';
+}
+function crmFaqHandle_(s, ev, uid, text, chatting) {
+  var tm = String(text || '').replace(/\s+/g, ' ').trim();
+  var who = null; var whoOf = function () { return who || (who = crmNameOfUid_(uid)); };
+  if (CRM_FAQ_BOOK[tm]) {   // ปุ่ม "นัด..." ในการ์ด → งานโทรกลับ
+    var w = whoOf();
+    crmCreateTask_({ type: 'callback', priority: 'high', hn: w.hn, patName: w.name, lineUserId: uid, detail: CRM_FAQ_BOOK[tm] });
+    crmReply_(ev.replyToken, [crmText_('รับเรื่องแล้วค่ะ 🙏\n' + (crmPromoInHours_(s) ? 'แอดมินจะติดต่อกลับเพื่อนัดวันเวลาโดยเร็วค่ะ' : 'แอดมินจะติดต่อกลับเพื่อนัดวันเวลา ' + crmPromoBackText_(s) + ' ค่ะ') + '\nหากสะดวกวัน/เวลาไหน พิมพ์บอกไว้ได้เลยนะคะ')]);
+    return true;
+  }
+  if (tm === CRM_FAQ_ASK) {
+    var w2 = whoOf();
+    try { crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: w2.hn, patName: w2.name, lineUserId: uid, detail: '💬 ขอสอบถามแอดมิน (กดจากการ์ดตอบอัตโนมัติ)' }); } catch (eA) {}
+    crmReply_(ev.replyToken, [crmText_('ได้เลยค่ะ 😊 พิมพ์คำถามไว้ได้เลย ' + (crmPromoInHours_(s) ? 'แอดมินจะตอบโดยเร็วค่ะ' : 'แอดมินจะตอบกลับ ' + crmPromoBackText_(s) + ' ค่ะ'))]);
+    return true;
+  }
+  if (!(s.faqOn === true || s.faqOn === 'true' || s.faqOn === 'TRUE' || s.faqOn === undefined)) return false;
+  var topic = crmFaqTopic_(tm);
+  if (!topic) return false;
+  if (/ปวด|เจ็บ|บวม|แตก|หัก|ทิ่ม|แผล|เลือด|หลุด|อักเสบ|ฉุกเฉิน/.test(tm)) return false;   // อาการ → คนตอบ
+  if (s.testMode && uid !== s.testUserId) return false;
+  if (crmSplitList_(s.staffNotifyIds).indexOf(uid) !== -1 && uid !== s.testUserId) return false;
+  if (chatting) return false;
+  var cache = CacheService.getScriptCache(), ck = 'crm_faq_' + topic + '_' + uid;
+  if (cache.get(ck)) return false;   // หัวข้อเดิมภายใน 6 ชม. → ให้แอดมินตอบ
+  var msg = topic === 'sso' ? crmFaqSsoMessage_(s, uid) : topic === 'hours' ? crmFaqHoursMessage_(s) : crmFaqPriceMessage_(s, tm);
+  var msgs = [msg];
+  if (!crmPromoInHours_(s) && topic !== 'hours') msgs.push(crmText_('ขณะนี้อยู่นอกเวลาทำการค่ะ 🌙 แอดมินจะติดต่อกลับ ' + crmPromoBackText_(s) + ' ค่ะ'));
+  var res = crmApi_('post', '/v2/bot/message/reply', { replyToken: ev.replyToken, messages: msgs });
+  if (!res || res.code !== 200) {
+    try { crmAppend_('log', { key: 'faqerr:' + Date.now(), type: 'faq', hn: '', patName: '', lineUserId: uid, refId: topic, status: 'error', detail: String(res && res.text || '').slice(0, 300), createdAt: crmNow_(), pushCount: 0 }); } catch (eE) {}
+    return false;   // ส่งการ์ดไม่สำเร็จ → ปล่อยให้แจ้งแอดมินตามปกติ
+  }
+  cache.put(ck, '1', 21600);
+  var w3 = whoOf(), label = { sso: 'ประกันสังคม', hours: 'เวลาทำการ/แผนที่', price: 'ราคา' }[topic];
+  try { crmAppend_('log', { key: 'faq:' + topic + ':' + uid + ':' + Date.now(), type: 'faq', hn: w3.hn || '', patName: w3.name || '', lineUserId: uid, refId: topic, status: 'sent', detail: label + ' · ' + tm.slice(0, 150), createdAt: crmNow_(), pushCount: 0 }); } catch (eL) {}
+  try { crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: w3.hn, patName: w3.name, lineUserId: uid, detail: '🤖 ตอบอัตโนมัติแล้ว (' + label + '): ' + tm.slice(0, 150) }); } catch (eN) {}
+  return true;
+}
+function crmFaqHeader_(tag, title, sub) {
+  var c = [
+    { type: 'box', layout: 'horizontal', contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#F2C46D', cornerRadius: '20px', paddingStart: '10px', paddingEnd: '10px', paddingTop: '3px', paddingBottom: '3px', flex: 0,
+      contents: [{ type: 'text', text: tag, size: 'xxs', weight: 'bold', color: '#4A1A40' }] }] },
+    { type: 'text', text: title, weight: 'bold', size: 'xl', color: '#ffffff', wrap: true, margin: 'md' }];
+  if (sub) c.push({ type: 'text', text: sub, size: 'sm', color: '#ffffffdd', wrap: true, margin: 'sm' });
+  return { type: 'box', layout: 'vertical', paddingAll: '18px', background: { type: 'linearGradient', angle: '135deg', startColor: '#4A1A40', endColor: '#8E4A7C' }, contents: c };
+}
+function crmFaqRow_(l, r, hi, note) {
+  var left = [{ type: 'text', text: l, size: 'sm', weight: 'bold', color: '#2b1026', wrap: true }];
+  if (note) left.push({ type: 'text', text: note, size: 'xxs', color: '#888888', wrap: true });
+  var row = { type: 'box', layout: 'horizontal', paddingTop: '8px', paddingBottom: '8px', paddingStart: '8px', paddingEnd: '8px', cornerRadius: '8px', contents: [
+    { type: 'box', layout: 'vertical', flex: 1, contents: left },
+    { type: 'text', text: r, size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'end', flex: 0, wrap: false, gravity: 'center' }] };
+  if (hi) row.backgroundColor = '#FFF4D6';
+  return row;
+}
+function crmFaqFooter_(btns) {
+  return { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', contents: btns.map(function (b, i) {
+    return { type: 'button', style: i === 0 ? 'primary' : 'secondary', color: i === 0 ? '#6B2D5E' : undefined, height: i === 0 ? 'md' : 'sm', action: b };
+  }).map(function (b) { if (!b.color) delete b.color; return b; }) };
+}
+function crmTelUriClinic_(s) { return 'tel:' + String(s.clinicPhone || '0959476759').replace(/[^\d+]/g, ''); }
+/* ประกันสังคม: สิทธิ + (ถ้าผูก LINE) ยอดที่ใช้ไปแล้วปีนี้ */
+function crmFaqSsoMessage_(s, uid) {
+  var body = [
+    { type: 'text', text: 'สิทธิทันตกรรม มาตรา 33 และ 39', size: 'sm', weight: 'bold', color: '#2b1026' },
+    crmFaqRow_('อุดฟัน · ถอนฟัน · ขูดหินปูน', 'รวม 900/ปี', false, 'เกินวงเงินชำระส่วนต่าง'),
+    crmFaqRow_('ผ่าฟันคุด', '1,500–2,500', false, 'ต่อซี่ แยกจากวงเงิน 900 ตามเงื่อนไข'),
+    crmFaqRow_('ฟันเทียมถอดได้', '1,500–6,000', false, 'ตามประเภทและหลักเกณฑ์'),
+    { type: 'text', text: '📄 นำบัตรประชาชนมาด้วย · เจ้าหน้าที่ตรวจสิทธิ์ให้ที่คลินิก', size: 'xs', color: '#555555', wrap: true, margin: 'md' }
+  ];
+  try {   // ยอดที่ใช้ไปแล้วปีนี้ (เฉพาะคนที่ผูก LINE กับ HN แล้ว)
+    var hns = crmUserHns_(uid);
+    if (hns.length) {
+      var y = crmToday_().slice(0, 4), set = {}; hns.forEach(function (h) { set[crmHN_(h)] = true; });
+      var rows = crmReadByNameWhere_('บันทึกการรักษา', crmHnTest_(set));
+      var names = {}; crmRead_('links').forEach(function (l) { if (l.lineUserId === uid && l.status === 'active') names[crmHN_(l.hn)] = l.patName; });
+      var used = {};
+      rows.forEach(function (t) {
+        if (String(crmDateOnly_(t.date)).slice(0, 4) !== y) return;
+        if (/คุด|ฟันเทียม|ฟันปลอม/.test(String(t.proc || ''))) return;   // ไม่อยู่ในวงเงิน 900
+        var k = crmHN_(t.hn); used[k] = (used[k] || 0) + (+String(t.sso || 0).replace(/[^\d.]/g, '') || 0);
+      });
+      body.push({ type: 'separator', margin: 'lg', color: '#eeeeee' });
+      body.push({ type: 'text', text: '👤 สิทธิ์ของคุณปีนี้ (ประมาณการ)', size: 'sm', weight: 'bold', color: '#2b1026', margin: 'lg' });
+      hns.forEach(function (h) {
+        var k = crmHN_(h), u = used[k] || 0, left = Math.max(0, CRM_SSO_LIMIT - u);
+        body.push(crmFaqRow_(crmWho_(names[k] || '', h), u ? ('ใช้ไป ' + crmMoney_(u)) : 'ยังไม่ได้ใช้', true, 'คงเหลือประมาณ ' + crmMoney_(left) + ' บาท (อุด/ถอน/ขูดหินปูน)'));
+      });
+      body.push({ type: 'text', text: 'คำนวณจากการรักษาที่คลินิกนี้เท่านั้น ถ้าใช้สิทธิ์ที่อื่นด้วย ยอดจริงอาจต่างไป เจ้าหน้าที่จะตรวจสอบให้อีกครั้งค่ะ', size: 'xxs', color: '#999999', wrap: true, margin: 'sm' });
+    }
+  } catch (eU) { Logger.log('sso used ' + eU); }
+  return { type: 'flex', altText: '🏛️ สิทธิทันตกรรมประกันสังคม', contents: { type: 'bubble', size: 'mega',
+    header: crmFaqHeader_('🏛️ ประกันสังคม', 'ใช้สิทธิทำฟันได้ค่ะ', 'คลินิกรับสิทธิทันตกรรมประกันสังคม'),
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'xs', contents: body },
+    footer: crmFaqFooter_([
+      { type: 'message', label: '📌 นัดใช้สิทธิ์', text: 'ขอนัดใช้สิทธิประกันสังคม' },
+      { type: 'uri', label: '📄 อ่านรายละเอียดสิทธิ์', uri: CRM_SSO_URL },
+      { type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_FAQ_ASK }]) } };
+}
+function crmMoney_(n) { return String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+/* เวลาทำการ + แผนที่: บอกสถานะตอนนี้ (เปิดอยู่/ปิดแล้ว) + ตารางทั้งสัปดาห์ */
+function crmFaqHoursMessage_(s) {
+  var dow = crmDow_(), h = CRM_CLINIC_HOURS[dow], now = crmHm_();
+  var status = now < h[0] ? ('วันนี้เปิด ' + h[0] + ' น.') : now < h[1] ? ('ตอนนี้เปิดอยู่ · ปิด ' + h[1] + ' น.') : ('วันนี้ปิดแล้ว · พรุ่งนี้เปิด ' + CRM_CLINIC_HOURS[(dow + 1) % 7][0] + ' น.');
+  var open = now >= h[0] && now < h[1];
+  var rows = [1, 2, 3, 4, 5, 6, 0].map(function (d) {
+    return crmFaqRow_(CRM_DAY_TH[d] + (d === dow ? ' (วันนี้)' : ''), CRM_CLINIC_HOURS[d][0] + '–' + CRM_CLINIC_HOURS[d][1], d === dow, '');
+  });
+  return { type: 'flex', altText: '🕙 เวลาทำการและแผนที่คลินิก', contents: { type: 'bubble', size: 'mega',
+    header: crmFaqHeader_('🕙 เปิดทุกวัน', status, ''),
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none', contents: [
+      { type: 'box', layout: 'vertical', backgroundColor: open ? '#E7F6EC' : '#F3ECF1', cornerRadius: '10px', paddingAll: '9px',
+        contents: [{ type: 'text', text: open ? '🟢 เปิดอยู่ตอนนี้' : '⚪ ปิดอยู่ตอนนี้', size: 'sm', weight: 'bold', color: open ? '#1d7a43' : '#6B2D5E', align: 'center' }] }
+    ].concat(rows).concat([
+      { type: 'separator', margin: 'md', color: '#eeeeee' },
+      { type: 'text', text: '📍 ' + CRM_CLINIC_ADDR, size: 'xs', color: '#555555', wrap: true, margin: 'md' },
+      { type: 'text', text: 'แนะนำให้นัดล่วงหน้าค่ะ', size: 'xxs', color: '#999999', margin: 'sm' }]) },
+    footer: crmFaqFooter_([
+      { type: 'uri', label: '📍 นำทางมาคลินิก', uri: CRM_CLINIC_MAP },
+      { type: 'uri', label: '📞 โทร ' + (s.clinicPhone || '095-947-6759'), uri: crmTelUriClinic_(s) },
+      { type: 'message', label: '📌 นัดตรวจฟัน', text: 'ขอนัดตรวจฟัน' }]) } };
+}
+/* ราคาโดยประมาณ: ไฮไลต์หัตถการที่ถาม */
+function crmFaqPriceMessage_(s, t) {
+  var rows = CRM_PRICE_ROWS.map(function (r) { return crmFaqRow_(r[1], r[2], r[0].test(t), r[3]); });
+  return { type: 'flex', altText: '🦷 ราคาทำฟันโดยประมาณ', contents: { type: 'bubble', size: 'mega',
+    header: crmFaqHeader_('🦷 ราคาโดยประมาณ', 'ค่าทำฟัน', 'ราคาจริงขึ้นกับสภาพช่องปาก แจ้งค่าใช้จ่ายก่อนเริ่มรักษาทุกครั้ง'),
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none', contents: rows.concat([
+      { type: 'separator', margin: 'md', color: '#eeeeee' },
+      { type: 'text', text: '🏛️ อุด/ถอน/ขูดหินปูน ใช้สิทธิประกันสังคมได้ รวม 900 บาท/ปี', size: 'xs', color: '#1d7a43', wrap: true, margin: 'md', weight: 'bold' }]) },
+    footer: crmFaqFooter_([
+      { type: 'message', label: '📌 นัดตรวจฟัน', text: 'ขอนัดตรวจฟัน' },
+      { type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_FAQ_ASK }]) } };
 }
 
 /* ============================ PATIENT PORTAL (LIFF) ============================ */
@@ -2068,9 +2243,9 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'orthoPromoOn','orthoPromoDays','orthoPromoOpen','orthoPromoClose','orthoPromoBackTime','receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','reviewDocRules','oaChatBase','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
+        'orthoPromoOn','orthoPromoDays','faqOn','receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','reviewDocRules','oaChatBase','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
-      ['enabled','testMode','orthoPromoOn','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
+      ['enabled','testMode','orthoPromoOn','faqOn','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);
