@@ -2020,6 +2020,13 @@ function crmPortalJson_(p) {
   try { if (json.length < 30000) c.put(key, JSON.stringify({ v: ver, j: json }), 120); } catch (e) {}
   return json;
 }
+/* "ถอนฟัน, อุดฟัน" + procTeeth {"ถอนฟัน":"38","อุดฟัน":"16, 26"} → "ถอนฟัน ซี่ 38, อุดฟัน ซี่ 16, 26" */
+function crmProcWithTeeth_(t) {
+  var tm = {}; try { tm = JSON.parse(t.procTeeth || '{}') || {}; } catch (e) { tm = {}; }
+  return String(t.proc || '').split(',').map(function (x) { return x.trim(); }).filter(String).map(function (n) {
+    var th = String(tm[n] || '').trim(); return th ? n + ' ซี่ ' + th : n;
+  }).join(', ');
+}
 function crmPortal_(p) {
   var u = crmVerifyUser_(p);
   if (!u) return { ok: false, error: 'auth' };
@@ -2058,7 +2065,7 @@ function crmPortal_(p) {
       }
     }
     var hist = treats.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) && crmDateOnly_(x.date) <= today; })
-      .map(function (x) { return { date: crmDateOnly_(x.date), proc: x.proc || '', docName: x.docName || '' }; })
+      .map(function (x) { return { date: crmDateOnly_(x.date), proc: crmProcWithTeeth_(x), docName: x.docName || '' }; })
       .sort(function (x, y) { return y.date.localeCompare(x.date); }).slice(0, 40);
     var oRow = null;
     for (var i = 0; i < orthoRows.length; i++) if (crmHN_(orthoRows[i].hn) === k) { oRow = orthoRows[i]; break; }
