@@ -314,7 +314,8 @@ function renderNext(p){
   const ocode = p.ortho && p.ortho.profile && String(p.ortho.profile['รหัสประจำตัว']||'').trim();
   const cntText = n => n===0 ? 'วันนี้' : (n===1 ? 'พรุ่งนี้' : ('อีก '+n+' วัน'));
   const a = p.next[0], n = daysUntil(a.date), pd = ymd(a.date);
-  const dd = pd ? String(pd.d).padStart(2,'0')+' · '+String(pd.m).padStart(2,'0')+' · '+String((pd.y+543)%100).padStart(2,'0') : esc(a.date);
+  const TH_MON_S = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const dd = pd ? pd.d+' '+TH_MON_S[pd.m-1]+' '+String((pd.y+543)%100).padStart(2,'0') : esc(a.date);
   const dow = pd ? TH_DAYS[new Date(Date.UTC(pd.y,pd.m-1,pd.d)).getUTCDay()] : '';
   const status = a.status==='คอนเฟิร์ม' ? '<b style="color:var(--green)">✅ ยืนยันแล้ว</b>' : (a.status ? esc(a.status) : '');
   const card = `<div class="wl-wrap">${p.next.length>1?'<div class="wl-back"></div>':''}
