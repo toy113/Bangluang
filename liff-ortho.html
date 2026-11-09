@@ -23,7 +23,7 @@
 <style>
   :root{
     --wine:#6B2D5E; --wine-dark:#4A1E42; --wine-pale:#F3E9F0; --gold:#C9A24B; --gold-light:#E0C273;
-    --green:#1D825C; --red:#C0392B; --text:#2c2533; --text-mid:#6b6470; --text-light:#8a8292;
+    --green:#1D825C; --red:#C0392B; --text:#2c2533; --text-mid:#5a5360; --text-light:#6e6675;
     --border:#e8e2ec; --bg:#faf7fb;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -85,6 +85,8 @@
   .tl-visitno{font-size:13px;color:var(--wine);font-weight:800;}
   .tl-do{font-size:14px;font-weight:700;margin-top:1px;}
   .tl-sub{font-size:12px;color:var(--text-mid);margin-top:2px;}
+  .tl-more{display:block;width:100%;margin-top:4px;padding:10px;border:1.5px dashed #E2CFDC;border-radius:12px;background:#fff;color:var(--wine);font:inherit;font-size:14px;font-weight:700;cursor:pointer;}
+  .tl-more:active{background:var(--wine-pale);}
   .pill{display:inline-block;background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin:2px 4px 0 0;}
   .care li{font-size:13.5px;color:var(--text-mid);margin:0 0 8px 18px;line-height:1.5;}
   .btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;}
@@ -96,9 +98,9 @@
   .field input{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:16px;background:#fff;}
   .bsel{flex:1;padding:13px 10px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:16px;background:#fff;}
   .field input:focus{outline:none;border-color:var(--wine);}
-  .check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-mid);line-height:1.55;margin:4px 0 16px;}
+  .check{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text-mid);line-height:1.55;margin:4px 0 16px;}
   .check input{width:20px;height:20px;margin-top:1px;accent-color:var(--wine);flex-shrink:0;}
-  .muted{color:var(--text-light);font-size:13px;}
+  .muted{color:var(--text-light);font-size:14px;line-height:1.55;}
   .center{text-align:center;}
   .err{background:#fdecea;color:var(--red);padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none;line-height:1.5;}
   .ok-box{background:#e9f6ef;color:var(--green);padding:12px 14px;border-radius:12px;font-size:14px;line-height:1.6;}
@@ -115,13 +117,45 @@
   .spin{width:38px;height:38px;border:4px solid var(--wine-pale);border-top-color:var(--wine);border-radius:50%;animation:sp 0.8s linear infinite;margin:60px auto 14px;}
   @keyframes sp{to{transform:rotate(360deg);}}
   .hide{display:none!important;}
+  /* แถบวันเกิดแบบย่อ (แท็บนัดเท่านั้น) */
+  .bd-mini{padding:12px 14px;}
+  .bd-row{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-size:14.5px;font-weight:700;color:var(--wine);}
+  .bd-row b{font-size:13.5px;color:#fff;background:var(--wine);border-radius:20px;padding:4px 12px;white-space:nowrap;}
+  .bd-later{display:block;margin:8px auto 0;background:none;border:none;color:var(--text-light);font-family:inherit;font-size:14px;text-decoration:underline;cursor:pointer;}
+  /* แจ้งเตือนถูกปิด */
+  .notify-off{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FFF4E5;border:1px solid #F5C98B;color:#7A4A00;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;margin-bottom:12px;line-height:1.5;}
+  .notify-off button{flex-shrink:0;background:var(--wine);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;}
+  .settings-link{display:block;margin:14px auto 0;background:none;border:none;color:var(--text-light);font-family:inherit;font-size:14px;cursor:pointer;}
+  .off-confirm{background:#FDECEA;border-radius:12px;padding:12px;margin-top:10px;font-size:14px;color:#8B1E14;line-height:1.55;}
+  .off-confirm .acts{display:flex;gap:8px;margin-top:10px;}
+  .off-confirm button{flex:1;border-radius:10px;padding:10px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;}
+  /* แถบติดต่อด้านล่าง */
+  .contact-bar{display:flex;gap:8px;margin-top:6px;}
+  .contact-bar a,.contact-bar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px 4px;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--wine);text-decoration:none;cursor:pointer;}
+  .contact-bar span{font-size:20px;line-height:1.1;}
+  .open-line{text-align:center;font-size:14px;color:var(--text-mid);margin-top:10px;}
+  .open-line b{color:var(--green);}
+  .open-line b.closed{color:var(--text-light);}
+  /* แท็บจัดฟันสำหรับคนที่ยังไม่ได้จัดฟัน */
+  .pr-hero{background:linear-gradient(135deg,#4A1A40,#8E4A7C);color:#fff;border-radius:16px;padding:18px;margin-bottom:12px;}
+  .pr-hero .tag{display:inline-block;background:#F2C46D;color:#4A1A40;font-weight:800;font-size:11.5px;border-radius:20px;padding:3px 10px;}
+  .pr-hero h2{font-size:22px;line-height:1.3;margin-top:8px;}
+  .pr-hero .doc{display:flex;gap:10px;align-items:center;margin-top:12px;background:rgba(255,255,255,.14);border-radius:12px;padding:9px;}
+  .pr-hero .doc i{width:38px;height:38px;border-radius:50%;background:#F2C46D;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:19px;flex-shrink:0;}
+  .pr-free{background:#E7F6EC;color:#1d7a43;border-radius:10px;padding:9px;text-align:center;font-weight:800;font-size:14.5px;margin-bottom:6px;}
+  .pr-step{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px dashed var(--border);}
+  .pr-step:last-child{border-bottom:none;}
+  .pr-step .n{width:24px;height:24px;border-radius:50%;background:var(--wine);color:#fff;font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pr-step .t{flex:1;font-size:14px;color:var(--text-mid);line-height:1.5;}
+  .pr-step .t b{display:block;color:var(--text);font-size:15px;}
+  .pr-step .p{font-weight:800;color:var(--wine);white-space:nowrap;font-size:15px;}
 </style>
 </head>
 <body>
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-09d';
+  const APP_VER = '2026-11-10b';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -157,7 +191,7 @@
   <div class="wrap">
     <div class="card">
       <div class="err" id="bindErr"></div>
-      <div class="field"><label>HN ของคนไข้ (7 หลัก)</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 65-12345" maxlength="8" autocomplete="off" oninput="fmtHn(this)"><div class="muted" style="margin-top:4px;">ดู HN ได้จากบัตรคนไข้หรือใบนัดของคลินิก</div></div>
+      <div class="field"><label>HN ของคนไข้</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 62-3037" maxlength="8" autocomplete="off" oninput="fmtHn(this)"><div class="muted" style="margin-top:4px;">ดู HN ได้บนบัตรคนไข้ ใบนัด หรือใบเสร็จของคลินิก (6–7 หลัก) · ไม่ทราบ HN สอบถามคลินิกได้ค่ะ</div></div>
       <div class="field"><label>เบอร์โทรที่ให้ไว้กับคลินิก</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
       <div class="field"><label>วันเกิด (วัน / เดือน) — ไม่บังคับ</label>
         <div style="display:flex;gap:8px;"><select id="b-bd" class="bsel"><option value="">วัน</option></select><select id="b-bm" class="bsel"><option value="">เดือน</option></select></div>
@@ -197,22 +231,35 @@
     <button id="tab-ortho" onclick="setTab('ortho')">😬 จัดฟัน</button>
   </div>
   <div class="wrap">
+    <div class="notify-off hide" id="notifyOff"><span>🔕 ปิดการแจ้งเตือนทาง LINE อยู่ · จะไม่ได้รับเตือนนัด</span><button onclick="setConsentUI(true)">เปิด</button></div>
     <div id="panel-next"></div>
     <div id="panel-history" class="hide"></div>
     <div id="panel-ortho" class="hide"></div>
 
-    <div class="card" id="bdCard" style="margin-top:6px;display:none;">
-      <div style="font-weight:800;color:var(--wine);margin-bottom:6px;">🎂 กรอกเพื่อรับสิทธิ์พิเศษ เมื่อทำฟันในเดือนเกิด</div>
-      <div style="display:flex;gap:8px;"><select id="m-bd" class="bsel"><option value="">วัน</option></select><select id="m-bm" class="bsel"><option value="">เดือน</option></select></div>
-      <button class="btn btn-primary" style="margin-top:10px;" onclick="saveBday()">บันทึกวันเกิด</button>
-      <p class="muted" style="margin-top:6px;">ใช้เพื่อคำอวยพรและสิทธิ์วันเกิดเท่านั้น (ไม่ต้องใส่ปี)</p>
+    <div class="card bd-mini" id="bdCard" style="display:none;">
+      <div class="bd-row" onclick="bdToggle()"><span>🎂 รับสิทธิ์พิเศษในเดือนเกิด</span><b id="bdBtnTxt">กรอกวันเกิด ›</b></div>
+      <div id="bdForm" class="hide" style="margin-top:12px;">
+        <div style="display:flex;gap:8px;"><select id="m-bd" class="bsel"><option value="">วัน</option></select><select id="m-bm" class="bsel"><option value="">เดือน</option></select></div>
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="saveBday()">บันทึกวันเกิด</button>
+        <p class="muted" style="margin-top:6px;">ใช้เพื่อคำอวยพรและสิทธิ์วันเกิดเท่านั้น (ไม่ต้องใส่ปี)</p>
+      </div>
+      <button class="bd-later" onclick="bdSnooze()">ไว้ทีหลัง</button>
     </div>
-    <div class="card" style="margin-top:6px;">
-      <div class="toggle"><span>รับข้อความแจ้งเตือนนัดและคำแนะนำทาง LINE</span>
-        <label class="switch"><input type="checkbox" id="consentToggle" onchange="setConsent(this.checked)"><span class="slider"></span></label></div>
+    <div class="contact-bar">
+      <button onclick="backToChat()"><span>💬</span>แชทกับคลินิก</button>
+      <a id="mainCall" href="tel:0959476759"><span>📞</span>โทร</a>
+      <a href="https://maps.google.com/?cid=13261426560365025658" onclick="return openExt(this.href)"><span>📍</span>แผนที่</a>
+    </div>
+    <div class="open-line" id="openLine"></div>
+    <button class="settings-link" onclick="toggleSettings()">⚙️ ตั้งค่าการแจ้งเตือน</button>
+    <div class="card hide" id="settingsCard" style="margin-top:8px;">
+      <div class="toggle"><span>รับข้อความแจ้งเตือนนัด ใบนัด และสรุปการรักษาทาง LINE</span>
+        <label class="switch"><input type="checkbox" id="consentToggle" onchange="consentChange(this)"><span class="slider"></span></label></div>
+      <div class="off-confirm hide" id="offConfirm">ถ้าปิด คุณ<b id="offWho"></b>จะไม่ได้รับข้อความเตือนนัด ใบนัด และสรุปการรักษาทาง LINE อีก ต้องจำวันนัดเองนะคะ
+        <div class="acts"><button style="background:#fff;border:1px solid #E6B8B3;color:#8B1E14;" onclick="consentOffConfirm(true)">ปิดการแจ้งเตือน</button><button style="background:var(--wine);border:none;color:#fff;" onclick="consentOffConfirm(false)">ไม่ปิด</button></div>
+      </div>
       <p class="muted" id="pendingNote" style="margin-top:8px;display:none;"></p>
     </div>
-    <div class="foot-links"><a id="mainCall" href="tel:0959476759">📞 ติดต่อคลินิก</a></div>
   </div>
 </div>
 
@@ -316,18 +363,60 @@ function render(){
   $('m-name').innerHTML = esc('คุณ' + (p.name||'')) + (ocode ? ` <span style="font-size:13px;font-weight:700;background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;margin-left:4px;white-space:nowrap;">🦷 ${esc(ocode)}</span>` : '');
   $('m-meta').textContent = 'HN ' + (p.hn||'-');
   $('m-people').innerHTML = d.patients.length > 1 ? d.patients.map((x,i)=>`<button class="${i===CUR?'on':''}" onclick="CUR=${i};render()">${esc(String(x.name||'').split(' ')[0])}</button>`).join('') : '';
-  $('consentToggle').checked = d.patients.every(x=>x.consent);
+  const _on = d.patients.every(x=>x.consent);
+  $('consentToggle').checked = _on; $('notifyOff').classList.toggle('hide', _on); $('offConfirm').classList.add('hide');
+  $('offWho').textContent = d.patients.length > 1 ? ' และทุกคนในบัญชีนี้' : '';
   $('pendingNote').style.display = d.pending.length ? '' : 'none';
   $('pendingNote').textContent = d.pending.length ? ('มีคำขอผูกบัญชีเพิ่มรอคลินิกยืนยัน ' + d.pending.length + ' รายการ') : '';
   renderNext(p); renderHistory(p); renderOrtho(p);
-  bdInit(); $('bdCard').style.display = p.birthday ? 'none' : '';
+  bdInit(); renderOpenLine_();
   setTab(TAB);
   show('mainView');
 }
 function setTab(t){
   TAB = t;
   ['next','history','ortho'].forEach(x=>{ $('tab-'+x).classList.toggle('on', x===t); $('panel-'+x).classList.toggle('hide', x!==t); });
+  bdUpdate_();
 }
+/* ---------- วันเกิด: แถบเล็ก เฉพาะแท็บนัด · "ไว้ทีหลัง" ซ่อน 30 วัน ---------- */
+function bdSnoozed_(hn){ try{ return Date.now() < +(localStorage.getItem('bl_bd_snooze_'+hn)||0); }catch(e){ return false; } }
+function bdUpdate_(){
+  const p = DATA && DATA.patients && DATA.patients[CUR];
+  const show = !!(p && !p.birthday && TAB==='next' && !bdSnoozed_(p.hn));
+  $('bdCard').style.display = show ? '' : 'none';
+}
+function bdToggle(){ const f=$('bdForm'), open=f.classList.contains('hide'); f.classList.toggle('hide', !open); $('bdBtnTxt').textContent = open ? 'ปิด ▴' : 'กรอกวันเกิด ›'; }
+function bdSnooze(){ const p=DATA.patients[CUR]; try{ localStorage.setItem('bl_bd_snooze_'+p.hn, String(Date.now()+30*86400000)); }catch(e){} bdUpdate_(); }
+/* ---------- ตั้งค่าการแจ้งเตือน: ซ่อนไว้ · ปิดต้องยืนยันก่อน ---------- */
+function toggleSettings(){ $('settingsCard').classList.toggle('hide'); }
+function consentChange(el){
+  if(el.checked){ setConsentUI(true); return; }
+  el.checked = true;                       // ยังไม่ปิดจริงจนกว่าจะกดยืนยัน
+  $('offConfirm').classList.remove('hide');
+}
+function consentOffConfirm(yes){
+  $('offConfirm').classList.add('hide');
+  if(yes) setConsentUI(false);
+}
+async function setConsentUI(on){
+  $('consentToggle').checked = on; $('notifyOff').classList.toggle('hide', on);
+  await setConsent(on);
+  const ok = DATA.patients.every(x=>x.consent) === on;
+  if(!ok){ $('consentToggle').checked = !on; $('notifyOff').classList.toggle('hide', !on); alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งค่ะ'); }
+}
+/* ---------- ติดต่อ: กลับไปแชท · สถานะเปิด/ปิดตามเวลาทำการ ---------- */
+function backToChat(){ try{ if(window.liff && liff.isInClient && liff.isInClient()){ liff.closeWindow(); return; } }catch(e){} location.href = 'https://line.me/R/ti/p/%40bangluangsmile'; }
+const CLINIC_HOURS = [['10:30','17:30'],['10:30','18:30'],['10:30','18:30'],['10:30','17:30'],['10:30','18:30'],['10:30','18:30'],['10:30','17:30']];   // 0=อาทิตย์ (ตรงกับ line-crm.gs)
+function renderOpenLine_(){
+  const bk = new Date(Date.now() + 7*3600000), dow = bk.getUTCDay(), hm = String(bk.getUTCHours()).padStart(2,'0')+':'+String(bk.getUTCMinutes()).padStart(2,'0');
+  const h = CLINIC_HOURS[dow];
+  let t;
+  if(hm < h[0]) t = `<b class="closed">⚪ ยังไม่เปิด</b> · วันนี้เปิด ${h[0]} น.`;
+  else if(hm < h[1]) t = `<b>🟢 เปิดอยู่</b> · ปิด ${h[1]} น.`;
+  else t = `<b class="closed">⚪ ปิดแล้ว</b> · พรุ่งนี้เปิด ${CLINIC_HOURS[(dow+1)%7][0]} น.`;
+  $('openLine').innerHTML = t + ` · เปิดทุกวัน`;
+}
+function thaiDateDow_(s){ const p=ymd(s); if(!p) return s||''; const dt=new Date(Date.UTC(p.y,p.m-1,p.d)); return 'วัน'+TH_DAYS[dt.getUTCDay()]+' '+p.d+' '+TH_MONTHS_S[p.m-1]+' '+String(p.y+543).slice(2); }
 function renderNext(p){
   if(!p.next.length){
     $('panel-next').innerHTML = `<div class="card"><div class="empty">ยังไม่มีนัดครั้งถัดไป<br>ต้องการนัดหมาย โทรหาคลินิกหรือพิมพ์ทักในแชทได้เลยค่ะ</div>
@@ -352,16 +441,12 @@ function renderNext(p){
       <div class="wl-proc">${a.kind==='ortho'?'😬 ':''}${esc(a.proc||'')}</div>
     </div></div>`;
   const info = `<div class="card wl-info">
-      <div class="row"><span class="k">🗓️ วันนัด</span><b>${esc(thaiDateFull(a.date))}</b></div>
-      ${a.time?`<div class="row"><span class="k">⏰ เวลา</span><b>${esc(a.time)} น.</b></div>`:''}
-      ${a.docName?`<div class="row"><span class="k">👩‍⚕️ ทันตแพทย์</span><b>${esc(a.docName)}</b></div>`:''}
-      ${a.proc?`<div class="row"><span class="k">🦷 รายการ</span><b>${esc(a.proc)}</b></div>`:''}
-      ${status?`<div class="row"><span class="k">สถานะ</span>${status}</div>`:''}
-      <a class="btn btn-primary btn-cal" style="margin-top:12px;" href="#" onclick="addToCalendar(0);return false;">＋ เพิ่มลงปฏิทินมือถือ</a>
+      ${status?`<div class="row" style="border-bottom:none;padding-top:0;"><span class="k">สถานะนัด</span>${status}</div>`:''}
+      <a class="btn btn-primary btn-cal" style="margin-top:${status?6:0}px;" href="#" onclick="addToCalendar(0);return false;">＋ เพิ่มลงปฏิทินมือถือ</a>
       <a class="btn btn-ghost" href="https://maps.google.com/?cid=13261426560365025658" onclick="return openExt(this.href)">📍 นำทางมาคลินิก</a>
     </div>`;
   const more = p.next.slice(1).map(x=>`<div class="card appt appt-more">
-      <div class="when">${esc(thaiDateFull(x.date))}${x.time?' · '+esc(x.time)+' น.':''}</div>
+      <div class="when">${esc(thaiDateDow_(x.date))}${x.time?' · '+esc(x.time)+' น.':''}</div>
       <div class="sub">${x.kind==='ortho'?'😬 จัดฟัน · ':''}${[x.proc, x.docName].filter(Boolean).map(esc).join(' · ')}</div>
       <span class="count">${esc(cntText(daysUntil(x.date)))}</span></div>`).join('');
   $('panel-next').innerHTML = card + info + (more?'<h3 style="font-size:14px;color:var(--wine);margin:4px 2px 8px;">นัดถัดๆ ไป</h3>'+more:'') +
@@ -380,6 +465,15 @@ function wlTiltInit_(){
     el.style.setProperty('--sx', (50 + g*2.4).toFixed(0)+'%');
   };
   try{ if(typeof DeviceOrientationEvent.requestPermission !== 'function'){ window.addEventListener('deviceorientation', on); _wlTiltOn = true; } }catch(e){}
+}
+async function askConsult(){
+  const b=$('consultBtn'); b.disabled=true; b.textContent='กำลังส่งคำขอ...';
+  try{
+    const d=await api({ action:'crmPortalAct', kind:'ortho' });
+    if(d && d.ok){ b.classList.add('hide'); $('consultOk').classList.remove('hide'); return; }
+    alert(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่ค่ะ' : 'ส่งคำขอไม่สำเร็จ ลองใหม่ หรือพิมพ์ "ขอนัดปรึกษาจัดฟันฟรี" ในแชทได้เลยค่ะ');
+  }catch(e){ alert('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้งค่ะ'); }
+  b.disabled=false; b.textContent='📌 นัดปรึกษาจัดฟันฟรี';
 }
 function openExt(url){
   try{ if(window.liff && liff.isInClient && liff.isInClient()){ liff.openWindow({ url, external:true }); return false; } }catch(e){}
@@ -413,12 +507,33 @@ function renderHistory(p){
     return `<div class="tl-item"><div class="tl-date">${esc(thaiDateShort(dt))}</div><div class="tl-do">${procs.map(esc).join(', ')||'—'}</div>${docs.length?`<div class="tl-sub">${docs.map(esc).join(', ')}</div>`:''}</div>`;
   }).join('') + '</div></div>';
 }
+// ประวัติการปรับเครื่องมือ: แสดง 3 ครั้งล่าสุด ที่เหลือกด "ดูทั้งหมด" (จำสถานะไว้ตอนข้อมูลรีเฟรช)
+const TL_SHOW = 3;
+let TL_ALL = false;
+function tlMoreLbl_(n){ return TL_ALL ? 'ย่อ ▴' : `ดูทั้งหมด (อีก ${n} ครั้ง) ▾`; }
+function tlToggle_(){
+  TL_ALL = !TL_ALL;
+  const xs = document.querySelectorAll('#panel-ortho .tl-x');
+  xs.forEach(e=>e.classList.toggle('hide', !TL_ALL));
+  const b = $('tlMoreBtn'); if(b) b.textContent = tlMoreLbl_(xs.length);
+  if(!TL_ALL && b) b.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
 function renderOrtho(p){
   const o = p.ortho;
-  if(!o){
-    $('panel-ortho').innerHTML = `<div class="card"><h3>สำหรับคนไข้จัดฟัน</h3>
-      <div class="empty" style="padding:6px 0 14px;">ยังไม่พบข้อมูลจัดฟันของคุณ${esc(p.name||'')}<br>ถ้าจัดฟันกับคลินิกแต่ไม่เห็นข้อมูล กรุณาติดต่อคลินิกค่ะ</div>
-      <a class="btn btn-ghost" href="${esc($('mainCall').href)}">📞 ติดต่อคลินิก</a></div>`;
+  if(!o){   // ยังไม่ได้จัดฟัน → หน้าแนะนำการจัดฟัน + นัดปรึกษาฟรี (ข้อมูลเดียวกับการ์ดราคาจัดฟันใน line-crm.gs)
+    const steps = [['พิมพ์ปาก + X-ray','เก็บข้อมูลวางแผน','2,200'],['เคลียร์ช่องปาก','อุด/ถอน/ขูดหินปูน 800–1,200 ต่อรายการ · ผ่าฟันคุด 3,000–4,000','ตามจริง'],
+      ['วันติดเครื่องมือ','','3,000'],['ปรับเครื่องมือ','ชำระ 28 ครั้ง · มาต่อเนื่อง ไม่ขาดการรักษาเกิน 60 วัน','1,500/ด.'],['ใส่รีเทนเนอร์','หลังถอดเครื่องมือ','4,000']];
+    $('panel-ortho').innerHTML = `
+      <div class="pr-hero"><span class="tag">✨ สนใจจัดฟัน?</span><h2>จัดฟันกับทันตแพทย์เฉพาะทาง</h2>
+        <div style="font-size:14px;opacity:.92;margin-top:4px;">ตรวจและวางแผนการรักษา ฟรี</div>
+        <div class="doc"><i>🦷</i><div><b style="font-size:14.5px;">ทพญ.วัจน์กร เสือดี</b><div style="font-size:12.5px;opacity:.85;">ทันตแพทย์เฉพาะทางจัดฟัน</div></div></div></div>
+      <div class="card"><div class="pr-free">🎁 ตรวจ + วางแผนการรักษา ฟรี</div>
+        ${steps.map((x,i)=>`<div class="pr-step"><div class="n">${i+1}</div><div class="t"><b>${x[0]}</b>${x[1]}</div><div class="p">${x[2]}</div></div>`).join('')}
+        <p class="muted" style="margin-top:8px;">ราคาโดยประมาณ ทันตแพทย์แจ้งค่าใช้จ่ายก่อนเริ่มรักษาทุกครั้ง</p>
+        <button class="btn btn-primary" id="consultBtn" style="margin-top:12px;" onclick="askConsult()">📌 นัดปรึกษาจัดฟันฟรี</button>
+        <div class="ok-box hide" id="consultOk" style="margin-top:12px;">ส่งคำขอแล้วค่ะ 🙏 แอดมินจะติดต่อกลับเพื่อนัดวันเวลา</div>
+        <a class="btn btn-ghost" href="https://thaiortho.org/search-orthodontist-people" onclick="return openExt(this.href)">🔎 ตรวจสอบรายชื่อหมอจัดฟัน</a></div>
+      <p class="muted center" style="margin-bottom:10px;">จัดฟันกับคลินิกอยู่แล้วแต่ไม่เห็นข้อมูล? แจ้งคลินิกได้เลยค่ะ</p>`;
     return;
   }
   const pr = o.profile || {}, logs = o.logs || [];
@@ -443,7 +558,8 @@ function renderOrtho(p){
   // ประวัติ: รวมเป็นการ์ดต่อวัน (ล่าสุดอยู่บน) · ไม่แสดงชื่อหมอ · เหล็กหลุดของวันเดียวกันรวมเป็นบรรทัดเดียว
   const byDay = {};
   logs.forEach(l=>{ const d = dOf(l) || '-'; (byDay[d] = byDay[d] || []).push(l); });
-  const tl = logs.length ? Object.keys(byDay).sort().reverse().map(d=>{
+  const tlDays = Object.keys(byDay).sort().reverse();
+  const tl = logs.length ? tlDays.map((d,di)=>{
     const rows = byDay[d], no = adjDates.indexOf(d) + 1;
     const items = rows.filter(l=>l['ทำอะไร']!=='เครื่องมือหลุด').map(l=>
       `<div class="tl-do">${esc(l['ทำอะไร']||'—')}</div>`
@@ -452,8 +568,10 @@ function renderOrtho(p){
     const lz = rows.filter(l=>l['ทำอะไร']==='เครื่องมือหลุด').map(l=>{ const m=String(l['note']||'').match(/หลุดตัวที่\s*(\d+)\s*[—-]\s*(ฟรี|เก็บ\s*[\d,]+\s*บาท)/); return m?{n:+m[1],t:m[2].replace(/\s+/g,' ')}:{n:0,t:String(l['note']||'')}; });
     const lg = {}; lz.forEach(x=>{ (lg[x.t]=lg[x.t]||[]).push(x.n); });
     const looseTxt = Object.keys(lg).sort((x,y)=>(x==='ฟรี'?0:1)-(y==='ฟรี'?0:1)).map(t=>{ const ns=lg[t].filter(Boolean).sort((a,b)=>a-b); return `<div class="tl-do">เครื่องมือหลุด${ns.length?' ตัวที่ '+ns.join(', '):''}${t?' — '+esc(t):''}</div>`; }).join('');
-    return `<div class="tl-item">${no?`<div class="tl-visitno">ปรับครั้งที่ ${no}</div>`:''}<div class="tl-date">${esc(thaiDateFull(d))}</div>${items}${looseTxt}</div>`;
+    const extra = di >= TL_SHOW;   // เกิน 3 ครั้งล่าสุด → ซ่อนไว้ กด "ดูทั้งหมด"
+    return `<div class="tl-item${extra?' tl-x'+(TL_ALL?'':' hide'):''}">${no?`<div class="tl-visitno">ปรับครั้งที่ ${no}</div>`:''}<div class="tl-date">${esc(thaiDateDow_(d))}</div>${items}${looseTxt}</div>`;
   }).join('') : '<p class="muted">ยังไม่มีบันทึก</p>';
+  const tlMore = tlDays.length > TL_SHOW ? `<button type="button" class="tl-more" id="tlMoreBtn" onclick="tlToggle_()">${tlMoreLbl_(tlDays.length - TL_SHOW)}</button>` : '';
   $('panel-ortho').innerHTML = `
     <div class="overdue-banner" style="display:${overdue?'block':'none'}">⚠️ คุณไม่ได้มาปรับเครื่องมือ ${since} วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาปรับเครื่องมือ</div>
     <div class="card"><h3>📈 ความคืบหน้า ${esc(braceLabel(pr['แบบจัด']))} *</h3><p class="muted" style="margin:-4px 0 8px;font-size:12px;">* ข้อมูลยึดตามบัตรจัดฟันที่คลินิกเป็นหลัก</p>${prog}
@@ -467,7 +585,7 @@ function renderOrtho(p){
     <div class="card"><h3>🔧 เครื่องมือหลุด</h3><div class="center"><div class="big">${loose.length} ครั้ง</div></div>
       ${loose.map((l,i)=>`<div class="row"><span class="k">ครั้งที่ ${loose.length-i} — ${esc(thaiDateShort(l['วันที่']))}</span><span class="v">${(loose.length-i)<=3?'ฟรี':'300 บาท'}</span></div>`).join('')}
       <p class="center muted" style="margin-top:6px;">ติดฟรี 3 ครั้งแรก ครั้งต่อไป 300 บาท</p></div>
-    <div class="card"><h3>🦷 ประวัติการปรับเครื่องมือ</h3><div class="timeline">${tl}</div></div>
+    <div class="card"><h3>🦷 ประวัติการปรับเครื่องมือ</h3><div class="timeline">${tl}</div>${tlMore}</div>
     <div class="card"><h3>📝 ข้อควรปฏิบัติ</h3><ul class="care">
       <li>แปรงฟันหลังอาหารทุกมื้อ ใช้แปรงซอกฟัน/แปรงจัดฟันร่วมด้วย</li>
       <li>หลีกเลี่ยงของแข็ง เหนียว และกัดของแข็งตรงๆ เช่น น้ำแข็ง กระดูก</li>
@@ -491,7 +609,7 @@ async function saveBday(){
   if(!v){ alert('กรุณาเลือกวันและเดือนเกิด'); return; }
   try{
     const d=await api({ action:'crmBirthday', hn:p.hn, bday:v });
-    if(d && d.ok){ p.birthday=v; cacheSave(DATA); $('bdCard').style.display='none'; alert('บันทึกแล้วค่ะ 🎂 รับสิทธิ์ในเดือนเกิดได้เลย'); }
+    if(d && d.ok){ p.birthday=v; cacheSave(DATA); bdUpdate_(); alert('บันทึกแล้วค่ะ 🎂 รับสิทธิ์ในเดือนเกิดได้เลย'); }
     else alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งค่ะ');
   }catch(e){ alert('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้งค่ะ'); }
 }
@@ -506,7 +624,7 @@ async function doBind(){
   const hn = $('b-hn').value.trim(), phone = $('b-phone').value.trim(), consent = $('b-consent').checked;
   const err = m=>{ $('bindErr').textContent = m; $('bindErr').style.display = 'block'; };
   $('bindErr').style.display = 'none';
-  if(!/^\d{2}-?\d{4,5}$/.test(hn)) return err('กรุณากรอก HN 7 หลัก (ตัวอย่าง 65-12345)');
+  if(!/^\d{2}-?\d{4,5}$/.test(hn)) return err('กรุณากรอก HN ให้ครบ 6–7 หลัก ตามบัตรคนไข้ (ตัวอย่าง 62-3037 หรือ 69-17929)');
   if(!/^\d{3}-\d{3}-\d{4}$/.test(phone)) return err('กรุณากรอกเบอร์โทร 10 หลัก (ตัวอย่าง 081-234-5678)');
   if(!consent) return err('กรุณากดยินยอมก่อนผูกบัญชี');
   const bday = bdVal('b');

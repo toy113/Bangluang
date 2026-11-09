@@ -304,6 +304,7 @@ function crmRouteGet_(e) {
     if (a === 'crmBind')      return crmJson_(crmBind_(p));
     if (a === 'crmConsent')   return crmJson_(crmConsent_(p));
     if (a === 'crmBirthday')  return crmJson_(crmBirthday_(p));
+    if (a === 'crmPortalAct') return crmJson_(crmPortalAct_(p));   // ปุ่มในหน้า LIFF ของคนไข้ (เช่น นัดปรึกษาจัดฟันฟรี)
     if (a === 'crmDashboard') return ContentService.createTextOutput(crmDashboardJson_(p.fresh === '1')).setMimeType(ContentService.MimeType.JSON);
     if (a === 'crmCall')      { var cb = JSON.parse(p.data || '{}'), cr = crmStaffAction_(cb); if (cr && cr.ok && cb.withDash) cr.dash = JSON.parse(crmDashboardJson_()); return crmJson_(cr); }
     return crmJson_({ ok: false, error: 'unknown_action' });
@@ -2197,6 +2198,20 @@ function crmBirthdaySave_(u, hn, bday) {
     crmUpdate_('links', l._row, { birthday: md }); n++;
   });
   return n;
+}
+/* ปุ่มจากหน้า LIFF ของคนไข้ → สร้างงานโทรกลับให้แอดมิน (ยืนยันตัวตนด้วย LINE · กันกดซ้ำ 30 นาที) */
+function crmPortalAct_(p) {
+  var u = crmVerifyUser_(p);
+  if (!u) return { ok: false, error: 'auth' };
+  var kinds = { ortho: '🦷 สนใจจัดฟัน — ขอนัดปรึกษาฟรี (กดจากหน้าเมนูจัดฟันใน LINE)' };
+  var det = kinds[String(p.kind || '')];
+  if (!det) return { ok: false, error: 'bad_kind' };
+  var c = CacheService.getScriptCache(), ck = 'crm_pact_' + p.kind + '_' + u.userId;
+  if (c.get(ck)) return { ok: true, dup: true };
+  var w = crmNameOfUid_(u.userId) || {};
+  crmCreateTask_({ type: 'callback', priority: 'high', hn: w.hn || '', patName: w.name || u.name || '', lineUserId: u.userId, detail: det });
+  c.put(ck, '1', 1800);
+  return { ok: true };
 }
 function crmBirthday_(p) {
   var u = crmVerifyUser_(p);

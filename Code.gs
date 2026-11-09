@@ -396,7 +396,7 @@ function gaFastGetAll_(p) {
 //    เปิดบังคับ: รัน authEnforceOn() ใน editor · ดูรายงาน: authReport() · ปิด: authEnforceOff()
 // ============================================================
 var AUTH_TTL_MS = 24 * 3600 * 1000;
-var AUTH_PUBLIC_GET = ['crmPortal', 'crmBind', 'crmConsent', 'crmRateOpen', 'authLogin'];   // หน้า LINE ของคนไข้ (ยืนยันตัวตนด้วย LINE เอง) + ล็อกอิน
+var AUTH_PUBLIC_GET = ['crmPortal', 'crmBind', 'crmConsent', 'crmBirthday', 'crmPortalAct', 'crmRateOpen', 'authLogin'];   // หน้า LINE ของคนไข้ (ยืนยันตัวตนด้วย LINE เอง) + ล็อกอิน
 var AUTH_LEGACY_DEFAULT = { toy: '1111', mind: '6465', koi: '9677', pong: '3467', aim: '7699', khao: '8986', part: '8888', ben: '2233', manager: '1234' }; // รั่วแล้ว → ใช้เข้าได้แต่ต้องเปลี่ยนทันที
 var AUTH_CTX = null;
 
