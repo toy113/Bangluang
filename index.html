@@ -2298,6 +2298,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input type="text" class="form-control" id="cert-purpose-other" placeholder="ระบุวัตถุประสงค์">
       </div>
     </div>
+    <div class="form-group"><span id="cert-lang-wrap"></span></div>
     <div id="cert-status-note" style="font-size:12px;color:var(--text-light);min-height:16px;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalCertificate')">ยกเลิก</button>
@@ -5991,6 +5992,7 @@ function openCertificateModal(t){
   document.getElementById('cert-purpose-other').value = '';
   toggleCertPurposeOther();
   document.getElementById('cert-status-note').textContent = '';
+  document.getElementById('cert-lang-wrap').innerHTML = printLangSel_();
   const btn = document.getElementById('btnIssueCert');
   btn.disabled = false; btn.textContent = '🖨️ ออกใบรับรอง + พิมพ์';
   document.getElementById('modalCertificate').classList.add('open');
@@ -6060,7 +6062,7 @@ async function issueCertificateAndPrint(){
     const resp = await fetch(APPS_SCRIPT_URL+'?action=issueCertificate&data='+encodeURIComponent(JSON.stringify(payload)), {cache:'no-store'});
     const d = await resp.json();
     if(d.error){ showToast('ออกใบรับรองไม่สำเร็จ: '+d.error,'error'); return; }
-    document.getElementById('certPrintArea').innerHTML = buildCertPrintHtml(d.cert);
+    document.getElementById('certPrintArea').innerHTML = buildCertPrintHtml(d.cert, PRINT_LANG);
     closeModal('modalCertificate');
     showToast(d.reused ? 'ใช้เลขที่เอกสารเดิม ('+d.cert.docNo+')' : 'ออกใบรับรองสำเร็จ เลขที่ '+d.cert.docNo);
     setTimeout(()=>window.print(), 300);
@@ -6075,6 +6077,27 @@ async function issueCertificateAndPrint(){
 //  ใบเสร็จรับเงิน — รวมทุกรายการรักษาของคนไข้คนเดียวในวันเดียว (หลายหมอได้) · A5 · เลขที่รายปี BL69-00001 (ออกที่เซิร์ฟเวอร์ กันเลขซ้ำ)
 // ============================================================
 const RCPT={ t:null, rows:[], existing:null, cfg:null, list:[] };
+// ============================================================
+//  ภาษาที่พิมพ์ (ไทย/English) — ใช้กับใบเสร็จและใบรับรองแพทย์ · จำค่าล่าสุดในเครื่อง
+// ============================================================
+var PRINT_LANG = (function(){ try{ return localStorage.getItem('bl_print_lang')==='en'?'en':'th'; }catch(e){ return 'th'; } })();
+function setPrintLang_(v){ PRINT_LANG = v==='en'?'en':'th'; try{ localStorage.setItem('bl_print_lang', PRINT_LANG); }catch(e){}
+  document.querySelectorAll('select.print-lang-sel').forEach(el=>{ el.value=PRINT_LANG; }); }
+function printLangSel_(){
+  return `<label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-mid);">🌐 ภาษาที่พิมพ์ <select class="form-control print-lang-sel" style="height:34px;width:auto;padding:0 8px;" onchange="setPrintLang_(this.value)"><option value="th"${PRINT_LANG==='th'?' selected':''}>ไทย</option><option value="en"${PRINT_LANG==='en'?' selected':''}>English</option></select></label>`;
+}
+var EN_MONTHS_ = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function fmtDateEn_(s){ const [y,m,d]=String(s||'').slice(0,10).split('-').map(Number); if(!y||!m||!d) return s||'—'; return d+' '+EN_MONTHS_[m-1]+' '+y; }
+// แปลชื่อหัตถการที่พบบ่อยเป็นอังกฤษ — คำที่ไม่อยู่ในรายการจะคงภาษาไทยไว้ (ตรวจก่อนยื่นเอกสารทุกครั้ง)
+var EN_PROC_ = [['ปรับเครื่องมือจัดฟัน','Orthodontic adjustment'],['ถอดเครื่องมือจัดฟัน','Orthodontic appliance removal'],['ติดเครื่องมือจัดฟัน','Orthodontic bonding'],['เครื่องมือจัดฟัน','Orthodontic appliance'],['จัดฟัน','Orthodontic treatment'],['ผ่าฟันคุด','Surgical removal of impacted tooth'],['ถอนฟันคุด','Removal of impacted tooth'],['ถอนฟัน','Tooth extraction'],['รักษารากฟัน','Root canal treatment'],['เกลารากฟัน','Root planing'],['รากฟันเทียม','Dental implant'],['ขูดหินปูน','Scaling'],['ขัดฟัน','Polishing'],['อุดฟัน','Dental filling'],['ครอบฟัน','Dental crown'],['สะพานฟัน','Dental bridge'],['ฟันปลอม','Denture'],['ฟอกสีฟัน','Teeth whitening'],['เคลือบหลุมร่องฟัน','Fissure sealant'],['เคลือบฟลูออไรด์','Fluoride application'],['ตรวจฟัน','Dental examination'],['ตรวจช่องปาก','Oral examination'],['รีเทนเนอร์','Retainer'],['เอ็กซเรย์','X-Ray'],['ค่าแลป','Laboratory fee'],['ฟันน้ำนม','primary tooth'],['ซี่','tooth']];
+function enProc_(t){ let x=String(t||''); EN_PROC_.forEach(([a,b])=>{ x=x.split(a).join(b); }); return x; }
+var EN_PURPOSE_ = {'ลาป่วยต่อนายจ้าง/สถานศึกษา':'Sick leave (employer / school)','ยื่นเบิกประกันสุขภาพ':'Health insurance claim','ยื่นเบิกต้นสังกัด':'Reimbursement claim to employing agency','ยื่นเบิกบริษัท':'Reimbursement claim to employer (company)'};
+function bahtTextEn_(n){
+  n=Math.round((+n||0)*100)/100; const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'], tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const w=x=>{ if(x<20) return ones[x]; if(x<100) return tens[Math.floor(x/10)]+(x%10?'-'+ones[x%10]:''); if(x<1000) return ones[Math.floor(x/100)]+' Hundred'+(x%100?' '+w(x%100):''); if(x<1e6) return w(Math.floor(x/1000))+' Thousand'+(x%1000?' '+w(x%1000):''); return w(Math.floor(x/1e6))+' Million'+(x%1e6?' '+w(x%1e6):''); };
+  const b=Math.floor(n), st=Math.round((n-b)*100); if(!b&&!st) return 'Zero Baht Only';
+  return (b?w(b)+' Baht':'')+(st?(b?' and ':'')+w(st)+' Satang':'')+' Only';
+}
 function bahtText(n){   // จำนวนเงินเป็นตัวอักษรไทย (ปัดสตางค์ 2 ตำแหน่ง)
   n=Math.round((+n||0)*100)/100; if(n===0) return 'ศูนย์บาทถ้วน';
   const D=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'], P=['','สิบ','ร้อย','พัน','หมื่น','แสน'];
@@ -6132,6 +6155,7 @@ function renderReceiptModal_(){
   const free=RCPT.rows.filter(x=>!taken.has(String(x.id)));
   body.innerHTML=`<div style="background:var(--cream);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px;">
       <b>${E(t.patName||'')}</b>${t.hn?' · HN '+E(t.hn):''}<br><span style="color:var(--text-light);font-size:12.5px;">วันที่ ${fmtDateThai(t.date)} · ${RCPT.rows.length} รายการของวันนี้</span></div>
+    <div style="text-align:right;margin-bottom:8px;">${printLangSel_()}</div>
     ${exHtml}
     ${free.length?`<div style="font-size:13px;font-weight:700;color:var(--wine-dark);margin-bottom:6px;">เลือกรายการที่จะรวมในใบเสร็จใหม่</div>${rowHtml}
     <div class="form-group" style="margin-top:10px;"><label>ชื่อผู้รับบริการในใบเสร็จ</label><input class="form-control" id="rcpt-name" value="${E((RCPT.prefill&&RCPT.prefill.patName)||t.patName||'')}"></div>
@@ -6233,38 +6257,44 @@ async function rcptCfgEdit_(){
   const out={}; for(const [k,l] of f){ const v=window.prompt(l, c[k]||''); if(v===null) return; out[k]=v.trim(); }
   try{ const r=await (await fetch(APPS_SCRIPT_URL+'?action=saveReceiptCfg&data='+encodeURIComponent(JSON.stringify(out)),{cache:'no-store'})).json(); if(r&&r.ok){ RCPT.cfg=r.cfg; showToast('บันทึกหัวใบเสร็จแล้ว'); } else showToast('บันทึกไม่สำเร็จ','error'); }catch(e){ showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','error'); }
 }
-function buildReceiptHtml_(r, cfg, copy){
+function buildReceiptHtml_(r, cfg, copy, lang){
+  const en=lang==='en';
   const E=escapeHtml, c=cfg||{}, items=r.items||[], sub=+r.subtotal||0, sso=+r.sso||0, paid=+r.paid||0, cash=+r.cash||0, tr=+r.transfer||0;
-  const pay=[cash?'เงินสด '+fmt(cash)+' บาท':'', tr?'โอน '+fmt(tr)+' บาท':''].filter(Boolean).join(' · ')||'—';
-  return `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>ใบเสร็จ ${E(r.receiptNo)}</title>
+  const T=en?{rc:'RECEIPT',rcSub:'',orig:'ORIGINAL',copy:'COPY',from:'Received from',hn:'HN',no:'No.',date:'Date',item:'Description',amt:'Amount (THB)',sub:'Total treatment fee',sso:'Less: Social Security Scheme',tot:'Total paid',payby:'Paid by',cash:'Cash',tr:'Transfer',baht:'THB',doc:'Attending dentist',note:'Remark',rcv:'Received by',payer:'Payer',tax:'Tax ID',tel:'Tel.',ft:'Thank you for choosing our clinic.',addr:'Address'}
+    :{rc:'ใบเสร็จรับเงิน',rcSub:'RECEIPT',orig:'ต้นฉบับ',copy:'สำเนา',from:'ได้รับเงินจาก',hn:'HN',no:'เลขที่',date:'วันที่',item:'รายการ',amt:'จำนวนเงิน (บาท)',sub:'รวมค่ารักษา',sso:'หัก สิทธิประกันสังคม',tot:'รวมรับชำระ',payby:'ชำระโดย',cash:'เงินสด',tr:'โอน',baht:'บาท',doc:'ทันตแพทย์ผู้รักษา',note:'หมายเหตุ',rcv:'ผู้รับเงิน',payer:'ผู้ชำระเงิน',tax:'เลขประจำตัวผู้เสียภาษี',tel:'โทร.',ft:c.footer||'',addr:'ที่อยู่'};
+  const pay=[cash?T.cash+' '+fmt(cash)+' '+T.baht:'', tr?T.tr+' '+fmt(tr)+' '+T.baht:''].filter(Boolean).join(' · ')||'—';
+  const dStr=String(r.date||'').slice(0,10);
+  const cName=en?(c.nameEn||c.name||''):(c.name||''), cSub=en?'':(c.nameEn||'');
+  const nm=String(r.patName||''), title=en?'':(/^(คุณ|นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|เด็กชาย|เด็กหญิง)/.test(nm.trim())?'':'คุณ');
+  const itemName=it=>en?enProc_(it.name):it.name;
+  return `<!doctype html><html lang="${en?'en':'th'}"><head><meta charset="utf-8"><title>${en?'Receipt':'ใบเสร็จ'} ${E(r.receiptNo)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>@page{size:A5 portrait;margin:0}*{box-sizing:border-box}body{font-family:'Sarabun',sans-serif;color:#222;margin:0;padding:12mm 11mm;font-size:12.5px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+<style>@page{size:A5 portrait;margin:0}*{box-sizing:border-box}body{font-family:'Sarabun',sans-serif;color:#222;margin:0;padding:10mm 8mm;font-size:12.5px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .hd{display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #6B2D5E;padding-bottom:7px}.hd>div:first-child{flex:none}.cn{font-size:16px;font-weight:800;color:#6B2D5E;white-space:nowrap}.ce{font-size:11px;color:#777;white-space:nowrap}.ca{flex:1;text-align:right;font-size:11px;color:#444}
-.tt{display:flex;justify-content:space-between;align-items:flex-end;margin:10px 0 6px}.tt h1{font-size:19px;margin:0;color:#3d1435}.tt .en{font-size:11px;color:#888;font-weight:600}.cp{border:1.5px solid #6B2D5E;color:#6B2D5E;border-radius:6px;padding:1px 8px;font-weight:800;font-size:11.5px}
-.mt{display:grid;grid-template-columns:1fr auto;gap:2px 12px;margin-bottom:8px}.mt b{font-weight:700}
+.tt{position:relative;text-align:center;margin:10px 0 6px;min-height:34px}.tt h1{font-size:19px;margin:0;color:#3d1435}.tt .en{font-size:11px;color:#888;font-weight:600}.cp{position:absolute;right:0;top:2px;border:1.5px solid #6B2D5E;color:#6B2D5E;border-radius:6px;padding:1px 8px;font-weight:800;font-size:11.5px}
+.mt{display:grid;grid-template-columns:1fr auto;gap:2px 12px;margin-bottom:8px}.mt b{font-weight:700}.mt .r{text-align:right}
 table{width:100%;border-collapse:collapse;margin-top:4px}th{background:#f3e9f0;font-size:11.5px;text-align:left;padding:5px 6px;border-bottom:1px solid #cdb}td{padding:5px 6px;border-bottom:1px solid #eee;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap}
-.tot td{border:0;padding:3px 6px}.tot .g td{font-size:14px;font-weight:800;border-top:1.5px solid #6B2D5E;padding-top:5px}.words{background:#f7f2f5;border-radius:6px;padding:5px 8px;margin-top:6px;font-weight:700}
+.tot td{border:0;padding:3px 6px}.tot .g td{font-size:14px;font-weight:800;border-top:1.5px solid #6B2D5E;padding-top:5px}.words{background:#f7f2f5;border-radius:6px;padding:5px 8px;margin-top:6px;font-weight:700;text-align:right}
 .sg{display:flex;justify-content:space-between;margin-top:26px;gap:20px}.sg div{flex:1;text-align:center;font-size:11.5px}.ln{border-top:1px dotted #555;margin:0 10px 3px}
 .ft{text-align:center;color:#888;font-size:11px;margin-top:12px}.void{position:fixed;top:38%;left:0;right:0;text-align:center;font-size:72px;font-weight:800;color:rgba(200,30,40,.22);transform:rotate(-18deg)}</style></head><body>
-${r.status==='void'?'<div class="void">ยกเลิก</div>':''}
-<div class="hd"><div><div class="cn">${E(c.name||'')}</div><div class="ce">${E(c.nameEn||'')}</div></div>
-<div class="ca">${E(c.address||'')}${c.phone?'<br>โทร. '+E(c.phone):''}${c.taxId?'<br>เลขประจำตัวผู้เสียภาษี '+E(c.taxId):''}</div></div>
-<div class="tt"><div><h1>ใบเสร็จรับเงิน</h1><div class="en">RECEIPT</div></div><span class="cp">${copy?'สำเนา':'ต้นฉบับ'}</span></div>
-<div class="mt"><div>ได้รับเงินจาก <b>${/^(คุณ|นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|เด็กชาย|เด็กหญิง)/.test(String(r.patName||'').trim())?'':'คุณ'}${E(r.patName||'')}</b>${r.hn?' &nbsp;HN '+E(r.hn):''}</div><div>เลขที่ <b>${E(r.receiptNo)}</b></div>
-<div>${r.address?'ที่อยู่ '+E(r.address):''}</div><div>วันที่ <b>${fmtDateThai(String(r.date||'').slice(0,10))}</b></div></div>
-<table><tr><th style="width:28px;">#</th><th>รายการ</th><th class="n">จำนวนเงิน (บาท)</th></tr>
-${items.map((it,i)=>`<tr><td>${i+1}</td><td>${E(it.name)}</td><td class="n">${fmt(+it.price||0)}</td></tr>`).join('')}</table>
-<table class="tot">${sso?`<tr><td></td><td class="n">รวมค่ารักษา</td><td class="n" style="width:110px;">${fmt(sub)}</td></tr><tr><td></td><td class="n">หัก สิทธิประกันสังคม</td><td class="n">−${fmt(sso)}</td></tr>`:''}
-<tr class="g"><td></td><td class="n">รวมรับชำระ</td><td class="n" style="width:110px;">${fmt(paid)}</td></tr></table>
-<div class="words">(${bahtText(paid)})</div>
-<div style="margin-top:6px;">ชำระโดย: ${pay}</div>
-${r.doctors?`<div>ทันตแพทย์ผู้รักษา: ${E(r.doctors)}</div>`:''}${r.note?`<div>หมายเหตุ: ${E(r.note)}</div>`:''}
-<div class="sg"><div><div class="ln"></div>ผู้รับเงิน${r.issuedBy?'<br>('+E(String(r.issuedBy).replace(/\s*\[[^\]]*\]$/,''))+')':''}</div><div><div class="ln"></div>ผู้ชำระเงิน</div></div>
-<div class="ft">${E(c.footer||'')}</div>
+${r.status==='void'?'<div class="void">'+(en?'VOID':'ยกเลิก')+'</div>':''}
+<div class="hd"><div><div class="cn">${E(cName)}</div><div class="ce">${E(cSub)}</div></div>
+<div class="ca">${E(c.address||'')}${c.phone?'<br>'+T.tel+' '+E(c.phone):''}${c.taxId?'<br>'+T.tax+' '+E(c.taxId):''}</div></div>
+<div class="tt"><h1>${T.rc}</h1>${T.rcSub?`<div class="en">${T.rcSub}</div>`:''}<span class="cp">${copy?T.copy:T.orig}</span></div>
+<div class="mt"><div>${T.from} <b>${title}${E(nm)}</b>${r.hn?'<br>'+T.hn+' '+E(r.hn):''}${r.address?'<br>'+T.addr+' '+E(r.address):''}</div><div class="r">${T.no} <b>${E(r.receiptNo)}</b><br>${T.date} <b>${en?fmtDateEn_(dStr):fmtDateThai(dStr)}</b></div></div>
+<table><tr><th style="width:28px;">#</th><th>${T.item}</th><th class="n">${T.amt}</th></tr>
+${items.map((it,i)=>`<tr><td>${i+1}</td><td>${E(itemName(it))}</td><td class="n">${fmt(+it.price||0)}</td></tr>`).join('')}</table>
+<table class="tot">${sso?`<tr><td></td><td class="n">${T.sub}</td><td class="n" style="width:110px;">${fmt(sub)}</td></tr><tr><td></td><td class="n">${T.sso}</td><td class="n">−${fmt(sso)}</td></tr>`:''}
+<tr class="g"><td></td><td class="n">${T.tot}</td><td class="n" style="width:110px;">${fmt(paid)}</td></tr></table>
+<div class="words">(${en?bahtTextEn_(paid):bahtText(paid)})</div>
+<div style="margin-top:6px;">${T.payby}: ${pay}</div>
+${r.doctors?`<div>${T.doc}: ${E(r.doctors)}</div>`:''}${r.note?`<div>${T.note}: ${E(r.note)}</div>`:''}
+<div class="sg"><div><div class="ln"></div>${T.rcv}${r.issuedBy?'<br>('+E((en?String(r.issuedBy).replace('ผู้จัดการ','Manager'):String(r.issuedBy)).replace(/\s*\[[^\]]*\]$/,''))+')':''}</div><div><div class="ln"></div>${T.payer}</div></div>
+<div class="ft">${E(T.ft)}</div>
 <script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
 }
 function rcptPrint_(w, r, copy){
-  const html=buildReceiptHtml_(r, RCPT.cfg, copy);
+  const html=buildReceiptHtml_(r, RCPT.cfg, copy, PRINT_LANG);
   if(!w){ showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — อนุญาตป๊อปอัปแล้วกดพิมพ์ซ้ำ','error'); return; }
   w.document.open(); w.document.write(html); w.document.close();
 }
@@ -6272,7 +6302,7 @@ async function openReceiptList(){
   const body=document.getElementById('rcptListBody');
   const m=RCPT.listMonth || todayStr().slice(0,7);
   document.getElementById('modalReceiptList').classList.add('open');
-  body.innerHTML=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"><input type="month" class="form-control" style="height:36px;width:170px;" value="${m}" onchange="RCPT.listMonth=this.value;openReceiptList()"><input class="form-control" id="rcptQ" placeholder="ค้นหา เลขที่ / ชื่อ / HN" style="height:36px;flex:1;min-width:160px;" oninput="rcptListDraw_()"></div><div id="rcptListRows" style="color:var(--text-light);padding:12px;">กำลังโหลด...</div>`;
+  body.innerHTML=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"><input type="month" class="form-control" style="height:36px;width:170px;" value="${m}" onchange="RCPT.listMonth=this.value;openReceiptList()"><input class="form-control" id="rcptQ" placeholder="ค้นหา เลขที่ / ชื่อ / HN" style="height:36px;flex:1;min-width:160px;" oninput="rcptListDraw_()">${printLangSel_()}</div><div id="rcptListRows" style="color:var(--text-light);padding:12px;">กำลังโหลด...</div>`;
   try{
     const r=await (await fetch(APPS_SCRIPT_URL+'?action=getReceipts&month='+encodeURIComponent(m),{cache:'no-store'})).json();
     if(!r || !r.ok){ document.getElementById('rcptListRows').innerHTML='<div class="crm-alert r">โหลดไม่สำเร็จ — ต้องวาง Code.gs ฉบับล่าสุดและ Deploy ก่อน</div>'; return; }
@@ -6422,49 +6452,54 @@ h1{text-align:center;font-size:21px;margin:14px 0 2px;color:#3d1435}.en{text-ali
   w.document.open(); w.document.write(html); w.document.close();
   closeModal('modalReferral');
 }
-function buildCertPrintHtml(cert){
-  const procList = String(cert.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
+function buildCertPrintHtml(cert, lang){
+  const en = lang==='en';
+  const procRaw = String(cert.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
+  const procList = en ? enProc_(procRaw) : procRaw;
+  const purpose = en ? (EN_PURPOSE_[cert.purpose]||cert.purpose) : cert.purpose;
+  const dt = x => en ? fmtDateEn_(x) : fmtDateThai(x);
   const needsRest = cert.needsRest === true || cert.needsRest === 'TRUE';
+  const T = en ? {name:'Bangluang Dental Clinic',sub:'',addr:'119/14 Pathum Thani Sai Nai Rd.<br>Mueang Pathum Thani, Pathum Thani 12000, Thailand<br>Tel. 095-947-6759',no:'No.',iss:'Date of issue',title:'Medical Certificate',titleEn:'',
+      body:(f,l,pn,age)=>`I, <span class="cert-fill">${f}</span>, Dentist, Dental Professional License No. <span class="cert-fill">${l}</span>,<br>hereby certify that I have examined and treated <span class="cert-fill">${pn}</span>${age?`, aged <span class="cert-fill">${age}</span> years,`:''} as detailed below.`,
+      hn:'Hospital Number (HN)',vd:'Date of treatment',dx:'Diagnosis / Procedure',rest:'Recommended rest',days:'day(s)',rng:'From — To',purpose:'This certificate is issued for:',seal:'Clinic<br>Seal',role:'Treating Dentist<br>License No. '}
+    : {name:'คลินิกทันตกรรมบางหลวง',sub:'Bangluang Dental Clinic',addr:'119/14 ถ.ปทุมธานีสายใน<br>อ.เมืองปทุมธานี จ.ปทุมธานี 12000<br>โทร. 095-947-6759',no:'เลขที่',iss:'วันที่ออกใบรับรอง',title:'ใบรับรองแพทย์',titleEn:'Medical Certificate',
+      body:(f,l,pn,age)=>`ข้าพเจ้า <span class="cert-fill">${f}</span> ทันตแพทย์ เลขที่ใบอนุญาตประกอบวิชาชีพทันตกรรม <span class="cert-fill">${l}</span><br>ขอรับรองว่าได้ทำการตรวจรักษา <span class="cert-fill">${pn}</span>${age?` อายุ <span class="cert-fill">${age}</span> ปี`:''} จริงตามรายละเอียดด้านล่างนี้`,
+      hn:'หมายเลขผู้ป่วย (HN)',vd:'วันที่เข้ารับการรักษา',dx:'การวินิจฉัย / หัตถการ',rest:'ควรหยุดพักรักษาตัว',days:'วัน',rng:'ตั้งแต่ — ถึงวันที่',purpose:'ใบรับรองฉบับนี้ออกให้เพื่อ:',seal:'ตราประทับ<br>คลินิก',role:'ทันตแพทย์ผู้ตรวจรักษา<br>ใบอนุญาตเลขที่ '};
   const restBlock = needsRest ? `
     <div class="cert-fact-grid">
-      <div class="cert-fact"><span class="k">ควรหยุดพักรักษาตัว</span><span class="v">${escapeHtml(cert.restDays)} วัน</span></div>
-      <div class="cert-fact"><span class="k">ตั้งแต่ — ถึงวันที่</span><span class="v">${fmtDateThai(cert.restStart)} – ${fmtDateThai(cert.restEnd)}</span></div>
+      <div class="cert-fact"><span class="k">${T.rest}</span><span class="v">${escapeHtml(cert.restDays)} ${T.days}</span></div>
+      <div class="cert-fact"><span class="k">${T.rng}</span><span class="v">${dt(cert.restStart)} – ${dt(cert.restEnd)}</span></div>
     </div>` : '';
   const issuedDateStr = cert.issuedAt ? toDateStr(new Date(cert.issuedAt)) : todayStr();
+  const eq = escapeHtml;
   return `
   <div class="cert-paper">
     <div class="cert-letterhead">
       <div>
-        <div class="cert-lh-name">คลินิกทันตกรรมบางหลวง</div>
-        <div class="cert-lh-sub">Bangluang Dental Clinic</div>
+        <div class="cert-lh-name">${T.name}</div>
+        ${T.sub?`<div class="cert-lh-sub">${T.sub}</div>`:''}
       </div>
-      <div class="cert-lh-right">119/14 ถ.ปทุมธานีสายใน<br>อ.เมืองปทุมธานี จ.ปทุมธานี 12000<br>โทร. 095-947-6759</div>
+      <div class="cert-lh-right">${T.addr}</div>
     </div>
     <div class="cert-doc-meta">
-      <div>เลขที่ <b>${escapeHtml(cert.docNo)}</b></div>
-      <div>วันที่ออกใบรับรอง <b>${fmtDateThai(issuedDateStr)}</b></div>
+      <div>${T.no} <b>${eq(cert.docNo)}</b></div>
+      <div>${T.iss} <b>${dt(issuedDateStr)}</b></div>
     </div>
-    <div class="cert-title"><h2>ใบรับรองแพทย์</h2><div class="cert-title-en">Medical Certificate</div></div>
-    <div class="cert-body">
-      ข้าพเจ้า <span class="cert-fill">${escapeHtml(cert.docFullName)}</span> ทันตแพทย์ เลขที่ใบอนุญาตประกอบวิชาชีพทันตกรรม
-      <span class="cert-fill">${escapeHtml(cert.docLicense)}</span><br>
-      ขอรับรองว่าได้ทำการตรวจรักษา
-      <span class="cert-fill">${escapeHtml(cert.patName)}</span>${cert.age?` อายุ <span class="cert-fill">${escapeHtml(cert.age)}</span> ปี`:''}
-      จริงตามรายละเอียดด้านล่างนี้
-    </div>
+    <div class="cert-title"><h2>${T.title}</h2>${T.titleEn?`<div class="cert-title-en">${T.titleEn}</div>`:''}</div>
+    <div class="cert-body">${T.body(eq(cert.docFullName), eq(cert.docLicense), eq(cert.patName), cert.age?eq(cert.age):'')}</div>
     <div class="cert-fact-grid">
-      <div class="cert-fact"><span class="k">หมายเลขผู้ป่วย (HN)</span><span class="v">${escapeHtml(cert.hn)||'—'}</span></div>
-      <div class="cert-fact"><span class="k">วันที่เข้ารับการรักษา</span><span class="v">${fmtDateThai(cert.treatDate)}</span></div>
-      <div class="cert-fact" style="grid-column:1/-1;"><span class="k">การวินิจฉัย / หัตถการ</span><span class="v">${escapeHtml(procList)}</span></div>
+      <div class="cert-fact"><span class="k">${T.hn}</span><span class="v">${eq(cert.hn)||'—'}</span></div>
+      <div class="cert-fact"><span class="k">${T.vd}</span><span class="v">${dt(cert.treatDate)}</span></div>
+      <div class="cert-fact" style="grid-column:1/-1;"><span class="k">${T.dx}</span><span class="v">${eq(procList)}</span></div>
     </div>
     ${restBlock}
-    <div class="cert-purpose">ใบรับรองฉบับนี้ออกให้เพื่อ: <b>${escapeHtml(cert.purpose)}</b></div>
+    <div class="cert-purpose">${T.purpose} <b>${eq(purpose)}</b></div>
     <div class="cert-footer">
-      <div class="cert-seal">ตราประทับ<br>คลินิก</div>
+      <div class="cert-seal">${T.seal}</div>
       <div class="cert-sign">
         <div class="cert-sign-line"></div>
-        <div class="cert-sign-name">(${escapeHtml(cert.docFullName)})</div>
-        <div class="cert-sign-role">ทันตแพทย์ผู้ตรวจรักษา<br>ใบอนุญาตเลขที่ ${escapeHtml(cert.docLicense)}</div>
+        <div class="cert-sign-name">(${eq(cert.docFullName)})</div>
+        <div class="cert-sign-role">${T.role}${eq(cert.docLicense)}</div>
       </div>
     </div>
   </div>`;
