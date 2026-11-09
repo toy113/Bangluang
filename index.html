@@ -3727,7 +3727,7 @@ async function crmOrthoCameSave(){
       const notes=[]; if(adj) notes.push('ค่าบริการ '+adjFee.toLocaleString()+' บาท');
       extras.filter(x=>x.price).forEach(x=>notes.push(x.name+' '+x.price.toLocaleString()+' บาท')); if(userNote) notes.push(userNote);
       logs.push({ hn:r.hn, 'วันที่':date, 'ทำอะไร':what, 'หมอ':doc, 'note':notes.join(' · ') });
-      if(adj && String(r['ปรับล่าสุด']||'').slice(0,10)!==date) visits++;   // นับเฉพาะครั้งที่ "ปรับเครื่องมือ" และนับต่อวัน
+      if(adj && !treatments.some(t=>t.date===date && t.status!=='ยกเลิก' && normHN(t.hn)===normHN(r.hn) && /มาตามนัดจัดฟัน ปรับครั้งที่/.test(String(t.note||'')))) visits++;   // นับครั้งละวัน: วันนี้ยังไม่เคยลง "ปรับเครื่องมือ" ผ่านปุ่มนี้ (มาก่อนด้วยเหล็กหลุดอย่างเดียวก็ยังนับได้)   // นับเฉพาะครั้งที่ "ปรับเครื่องมือ" และนับต่อวัน
     }
     if(loose){
       const q=Math.max(1,Math.min(20,Math.floor(+document.getElementById('came-looseqty').value||1)));
@@ -3890,7 +3890,7 @@ function crmViewOrthoApts(){
   };
   const came=a=>{
     const o=crmOrthoRec(a.hn), base='flex:1 1 110px;box-sizing:border-box;padding:7px 6px;font-size:12px;white-space:normal;line-height:1.25;';
-    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;flex:1 1 110px;box-sizing:border-box;text-align:center;">🦷 มาแล้ว</span>${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
+    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;flex:1 1 110px;box-sizing:border-box;text-align:center;">🦷 มาแล้ว</span>${isViewOnlyUser()?'':`<button class="crm-btn" style="${base}flex:0 1 auto;" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}',true)" title="ลืมลงบางรายการ เช่น ปรับเครื่องมือ/เหล็กหลุด — ลงเพิ่มให้ประวัติจัดฟันและรายได้ตรงกัน">+ เพิ่มรายการ</button>`}${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
     if(isViewOnlyUser()) return '';
     if(!o) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="ไม่มีการ์ดจัดฟันของคนไข้นี้ (ไม่มี HN หรือ HN ไม่ตรง)">มาตามนัด</button>`;
     if(a.date>today) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="กดได้เมื่อถึงวันนัด">มาตามนัด</button>`;
@@ -4713,8 +4713,10 @@ function renderAptList(today){
     if(!o || !(a._ortho || crmIsOrthoVisit(a))) return '';
     if(!orthoAimOnly_(a)) return '';   // มาตามนัด: เฉพาะนัดของหมอวัจน์กร (หมอคนอื่นไม่มีปุ่ม)
     const bs='margin-top:4px;padding:4px 8px;font-size:11px;white-space:nowrap;';
+    const addMore=`<button class="crm-btn" style="${bs}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}',true)" title="ลงรายการจัดฟันเพิ่มของวันนี้ (ปรับเครื่องมือ/เหล็กหลุด ฯลฯ)">+ เพิ่มรายการ</button>`;
+    if(treatedApt_(a) && (o['ปรับล่าสุด']||'').slice(0,10)===a.date) return isViewOnlyUser()?'':`<div>${addMore}</div>`;
     if(treatedApt_(a)) return '';   // บันทึกการรักษาแล้ว → ป้าย "✅ บันทึกแล้ว" บอกอยู่แล้ว ไม่ต้องซ้ำด้วย "มาแล้ว"
-    if(String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<div><span class="crm-chip g" style="${bs}">🦷 มาแล้ว</span></div>`;   // บันทึกการรักษาแล้ว (แถวเขียว) = มาแล้ว แม้การ์ดจัดฟันยังไม่อัปเดตวันปรับล่าสุด
+    if(String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<div><span class="crm-chip g" style="${bs}">🦷 มาแล้ว</span>${isViewOnlyUser()?'':' '+addMore}</div>`;   // บันทึกการรักษาแล้ว (แถวเขียว) = มาแล้ว แม้การ์ดจัดฟันยังไม่อัปเดตวันปรับล่าสุด
     if(isViewOnlyUser()) return '';
     if(a.date>todayStr()) return '';
     return `<div><button class="crm-btn p" style="${bs}" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}')">✔ มาตามนัด</button></div>`;
