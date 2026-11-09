@@ -598,7 +598,7 @@ function crmMoveInfo_(s, state, a, curIds) {
 function crmAptMessage_(s, apt, kind, mv) {
   // mv = { date, time } นัดเดิมที่ถูกเลื่อน (kind 'move') — บอกคนไข้ชัดเจนว่าเลื่อนจากวันไหนเป็นวันไหน และนัดเดิมถูกยกเลิกแล้ว
   var sameDay = !!(mv && mv.date === apt.date);
-  var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'move' ? (sameDay ? '🔄 เปลี่ยนเวลานัดหมาย' : '🔄 เลื่อนนัดหมายแล้ว') : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '📅 ใบนัด'));
+  var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'move' ? (sameDay ? '🔄 เปลี่ยนเวลานัดหมาย' : '🔄 เลื่อนนัดหมายแล้ว') : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '📌 ใบนัด'));
   // ใบนัด (ยืนยันตอนลงนัด): ชื่อ ตามด้วย HN — คนไข้จัดฟันที่มีรหัสจัดฟัน (A-###) ใส่รหัสแทน HN
   var idLbl = '';
   if (kind !== 'remind' && kind !== 'move' && kind !== 'change') {
