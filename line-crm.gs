@@ -1175,7 +1175,7 @@ function crmTickInner_() {
         if (!tg.length) return;
         var bk = crmKey_(s, 'bday:' + crmHN_(l.hn) + ':' + yr0);
         if (crmIsDone_(state, bk)) return;
-        var nm = crmWho_(String(l.patName || '').split(' ')[0], l.hn);
+        var nm = String(l.patName || '').split(' ')[0];   // วันเกิด: ชื่ออย่างเดียว ไม่ใส่ HN/รหัสจัดฟัน
         var txt = String(s.birthdayText || '').replace(/\{name\}/g, nm).replace(/\{month\}/g, CRM_TH_MONTHS[+md0.slice(0, 2) - 1]).replace(/\{phone\}/g, s.clinicPhone || '').replace(/\{clinic\}/g, s.clinicName || '');
         tg.forEach(function (t) {
           if (crmSend_(s, state, { key: bk + '>' + t.lineUserId, type: 'birthday', hn: l.hn, patName: l.patName, lineUserId: t.lineUserId, refId: 'bday-' + yr0, detail: md0 }, [crmText_(txt)])) summary.birthday = (summary.birthday || 0) + 1;
