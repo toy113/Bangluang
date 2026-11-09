@@ -5858,6 +5858,7 @@ function saveTreat(){
   if(isManager && t.docName) localStorage.setItem('bl_last_doc', t.docName);
   const idx=treatments.findIndex(x=>x.id===id);
   if(idx>-1) treatments[idx]=t; else treatments.push(t);
+  if(existingTreat){ rcptActiveFor_(id).then(rc=>{ if(rc && rcptDiff_(rc)) showToast('⚠️ รายการนี้อยู่ในใบเสร็จ '+rc.receiptNo+' — ข้อมูลไม่ตรงแล้ว ให้กด 🧾 แล้ว "แก้ไข" ใบเสร็จ','error'); }); }   // แก้รายการที่ออกใบเสร็จไปแล้ว → เตือน
   orthoBondFromTreat_(t);   // ติดเครื่องมือบน/ล่าง → วันติดในการ์ดจัดฟัน
   orthoCheckFromTreat_(t);  // เช็ครีเทนเนอร์ → จบเคสจัดฟัน
 
@@ -5923,9 +5924,13 @@ async function orthoRevertDay_(hn, date){
     try{ renderOrthoPage(); }catch(e){}
   }catch(e){ console.warn('orthoRevertDay_', e); showToast('ย้อนการ์ดจัดฟันไม่สำเร็จ','error'); }
 }
-function deleteTreat(id){
+async function deleteTreat(id, _rcChecked){
   const _rec = treatments.find(t=>t.id===id);
   if(_rec && !canEditTreat(_rec)){ warnTreatLocked(); return; }
+  if(!_rcChecked){   // รายการนี้อยู่ในใบเสร็จที่ยังใช้งานอยู่ → เตือนก่อนลบ
+    const rc=await rcptActiveFor_(id);
+    if(rc && !confirm('รายการนี้อยู่ในใบเสร็จเลขที่ '+rc.receiptNo+' ('+fmt(+rc.paid||0)+' บาท)\nถ้าลบ ใบเสร็จจะไม่ตรงกับบันทึก — ควรยกเลิกหรือแก้ไขใบเสร็จด้วย (ปุ่ม 🧾)\n\nลบต่อหรือไม่?')) return;
+  }
   if(!confirm(_rec && isDfPaid(_rec) ? 'รายการนี้ติ๊ก "โอน DF ให้หมอแล้ว" ไปแล้ว (DF '+Math.round(dfAmt(_rec, doctors.find(d=>d.name===_rec.docName))).toLocaleString()+' บาท)\nลบแล้วยอด DF ของวันนั้นจะไม่ตรงกับที่โอนไป — ยืนยันลบ?' : 'ยืนยันลบรายการนี้?')) return;
   const idx = treatments.findIndex(t=>t.id===id);
   if(idx<0) return;
@@ -6068,6 +6073,7 @@ function bahtText(n){   // จำนวนเงินเป็นตัวอ�
   const b=Math.floor(n), st=Math.round((n-b)*100);
   return (b?rd(b)+'บาท':'')+(st?rd(st)+'สตางค์':'ถ้วน');
 }
+function rcptKey_(t){ return String(t.date)+'|'+(normHN(t.hn)||String(t.patName||'').trim()); }
 function receiptRowsFor_(t){
   const k=normHN(t.hn), nm=String(t.patName||'').trim();
   return treatments.filter(x=>x.date===t.date && x.status!=='ยกเลิก' && (k ? normHN(x.hn)===k : (!x.hn && String(x.patName||'').trim()===nm)))
@@ -6083,6 +6089,7 @@ function receiptItemsOf_(t){   // แยกรายการตามราค�
 }
 async function openReceiptModal(treatId){
   const t=treatments.find(x=>String(x.id)===String(treatId)); if(!t) return;
+  if(RCPT.prefill && RCPT.prefill.key!==rcptKey_(t)) RCPT.prefill=null;   // ค่าที่เติมจาก "แก้ไข" ใช้กับคนไข้/วันเดียวกันเท่านั้น
   RCPT.t=t; RCPT.rows=receiptRowsFor_(t); RCPT.existing=null;
   const body=document.getElementById('rcptBody');
   body.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-light);">กำลังตรวจใบเสร็จเดิม...</div>';
@@ -6104,21 +6111,57 @@ function renderReceiptModal_(){
       <span style="flex:1;min-width:0;"><b>${E(String(x.proc||'—'))}</b><br><span style="font-size:12px;color:var(--text-mid);">${[E(x.docName||''), x.time?E(x.time):'', inR?'อยู่ในใบเสร็จ <b>'+E(inR.receiptNo)+'</b>':''].filter(Boolean).join(' · ')}</span></span>
       <b style="white-space:nowrap;">${fmt(totalPrice(x))}</b></label>`; }).join('');
   const exHtml=ex.length?`<div style="background:#f1fbf5;border:1px solid rgba(29,130,92,.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-      ${ex.map(r=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:3px 0;"><b>✅ ${E(r.receiptNo)}</b><span style="font-size:12.5px;color:var(--text-mid);">${fmt(+r.paid||0)} บาท · พิมพ์ ${r.printCount} ครั้ง</span><span style="flex:1"></span>
-        <button class="btn btn-ghost btn-sm" onclick="rcptReprint_('${E(r.receiptNo)}')">🖨️ พิมพ์ซ้ำ (สำเนา)</button>${isManager?`<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="rcptVoid_('${E(r.receiptNo)}')">ยกเลิก</button>`:''}</div>`).join('')}</div>`:'';
+      ${ex.map(r=>{ const diff=rcptDiff_(r);
+        return `<div style="margin:3px 0;"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><b>✅ ${E(r.receiptNo)}</b><span style="font-size:12.5px;color:var(--text-mid);">${fmt(+r.paid||0)} บาท · พิมพ์ ${r.printCount} ครั้ง</span><span style="flex:1"></span>
+        <button class="btn btn-ghost btn-sm" onclick="rcptReprint_('${E(r.receiptNo)}')">🖨️ พิมพ์ซ้ำ (สำเนา)</button>${isManager?`<button class="btn btn-ghost btn-sm" onclick="rcptEdit_('${E(r.receiptNo)}')">✏️ แก้ไข</button><button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="rcptVoid_('${E(r.receiptNo)}')">ยกเลิก</button>`:''}</div>
+        ${diff?`<div style="font-size:12.5px;color:#A04000;font-weight:700;margin-top:3px;">⚠️ ${diff} — ควรกด "แก้ไข" เพื่อออกใบใหม่ให้ตรง</div>`:''}</div>`; }).join('')}</div>`:'';
   const free=RCPT.rows.filter(x=>!taken.has(String(x.id)));
   body.innerHTML=`<div style="background:var(--cream);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px;">
       <b>${E(t.patName||'')}</b>${t.hn?' · HN '+E(t.hn):''}<br><span style="color:var(--text-light);font-size:12.5px;">วันที่ ${fmtDateThai(t.date)} · ${RCPT.rows.length} รายการของวันนี้</span></div>
     ${exHtml}
     ${free.length?`<div style="font-size:13px;font-weight:700;color:var(--wine-dark);margin-bottom:6px;">เลือกรายการที่จะรวมในใบเสร็จใหม่</div>${rowHtml}
-    <div class="form-group" style="margin-top:10px;"><label>ชื่อผู้รับบริการในใบเสร็จ</label><input class="form-control" id="rcpt-name" value="${E(t.patName||'')}"></div>
-    <div class="form-group"><label>ที่อยู่ (ใส่เฉพาะเมื่อคนไข้ขอ — ว่างไว้จะไม่พิมพ์)</label><input class="form-control" id="rcpt-addr" placeholder="เช่น ที่อยู่บริษัทสำหรับเบิก"></div>
-    <div class="form-group"><label>หมายเหตุในใบเสร็จ (ไม่บังคับ)</label><input class="form-control" id="rcpt-note"></div>
+    <div class="form-group" style="margin-top:10px;"><label>ชื่อผู้รับบริการในใบเสร็จ</label><input class="form-control" id="rcpt-name" value="${E((RCPT.prefill&&RCPT.prefill.patName)||t.patName||'')}"></div>
+    <div class="form-group"><label>ที่อยู่ (ใส่เฉพาะเมื่อคนไข้ขอ — ว่างไว้จะไม่พิมพ์)</label><input class="form-control" id="rcpt-addr" placeholder="เช่น ที่อยู่บริษัทสำหรับเบิก" value="${E((RCPT.prefill&&RCPT.prefill.address)||'')}"></div>
+    <div class="form-group"><label>หมายเหตุในใบเสร็จ (ไม่บังคับ)</label><input class="form-control" id="rcpt-note" value="${E((RCPT.prefill&&RCPT.prefill.note)||'')}"></div>
+    ${RCPT.prefill?`<div style="font-size:12.5px;color:var(--wine);font-weight:700;margin:-4px 0 8px;">✏️ ออกใบใหม่แทนใบ ${E(RCPT.prefill.replaces)} (ยกเลิกใบเดิมแล้ว) — ตรวจรายการ/ชื่อ แล้วกดออกใบเสร็จ</div>`:''}
     <div id="rcpt-sum" style="background:var(--wine-pale);border-radius:10px;padding:10px 14px;margin:6px 0 12px;font-size:13.5px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-ghost" onclick="closeModal('modalReceipt')">ปิด</button><button class="btn btn-primary" id="rcpt-issue" onclick="rcptIssue_()">🧾 ออกใบเสร็จ + พิมพ์</button></div>`
     : `<div style="font-size:13px;color:var(--text-mid);margin-bottom:10px;">ทุกรายการของวันนี้ออกใบเสร็จแล้ว — ถ้าข้อมูลผิด ให้ยกเลิกใบเดิมแล้วออกใบใหม่</div><div style="text-align:right;"><button class="btn btn-ghost" onclick="closeModal('modalReceipt')">ปิด</button></div>`}
     ${isManager?`<div style="margin-top:12px;text-align:right;"><a href="javascript:void(0)" onclick="rcptCfgEdit_()" style="font-size:12px;color:var(--text-light);">⚙️ ตั้งค่าหัวใบเสร็จ (ชื่อ/ที่อยู่/เลขผู้เสียภาษีคลินิก)</a></div>`:''}`;
   rcptCalc_();
+}
+// ใบเสร็จที่ออกไปแล้ว เทียบกับบันทึกการรักษาตอนนี้ — ถ้ารายการถูกลบ/ยกเลิก หรือยอดชำระเปลี่ยน ให้เตือน
+function rcptDiff_(r){
+  const rows=(r.treatIds||[]).map(id=>treatments.find(x=>String(x.id)===String(id)));
+  const gone=rows.filter(x=>!x || x.status==='ยกเลิก').length;
+  const paidNow=rows.filter(x=>x && x.status!=='ยกเลิก').reduce((a,x)=>a+(+x.cash||0)+(+x.transfer||0),0);
+  const out=[]; if(gone) out.push(gone+' รายการในใบถูกลบ/ยกเลิกแล้ว');
+  if(Math.abs(paidNow-(+r.paid||0))>0.009) out.push('ยอดชำระตอนนี้ '+fmt(paidNow)+' แต่ในใบ '+fmt(+r.paid||0));
+  return out.join(' · ');
+}
+// แก้ไข = ยกเลิกใบเดิม (มีเหตุผล) แล้วเปิดหน้าออกใบใหม่ โดยเติมชื่อ/ที่อยู่/หมายเหตุเดิมให้ — เลขที่เดิมไม่ถูกนำกลับมาใช้
+async function rcptEdit_(no){
+  const rec=(RCPT.existing||[]).concat(RCPT.list||[]).find(x=>x.receiptNo===no); if(!rec) return;
+  const reason=window.prompt('แก้ไขใบเสร็จ '+no+'\nระบบจะยกเลิกใบนี้แล้วออกเลขที่ใหม่แทน\nเหตุผล:', 'แก้ไขข้อมูล'); if(reason===null) return;
+  if(!reason.trim()){ showToast('ต้องระบุเหตุผล','error'); return; }
+  const ok=await rcptVoidCall_(no, reason.trim()+' (ออกใบใหม่แทน)'); if(!ok) return;
+  const t=treatments.find(x=>(rec.treatIds||[]).includes(String(x.id)));
+  RCPT.prefill={ patName:rec.patName, address:rec.address, note:rec.note, replaces:no, key:t?rcptKey_(t):'' };
+  closeModal('modalReceiptList');
+  if(t) openReceiptModal(t.id); else showToast('ยกเลิกใบเดิมแล้ว แต่ไม่พบรายการรักษาของใบนี้ (อาจถูกลบ) — ออกใบใหม่จากหน้าบันทึกการรักษา','error');
+}
+async function rcptVoidCall_(no, reason){
+  try{
+    const r=await (await fetch(APPS_SCRIPT_URL+'?action=voidReceipt&receiptNo='+encodeURIComponent(no)+'&reason='+encodeURIComponent(reason)+'&by='+encodeURIComponent(crmBy()),{cache:'no-store'})).json();
+    if(r && r.ok) return true;
+    showToast('ยกเลิกไม่สำเร็จ: '+((r&&r.error)||''),'error'); return false;
+  }catch(e){ showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','error'); return false; }
+}
+// ใช้ตอนลบ/แก้รายการรักษา: รายการนี้อยู่ในใบเสร็จที่ยังใช้งานไหม (เชื่อมต่อไม่ได้ = ไม่รู้ → คืน null)
+async function rcptActiveFor_(treatId){
+  try{ const r=await (await fetch(APPS_SCRIPT_URL+'?action=getReceipts&treatIds='+encodeURIComponent(treatId),{cache:'no-store'})).json();
+    if(r && r.ok) return (r.receipts||[]).find(x=>x.status!=='void') || false; }catch(e){}
+  return null;
 }
 function rcptPicked_(){ const ids=[...document.querySelectorAll('.rcpt-pick:checked')].map(c=>c.value); return RCPT.rows.filter(x=>ids.includes(String(x.id))); }
 function rcptCalc_(){
@@ -6146,7 +6189,8 @@ async function rcptIssue_(){
     if(!r || !r.ok){ if(w) w.close(); showToast('ออกใบเสร็จไม่สำเร็จ: '+((r&&r.error)||'ไม่ทราบสาเหตุ'),'error'); btn.disabled=false; btn.textContent='🧾 ออกใบเสร็จ + พิมพ์'; return; }
     RCPT.cfg=r.cfg||RCPT.cfg;
     rcptPrint_(w, r.receipt, r.receipt.printCount>1);
-    showToast((r.reused?'ใช้เลขที่เดิม ':'ออกใบเสร็จแล้ว ')+r.receipt.receiptNo+' 🧾');
+    showToast((r.reused?'ใช้เลขที่เดิม ':'ออกใบเสร็จแล้ว ')+r.receipt.receiptNo+' 🧾'+(RCPT.prefill?' (แทนใบ '+RCPT.prefill.replaces+')':''));
+    RCPT.prefill=null;
     closeModal('modalReceipt');
   }catch(e){ if(w) w.close(); showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ยังไม่ได้ออกใบเสร็จ','error'); btn.disabled=false; btn.textContent='🧾 ออกใบเสร็จ + พิมพ์'; }
 }
@@ -6162,12 +6206,13 @@ async function rcptReprint_(no){
   }catch(e){ if(w) w.close(); showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','error'); }
 }
 async function rcptVoid_(no){
-  const reason=window.prompt('ยกเลิกใบเสร็จ '+no+'\nเหตุผล (เช่น ยอดผิด / ชื่อผิด):',''); if(reason===null) return;
-  try{
-    const r=await (await fetch(APPS_SCRIPT_URL+'?action=voidReceipt&receiptNo='+encodeURIComponent(no)+'&reason='+encodeURIComponent(reason)+'&by='+encodeURIComponent(crmBy()),{cache:'no-store'})).json();
-    if(r && r.ok){ showToast('ยกเลิกใบเสร็จ '+no+' แล้ว — ออกใบใหม่ได้'); if(document.getElementById('modalReceipt').classList.contains('open') && RCPT.t) openReceiptModal(RCPT.t.id); if(document.getElementById('modalReceiptList').classList.contains('open')) openReceiptList(); }
-    else showToast('ยกเลิกไม่สำเร็จ: '+((r&&r.error)||''),'error');
-  }catch(e){ showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้','error'); }
+  const reason=window.prompt('ยกเลิกใบเสร็จ '+no+'\nเลขที่นี้จะไม่ถูกนำกลับมาใช้อีก\nเหตุผล (เช่น ยอดผิด / ชื่อผิด / คนไข้คืนใบ):',''); if(reason===null) return;
+  if(!reason.trim()){ showToast('ต้องระบุเหตุผลการยกเลิก','error'); return; }
+  if(await rcptVoidCall_(no, reason.trim())){
+    showToast('ยกเลิกใบเสร็จ '+no+' แล้ว — ออกใบใหม่ได้');
+    if(document.getElementById('modalReceipt').classList.contains('open') && RCPT.t) openReceiptModal(RCPT.t.id);
+    if(document.getElementById('modalReceiptList').classList.contains('open')) openReceiptList();
+  }
 }
 async function rcptCfgEdit_(){
   const c=RCPT.cfg||{}, f=[['name','ชื่อคลินิก'],['nameEn','ชื่อภาษาอังกฤษ'],['address','ที่อยู่คลินิก'],['phone','เบอร์โทร'],['taxId','เลขประจำตัวผู้เสียภาษี (13 หลัก)'],['footer','ข้อความท้ายใบเสร็จ']];
@@ -6200,7 +6245,7 @@ ${items.map((it,i)=>`<tr><td>${i+1}</td><td>${E(it.name)}</td><td class="n">${fm
 <div class="words">(${bahtText(paid)})</div>
 <div style="margin-top:6px;">ชำระโดย: ${pay}</div>
 ${r.doctors?`<div>ทันตแพทย์ผู้รักษา: ${E(r.doctors)}</div>`:''}${r.note?`<div>หมายเหตุ: ${E(r.note)}</div>`:''}
-<div class="sg"><div><div class="ln"></div>ผู้รับเงิน${r.issuedBy?'<br>('+E(r.issuedBy)+')':''}</div><div><div class="ln"></div>ผู้ชำระเงิน</div></div>
+<div class="sg"><div><div class="ln"></div>ผู้รับเงิน${r.issuedBy?'<br>('+E(String(r.issuedBy).replace(/\s*\[[^\]]*\]$/,''))+')':''}</div><div><div class="ln"></div>ผู้ชำระเงิน</div></div>
 <div class="ft">${E(c.footer||'')}</div>
 <script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
 }
@@ -6229,7 +6274,8 @@ function rcptListDraw_(){
   el.innerHTML = list.length ? `<div style="font-size:12.5px;color:var(--text-mid);margin-bottom:6px;">${act.length} ใบ · รวมรับชำระ ${fmt(act.reduce((a,r)=>a+(+r.paid||0),0))} บาท${list.length>act.length?' · ยกเลิก '+(list.length-act.length)+' ใบ':''}</div>`+
     list.map(r=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;${r.status==='void'?'opacity:.55;':''}">
       <b style="min-width:92px;">${E(r.receiptNo)}</b><span style="flex:1;min-width:140px;">${E(r.patName||'')} <span style="font-size:12px;color:var(--text-light);">${r.hn?'HN '+E(r.hn)+' · ':''}${fmtDateThai(String(r.date).slice(0,10))}</span>${r.status==='void'?` <span class="crm-chip r">ยกเลิก${r.voidReason?' — '+E(r.voidReason):''}</span>`:''}</span>
-      <b>${fmt(+r.paid||0)}</b>${r.status==='void'?'':`<button class="btn btn-ghost btn-sm" onclick="rcptReprint_('${E(r.receiptNo)}')">🖨️ พิมพ์ซ้ำ</button>${isManager?`<button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="rcptVoid_('${E(r.receiptNo)}')">ยกเลิก</button>`:''}`}</div>`).join('')
+      <b>${fmt(+r.paid||0)}</b>${r.status==='void'?'':`<button class="btn btn-ghost btn-sm" onclick="rcptReprint_('${E(r.receiptNo)}')">🖨️ พิมพ์ซ้ำ</button>${isManager?`<button class="btn btn-ghost btn-sm" onclick="rcptEdit_('${E(r.receiptNo)}')">✏️ แก้ไข</button><button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="rcptVoid_('${E(r.receiptNo)}')">ยกเลิก</button>`:''}`}
+      ${r.status!=='void' && rcptDiff_(r)?`<div style="flex-basis:100%;font-size:12px;color:#A04000;font-weight:700;">⚠️ ${E(rcptDiff_(r))}</div>`:''}${r.status==='void' && r.voidAt?`<div style="flex-basis:100%;font-size:11.5px;color:var(--text-light);">ยกเลิกโดย ${E(r.voidBy||'-')} · ${E(String(r.voidAt).slice(0,16).replace('T',' '))}</div>`:''}</div>`).join('')
     : '<div style="padding:16px;text-align:center;color:var(--text-light);">ยังไม่มีใบเสร็จในเดือนนี้</div>';
 }
 function buildCertPrintHtml(cert){

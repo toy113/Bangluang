@@ -91,12 +91,15 @@ function receiptRoute_(p) {
       var sh = getReceiptSheet_(), vals = sh.getDataRange().getValues(), hdr = vals[0];
       var col = function (h) { return hdr.indexOf(h); };
       if (a === 'voidReceipt') {
+        if (AUTH_CTX && AUTH_CTX.role !== 'manager') return receiptJson_({ ok: false, error: 'เฉพาะผู้จัดการยกเลิกใบเสร็จได้' });
+        if (!String(p.reason || '').trim()) return receiptJson_({ ok: false, error: 'ต้องระบุเหตุผลการยกเลิก' });
         for (var i = 1; i < vals.length; i++) {
           if (String(vals[i][0]) === String(p.receiptNo)) {
+            if (String(vals[i][col('status')]) === 'void') return receiptJson_({ ok: false, error: 'ใบเสร็จนี้ถูกยกเลิกไปแล้ว' });
             sh.getRange(i + 1, col('status') + 1).setValue('void');
             sh.getRange(i + 1, col('voidReason') + 1).setValue(String(p.reason || '').slice(0, 200));
             sh.getRange(i + 1, col('voidAt') + 1).setValue(new Date().toISOString());
-            sh.getRange(i + 1, col('voidBy') + 1).setValue(String(p.by || '').slice(0, 60));
+            sh.getRange(i + 1, col('voidBy') + 1).setValue(String((AUTH_CTX && AUTH_CTX.id) ? AUTH_CTX.id + ' / ' + (p.by || '') : (p.by || '')).slice(0, 80));
             return receiptJson_({ ok: true });
           }
         }
@@ -113,6 +116,7 @@ function receiptRoute_(p) {
             case 'items': return JSON.stringify(d.items || []); case 'status': return 'active'; case 'printCount': return pc;
             case 'voidReason': case 'voidAt': case 'voidBy': return '';
             case 'date': return String(d.date || '');
+            case 'issuedBy': return String((d.issuedBy || '') + ((AUTH_CTX && AUTH_CTX.id) ? ' [' + AUTH_CTX.id + ']' : '')).slice(0, 80);
             default: return (d[h] === undefined || d[h] === null) ? '' : (typeof d[h] === 'object' ? JSON.stringify(d[h]) : d[h]);
           }
         });
@@ -120,10 +124,11 @@ function receiptRoute_(p) {
       for (var i = 1; i < vals.length; i++) {
         if (String(vals[i][col('status')]) === 'void') continue;
         var tIds = String(vals[i][col('treatIds')] || '').split(',');
-        if (String(vals[i][col('key')]) === key) {   // ชุดเดิม → เลขเดิม (อัปเดตชื่อ/ที่อยู่/ยอดล่าสุด) นับครั้งที่พิมพ์
-          var pc = (+vals[i][col('printCount')] || 0) + 1, row = rowVals(vals[i][0], vals[i][1], pc);
-          sh.getRange(i + 1, 1, 1, row.length).setValues([row]);
-          return receiptJson_({ ok: true, reused: true, receipt: receiptRowToObj_(hdr, row), cfg: receiptCfg_() });
+        if (String(vals[i][col('key')]) === key) {   // ชุดเดิม = พิมพ์ซ้ำ → เลขเดิม เนื้อหาเดิมตามที่ออกไปแล้ว (ไม่แก้ไขย้อนหลัง) แค่นับครั้งที่พิมพ์ · แก้ไข = ยกเลิกแล้วออกใบใหม่
+          var pc = (+vals[i][col('printCount')] || 0) + 1;
+          sh.getRange(i + 1, col('printCount') + 1).setValue(pc);
+          var cur = vals[i].slice(); cur[col('printCount')] = pc;
+          return receiptJson_({ ok: true, reused: true, receipt: receiptRowToObj_(hdr, cur), cfg: receiptCfg_() });
         }
         if (ids.some(function (x) { return tIds.indexOf(x) !== -1; }))
           return receiptJson_({ ok: false, conflict: String(vals[i][0]), error: 'บางรายการอยู่ในใบเสร็จเลขที่ ' + vals[i][0] + ' แล้ว — ยกเลิกใบเดิมก่อนออกใบใหม่' });
