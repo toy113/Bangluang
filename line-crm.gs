@@ -73,7 +73,9 @@ var CRM_DEFAULT_SETTINGS = {
   emergencyText: 'ได้รับข้อความแล้วค่ะ 🙏 ทีมคลินิกจะติดต่อกลับโดยเร็วที่สุด',
   emergencyApprovedBy: '', emergencyApprovedAt: '',
   rescheduleText: 'รับเรื่องขอเลื่อนนัดแล้วค่ะ 🙏\nพนักงานจะติดต่อกลับเพื่อยืนยันวันเวลาใหม่\n\n*นัดเดิมยังคงอยู่จนกว่าคลินิกจะยืนยันการเปลี่ยนแปลง*\n\nสะดวกช่วงเวลาไหนคะ?',
-  confirmThanksText: 'ขอบคุณค่ะ ✅ ยืนยันนัดเรียบร้อย แล้วพบกันนะคะ'
+  confirmThanksText: 'ขอบคุณค่ะ ✅ ยืนยันนัดเรียบร้อย แล้วพบกันนะคะ',
+  // ตอบอัตโนมัติด้วยการ์ดราคาจัดฟัน เมื่อคนที่ยังไม่ใช่คนไข้จัดฟันพิมพ์ถามเรื่องจัดฟัน
+  orthoPromoOn: true, orthoPromoDays: 7, orthoPromoOpen: '10:00', orthoPromoClose: '20:00', orthoPromoBackTime: '10:00'
 };
 
 function crmSettings_() {
@@ -1600,6 +1602,8 @@ function crmHandleText_(s, ev, uid) {
     if (ack) crmReply_(ev.replyToken, [crmText_(ack)]);
     return;
   }
+  // โปรจัดฟัน: ปุ่มในการ์ด + ตอบอัตโนมัติเมื่อถามเรื่องจัดฟัน
+  if (crmOrthoPromoHandle_(s, ev, uid, text)) return;
   // ขอเลื่อนนัด / ยืนยันนัด (ปุ่มในการ์ดส่งเป็นข้อความจริง หรือคนไข้พิมพ์เอง) → จับคู่นัดข้างหน้าของคนไข้แล้วเข้ากระบวนการเดียวกับปุ่มเดิม
   var tm = text.replace(/\s+/g, ' ').trim(), aptWord = /^ขอเลื่อนนัด(\s|$)/.test(tm) ? 'resched' : (/^ยืนยันนัด(\s|$)/.test(tm) ? 'confirm' : '');
   if (aptWord && tm.length <= 40) {
@@ -1639,6 +1643,123 @@ function crmHandleText_(s, ev, uid) {
     } catch (eM) { Logger.log('notify message ' + eM); }
   }
   // (เดิม) ข้อความอื่น ๆ ปล่อยให้พนักงานตอบผ่าน LINE OA Chat ตามปกติ (ไม่มี AI ตอบแทน)
+}
+
+
+/* ============================ ORTHO PROMO (ตอบอัตโนมัติเรื่องจัดฟัน) ============================
+   ตอบด้วยการ์ดราคาจัดฟัน เมื่อ:
+   1) ข้อความมีคำว่า "จัดฟัน" และไม่ใช่เรื่องอาการ (ปวด/หลุด/เจ็บ/บวม/แตก/หัก/ขาด/ทิ่ม/แผล/เลือด/ลวด/ยาง/ถอด)
+   2) คนถามยังไม่ใช่คนไข้จัดฟัน (LINE นี้ไม่ได้ผูกกับ HN ที่มีรหัสจัดฟัน / ไม่อยู่ในชีต ortho)
+   3) ไม่เคยได้การ์ดนี้ใน orthoPromoDays วัน และไม่ได้กำลังคุยต่อเนื่อง (มีข้อความก่อนหน้าภายใน 30 นาที)
+   โหมดทดสอบ: ตอบเฉพาะบัญชีทดสอบ · ปุ่ม "นัดปรึกษาฟรี" สร้างงานโทรกลับ · "สอบถามแอดมิน" แจ้งแอดมิน */
+var CRM_PROMO_BOOK_TXT = 'ขอนัดปรึกษาจัดฟันฟรี';
+var CRM_PROMO_ASK_TXT = 'ขอสอบถามเรื่องจัดฟันค่ะ';
+var CRM_PROMO_VERIFY_URL = 'https://thaiortho.org/search-orthodontist-people';
+function crmIsOrthoPatientUid_(uid) {
+  var hns = crmUserHns_(uid);
+  for (var i = 0; i < hns.length; i++) if (crmOrthoCodeOf_(hns[i])) return true;
+  return crmReadByName_('ortho').some(function (o) { return o.lineUserId && o.lineUserId === uid; });
+}
+function crmHm_(d) { return Utilities.formatDate(d || new Date(), CRM_TZ, 'HH:mm'); }
+function crmOrthoPromoHandle_(s, ev, uid, text) {
+  var tm = String(text || '').replace(/\s+/g, ' ').trim();
+  var cache = CacheService.getScriptCache(), convKey = 'crm_conv_' + uid;
+  var chatting = !!cache.get(convKey);            // มีข้อความจากคนนี้ภายใน 30 นาทีก่อนหน้า = กำลังคุยอยู่
+  cache.put(convKey, '1', 1800);
+  var who = null; var whoOf = function () { return who || (who = crmNameOfUid_(uid)); };
+  // ปุ่ม "นัดปรึกษาฟรี" → งานโทรกลับ (แจ้งแอดมินผ่าน crmCreateTask_)
+  if (tm === CRM_PROMO_BOOK_TXT) {
+    var w = whoOf();
+    crmCreateTask_({ type: 'callback', priority: 'high', hn: w.hn, patName: w.name, lineUserId: uid, detail: '🦷 สนใจจัดฟัน — ขอนัดปรึกษาฟรี (กดจากการ์ดราคาจัดฟัน)' });
+    var back = crmPromoInHours_(s) ? 'แอดมินจะติดต่อกลับเพื่อนัดวันเวลาโดยเร็วค่ะ' : ('แอดมินจะติดต่อกลับเพื่อนัดวันเวลา ' + crmPromoBackText_(s) + ' ค่ะ');
+    crmReply_(ev.replyToken, [crmText_('รับเรื่องนัดปรึกษาจัดฟันฟรีแล้วค่ะ 🙏\n' + back + '\nหากสะดวกวัน/เวลาไหน พิมพ์บอกไว้ได้เลยนะคะ')]);
+    return true;
+  }
+  if (tm === CRM_PROMO_ASK_TXT) {   // ปุ่ม "สอบถามแอดมิน" → แจ้งแอดมิน (ไม่ส่งการ์ดซ้ำ)
+    var w2 = whoOf();
+    try { crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: w2.hn, patName: w2.name, lineUserId: uid, detail: '🦷 สอบถามเรื่องจัดฟัน (กดจากการ์ดราคาจัดฟัน)' }); } catch (eA) { Logger.log('promo ask ' + eA); }
+    crmReply_(ev.replyToken, [crmText_('ได้เลยค่ะ 😊 พิมพ์คำถามไว้ได้เลย ' + (crmPromoInHours_(s) ? 'แอดมินจะตอบโดยเร็วค่ะ' : 'แอดมินจะตอบกลับ ' + crmPromoBackText_(s) + ' ค่ะ'))]);
+    return true;
+  }
+  if (!(s.orthoPromoOn === true || s.orthoPromoOn === 'true' || s.orthoPromoOn === 'TRUE')) return false;
+  if (tm.indexOf('จัดฟัน') === -1) return false;
+  if (/ปวด|หลุด|เจ็บ|บวม|แตก|หัก|ขาด|ทิ่ม|แผล|เลือด|ลวด|ยาง|ถอด|เลื่อน|ยกเลิก|กี่โมง|พรุ่งนี้/.test(tm)) return false;   // เรื่องอาการ/นัด → คนตอบ
+  if (s.testMode && uid !== s.testUserId) return false;   // โหมดทดสอบ: ตอบเฉพาะบัญชีทดสอบ
+  if (crmSplitList_(s.staffNotifyIds).indexOf(uid) !== -1 && uid !== s.testUserId) return false;   // แอดมินพิมพ์เอง
+  if (chatting) return false;
+  if (crmIsOrthoPatientUid_(uid)) return false;
+  var props = PropertiesService.getScriptProperties(), pk = 'promo_' + uid, last = +(props.getProperty(pk) || 0);
+  var days = Math.max(0, +s.orthoPromoDays || 7);
+  if (last && Date.now() - last < days * 86400000) return false;
+  var msgs = [crmOrthoPromoMessage_(s)];
+  if (!crmPromoInHours_(s)) msgs.push(crmText_('ขณะนี้อยู่นอกเวลาทำการค่ะ 🌙 แอดมินจะติดต่อกลับ ' + crmPromoBackText_(s) + ' ค่ะ'));
+  var res = crmApi_('post', '/v2/bot/message/reply', { replyToken: ev.replyToken, messages: msgs });
+  if (!res || res.code !== 200) {   // การ์ดถูก LINE ปฏิเสธ → บันทึกสาเหตุ แล้วตอบเป็นข้อความธรรมดาแทน
+    try { crmAppend_('log', { key: 'promoerr:' + Date.now(), type: 'promo', hn: '', patName: '', lineUserId: uid, refId: '', status: 'error', detail: String(res && res.text || '').slice(0, 300), createdAt: crmNow_(), pushCount: 0 }); } catch (eE) {}
+    crmReply_(ev.replyToken, [crmText_(crmOrthoPromoPlain_())].concat(msgs.slice(1)));
+  }
+  props.setProperty(pk, String(Date.now()));
+  var w3 = whoOf();
+  try { crmAppend_('log', { key: 'promo:' + uid + ':' + Date.now(), type: 'promo', hn: w3.hn || '', patName: w3.name || '', lineUserId: uid, refId: '', status: 'sent', detail: 'การ์ดราคาจัดฟัน · ' + tm.slice(0, 150), createdAt: crmNow_(), pushCount: 0 }); } catch (eL) {}
+  try { crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: w3.hn, patName: w3.name, lineUserId: uid, detail: '🦷 สนใจจัดฟัน (ส่งการ์ดราคาอัตโนมัติแล้ว): ' + tm.slice(0, 150) }); } catch (eN) { Logger.log('promo notify ' + eN); }
+  return true;
+}
+function crmOrthoPromoPlain_() {
+  return '🦷 จัดฟันกับทันตแพทย์เฉพาะทางจัดฟัน ทพญ.วัจน์กร เสือดี\n🎁 ตรวจ + วางแผนการรักษา ฟรี\n\n1) พิมพ์ปาก + X-ray 2,200\n2) เคลียร์ช่องปาก: อุด/ถอน/ขูดหินปูน 800–1,200 ต่อรายการ · ผ่าฟันคุด 3,000–4,000\n3) วันติดเครื่องมือ 3,000\n4) ปรับเครื่องมือ เดือนละ 1,500 ชำระ 28 ครั้ง (มาต่อเนื่อง ไม่ขาดการรักษาเกิน 60 วัน)\n5) ใส่รีเทนเนอร์ 4,000\n\nตรวจสอบรายชื่อหมอจัดฟัน: ' + CRM_PROMO_VERIFY_URL + '\nพิมพ์ "' + CRM_PROMO_BOOK_TXT + '" เพื่อนัดปรึกษาได้เลยค่ะ';
+}
+function crmPromoInHours_(s) {
+  var now = crmHm_(), a = String(s.orthoPromoOpen || '10:00'), b = String(s.orthoPromoClose || '20:00');
+  return now >= a && now < b;
+}
+function crmPromoBackText_(s) {
+  var t = String(s.orthoPromoBackTime || s.orthoPromoOpen || '10:00');
+  return (crmHm_() >= String(s.orthoPromoClose || '20:00') ? 'พรุ่งนี้ ' : 'วันนี้ ') + t + ' น.';
+}
+function crmOrthoPromoMessage_(s) {
+  var W = '#6B2D5E', D = '#2b1026', G = '#999999';
+  var step = function (n, title, sub, price, last) {
+    var left = [{ type: 'text', text: title, weight: 'bold', size: 'sm', color: D, wrap: true }];
+    if (sub) left.push({ type: 'text', text: sub, size: 'xs', color: '#555555', wrap: true, margin: 'xs' });
+    return { type: 'box', layout: 'horizontal', spacing: 'md', paddingTop: '10px', paddingBottom: '10px', contents: [
+      { type: 'box', layout: 'vertical', width: '24px', height: '24px', cornerRadius: '12px', backgroundColor: W, justifyContent: 'center', alignItems: 'center', flex: 0,
+        contents: [{ type: 'text', text: String(n), size: 'xs', color: '#ffffff', weight: 'bold', align: 'center' }] },
+      { type: 'box', layout: 'vertical', flex: 1, contents: left },
+      { type: 'text', text: price, size: 'sm', weight: 'bold', color: W, align: 'end', flex: 0, wrap: false }
+    ] };
+  };
+  var sep = { type: 'separator', color: '#eeeeee' };
+  return { type: 'flex', altText: '🦷 ขั้นตอนและค่าใช้จ่ายจัดฟัน — ตรวจ + วางแผนการรักษา ฟรี', contents: {
+    type: 'bubble', size: 'mega',
+    header: { type: 'box', layout: 'vertical', paddingAll: '18px',
+      background: { type: 'linearGradient', angle: '135deg', startColor: '#4A1A40', endColor: '#8E4A7C' },
+      contents: [
+        { type: 'box', layout: 'horizontal', contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#F2C46D', cornerRadius: '20px', paddingStart: '10px', paddingEnd: '10px', paddingTop: '3px', paddingBottom: '3px', flex: 0,
+          contents: [{ type: 'text', text: '✨ ORTHO 2026', size: 'xxs', weight: 'bold', color: '#4A1A40' }] }] },
+        { type: 'text', text: 'จัดฟันกับ\nทันตแพทย์เฉพาะทาง', weight: 'bold', size: 'xl', color: '#ffffff', wrap: true, margin: 'md' },
+        { type: 'text', text: 'ตรวจและวางแผนการรักษา ฟรี', size: 'sm', color: '#ffffffdd', margin: 'sm' },
+        { type: 'box', layout: 'horizontal', spacing: 'md', margin: 'lg', paddingAll: '10px', cornerRadius: '12px', backgroundColor: '#ffffff22', alignItems: 'center', contents: [
+          { type: 'box', layout: 'vertical', width: '40px', height: '40px', cornerRadius: '20px', backgroundColor: '#F2C46D', justifyContent: 'center', alignItems: 'center', flex: 0,
+            contents: [{ type: 'text', text: '🦷', size: 'lg', align: 'center' }] },
+          { type: 'box', layout: 'vertical', flex: 1, contents: [
+            { type: 'text', text: 'ทพญ.วัจน์กร เสือดี', size: 'sm', weight: 'bold', color: '#ffffff' },
+            { type: 'text', text: 'ทันตแพทย์เฉพาะทางจัดฟัน', size: 'xxs', color: '#ffffffcc' }] }
+        ] }
+      ] },
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: [
+      { type: 'box', layout: 'vertical', backgroundColor: '#E7F6EC', cornerRadius: '10px', paddingAll: '9px',
+        contents: [{ type: 'text', text: '🎁 ตรวจ + วางแผนการรักษา ฟรี', size: 'sm', weight: 'bold', color: '#1d7a43', align: 'center' }] },
+      step(1, 'พิมพ์ปาก + X-ray', 'เก็บข้อมูลวางแผน', '2,200'), sep,
+      step(2, 'เคลียร์ช่องปาก', 'อุด/ถอน/ขูดหินปูน 800–1,200 ต่อรายการ\nผ่าฟันคุด 3,000–4,000', 'ตามจริง'), sep,
+      step(3, 'วันติดเครื่องมือ', '', '3,000'), sep,
+      step(4, 'ปรับเครื่องมือ', 'ชำระ 28 ครั้ง\nมาต่อเนื่อง ไม่ขาดการรักษาเกิน 60 วัน', '1,500/ด.'), sep,
+      step(5, 'ใส่รีเทนเนอร์', 'หลังถอดเครื่องมือ', '4,000')
+    ] },
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', contents: [
+      { type: 'button', style: 'primary', color: W, height: 'md', action: { type: 'message', label: '📌 นัดปรึกษาฟรี', text: CRM_PROMO_BOOK_TXT } },
+      { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🔎 ตรวจสอบหมอจัดฟัน', uri: CRM_PROMO_VERIFY_URL } },
+      { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_PROMO_ASK_TXT } }
+    ] }
+  } };
 }
 
 /* ============================ PATIENT PORTAL (LIFF) ============================ */
@@ -1947,9 +2068,9 @@ function crmStaffAction_(b) {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
       var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
-        'receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','reviewDocRules','oaChatBase','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
+        'orthoPromoOn','orthoPromoDays','orthoPromoOpen','orthoPromoClose','orthoPromoBackTime','receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','reviewDocRules','oaChatBase','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
-      ['enabled','testMode','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
+      ['enabled','testMode','orthoPromoOn','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
       if (s.enabled && s.testMode && !s.testUserId) return { ok: false, error: 'โหมดทดสอบต้องเลือกบัญชี LINE สำหรับทดสอบก่อน' };
       var baseline = 0;
       crmSaveSettingsRaw_(s);
