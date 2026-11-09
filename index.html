@@ -3125,7 +3125,15 @@ var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callb
 var CRM_LOG_TYPE = { staff:'แจ้งแอดมิน', confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', birthday:'วันเกิด', test:'ทดสอบ' };
 
 function crmEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function crmHN(v){ return String(v==null?'':v).replace(/[-\s]/g,'').trim().toUpperCase(); }
+const _crmHNMemo=new Map();
+function crmHN(v){   // HN มาตรฐาน (ตัดขีด/ช่องว่าง ตัวพิมพ์ใหญ่) — จำผลไว้ เพราะถูกเรียกเป็นหมื่นครั้งต่อการวาดหน้า
+  const s0=String(v==null?'':v); let r=_crmHNMemo.get(s0);
+  if(r===undefined){ r=s0.replace(/[-\s]/g,'').trim().toUpperCase(); if(_crmHNMemo.size>60000) _crmHNMemo.clear(); _crmHNMemo.set(s0,r); }
+  return r;
+}
+// แคชชั่วคราวระหว่างวาดหน้า 1 รอบ (ล้างเองทันทีที่จบงานรอบนี้) — ใช้ทำดัชนีค้นหาเร็ว โดยไม่ต้องกังวลข้อมูลเก่าค้าง
+let _frameC=null;
+function frameCache_(){ if(!_frameC){ _frameC={}; setTimeout(()=>{ _frameC=null; },0); } return _frameC; }
 function crmAddDays(ds,n){ const p=String(ds).split('-'); return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]+n)).toISOString().slice(0,10); }
 function crmThaiShort(ds){
   const m=String(ds||'').match(/(\d{4})-(\d{2})-(\d{2})/); if(!m) return ds||'';
@@ -3176,7 +3184,9 @@ function crmOrthoAptId(hn, date){ return 'ORTHO-'+crmHN(hn)+'-'+String(date||'')
 function crmCalDupOf(hn, date, time, doc){
   const k=crmHN(hn), d=String(date||'').slice(0,10), tm=String(time||'').slice(0,5), cd=doc?docAlias(doc):'';
   // หมอคนละคนในวัน+เวลาเดียวกัน = คนละนัด (เช่น หมอจัดฟัน + หมออื่นขูดหินปูน) ไม่ถือว่าซ้ำ
-  return (appointments||[]).find(a=>crmHN(a.hn)===k && a.date===d && !['ยกเลิก','walk-in'].includes(a.status) && (!tm || !a.time || String(a.time).slice(0,5)===tm) && (!cd || !a.docName || docAlias(a.docName)===cd)) || null;
+  const fc=frameCache_();
+  if(!fc.aptHD || fc.aptLen!==(appointments||[]).length){ fc.aptLen=(appointments||[]).length; fc.aptHD=new Map(); (appointments||[]).forEach(a=>{ const kk=crmHN(a.hn)+'|'+a.date; const l=fc.aptHD.get(kk); if(l) l.push(a); else fc.aptHD.set(kk,[a]); }); }
+  return (fc.aptHD.get(k+'|'+d)||[]).find(a=>!['ยกเลิก','walk-in'].includes(a.status) && (!tm || !a.time || String(a.time).slice(0,5)===tm) && (!cd || !a.docName || docAlias(a.docName)===cd)) || null;
 }
 // สถานะ LINE ของนัดจัดฟัน: คนไข้กดยืนยัน / ขอเลื่อน (ถ้านัดซ้ำกับตารางนัด ระบบใช้ id ของตารางนัด)
 function crmOrthoAptRec(r){
@@ -3459,9 +3469,10 @@ function crmAptRecFor_(a){
   return r0;
 }
 function crmAptRecFor0_(a){
-  const recs=(CRM.data&&CRM.data.apt)||[], ids=crmAptIdsFor_(a);
-  for(const id of ids){ const r=recs.find(x=>String(x.aptId)===id); if(r && (r.confirmedAt||r.rescheduleAt)) return r; }
-  return recs.find(x=>String(x.aptId)===ids[0]) || null;
+  const recs=(CRM.data&&CRM.data.apt)||[], ids=crmAptIdsFor_(a), fc=frameCache_();
+  if(fc.aptRecSrc!==recs || fc.aptRecLen!==recs.length){ fc.aptRecSrc=recs; fc.aptRecLen=recs.length; fc.aptRec=new Map(); recs.forEach(x=>{ const k=String(x.aptId); if(!fc.aptRec.has(k)) fc.aptRec.set(k,x); }); }
+  for(const id of ids){ const r=fc.aptRec.get(id); if(r && (r.confirmedAt||r.rescheduleAt)) return r; }
+  return fc.aptRec.get(ids[0]) || null;
 }
 function crmAptLogFor_(type, a){ return crmAptIdsFor_(a).reduce((o,id)=>o.concat(crmLogFor(type,id)),[]); }
 function crmAptLineChips(a){
@@ -3543,7 +3554,13 @@ function crmOrthoState(a){
 }
 // นัดจัดฟัน: คนไข้มาแล้ว → บันทึก "ปรับเครื่องมือ" ลงการ์ดจัดฟันในคลิกเดียว (เหมือนปุ่มบันทึกการรักษาในหน้าจัดฟัน)
 const ORTHO_ONLY_PROC_RE_=/ปรับเครื่องมือ|เหล็กหลุด|เครื่องมือหลุด|รีเทนเนอร์|ติดเครื่องมือ|ถอดเครื่องมือ|ปักหมุด/;   // รายการที่ต้องลงผ่านปุ่ม "มาตามนัด"
-function crmOrthoRec(hn){ const k=crmHN(hn); return (typeof orthoData!=='undefined' && orthoData||[]).find(o=>crmHN(o.hn)===k) || null; }
+function crmOrthoRec(hn){
+  const k=crmHN(hn), od=(typeof orthoData!=='undefined' && orthoData)||[], fc=frameCache_();
+  if(fc.orthoSrc!==od || fc.orthoLen!==od.length){ fc.orthoSrc=od; fc.orthoLen=od.length; fc.orthoIdx=new Map(); od.forEach((o,i)=>{ const kk=crmHN(o.hn); if(!fc.orthoIdx.has(kk)) fc.orthoIdx.set(kk,i); }); }
+  const i=fc.orthoIdx.get(k);
+  if(i!==undefined && od[i] && crmHN(od[i].hn)===k) return od[i];   // เก็บเป็นตำแหน่ง → ถ้าแถวถูกแทนที่ (orthoData[i]=row ใหม่) ก็ได้แถวล่าสุดเสมอ
+  return od.find(o=>crmHN(o.hn)===k) || null;
+}
 // แอดมินตั้งนัดจัดฟันเป็น "ยืนยัน" เอง (คนไข้ยืนยันทางโทร/แชท) — นัดในตารางนัดเปลี่ยนสถานะเป็นคอนเฟิร์มด้วย
 function crmOrthoConfirm(id){
   if(viewOnlyBlock_()) return;
@@ -4131,12 +4148,12 @@ function crmViewFollowup(){
       <span class="crm-seg">${[['all','ทั้งหมด'],['care','ต้องดูแล'],['late','ปิดอัตโนมัติ (ไม่ตอบ >24 ชม.)'+(late?' ('+late+')':'')],['none','ยังไม่ตอบ']].map(x=>`<button class="${f===x[0]?'on':''}" onclick="CRM.fuFilter='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
     ${false?`<div class="crm-alert o">⏰ คนไข้ไม่ตอบข้อความถามอาการเกิน 24 ชม. ${late} ราย — ควรโทรสอบถาม <button class="crm-btn" style="margin-left:6px" onclick="CRM.fuFilter='late';crmRender()">ดูรายชื่อ</button></div>`:''}
     <p class="crm-muted" style="margin-bottom:8px;">45 วันล่าสุด: ส่ง ${fus.length} · ตอบ ${answered} (${fus.length?Math.round(answered/fus.length*100):0}%) — ระบบตอบด้วยข้อความที่ทันตแพทย์อนุมัติเท่านั้น ไม่มี AI วินิจฉัย</p>
-    <div class="crm-list">${list.map(x=>{ const k=CRM_KIND[x.answerKind];
+    <div class="crm-list">${list.slice(0, CRM.fuShow||150).map(x=>{ const k=CRM_KIND[x.answerKind];
       return `<div class="crm-item ${x.answerKind==='emergency'?'urgent':(x.answerKind==='severe'?'high':'')}"><div class="main">
         <div class="nm">${ocTag_(x.hn,x.patName)}${crmEsc(x.patName||'')}${orthoPayBadge({hn:x.hn})} ${hnShow_(x.hn,x.patName,x.orthoCode)?'<span class="crm-muted">HN '+crmEsc(x.hn)+'</span>':''} ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
         <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:(crmFuAutoClosed(x)?'<span class="crm-chip x">🔒 ปิดเคสอัตโนมัติ (ไม่ตอบเกิน 24 ชม.)</span>':'<span class="crm-chip x">ยังไม่ตอบ</span>')}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}${x.calledAt?` <span class="crm-chip g">📞 โทรแล้ว ${crmEsc(crmTs(x.calledAt))}${x.calledBy?' · '+crmEsc(x.calledBy):''}</span>${x.callNote?` <span class="crm-muted">— ${crmEsc(x.callNote)}</span>`:''}`:''}</div></div>
-        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test' && !crmFuAutoClosed(x)?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div></div>`;
+        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test' && !crmFuAutoClosed(x)?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div>${list.length>(CRM.fuShow||150)?`<div style="text-align:center;margin-top:8px;"><button class="crm-btn" onclick="CRM.fuShow=(CRM.fuShow||150)+150;crmRender()">แสดงเพิ่ม (เหลืออีก ${list.length-(CRM.fuShow||150)} รายการ)</button></div>`:''}</div>`;
 }
 
 /* ---------- คะแนนบริการ (หลังถอนฟัน/ผ่าฟันคุด) แยกตามหมอ ---------- */
@@ -5962,7 +5979,7 @@ async function loadLineHns(force){
 const ORTHO_PAY_UNTIL_DONE = 'ชำระจนเสร็จ';
 function orthoPayOf_(hn){
   const k=crmHN(hn); if(!k || typeof orthoData==='undefined' || !orthoData) return '';
-  const o=orthoData.find(x=>crmHN(x.hn)===k); return (o && /จนกว่าจะเสร็จ/.test(String(o['แผนเดือน']||''))) ? ORTHO_PAY_UNTIL_DONE : '';   // อนุมานจากแผนการรักษา "เดือนละครั้งจนกว่าจะเสร็จ" (ไม่มีช่องรูปแบบการชำระแล้ว)
+  const o=crmOrthoRec(k); return (o && /จนกว่าจะเสร็จ/.test(String(o['แผนเดือน']||''))) ? ORTHO_PAY_UNTIL_DONE : '';   // อนุมานจากแผนการรักษา "เดือนละครั้งจนกว่าจะเสร็จ" (ไม่มีช่องรูปแบบการชำระแล้ว)
 }
 function orthoPayBadge(o){ return (o && orthoPayOf_(o.hn)===ORTHO_PAY_UNTIL_DONE) ? '<span class="opay-badge" title="คนไข้จัดฟัน — ชำระจนเสร็จ">💳 ชำระจนเสร็จ</span>' : ''; }
 function pskBadge(o){
