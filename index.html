@@ -6246,7 +6246,7 @@ ${r.status==='void'?'<div class="void">ยกเลิก</div>':''}
 <div class="hd"><div><div class="cn">${E(c.name||'')}</div><div class="ce">${E(c.nameEn||'')}</div></div>
 <div class="ca">${E(c.address||'')}${c.phone?'<br>โทร. '+E(c.phone):''}${c.taxId?'<br>เลขประจำตัวผู้เสียภาษี '+E(c.taxId):''}</div></div>
 <div class="tt"><div><h1>ใบเสร็จรับเงิน</h1><div class="en">RECEIPT</div></div><span class="cp">${copy?'สำเนา':'ต้นฉบับ'}</span></div>
-<div class="mt"><div>ได้รับเงินจาก <b>${E(r.patName||'')}</b>${r.hn?' &nbsp;HN '+E(r.hn):''}</div><div>เลขที่ <b>${E(r.receiptNo)}</b></div>
+<div class="mt"><div>ได้รับเงินจาก <b>${/^(คุณ|นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|เด็กชาย|เด็กหญิง)/.test(String(r.patName||'').trim())?'':'คุณ'}${E(r.patName||'')}</b>${r.hn?' &nbsp;HN '+E(r.hn):''}</div><div>เลขที่ <b>${E(r.receiptNo)}</b></div>
 <div>${r.address?'ที่อยู่ '+E(r.address):''}</div><div>วันที่ <b>${fmtDateThai(String(r.date||'').slice(0,10))}</b></div></div>
 <table><tr><th style="width:28px;">#</th><th>รายการ</th><th class="n">จำนวนเงิน (บาท)</th></tr>
 ${items.map((it,i)=>`<tr><td>${i+1}</td><td>${E(it.name)}</td><td class="n">${fmt(+it.price||0)}</td></tr>`).join('')}</table>
