@@ -599,13 +599,8 @@ function crmAptMessage_(s, apt, kind, mv) {
   // mv = { date, time } นัดเดิมที่ถูกเลื่อน (kind 'move') — บอกคนไข้ชัดเจนว่าเลื่อนจากวันไหนเป็นวันไหน และนัดเดิมถูกยกเลิกแล้ว
   var sameDay = !!(mv && mv.date === apt.date);
   var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'move' ? (sameDay ? '🔄 เปลี่ยนเวลานัดหมาย' : '🔄 เลื่อนนัดหมายแล้ว') : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '📌 ใบนัด'));
-  // ใบนัด (ยืนยันตอนลงนัด): ชื่อ ตามด้วย HN — คนไข้จัดฟันที่มีรหัสจัดฟัน (A-###) ใส่รหัสแทน HN
-  var idLbl = '';
-  if (kind !== 'remind' && kind !== 'move' && kind !== 'change') {
-    try { idLbl = apt.hn ? crmOrthoCodeOf_(apt.hn) : ''; } catch (eId) { idLbl = ''; }
-    if (!idLbl && apt.hn) idLbl = 'HN ' + apt.hn;
-  }
-  var sub = 'คุณ' + (apt.patName || '') + (idLbl ? ' (' + idLbl + ')' : '') + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : (kind === 'move' ? ' คลินิกได้' + (sameDay ? 'เปลี่ยนเวลา' : 'เลื่อน') + 'นัดหมายของคุณให้แล้วค่ะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ'));
+  // ชื่อ ตามด้วย HN — คนไข้จัดฟันที่มีรหัสจัดฟัน (A-###) ใส่รหัสแทน HN (ทุกข้อความถึงคนไข้ใช้ crmWho_)
+  var sub = 'คุณ' + crmWho_(apt.patName, apt.hn) + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : (kind === 'move' ? ' คลินิกได้' + (sameDay ? 'เปลี่ยนเวลา' : 'เลื่อน') + 'นัดหมายของคุณให้แล้วค่ะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ'));
   var rows = [];
   if (kind === 'move' && mv) rows.push(crmRow_('นัดเดิม', (sameDay ? '' : crmThaiDate_(mv.date) + ' ') + (mv.time ? mv.time + ' น. ' : '') + '(ยกเลิกแล้ว)'));
   rows.push(crmRow_(kind === 'move' ? 'นัดใหม่' : 'วัน', crmThaiDate_(apt.date)), crmRow_('เวลา', (apt.time || '-') + ' น.'));
@@ -632,7 +627,7 @@ function crmAptGroupMessage_(s, list) {
     { type: 'button', style: 'secondary', height: 'md', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(a0.date) } },
     crmInquiryNote_(s)];
   return { type: 'flex', altText: 'เตือนนัดหมาย ' + crmThaiDate_(a0.date) + ' ' + list.length + ' นัด',
-    contents: crmBubble_(s, '🔔 เตือนนัดหมาย', 'คุณ' + (a0.patName || '') + ' อย่าลืมนัดหมายของคุณนะคะ (' + list.length + ' นัดในวันเดียวกัน)', rows, buttons) };
+    contents: crmBubble_(s, '🔔 เตือนนัดหมาย', 'คุณ' + crmWho_(a0.patName, a0.hn) + ' อย่าลืมนัดหมายของคุณนะคะ (' + list.length + ' นัดในวันเดียวกัน)', rows, buttons) };
 }
 function crmMoney_(n) { return '฿' + String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 // สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (+ คำแนะนำหลังรักษาในการ์ดเดียวกัน ถ้ามี template ที่อนุมัติแล้ว)
@@ -696,13 +691,13 @@ function crmReceiptMessage_(s, trs, extra) {
     rows.push({ type: 'text', text: 'มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ', wrap: true, size: 'xs', color: '#83627C', margin: 'md' });
   }
   var corrected = !!(extra && extra.corrected);
-  var sub = corrected ? ('คุณ' + (t0.patName || '') + '\nขออภัยในความคลาดเคลื่อนค่ะ คลินิกขอแก้ไขข้อมูลค่าใช้จ่ายดังนี้') : ('คุณ' + (t0.patName || '') + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูรอยยิ้มของคุณค่ะ☺️');
+  var sub = corrected ? ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขออภัยในความคลาดเคลื่อนค่ะ คลินิกขอแก้ไขข้อมูลค่าใช้จ่ายดังนี้') : ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูรอยยิ้มของคุณค่ะ☺️');
   var buttons = [crmInquiryNote_(s)];
   return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + (hasAfter ? ' และคำแนะนำหลังรักษา' : '') + ' ขอบคุณที่มาใช้บริการค่ะ',
     contents: crmBubble_(s, corrected ? '🧾 แก้ไขสรุปค่าใช้จ่าย' : (hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา'), sub, rows, buttons, '#1D825C') };
 }
-function crmAftercareMessages_(s, patName, date, tpls, notes) {
-  var parts = ['คุณ' + (patName || '') + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nคำแนะนำหลังการรักษา' + (date === crmToday_() ? 'วันนี้' : '') + ' (' + crmThaiDate_(date) + ')'];
+function crmAftercareMessages_(s, patName, date, tpls, notes, hn) {
+  var parts = ['คุณ' + crmWho_(patName, hn) + ' ขอบคุณที่มาใช้บริการ' + s.clinicName + 'ค่ะ 🙏\nคำแนะนำหลังการรักษา' + (date === crmToday_() ? 'วันนี้' : '') + ' (' + crmThaiDate_(date) + ')'];
   tpls.forEach(function (t) { parts.push(String(t.aftercareText || '').trim()); });
   if (notes && notes.length) parts.push('📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'));
   parts.push('มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ');
@@ -732,7 +727,7 @@ var CRM_HIDDEN_OPT_LABELS_ = ['เลือดออกไม่หยุด', '
 function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
   var opts = [];
   try { opts = JSON.parse(tpl.followupOptions || '[]'); } catch (e) {}
-  var q = String(tpl.followupQuestion || '').replace(/\{name\}/g, patName || '').replace(/\{proc\}/g, procText || tpl.name);
+  var q = String(tpl.followupQuestion || '').replace(/\{name\}/g, crmWho_(patName, fu.hn)).replace(/\{proc\}/g, procText || tpl.name);
   var okReview = false;   // ปุ่ม "ปกติดี" เปิดหน้ารีวิวทันที: ต้องเปิดตัวเลือก + มีลิงก์รีวิว + ไม่ใช้โหมดถามคะแนน + คนไข้ยังไม่ถูกขอรีวิวใน 360 วัน
   try {
     if (docOk !== false && s.reviewOnOk === true && /^https:\/\//i.test(String(s.reviewUrl || '').trim()) && !crmRatingApplies_(s, fu)) {
@@ -1038,11 +1033,11 @@ function crmTickInner_() {
       var msgs, key, refId, detail, type;
       if (hasAfter && rowsR.length) {            // การ์ดเดียว: สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ + คำแนะนำหลังรักษา
         var card = crmReceiptMessage_(s, rowsR, { tpls: tpls, notes: myNotes });
-        msgs = (JSON.stringify(card).length < 45000) ? [card] : [crmReceiptMessage_(s, rowsR)].concat(crmAftercareMessages_(s, rowsR[0].patName, gDate, tpls, myNotes));
+        msgs = (JSON.stringify(card).length < 45000) ? [card] : [crmReceiptMessage_(s, rowsR)].concat(crmAftercareMessages_(s, rowsR[0].patName, gDate, tpls, myNotes, rowsR[0].hn));
         key = crmKey_(s, 'after:' + rowsA[0].id); type = 'receipt'; refId = treatIds.join(',');
         detail = 'สรุป+Aftercare: ' + tpls.map(function (x) { return x.name; }).join(', ') + (myNotes.length ? ' +คำแนะนำพิเศษ' : '');
       } else if (hasAfter) {                      // สวิตช์สรุปการรักษาปิด หรือส่งสรุปไปแล้ว → ส่งคำแนะนำล้วน
-        msgs = crmAftercareMessages_(s, rowsA[0].patName, gDate, tpls, myNotes);
+        msgs = crmAftercareMessages_(s, rowsA[0].patName, gDate, tpls, myNotes, rowsA[0].hn);
         key = crmKey_(s, 'after:' + rowsA[0].id); type = 'aftercare'; refId = treatIds.join(',');
         detail = tpls.map(function (x) { return x.name; }).join(', ') + (myNotes.length ? ' +คำแนะนำพิเศษ' : '');
       } else if (rowsR.length) {                  // ยังไม่มี template อนุมัติ → ส่งสรุปการรักษาอย่างเดียวก่อน
@@ -1078,7 +1073,7 @@ function crmTickInner_() {
       var nk = crmKey_(s, 'note:' + n.id), ok = false;
       tg.forEach(function (t) {
         if (crmSend_(s, state, { key: nk + '>' + t.lineUserId, type: 'casenote', hn: n.hn, patName: n.patName, lineUserId: t.lineUserId, refId: n.id },
-          [crmText_('📝 คำแนะนำเพิ่มเติมจากทันตแพทย์ สำหรับคุณ' + (n.patName || '') + '\n\n' + n.text)])) { ok = true; summary.notes++; }
+          [crmText_('📝 คำแนะนำเพิ่มเติมจากทันตแพทย์ สำหรับคุณ' + crmWho_(n.patName, n.hn) + '\n\n' + n.text)])) { ok = true; summary.notes++; }
       });
       if (ok && !s.testMode) crmUpdate_('casenotes', n._row, { status: 'sent', sentAt: crmNow_() });
       if (crmAllDone_(state, nk, tg)) crmMark_(state, nk, 'casenote', { hn: n.hn, refId: n.id }, 'done', '');
@@ -1180,7 +1175,7 @@ function crmTickInner_() {
         if (!tg.length) return;
         var bk = crmKey_(s, 'bday:' + crmHN_(l.hn) + ':' + yr0);
         if (crmIsDone_(state, bk)) return;
-        var nm = String(l.patName || '').split(' ')[0];
+        var nm = crmWho_(String(l.patName || '').split(' ')[0], l.hn);
         var txt = String(s.birthdayText || '').replace(/\{name\}/g, nm).replace(/\{month\}/g, CRM_TH_MONTHS[+md0.slice(0, 2) - 1]).replace(/\{phone\}/g, s.clinicPhone || '').replace(/\{clinic\}/g, s.clinicName || '');
         tg.forEach(function (t) {
           if (crmSend_(s, state, { key: bk + '>' + t.lineUserId, type: 'birthday', hn: l.hn, patName: l.patName, lineUserId: t.lineUserId, refId: 'bday-' + yr0, detail: md0 }, [crmText_(txt)])) summary.birthday = (summary.birthday || 0) + 1;
@@ -1350,13 +1345,13 @@ function crmOrthoVisitMessage_(s, v) {
     CRM_ORTHO_CARE_.forEach(function (t, i) { rows.push({ type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17', margin: 'sm' }); });
   }
   return { type: 'flex', altText: 'สรุปการมาจัดฟันวันนี้ ' + (total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'),
-    contents: crmBubble_(s, '🦷 สรุปการมาจัดฟันวันนี้', 'ขอบคุณที่มาตามนัดค่ะ คุณ' + (v.patName || ''), rows, [crmInquiryNote_(s)]) };
+    contents: crmBubble_(s, '🦷 สรุปการมาจัดฟันวันนี้', 'ขอบคุณที่มาตามนัดค่ะ คุณ' + crmWho_(v.patName, v.hn), rows, [crmInquiryNote_(s)]) };
 }
 function crmCancelMessage_(s, task) {
   var rows = [crmRow_('วัน', crmThaiDate_(task.aptDate))];
   if (task.aptTime) rows.push(crmRow_('เวลา', task.aptTime + ' น.'));
   return { type: 'flex', altText: 'แจ้งยกเลิกนัดหมาย ' + crmThaiDate_(task.aptDate),
-    contents: crmBubble_(s, '📌 แจ้งยกเลิกนัดหมาย', 'คุณ' + (task.patName || '') + ' คลินิกขอยกเลิกนัดหมายนี้ค่ะ หากต้องการนัดหมายใหม่ ติดต่อคลินิกได้เลยค่ะ', rows, [crmInquiryNote_(s)]) };
+    contents: crmBubble_(s, '📌 แจ้งยกเลิกนัดหมาย', 'คุณ' + crmWho_(task.patName, task.hn) + ' คลินิกขอยกเลิกนัดหมายนี้ค่ะ หากต้องการนัดหมายใหม่ ติดต่อคลินิกได้เลยค่ะ', rows, [crmInquiryNote_(s)]) };
 }
 function crmCreateTask_(t) {
   var now = crmNow_();
@@ -1370,17 +1365,26 @@ function crmCreateTask_(t) {
 // ---- แจ้งแอดมินทาง LINE (push เข้า LINE ส่วนตัวของแอดมิน) ----
 var CRM_STAFF_LABEL = { reschedule: '📅 คนไข้ขอเลื่อนนัด', emergency: '🚨 อาการฉุกเฉิน', callback: '📞 ขอให้คลินิกโทรกลับ', message: '💬 คนไข้พิมพ์เข้ามา', receipt: '🧾 ส่งสรุปการรักษาแล้ว' };
 /* รหัสจัดฟัน (A-###) ของ HN จากชีต ortho · ไม่มี/ไม่พบ → '' */
+var CRM_ORTHO_CODE_MAP_ = null;   // อ่านชีต ortho ครั้งเดียวต่อการรัน (ส่งหลายข้อความในรอบเดียวไม่ต้องอ่านซ้ำ)
 function crmOrthoCodeOf_(hn) {
   var k = crmHN_(hn); if (!k) return '';
-  var rows = crmReadByName_('ortho');
-  for (var i = 0; i < rows.length; i++) {
-    if (crmHN_(rows[i].hn) === k) {
-      var c = String(rows[i]['รหัสประจำตัว'] || '').trim().toUpperCase();
-      if (c) return c;
-    }
+  if (CRM_ORTHO_CODE_MAP_ === null) {
+    CRM_ORTHO_CODE_MAP_ = {};
+    crmReadByName_('ortho').forEach(function (r) {
+      var kk = crmHN_(r.hn), c = String(r['รหัสประจำตัว'] || '').trim().toUpperCase();
+      if (kk && c && !CRM_ORTHO_CODE_MAP_[kk]) CRM_ORTHO_CODE_MAP_[kk] = c;
+    });
   }
-  return '';
+  return CRM_ORTHO_CODE_MAP_[k] || '';
 }
+/* ตัวระบุคนไข้ที่แสดงต่อท้ายชื่อในข้อความ LINE: มีรหัสจัดฟัน (A-###) ใช้รหัสแทน HN · ไม่มีใช้ "HN xx" · ไม่มี HN → '' */
+function crmIdLbl_(hn) {
+  var h = String(hn || '').trim(); if (!h) return '';
+  var c = ''; try { c = crmOrthoCodeOf_(h); } catch (e) { c = ''; }
+  return c || ('HN ' + h);
+}
+/* ชื่อ ตามด้วย (HN หรือรหัสจัดฟัน) — ใช้กับข้อความถึงคนไข้ทุกแบบ */
+function crmWho_(name, hn) { var id = crmIdLbl_(hn); return String(name || '') + (id ? ' (' + id + ')' : ''); }
 /* ชื่อคนไข้จาก LINE userId: ชื่อที่ผูก HN ไว้ → ไม่มีใช้ชื่อ LINE */
 function crmNameOfUid_(uid) {
   var name = '', hn = '';
@@ -2032,7 +2036,7 @@ function crmStaffAction_(b) {
       if (!tgV.length) return { ok: true, sent: 0, reason: 'no_line' };
       var itemsV = (b.items || []).slice(0, 12).map(function (x) { return { name: String(x.name || '').slice(0, 60), price: (x.price === null || x.price === undefined) ? null : (+x.price || 0), note: String(x.note || '').slice(0, 60) }; });
       if (!itemsV.length) return { ok: false, error: 'no_items' };
-      var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60), care: b.care !== false, cash: +b.cash || 0, transfer: +b.transfer || 0 });
+      var cardV = crmOrthoVisitMessage_(sV, { patName: String(b.patName || ''), hn: hnV, date: crmDateOnly_(b.date), items: itemsV, doc: String(b.doc || '').slice(0, 60), care: b.care !== false, cash: +b.cash || 0, transfer: +b.transfer || 0 });
       var stV = { done: {}, fails: {} }, nV = 0;
       tgV.forEach(function (t) {
         if (crmSend_(sV, stV, { key: 'orthovisit:' + hnV + ':' + crmDateOnly_(b.date) + ':' + now + ':' + t.lineUserId, type: 'receipt', hn: hnV, patName: b.patName || '', lineUserId: t.lineUserId, refId: 'ORTHOVISIT-' + crmHN_(hnV) + '-' + crmDateOnly_(b.date), detail: 'สรุปการมาจัดฟัน' }, [cardV])) nV++;
