@@ -119,6 +119,21 @@
 <body>
 
 <script>
+  /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
+  const APP_VER = '2026-11-09c';
+  (function(){
+    try{
+      if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
+      fetch(location.pathname + '?nocache=' + Date.now(), { cache:'no-store' }).then(r=>r.ok?r.text():'').then(t=>{
+        const m = String(t).match(/const APP_VER = '([^']+)'/);
+        if(m && m[1] !== APP_VER){
+          sessionStorage.setItem('bl_liff_reloaded', m[1]);
+          const u = new URL(location.href); u.searchParams.set('_v', m[1]);
+          location.replace(u.toString());
+        }
+      }).catch(()=>{});
+    }catch(e){}
+  })();
   const LIFF_ID = '2012312037-ZWyIL0I7';
   const API = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
   const CLINIC_PHONE_FALLBACK = '095-947-6759';
