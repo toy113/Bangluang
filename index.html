@@ -3261,7 +3261,7 @@ function isOrthoOnlyUser(){ return !!(currentUser && !isManager && currentUser.i
 const ORTHO_ONLY_PAGES = ['treatment','income','crm','ortho'];
 function isViewOnlyUser(){ return isOrthoOnlyUser(); }   // หมอเอม: ดูอย่างเดียวในส่วนจัดฟัน (ไม่มีปุ่มบันทึก/เพิ่ม/แก้ไข)
 function viewOnlyBlock_(){ if(isViewOnlyUser()){ showToast('บัญชีนี้ดูข้อมูลได้อย่างเดียว','error'); return true; } return false; }
-function crmDoctorSubs(){ return isOrthoOnlyUser() ? ['orthoapt'] : ['rating']; }
+function crmDoctorSubs(){ return isOrthoOnlyUser() ? ['orthoapt'] : ['followup']; }   // หมอทั่วไป: เห็นเฉพาะ ติดตามอาการ (เคสตัวเอง)
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
 var CRM_TASK_TYPE = { message:'💬 ข้อความ', reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
 var CRM_LOG_TYPE = { staff:'แจ้งแอดมิน', confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', birthday:'วันเกิด', test:'ทดสอบ' };
@@ -4340,11 +4340,11 @@ function crmSaveTpl(id){
 
 /* ---------- 5) ติดตามอาการ ---------- */
 function crmViewFollowup(){
-  const fus=(CRM.data.followups||[]).slice().sort((a,b)=>String(b.sentAt).localeCompare(String(a.sentAt)));
+  const fus=(CRM.data.followups||[]).filter(x=>isManager || crmRatingDoc_(x)===currentUser.name).sort((a,b)=>String(b.sentAt).localeCompare(String(a.sentAt)));   // หมอเห็นเฉพาะเคสของตัวเอง (หาหมอจากรายการรักษา HN+วันที่เดียวกัน)
   const f=CRM.fuFilter;
   const list=fus.filter(x=> f==='all' ? true : f==='none' ? !x.answeredAt : f==='late' ? crmFuAutoClosed(x) : ['severe','emergency','callback'].includes(x.answerKind));
   const answered=fus.filter(x=>x.answeredAt).length, late=fus.filter(crmFuAutoClosed).length;
-  return `<div class="crm-card"><h4>🩺 ติดตามอาการวันถัดไป<span class="sp"></span>
+  return `<div class="crm-card"><h4>🩺 ติดตามอาการวันถัดไป${isManager?'':' · เคสของฉัน'}<span class="sp"></span>
       <span class="crm-seg">${[['all','ทั้งหมด'],['care','ต้องดูแล'],['late','ปิดอัตโนมัติ (ไม่ตอบ >24 ชม.)'+(late?' ('+late+')':'')],['none','ยังไม่ตอบ']].map(x=>`<button class="${f===x[0]?'on':''}" onclick="CRM.fuFilter='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
     ${false?`<div class="crm-alert o">⏰ คนไข้ไม่ตอบข้อความถามอาการเกิน 24 ชม. ${late} ราย — ควรโทรสอบถาม <button class="crm-btn" style="margin-left:6px" onclick="CRM.fuFilter='late';crmRender()">ดูรายชื่อ</button></div>`:''}
     <p class="crm-muted" style="margin-bottom:8px;">45 วันล่าสุด: ส่ง ${fus.length} · ตอบ ${answered} (${fus.length?Math.round(answered/fus.length*100):0}%) — ระบบตอบด้วยข้อความที่ทันตแพทย์อนุมัติเท่านั้น ไม่มี AI วินิจฉัย</p>
@@ -4353,7 +4353,7 @@ function crmViewFollowup(){
         <div class="nm">${ocTag_(x.hn,x.patName)}${crmEsc(x.patName||'')}${orthoPayBadge({hn:x.hn})} ${hnShow_(x.hn,x.patName,x.orthoCode)?'<span class="crm-muted">HN '+crmEsc(x.hn)+'</span>':''} ${x.status==='test'?'<span class="crm-chip o">ทดสอบ</span>':''}</div>
         <div class="meta">${crmEsc(x.proc||'')} เมื่อ ${crmEsc(crmThaiShort(x.treatDate))} · ถาม ${crmEsc(crmTs(x.sentAt))}</div>
         <div>${x.answeredAt?`<span class="crm-chip ${k?k[1]:'x'}">${crmEsc(x.answer)}</span><span class="crm-muted">ตอบ ${crmEsc(crmTs(x.answeredAt))}</span>${String(x.rating||'')!==''?` <span class="crm-chip ${+x.rating>=4?'g':(+x.rating>=3?'o':'r')}">⭐ ${crmEsc(x.rating)}/5</span>`:''}`:(crmFuAutoClosed(x)?'<span class="crm-chip x">🔒 ปิดเคสอัตโนมัติ (ไม่ตอบเกิน 24 ชม.)</span>':'<span class="crm-chip x">ยังไม่ตอบ</span>')}${x.taskId?' <span class="crm-chip w">สร้างงานแล้ว</span>':''}${x.calledAt?` <span class="crm-chip g">📞 โทรแล้ว ${crmEsc(crmTs(x.calledAt))}${x.calledBy?' · '+crmEsc(x.calledBy):''}</span>${x.callNote?` <span class="crm-muted">— ${crmEsc(x.callNote)}</span>`:''}`:''}</div></div>
-        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${!x.answeredAt && !x.calledAt && x.status!=='test' && !crmFuAutoClosed(x)?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div>${list.length>(CRM.fuShow||150)?`<div style="text-align:center;margin-top:8px;"><button class="crm-btn" onclick="CRM.fuShow=(CRM.fuShow||150)+150;crmRender()">แสดงเพิ่ม (เหลืออีก ${list.length-(CRM.fuShow||150)} รายการ)</button></div>`:''}</div>`;
+        <div class="acts">${crmPhoneOf(x.hn)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(x.hn))}">📞 โทร</a>`:''}${isManager && !x.answeredAt && !x.calledAt && x.status!=='test' && !crmFuAutoClosed(x)?`<button class="crm-btn g" onclick="crmFuCalled('${crmEsc(x.id)}')">✔ โทรแล้ว</button>`:''}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีรายการ</div>'}</div>${list.length>(CRM.fuShow||150)?`<div style="text-align:center;margin-top:8px;"><button class="crm-btn" onclick="CRM.fuShow=(CRM.fuShow||150)+150;crmRender()">แสดงเพิ่ม (เหลืออีก ${list.length-(CRM.fuShow||150)} รายการ)</button></div>`:''}</div>`;
 }
 
 /* ---------- คะแนนบริการ (หลังถอนฟัน/ผ่าฟันคุด) แยกตามหมอ ---------- */
