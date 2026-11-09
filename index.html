@@ -62,6 +62,70 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 
 
 /* ======= LINE CRM ======= */
+
+/* LINE CRM — UX รอบ 2 */
+#page-crm > .section-hdr{display:none;}   /* หัว "LINE CRM" ซ้ำกับแถบด้านบน */
+.crm-subwrap{position:relative;margin-bottom:6px;}
+@media(max-width:768px){ .crm-subwrap .crm-sub{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:28px;} }
+.crm-sub button.more{border-style:dashed;}
+.crm-sub button.line{border-color:#06C755;color:#048a3c;background:#effcf3;font-weight:700;}
+.crm-sub button.line.on{background:#06C755;border-color:#06C755;color:#fff;}
+.crm-more{position:absolute;z-index:30;top:44px;right:0;left:auto;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 30px rgba(60,20,50,.18);padding:6px;min-width:240px;display:none;}
+.crm-more.open{display:block;}
+.crm-more button{display:flex;width:100%;align-items:center;gap:10px;border:0;background:transparent;font-family:inherit;font-size:14px;font-weight:600;color:var(--text-dark);padding:11px 12px;border-radius:10px;cursor:pointer;text-align:left;}
+.crm-more button:hover,.crm-more button.on{background:var(--wine-pale);color:var(--wine);}
+.crm-more .n{margin-left:auto;background:var(--rose);color:#fff;border-radius:10px;font-size:11px;padding:0 7px;line-height:18px;}
+@media(max-width:768px){ .crm-more{position:fixed;left:12px;right:12px;top:auto;bottom:80px;} }
+.crm-kpi.go{cursor:pointer;transition:transform .08s,box-shadow .12s;}
+.crm-kpi.go:hover{box-shadow:0 4px 16px rgba(110,40,90,.14);}
+.crm-kpi.go:active{transform:scale(.98);}
+.crm-kpi.zero{opacity:.55;}
+.crm-kpi.warn{border-color:rgba(162,102,8,.45);background:#fffaf0;}
+.crm-kpi.warn .v{color:var(--orange);}
+.crm-todo{background:#fff;border:1.5px solid var(--wine);border-radius:14px;padding:6px;margin-bottom:12px;box-shadow:var(--shadow);}
+.crm-todo h4{font-size:15px;color:var(--wine-dark);padding:8px 10px 4px;display:flex;align-items:center;gap:8px;}
+.crm-todo .row{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;cursor:pointer;min-height:44px;}
+.crm-todo .row:hover{background:var(--wine-pale);}
+.crm-todo .row + .row{border-top:1px solid #f2ecf0;}
+.crm-todo .cnt{min-width:34px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;background:var(--wine);padding:0 8px;}
+.crm-todo .cnt.r{background:var(--red);} .crm-todo .cnt.o{background:#D68910;} .crm-todo .cnt.g{background:var(--green);}
+.crm-todo .t{flex:1;min-width:0;} .crm-todo .t b{display:block;font-size:14px;color:var(--text-dark);} .crm-todo .t span{font-size:12.5px;color:var(--text-mid);}
+.crm-todo .go{color:var(--wine);font-weight:800;font-size:18px;}
+.crm-todo .ok{padding:14px 12px;color:var(--green);font-weight:700;}
+.crm-setup{background:#fffaf0;border:1px solid rgba(162,102,8,.35);border-radius:12px;padding:0;margin-bottom:12px;}
+.crm-setup summary{cursor:pointer;padding:11px 14px;font-weight:700;color:#8a5a00;list-style:none;}
+.crm-setup summary::-webkit-details-marker{display:none;}
+.crm-setup .crm-check{padding:0 14px 12px;}
+.crm-setup .tech{font-size:11.5px;color:var(--text-light);}
+.crm-filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;}
+.crm-filters button{border:1px solid var(--border);background:#fff;border-radius:20px;padding:6px 12px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text-mid);cursor:pointer;min-height:34px;}
+.crm-filters button.on{background:var(--wine-pale);color:var(--wine);border-color:var(--wine);}
+.crm-filters button b{margin-left:4px;}
+.crm-task{border:1px solid var(--border);border-radius:12px;padding:9px 12px;background:#fff;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.crm-task.urgent{border-color:rgba(225,31,49,.55);background:#fff6f7;} .crm-task.high{border-color:rgba(162,102,8,.45);background:#fffaf0;}
+.crm-task .main{flex:1 1 240px;min-width:0;}
+.crm-task .l1{font-weight:700;font-size:14px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;}
+.crm-task .ty{font-size:12px;font-weight:800;padding:1px 8px;border-radius:20px;background:var(--wine-pale);color:var(--wine);}
+.crm-task .age{font-size:12px;color:var(--text-light);font-weight:600;}
+.crm-task .age.old{color:var(--red);}
+.crm-task .l2{font-size:13px;color:var(--text-mid);margin-top:2px;overflow-wrap:anywhere;}
+.crm-task .acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.crm-undo{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:9999;background:#2b1a27;color:#fff;border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:14px;}
+.crm-undo button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#FFD76A;border-radius:8px;padding:6px 12px;font-family:inherit;font-weight:800;cursor:pointer;}
+.crm-oc-acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+.crm-oc-acts .crm-btn{padding:7px 14px;min-height:36px;}
+.crm-ago{font-size:12px;color:var(--text-light);}
+.crm-ago.stale{color:#A04000;font-weight:700;}
+.crm-sw{justify-content:flex-end !important;flex-direction:row-reverse;}   /* สวิตช์อยู่ชิดหน้าข้อความ (เดิมอยู่ขวาสุด ห่างข้อความมาก) */
+.crm-sw > span{flex:1;min-width:0;}
+.crm-sw input[type=checkbox]{-webkit-appearance:none;appearance:none;width:42px !important;height:24px !important;border-radius:24px;flex-shrink:0;cursor:pointer;margin:0;
+  background:#d9d2d8 radial-gradient(circle at 12px 12px,#fff 8.5px,transparent 9.5px) no-repeat;background-position:0 0;transition:background-color .15s,background-position .15s;}
+.crm-sw input[type=checkbox]:checked{background-color:var(--green);background-position:18px 0;}
+.crm-savebar{position:sticky;bottom:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin-top:10px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 16px rgba(60,20,50,.08);}
+.crm-savebar.dirty{border-color:#D68910;background:#fffaf0;}
+.crm-savebar .msg{flex:1;font-size:13px;color:var(--text-mid);font-weight:600;}
+.crm-savebar.dirty .msg{color:#8a5a00;}
+@media(max-width:768px){ .crm-savebar{bottom:8px;} .crm-muted{font-size:13px;} .crm-chip{font-size:12px;padding:3px 10px;} .crm-btn{min-height:36px;font-size:13px;} }
 .crm-sub{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:6px;scrollbar-width:none;}
 .crm-sub::-webkit-scrollbar{display:none;}
 @media(min-width:769px){ .crm-sub{flex-wrap:wrap;overflow-x:visible;row-gap:8px;} }   /* จอคอม: ขึ้นบรรทัดใหม่แทนการเลื่อนข้าง (เมาส์เลื่อนแนวนอนไม่สะดวก) */
@@ -3110,9 +3174,9 @@ function getDoctorOptions(){
 // ============================================================
 var CRM = { data:null, loading:false, err:'', sub:'today', aptRange:'tomorrow', orthoRange:'week', fuFilter:'all', taskFilter:'open', oldSeg:'gone12', oldQ:'', linkQ:'' };
 var CRM_SUBS = [
-  ['today','🏠','ภาพรวมวันนี้'], ['tasks','📞','งานโทรกลับ'], ['apts','📅','นัดหมาย'], ['orthoapt','😬','นัดจัดฟัน'], ['remind','🔔','เตือนนัด'], ['links','🔗','LINE Connections'],
+  ['today','🏠','ภาพรวมวันนี้'], ['links','🔗','LINE Connections'], ['tasks','📞','งานโทรกลับ'], ['apts','📅','นัดหมาย'], ['orthoapt','😬','นัดจัดฟัน'], ['remind','🔔','เตือนนัด'],
   ['followup','🩺','ติดตามอาการ'], ['rating','⭐','คะแนนบริการ'], ['old','🗂️','คนไข้เก่า'], ['sso','🏛️','แคมเปญประกันสังคม'],
-  ['aftercare','🩹','Aftercare'], ['report','📊','รายงานและต้นทุน'], ['settings','⚙️','ตั้งค่า']
+  ['aftercare','🩹','คำแนะนำหลังรักษา'], ['report','📊','รายงานและต้นทุน'], ['settings','⚙️','ตั้งค่า']
 ];
 // หมอเอม (id 'aim') เห็นเฉพาะ: จัดฟัน · LINE CRM > นัดจัดฟัน · บันทึกการรักษา · สรุปรายได้
 function isOrthoOnlyUser(){ return !!(currentUser && !isManager && currentUser.id==='aim'); }
@@ -3121,7 +3185,7 @@ function isViewOnlyUser(){ return isOrthoOnlyUser(); }   // หมอเอม: 
 function viewOnlyBlock_(){ if(isViewOnlyUser()){ showToast('บัญชีนี้ดูข้อมูลได้อย่างเดียว','error'); return true; } return false; }
 function crmDoctorSubs(){ return isOrthoOnlyUser() ? ['orthoapt'] : ['rating']; }
 var CRM_KIND = { ok:['ปกติ','g'], mild:['เล็กน้อย','b'], severe:['รุนแรง','o'], emergency:['ฉุกเฉิน','r'], callback:['ขอให้โทรกลับ','w'] };
-var CRM_TASK_TYPE = { reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
+var CRM_TASK_TYPE = { message:'💬 ข้อความ', reschedule:'📅 ขอเลื่อนนัด', callback:'📞 โทรกลับ', emergency:'🚨 ฉุกเฉิน', lowrating:'⭐ คะแนนต่ำ', amtchange:'💰 แก้ยอดหลังส่งสรุป', aptcancel:'📌 นัดถูกยกเลิก/ลบ' };
 var CRM_LOG_TYPE = { staff:'แจ้งแอดมิน', confirm:'ยืนยันนัด', receipt:'สรุปการรักษา', remind:'เตือนนัด', aftercare:'Aftercare', casenote:'คำแนะนำพิเศษ', followup:'ถามอาการ', campaign:'แคมเปญ', birthday:'วันเกิด', test:'ทดสอบ' };
 
 function crmEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -3219,7 +3283,7 @@ async function crmLoad(force){
     const txt = await res.text();
     let d=null; try{ d=JSON.parse(txt); }catch(e){}
     if(!d || !d.ok){ CRM.err = (d && d.error) ? d.error : 'backend_missing'; }
-    else { CRM.data = d; CRM.stale = false; try{ localStorage.setItem('bl_crm_cache', JSON.stringify(d)); }catch(e){ try{ localStorage.removeItem('bl_crm_cache'); }catch(e2){} } try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : ('0|'+Date.now())); }catch(e){} }
+    else { CRM.data = d; CRM.stale = false; CRM.loadedAt = Date.now(); try{ localStorage.setItem('bl_crm_cache', JSON.stringify(d)); }catch(e){ try{ localStorage.removeItem('bl_crm_cache'); }catch(e2){} } try{ localStorage.setItem('bl_crm_en', (d.settings && d.settings.enabled) ? '1' : ('0|'+Date.now())); }catch(e){} }
   }catch(e){ CRM.err = 'network'; }
   CRM.loading = false;
   if(CRM.reload){ CRM.reload=false; crmLoad(true); return; }   // มีการบันทึกระหว่างโหลด → โหลดซ้ำเพื่อไม่ให้ข้อมูลเก่าทับ
@@ -3308,7 +3372,15 @@ function renderCrmPage(){
   crmRender();
   crmLoad();
 }
-function crmSetSub(s){ CRM.sub = s; crmRender(); const el=document.getElementById('page-crm'); if(el && el.scrollIntoView) window.scrollTo({top:0}); }
+var CRM_MAIN_SUBS = ['today','links','tasks','apts','orthoapt','followup'];
+function crmToggleMore(force){
+  const mm=document.getElementById('crmMore'); if(!mm) return;
+  const open = force===undefined ? !mm.classList.contains('open') : !!force;
+  mm.classList.toggle('open', open);
+  if(open && window.innerWidth>768){ const b=document.querySelector('#crmSubs button.more'); if(b){ const pr=mm.offsetParent?mm.offsetParent.getBoundingClientRect():{left:0,top:0}, r=b.getBoundingClientRect(); mm.style.left=Math.max(0,r.left-pr.left)+'px'; mm.style.right='auto'; mm.style.top=(r.bottom-pr.top+6)+'px'; } }
+  if(open) setTimeout(()=>document.addEventListener('click', function h(e){ if(!mm.contains(e.target)){ mm.classList.remove('open'); } document.removeEventListener('click', h); }),0);
+}
+function crmSetSub(s){ if(CRM.sub==='settings' && s!=='settings' && CRM.setDirty && !window.confirm('การตั้งค่าที่แก้ไว้ยังไม่ได้บันทึก — ออกจากหน้านี้โดยไม่บันทึก?')) return; if(s!=='settings') CRM.setDirty=false; CRM.sub = s; crmRender(); const el=document.getElementById('page-crm'); if(el && el.scrollIntoView) window.scrollTo({top:0}); }
 // ถามอาการแล้วคนไข้ไม่ตอบเกิน 24 ชม. (ภายใน 7 วัน) และพนักงานยังไม่ได้โทรตาม
 // ถามอาการแล้วคนไข้ไม่ตอบเกิน 24 ชม. → ปิดเคสอัตโนมัติ (ไม่เตือน/ไม่ขึ้นตัวเลขแล้ว) — ถ้าคนไข้มาตอบทีหลัง ยังบันทึกคำตอบและสร้างงานตามปกติ
 function crmFuLate(f){ return false; }
@@ -3352,7 +3424,16 @@ function crmRender(){
   const c = crmCounts();
   const badge = { tasks:c.tasks, links:c.linksPending, aftercare:c.tplDraft, followup:(c.fuAlert||0)+(c.fuLate||0) };
   const subs = CRM_SUBS.filter(s=>isManager || crmDoctorSubs().includes(s[0]));
-  subsEl.innerHTML = subs.map(s=>`<button class="${CRM.sub===s[0]?'on':''}" onclick="crmSetSub('${s[0]}')">${s[1]} ${s[2]}${badge[s[0]]?`<span class="n">${badge[s[0]]}</span>`:''}</button>`).join('');
+  // แท็บหลัก (ใช้ทุกวัน) + เมนู "เพิ่มเติม" สำหรับแท็บที่ใช้นานๆ ครั้ง
+  const main = subs.filter(s=>CRM_MAIN_SUBS.includes(s[0])), more = subs.filter(s=>!CRM_MAIN_SUBS.includes(s[0]));
+  const btn = s=>`<button class="${CRM.sub===s[0]?'on':''}${s[0]==='links'?' line':''}" onclick="crmSetSub('${s[0]}')">${s[1]} ${s[2]}${badge[s[0]]?`<span class="n">${badge[s[0]]}</span>`:''}</button>`;
+  const curMore = more.find(s=>s[0]===CRM.sub), moreBadge = more.reduce((n,s)=>n+(+badge[s[0]]||0),0);
+  if(main.length && more.length>1){
+    subsEl.parentElement.classList.add('crm-subwrap');
+    subsEl.innerHTML = main.map(btn).join('') + `<button class="more ${curMore?'on':''}" onclick="event.stopPropagation();crmToggleMore()">${curMore?curMore[1]+' '+curMore[2]:'☰ เพิ่มเติม'} ▾${moreBadge?`<span class="n">${moreBadge}</span>`:''}</button>`;
+    let mm=document.getElementById('crmMore'); if(!mm){ mm=document.createElement('div'); mm.id='crmMore'; mm.className='crm-more'; subsEl.insertAdjacentElement('afterend', mm); }
+    mm.innerHTML = more.map(s=>`<button class="${CRM.sub===s[0]?'on':''}" onclick="crmToggleMore(false);crmSetSub('${s[0]}')"><span>${s[1]}</span>${s[2]}${badge[s[0]]?`<span class="n">${badge[s[0]]}</span>`:''}</button>`).join('');
+  } else subsEl.innerHTML = subs.map(btn).join('');
   if(!CRM.data){
     if(CRM.loading) { el.innerHTML = '<div class="crm-empty">กำลังโหลดข้อมูล LINE CRM...</div>'; return; }
     el.innerHTML = crmSetupHelp(CRM.err); return;
@@ -3362,6 +3443,14 @@ function crmRender(){
   try { el.innerHTML = fn() + (isManager ? '<div style="margin-top:14px;">'+crmStatusBar()+'</div>' : ''); }   // แถบสถานะ ส่งจริง/โควตา/ข้อความล่าสุด (อยู่ล่างสุดของหน้า): เฉพาะ ทพ.สรวิศ และผู้จัดการ
   catch(e){ console.error(e); el.innerHTML = '<div class="crm-alert r">แสดงผลไม่สำเร็จ: '+crmEsc(e.message)+'</div>'; }
   if(CRM.sub==='links') crmDrawQr();
+  if(CRM.sub==='settings') crmTrackDirty_();
+}
+// ตั้งค่า: แก้แล้วยังไม่บันทึก → แถบล่างเปลี่ยนเป็นสีส้มเตือน · ออกจากแท็บต้องยืนยันก่อน
+function crmTrackDirty_(){
+  const body=document.getElementById('crmBody'); if(!body) return;
+  const bar=()=>{ const b=document.getElementById('crmSaveBar'); if(!b) return; b.classList.toggle('dirty', !!CRM.setDirty); b.querySelector('.msg').textContent = CRM.setDirty ? '⚠️ มีการแก้ไขที่ยังไม่ได้บันทึก' : 'ยังไม่มีการแก้ไข'; };
+  if(!body._dirtyHook){ body._dirtyHook=true; const on=e=>{ if(CRM.sub==='settings' && e.target && /^crmS_|crmS_/.test((e.target.id||'')+' '+(e.target.className||''))){ CRM.setDirty=true; bar(); } }; body.addEventListener('input',on); body.addEventListener('change',on); }
+  bar();
 }
 function crmSetupHelp(err){
   const net = err==='network';
@@ -3375,6 +3464,13 @@ function crmSetupHelp(err){
     </div>
     <div style="margin-top:12px;"><button class="crm-btn p" onclick="crmLoad(true)">ลองใหม่</button></div></div>`;
 }
+// "อัปเดตล่าสุด x นาทีที่แล้ว" — บอกว่าข้อมูลที่เห็นสดแค่ไหน (ข้อมูลเก่าจากเครื่อง = สีส้ม)
+function crmAgo_(){
+  if(CRM.stale) return '<span class="crm-ago stale">⚠️ กำลังแสดงข้อมูลเก่าในเครื่อง — กำลังโหลดใหม่</span>';
+  if(!CRM.loadedAt) return '';
+  const m=Math.floor((Date.now()-CRM.loadedAt)/60000);
+  return '<span class="crm-ago">อัปเดต'+(m<1?'เมื่อสักครู่':'ล่าสุด '+m+' นาทีที่แล้ว')+'</span>';
+}
 function crmStatusBar(){
   const d=CRM.data, s=d.settings||{};
   const mode = !s.enabled ? ['ปิดอยู่','#9a93a3'] : (s.testMode ? ['โหมดทดสอบ','#A26608'] : ['ส่งจริง','#1D825C']);
@@ -3384,7 +3480,7 @@ function crmStatusBar(){
   return `<div class="crm-status"><span><span class="crm-dot" style="background:${mode[1]}"></span><b style="color:${mode[1]}">${mode[0]}</b></span>
     ${!d.tickInstalled?'<span class="crm-chip r">ยังไม่ได้ติดตั้ง trigger</span>':''}${!d.tokenSet?'<span class="crm-chip r">ยังไม่ได้ตั้ง LINE token</span>':''}
     <span>${crmEsc(tick)}</span><span>${crmEsc(qTxt)}</span><span style="flex:1"></span>
-    <button class="crm-btn" onclick="crmLoad(true)">${CRM.loading?'กำลังโหลด...':'🔄 รีเฟรช'}</button>${crmLastSent()}</div>`;
+    ${crmAgo_()}<button class="crm-btn" onclick="crmLoad(true)">${CRM.loading?'กำลังโหลด...':'🔄 รีเฟรช'}</button>${CRM.sub==='report'?crmLastSent():''}</div>`;
 }
 /* ข้อความล่าสุดที่ระบบส่ง 2 รายการ (จาก log ที่โหลดมาแล้ว ไม่ต้องเรียกเซิร์ฟเวอร์เพิ่ม) */
 /* รหัสจัดฟัน + HN นำหน้าชื่อ */
@@ -3427,23 +3523,43 @@ function crmViewToday(){
     [s.enabled && !s.testMode, 'เปิดส่งจริง (หลังทดสอบเรียบร้อย)']
   ];
   const ready = checklist.every(x=>x[0]);
+  // ---- กล่อง "ต้องทำตอนนี้" เรียงตามความเร่ง กดแล้วพาไปรายการนั้น ----
+  const openT=(d.tasks||[]).filter(t=>t.status==='open');
+  const tType=ty=>openT.filter(t=>t.type===ty);
+  const emerg=openT.filter(t=>t.type==='emergency'||t.priority==='urgent');
+  const resch=tType('reschedule');
+  const callb=openT.filter(t=>!['emergency','reschedule','message'].includes(t.type) && t.priority!=='urgent');
+  const msgs=tType('message');
+  const callTmr=aM.filter(a=>!crmHasLine(a.hn) && a.status!=='คอนเฟิร์ม');
+  const names=arr=>arr.slice(0,3).map(t=>crmEsc(t.patName||'ไม่ทราบชื่อ')).join(', ')+(arr.length>3?' และอีก '+(arr.length-3):'');
+  const todo=[
+    [emerg.length,'r','🚨 ฉุกเฉิน / ด่วน', names(emerg), "CRM.taskType='urgent';crmSetSub('tasks')"],
+    [c.fuAlert,'r','🩺 อาการต้องดูแล (2 วันล่าสุด)','รุนแรง / ฉุกเฉิน / ขอให้โทรกลับ', "CRM.fuFilter='care';crmSetSub('followup')"],
+    [resch.length,'o','📅 คนไข้ขอเลื่อนนัด', names(resch), "CRM.taskType='reschedule';crmSetSub('tasks')"],
+    [callTmr.length,'o','☎️ นัดพรุ่งนี้ที่ต้องโทรยืนยันเอง','ไม่มี LINE และยังไม่คอนเฟิร์ม', "CRM.aptRange='tomorrow';CRM.aptOnlyCall=true;crmSetSub('apts')"],
+    [callb.length,'','📞 งานโทรกลับอื่นๆ', names(callb), "CRM.taskType='callback';crmSetSub('tasks')"],
+    [msgs.length,'','💬 ข้อความจากคนไข้รอตอบ', names(msgs), "CRM.taskType='message';crmSetSub('tasks')"],
+    [c.linksPending,'','🔗 คนไข้รออนุมัติผูก LINE','', "crmSetSub('links')"],
+    [c.tplDraft,'','🩹 คำแนะนำหลังรักษารออนุมัติ','', "crmSetSub('aftercare')"]
+  ].filter(x=>x[0]>0);
+  const todoBox=`<div class="crm-todo"><h4>✅ ต้องทำตอนนี้</h4>${todo.length?todo.map(x=>`<div class="row" role="button" onclick="${x[4]}"><span class="cnt ${x[1]}">${x[0]}</span><div class="t"><b>${x[2]}</b>${x[3]?`<span>${x[3]}</span>`:''}</div><span class="go">›</span></div>`).join(''):'<div class="ok">🎉 ไม่มีงานค้าง</div>'}</div>`;
+  const kpi=(cls,go,l,v,sub)=>`<div class="crm-kpi go ${cls} ${(+v===0 && !cls)?'zero':''}" role="button" onclick="${go}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`;
+  const setupLbl=[['ตั้งรหัสเชื่อม LINE OA','LINE_CHANNEL_ACCESS_TOKEN'],['เปิดรอบส่งอัตโนมัติทุก 10 นาที','รัน crmSetup()'],['สร้างเมนูล่างใน LINE','รัน crmSetupRichMenu()'],['อนุมัติคำแนะนำหลังรักษา '+tplApproved+'/'+(d.templates||[]).length,'แท็บ คำแนะนำหลังรักษา'],['เลือกบัญชี LINE สำหรับทดสอบ','แท็บ ตั้งค่า'],['เปิดส่งจริง','แท็บ ตั้งค่า — หลังทดสอบเรียบร้อย']];
+  const notReady=checklist.filter(x=>!x[0]).length;
   return `
-  ${urgent.length?`<div class="crm-alert r">🚨 มีงานด่วน ${urgent.length} รายการ — ${urgent.slice(0,3).map(t=>crmEsc((t.patName||'ไม่ทราบชื่อ')+': '+(t.detail||''))).join(' · ')} <button class="crm-btn r" style="margin-left:6px" onclick="crmSetSub('tasks')">เปิดงานโทรกลับ</button></div>`:''}
-  ${c.fuLate?`<div class="crm-alert o">⏰ คนไข้ไม่ตอบข้อความถามอาการเกิน 24 ชม. ${c.fuLate} ราย <button class="crm-btn" style="margin-left:6px" onclick="CRM.fuFilter='late';crmSetSub('followup')">ดูรายชื่อ</button></div>`:''}
+  ${todoBox}
   <div class="crm-kpis">
-    <div class="crm-kpi"><div class="l">นัดวันนี้</div><div class="v">${aT.length}</div><div class="s">คนไข้ยืนยันทาง LINE ${aT.filter(a=>confirmed.has(String(a.id))).length}</div></div>
-    <div class="crm-kpi"><div class="l">นัดพรุ่งนี้</div><div class="v">${aM.length}</div><div class="s">มี LINE ${aM.filter(a=>crmHasLine(a.hn)).length} · ต้องโทรเอง ${aM.filter(a=>!crmHasLine(a.hn)).length}</div></div>
-    <div class="crm-kpi"><div class="l">ข้อความที่ส่งวันนี้</div><div class="v">${sentToday.reduce((n,r)=>n+(+r.pushCount||0),0)}</div><div class="s">${Object.keys(byType).map(k=>(CRM_LOG_TYPE[k]||k)+' '+byType[k]).join(' · ')||'—'}</div></div>
-    <div class="crm-kpi ${c.urgent?'alert':''}"><div class="l">งานโทรกลับค้าง</div><div class="v">${c.tasks}</div><div class="s">ด่วน ${c.urgent}</div></div>
-    <div class="crm-kpi"><div class="l">ถามอาการวันนี้</div><div class="v">${fuToday.length}</div><div class="s">ตอบแล้ว ${fuToday.filter(f=>f.answeredAt).length}</div></div>
-    <div class="crm-kpi ${c.fuAlert?'alert':''}"><div class="l">อาการต้องดูแล (2 วัน)</div><div class="v">${c.fuAlert}</div><div class="s">รุนแรง / ฉุกเฉิน / ขอโทรกลับ</div></div>
-    <div class="crm-kpi"><div class="l">คนไข้ที่ผูก LINE</div><div class="v">${linkedHns}</div><div class="s">รออนุมัติ ${c.linksPending}</div></div>
-    <div class="crm-kpi"><div class="l">ส่งเดือนนี้</div><div class="v">${((d.stats||{})[todayStr().slice(0,7)]||{}).sent||0}</div><div class="s">ข้อความที่ระบบส่งออก</div></div>
+    ${kpi('', "CRM.aptRange='today';CRM.aptOnlyCall=false;crmSetSub('apts')", 'นัดวันนี้', aT.length, 'ยืนยันทาง LINE '+aT.filter(a=>confirmed.has(String(a.id))).length)}
+    ${kpi(callTmr.length?'warn':'', "CRM.aptRange='tomorrow';CRM.aptOnlyCall=false;crmSetSub('apts')", 'นัดพรุ่งนี้', aM.length, 'มี LINE '+aM.filter(a=>crmHasLine(a.hn)).length+' · ต้องโทรเอง '+aM.filter(a=>!crmHasLine(a.hn)).length)}
+    ${kpi(c.urgent?'alert':(c.tasks?'warn':''), "CRM.taskType='all';crmSetSub('tasks')", 'งานโทรกลับค้าง', c.tasks, 'ด่วน '+c.urgent)}
+    ${kpi(c.fuAlert?'alert':'', "CRM.fuFilter='all';crmSetSub('followup')", 'ถามอาการวันนี้', fuToday.length, 'ตอบแล้ว '+fuToday.filter(f=>f.answeredAt).length+(c.fuAlert?' · ต้องดูแล '+c.fuAlert:''))}
+    ${kpi('', "crmSetSub('report')", 'ข้อความที่ส่งวันนี้', sentToday.reduce((n,r)=>n+(+r.pushCount||0),0), Object.keys(byType).map(k=>(CRM_LOG_TYPE[k]||k)+' '+byType[k]).join(' · ')||'—')}
+    ${kpi('', "crmSetSub('report')", 'ส่งเดือนนี้', ((d.stats||{})[todayStr().slice(0,7)]||{}).sent||0, 'ข้อความที่ระบบส่งออก')}
+    ${kpi('', "crmSetSub('links')", 'คนไข้ที่ผูก LINE', linkedHns, 'รออนุมัติ '+c.linksPending)}
   </div>
-  <div class="crm-card"><h4>✅ ความพร้อมของระบบ ${ready?'<span class="crm-chip g">พร้อมใช้งาน</span>':''}</h4>
-    <div class="crm-check">${checklist.map(x=>`<div><span>${x[0]?'✅':'⬜'}</span><span>${crmEsc(x[1])}</span></div>`).join('')}</div>
-    ${d.lastTick?`<p class="crm-muted" style="margin-top:10px;">รอบล่าสุด ${crmEsc(d.lastTick.at||'')}: ยืนยันนัด ${d.lastTick.confirm||0} · เตือน ${d.lastTick.remind||0} · Aftercare ${d.lastTick.aftercare||0} · ถามอาการ ${d.lastTick.followup||0}${(d.lastTick.skipped||[]).length?' · ข้าม: '+crmEsc(d.lastTick.skipped.join(', ')):''}</p>`:''}
-  </div>`;
+  ${ready?'':`<details class="crm-setup"><summary>⚠️ ตั้งค่าระบบยังไม่ครบ ${notReady} ข้อ — แตะเพื่อดู</summary>
+    <div class="crm-check">${checklist.map((x,i)=>`<div><span>${x[0]?'✅':'⬜'}</span><span>${crmEsc(setupLbl[i][0])} <span class="tech">(${crmEsc(setupLbl[i][1])})</span></span></div>`).join('')}</div></details>`}
+  ${d.lastTick?`<p class="crm-muted" style="margin:0 2px 10px;">รอบส่งอัตโนมัติล่าสุด ${crmEsc(String(d.lastTick.at||'').slice(11,16))} น.: ยืนยันนัด ${d.lastTick.confirm||0} · เตือน ${d.lastTick.remind||0} · คำแนะนำ ${d.lastTick.aftercare||0} · ถามอาการ ${d.lastTick.followup||0}</p>`:''}`;
 }
 
 /* ---------- 2) นัดหมาย ---------- */
@@ -3505,12 +3621,16 @@ function crmViewApts(){
   }
   list.sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   const confirmed=new Set((CRM.data.apt||[]).filter(x=>x.confirmedAt).map(x=>String(x.aptId)));
+  const needCall=a=>!crmHasLine(a.hn) && !['คอนเฟิร์ม','เสร็จสิ้น','เสร็จ'].includes(a.status) && !a._ortho;
+  const nCall=list.filter(needCall).length, allN=list.length;
+  if(CRM.aptOnlyCall) { const keep=list.filter(needCall); list.length=0; keep.forEach(x=>list.push(x)); }
   return `<div class="crm-card"><h4>📅 นัดหมายและสถานะ LINE<span class="sp"></span>
       <span class="crm-seg">${[['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน']].map(x=>`<button class="${CRM.aptRange===x[0]?'on':''}" onclick="CRM.aptRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
-    <p class="crm-muted" style="margin-bottom:10px;">คนไข้กด "ยืนยันนัด" ใน LINE → ระบบไม่แก้ตารางนัดเอง กด "ตั้งเป็นคอนเฟิร์ม" เพื่ออัปเดตสถานะในตารางนัด · นัดจัดฟัน (ป้าย จัดฟัน) ดูสถานะจากป้าย ✅ คนไข้ยืนยัน ได้เลย และขึ้นที่การ์ดในหน้าจัดฟันด้วย</p>
+    <div class="crm-filters"><button class="${CRM.aptOnlyCall?'':'on'}" onclick="CRM.aptOnlyCall=false;crmRender()">ทั้งหมด<b>${allN}</b></button><button class="${CRM.aptOnlyCall?'on':''}" onclick="CRM.aptOnlyCall=true;crmRender()">☎️ ต้องโทรยืนยันเอง<b>${nCall}</b></button></div>
+    <p class="crm-muted" style="margin-bottom:10px;display:none;">คนไข้กด "ยืนยันนัด" ใน LINE → ระบบไม่แก้ตารางนัดเอง กด "ตั้งเป็นคอนเฟิร์ม" เพื่ออัปเดตสถานะในตารางนัด · นัดจัดฟัน (ป้าย จัดฟัน) ดูสถานะจากป้าย ✅ คนไข้ยืนยัน ได้เลย และขึ้นที่การ์ดในหน้าจัดฟันด้วย</p>
     <div class="crm-list">${list.map(a=>`<div class="crm-item"><div class="main">
-        <div class="nm">${crmEsc(a.time||'')} · ${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')}${orthoPayBadge({hn:a.hn})} ${hnShow_(a.hn,a.patName,a.orthoCode)?'<span class="crm-muted">HN '+crmEsc(a.hn)+'</span>':''}</div>
-        <div class="meta">${crmEsc(crmThaiShort(a.date))} · ${crmEsc(a.proc||'-')} · ${crmEsc(a.docName||'')} · สถานะ: <b>${crmEsc(a.status||'-')}</b>${crmIsOrthoVisit(a)?' · <span class="crm-chip b">จัดฟัน</span>':''}</div>
+        <div class="nm">${lineDot_(a)}${crmEsc(a.time||'')} · ${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')}${orthoPayBadge({hn:a.hn})} ${hnShow_(a.hn,a.patName,a.orthoCode)?'<span class="crm-muted">HN '+crmEsc(a.hn)+'</span>':''}</div>
+        <div class="meta">${CRM.aptRange==='week'?crmEsc(crmThaiShort(a.date))+' · ':''}${crmEsc(a.proc||'-')} · ${crmEsc(String(a.docName||'').split(/\s+/)[0])} <span class="crm-chip ${({'คอนเฟิร์ม':'g','เสร็จสิ้น':'g','เสร็จ':'g','ไม่คอนเฟิร์ม':'o','รอทำ':'x','นัดจัดฟัน':'b'})[a.status]||'x'}">${crmEsc(a.status||'-')}</span>${crmIsOrthoVisit(a)&&a.status!=='นัดจัดฟัน'?'<span class="crm-chip b">จัดฟัน</span>':''}</div>
         <div>${crmAptLineChips(a)}</div></div>
       <div class="acts">${!a._ortho && confirmed.has(String(a.id)) && a.status!=='คอนเฟิร์ม' ? `<button class="crm-btn g" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">ตั้งเป็นคอนเฟิร์ม</button>`:''}
         ${crmPhoneOf(a.hn,a.phone)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(a.hn,a.phone))}">📞</a>`:''}
@@ -3909,8 +4029,8 @@ function crmViewOrthoApts(){
     return '<div style="font-size:11px;color:#1D6B44;flex:1 1 100%;line-height:1.35;text-align:left;">บันทึกแล้ว: '+Object.keys(sum).map(k=>crmEsc(k)+(sum[k]?' '+sum[k].toLocaleString():'')).join(' · ')+' <b>รวม '+tot.toLocaleString()+'</b></div>';
   };
   const came=a=>{
-    const o=crmOrthoRec(a.hn), base='flex:1 1 110px;box-sizing:border-box;padding:7px 6px;font-size:12px;white-space:normal;line-height:1.25;';
-    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="display:block;flex:1 1 110px;box-sizing:border-box;text-align:center;">🦷 มาแล้ว</span>${isViewOnlyUser()?'':`<button class="crm-btn" style="${base}flex:0 1 auto;" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}',true)" title="ลืมลงบางรายการ เช่น ปรับเครื่องมือ/เหล็กหลุด — ลงเพิ่มให้ประวัติจัดฟันและรายได้ตรงกัน">+ เพิ่มรายการ</button>`}${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
+    const o=crmOrthoRec(a.hn), base='flex:0 0 auto;box-sizing:border-box;font-size:12.5px;white-space:nowrap;';
+    if(o && String(o['ปรับล่าสุด']||'').slice(0,10)===a.date) return `<span class="crm-chip g" style="flex:0 0 auto;padding:6px 12px;font-size:12.5px;">🦷 มาแล้ว</span>${isViewOnlyUser()?'':`<button class="crm-btn" style="${base}flex:0 1 auto;" onclick="crmOrthoCame('${crmEsc(o.hn)}','${a.date}','${crmEsc(a.docName||'')}',true)" title="ลืมลงบางรายการ เช่น ปรับเครื่องมือ/เหล็กหลุด — ลงเพิ่มให้ประวัติจัดฟันและรายได้ตรงกัน">+ เพิ่มรายการ</button>`}${cameDoneLine(a)}`;   // วันเดียวบันทึกครั้งเดียว — ไม่มีปุ่มเพิ่มรายการ (ถ้าลืมลงรายการ ให้แก้ในประวัติจัดฟัน/บันทึกการรักษา)
     if(isViewOnlyUser()) return '';
     if(!o) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="ไม่มีการ์ดจัดฟันของคนไข้นี้ (ไม่มี HN หรือ HN ไม่ตรง)">มาตามนัด</button>`;
     if(a.date>today) return `<button class="crm-btn" style="${base}opacity:.45;cursor:not-allowed;" disabled title="กดได้เมื่อถึงวันนัด">มาตามนัด</button>`;
@@ -3921,28 +4041,28 @@ function crmViewOrthoApts(){
     const o=crmOrthoRec(a.hn); if(!o) return '';
     const nd=String(o['นัดถัดไป']||'').slice(0,10);
     if(nd && nd>a.date) return `<div style="font-size:12px;margin-top:3px;color:#1D6B44;font-weight:700;">📅 นัดถัดไป ${crmEsc(crmThaiShort(nd))}${o['นัดถัดไปเวลา']?' '+crmEsc(String(o['นัดถัดไปเวลา']).slice(0,5)):''}</div>`;
-    if(a.date<=today) return '<div style="font-size:12px;margin-top:3px;color:#A04000;font-weight:700;">ยังไม่ลงนัดถัดไป</div>';
+    if(a.date<=today) return '<span class="crm-chip o" style="margin-top:3px;">ยังไม่ลงนัดถัดไป</span>';
     return '';
   };
   const nextBtn=a=>{
     if(isViewOnlyUser()) return '';
     const o=crmOrthoRec(a.hn); if(!o) return '';
-    return `<button class="crm-btn" style="flex:1 1 110px;box-sizing:border-box;padding:7px 6px;font-size:12px;white-space:normal;line-height:1.25;" onclick="openReschedule('${crmEsc(o.hn)}')">📅 นัดถัดไป</button>`;
+    return `<button class="crm-btn" style="flex:0 0 auto;" onclick="openReschedule('${crmEsc(o.hn)}')" title="ลงนัดจัดฟันครั้งถัดไป">📅 นัดถัดไป</button>`;
   };
   const body=dates.map(d=>{
     const arr=days[d], cnt={yes:0,move:0,wait:0,noline:0}; arr.forEach(a=>cnt[crmOrthoState(a)]++);
     const pend=arr.filter(a=>['wait','noline'].includes(crmOrthoState(a)));
-    const head=`<tr><td colspan="2" style="background:var(--wine);color:#fff;font-weight:800;padding:8px 10px;border-bottom:0;">${crmEsc(crmThaiShort(d))}${d===today?' · วันนี้':''}
+    const head=`<tr><td colspan="2" style="background:var(--wine);color:#fff;font-weight:800;padding:8px 10px;border-bottom:0;position:sticky;top:0;z-index:3;">${crmEsc(crmThaiShort(d))}${d===today?' · วันนี้':''}
         <span style="float:right;font-weight:700;">ยืนยัน ${cnt.yes}/${arr.length}${(cnt.wait+cnt.noline)?` · ⏳${cnt.wait+cnt.noline}`:''}${cnt.move?` · 📅${cnt.move}`:''}</span><div style="margin-top:4px;"><button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoPrint('${d}')">🖨 พิมพ์รายการให้หมอ</button>${d<=today?` <button class="crm-btn" style="padding:3px 8px;font-size:11.5px;" onclick="crmOrthoDfSummary('${d}')">📤 สรุปงาน+DF (ส่งไลน์)</button>`:''}</div></td></tr>`;
     const rows=arr.map(a=>{ const st=crmOrthoState(a), x=ST[st], ph=crmPhoneOf(a.hn,a.phone);
       return `<tr style="background:${rowBg[st]};">
         <td style="white-space:nowrap;font-weight:800;color:var(--wine);">${crmEsc(a.time||'-')}</td>
         <td>${(()=>{ const oc=a.hn?crmOrthoRec(a.hn):null, code=(oc&&oc['รหัสประจำตัว'])||a.orthoCode; return code?'<b style="color:var(--wine);">'+crmEsc(code)+'</b> ':''; })()}<b>${crmEsc(a.patName||'')}</b> ${(()=>{ const oc=a.hn?crmOrthoRec(a.hn):null; return ((oc&&oc['รหัสประจำตัว'])||a.orthoCode) ? '' : '<span class="crm-muted" style="font-size:11.5px;">'+(a.hn?'HN '+crmEsc(a.hn):'ไม่มี HN')+'</span>'; })()}${orthoPayBadge(a)}
-          <div class="crm-muted" style="font-size:11.5px;">${[ crmEsc(String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ' && x!=='นัดจัดฟัน').join(', ')), crmOrthoVisitNo(a)?'<b style="color:var(--wine);">ปรับครั้งที่ '+crmOrthoVisitNo(a)+'</b>':'' ].filter(Boolean).join(' · ')||'-'}</div>
+          <div class="crm-muted" style="font-size:11.5px;">${[ crmEsc(String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ' && x!=='นัดจัดฟัน').join(', ')), crmOrthoVisitNo(a)?'<b style="color:var(--wine);">ปรับครั้งที่ '+crmOrthoVisitNo(a)+'</b>':'' ].filter(Boolean).join(' · ')}</div>
           ${a.note?`<div style="font-size:12px;margin-top:2px;color:#7A5600;">📝 ${crmEsc(a.note)}</div>`:''}
           ${nextLine(a)}
           <div style="margin-top:3px;">${(x[2]&&!isViewOnlyUser())?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${a._hnFromCode?'<span class="crm-chip o" title="นัดในตารางนัดยังไม่มี HN จึงยังไม่ส่งไลน์ — ใส่ HN ในนัดนี้เพื่อให้ส่งไลน์ยืนยัน/เตือนได้">จับคู่จากรหัส · นัดไม่มี HN</span>':(crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>')}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:stretch;margin-top:8px;">${came(a)}${nextBtn(a)}</div>
+          <div class="crm-oc-acts">${came(a)}${nextBtn(a)}</div>
 </td></tr>`; }).join('');
     return head+rows;
   }).join('');
@@ -4194,25 +4314,60 @@ function crmViewRating(){
 }
 
 /* ---------- 6) งานโทรกลับ ---------- */
+function crmAge_(ts){   // "รอมา 3 ชม." จากเวลาที่สร้างงาน
+  if(!ts) return ['',false];
+  const s0=String(ts), t=(/[zZ]|[+-]\d\d:?\d\d$/.test(s0) ? new Date(s0) : new Date(s0.replace(' ','T')+'+07:00')).getTime(); if(isNaN(t)) return [crmTs(ts),false];
+  const m=Math.max(0,Math.floor((Date.now()-t)/60000));
+  const txt = m<60 ? m+' นาที' : (m<1440 ? Math.floor(m/60)+' ชม.' : Math.floor(m/1440)+' วัน');
+  return ['รอมา '+txt, m>=1440];
+}
+function crmChatUrl_(t){   // เปิดแชทคนไข้ใน LINE OA Manager (ตั้ง "ลิงก์แชท LINE OA" ในตั้งค่า) — ไม่ตั้ง = เปิดหน้าแชทรวม
+  const base=String(((CRM.data||{}).settings||{}).oaChatBase||'').trim().replace(/\/+$/,'');
+  const uid=t.lineUserId || ((crmLinked(t.hn)[0]||{}).lineUserId) || '';
+  return (base && uid) ? base+'/chat/'+encodeURIComponent(uid) : 'https://chat.line.biz/';
+}
 function crmViewTasks(){
   const pr={urgent:0,high:1,normal:2};
   const all=(CRM.data.tasks||[]);
-  const list=all.filter(t=>CRM.taskFilter==='open'?t.status==='open':t.status!=='open')
-    .sort((a,b)=>(pr[a.priority]??3)-(pr[b.priority]??3) || String(b.createdAt).localeCompare(String(a.createdAt)));
+  const base=all.filter(t=>CRM.taskFilter==='open'?t.status==='open':t.status!=='open');
+  const grp=t=> (t.type==='emergency'||t.priority==='urgent') ? 'urgent' : (t.type==='reschedule'?'reschedule':(t.type==='message'?'message':'callback'));
+  const tf=CRM.taskType||'all';
+  const cnt={all:base.length,urgent:0,reschedule:0,callback:0,message:0}; base.forEach(t=>cnt[grp(t)]++);
+  const list=base.filter(t=>tf==='all'||grp(t)===tf)
+    .sort((a,b)=>(pr[a.priority]??3)-(pr[b.priority]??3) || String(a.createdAt).localeCompare(String(b.createdAt)));   // ด่วนก่อน แล้วงานที่รอนานสุดก่อน
+  const F=[['all','ทั้งหมด'],['urgent','🚨 ด่วน'],['reschedule','📅 ขอเลื่อน'],['callback','📞 โทรกลับ'],['message','💬 ข้อความ']];
+  const bulkIds=list.filter(t=>t.status==='open' && !['amtchange','aptcancel'].includes(t.type)).map(t=>t.id);
   return `<div class="crm-card"><h4>📞 งานโทรกลับ / ขอเลื่อนนัด<span class="sp"></span>
       <span class="crm-seg">${[['open','ค้างอยู่ ('+all.filter(t=>t.status==='open').length+')'],['done','เสร็จแล้ว']].map(x=>`<button class="${CRM.taskFilter===x[0]?'on':''}" onclick="CRM.taskFilter='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
-    <p class="crm-muted" style="margin-bottom:8px;">คำขอเลื่อนนัดไม่เปลี่ยนตารางนัดเอง — พนักงานโทรยืนยันกับคนไข้ แล้วแก้นัดในตารางนัดตามปกติ</p>
-    <div class="crm-list">${list.map(t=>{ const ph=crmPhoneOf(t.hn);
-      return `<div class="crm-item ${t.priority==='urgent'?'urgent':(t.priority==='high'?'high':'')}"><div class="main">
-        <div class="nm">${crmEsc(CRM_TASK_TYPE[t.type]||t.type)} · ${ocTag_(t.hn,t.patName)}${crmEsc(t.patName||'ไม่ทราบชื่อ')}${orthoPayBadge({hn:t.hn})} <span class="crm-muted">${t.hn?'HN '+crmEsc(t.hn):''}</span></div>
-        <div class="meta">${crmEsc(t.detail||'')}${t.preference?` · สะดวก: <b>${crmEsc(t.preference)}</b>`:''}</div>
-        <div class="meta">${crmEsc(crmTs(t.createdAt))}${t.status!=='open'?' · ปิดโดย '+crmEsc(t.doneBy||'')+(t.resultNote?' — '+crmEsc(t.resultNote):''):''}</div></div>
-        <div class="acts">${ph?`<a class="crm-btn" href="${crmTel(ph)}">📞 ${crmEsc(ph)}</a>`:'<span class="crm-muted">ไม่มีเบอร์ (ตอบใน LINE OA Chat)</span>'}
+    <div class="crm-filters">${F.filter(x=>x[0]==='all'||cnt[x[0]]).map(x=>`<button class="${tf===x[0]?'on':''}" onclick="CRM.taskType='${x[0]}';crmRender()">${x[1]}<b>${cnt[x[0]]}</b></button>`).join('')}
+      ${CRM.taskFilter==='open' && tf!=='all' && tf!=='urgent' && bulkIds.length>1 && !isViewOnlyUser()?`<button style="margin-left:auto;border-style:dashed;" onclick="crmBulkClose('${bulkIds.join(',')}')">✓ ปิดทั้งหมด ${bulkIds.length} งาน</button>`:''}</div>
+    <div class="crm-list">${list.map(t=>{ const ph=crmPhoneOf(t.hn), age=crmAge_(t.createdAt);
+      return `<div class="crm-task ${t.priority==='urgent'?'urgent':(t.priority==='high'?'high':'')}"><div class="main">
+        <div class="l1"><span class="ty">${crmEsc(CRM_TASK_TYPE[t.type]||t.type)}</span>${ocTag_(t.hn,t.patName)}${crmEsc(t.patName||'ไม่ทราบชื่อ')}${orthoPayBadge({hn:t.hn})}${t.hn&&hnShow_(t.hn,t.patName)?`<span class="crm-muted">HN ${crmEsc(t.hn)}</span>`:''}
+          ${t.status==='open'?`<span class="age ${age[1]?'old':''}">· ${crmEsc(age[0])}</span>`:`<span class="age">· ปิดโดย ${crmEsc(t.doneBy||'')} ${crmEsc(crmTs(t.updatedAt||''))}</span>`}</div>
+        ${(t.detail&&t.detail!=='x')||t.preference||t.resultNote?`<div class="l2">${crmEsc(t.detail||'')}${t.preference?` · สะดวก: <b>${crmEsc(t.preference)}</b>`:''}${t.status!=='open'&&t.resultNote?' — '+crmEsc(t.resultNote):''}</div>`:''}</div>
+        <div class="acts">${ph?`<a class="crm-btn" href="${crmTel(ph)}">📞 โทร</a>`:''}<a class="crm-btn" href="${crmChatUrl_(t)}" target="_blank" rel="noopener">💬 แชท</a>
           ${t.aptId && appointments.some(a=>String(a.id)===String(t.aptId))?`<button class="crm-btn" onclick="openEditApt('${crmEsc(t.aptId)}')">เปิดนัด</button>`:''}
           ${t.type==='reschedule' && t.status==='open' && t.hn && crmOrthoRec(t.hn) && !isViewOnlyUser()?`<button class="crm-btn p" onclick="openReschedule('${crmEsc(crmOrthoRec(t.hn).hn)}')">📅 ลงนัดจัดฟันใหม่</button>`:''}
           ${t.type==='amtchange' && t.status==='open'?`<button class="crm-btn p" onclick="crmAmtResend('${t.id}')">📤 ส่งการ์ดแก้ไขยอด</button><button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'done',resultNote:'ไม่ส่งการ์ดแก้ไข'},'ปิดงานแล้ว (ไม่ส่ง)')">ไม่ต้องส่ง</button>`:''}
           ${t.type==='aptcancel' && t.status==='open'?`<button class="crm-btn p" onclick="crmCancelSend('${t.id}')">📤 ส่งข้อความแจ้งยกเลิกนัด</button><button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'done',resultNote:'ไม่แจ้งคนไข้'},'ปิดงานแล้ว (ไม่แจ้ง)')">ไม่ต้องแจ้ง</button>`:''}
-          ${(t.type==='amtchange'||t.type==='aptcancel')?'':(t.status==='open'?`<button class="crm-btn g" onclick="crmCloseTask('${t.id}')">เสร็จแล้ว</button>`:`<button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'open'},'เปิดงานอีกครั้ง')">เปิดอีกครั้ง</button>`)}</div></div>`; }).join('')||'<div class="crm-empty">ไม่มีงาน 🎉</div>'}</div></div>`;
+          ${(t.type==='amtchange'||t.type==='aptcancel')?'':(t.status==='open'?`<button class="crm-btn g" onclick="crmCloseTask('${t.id}')">เสร็จแล้ว</button>`:`<button class="crm-btn" onclick="crmDo({crm:'updateTask',id:'${t.id}',status:'open'},'เปิดงานอีกครั้ง')">เปิดอีกครั้ง</button>`)}</div></div>`; }).join('') || '<div class="crm-empty">ไม่มีงานในหมวดนี้ 🎉</div>'}</div></div>`;
+}
+async function crmBulkClose(idsCsv){
+  const ids=String(idsCsv||'').split(',').filter(Boolean); if(!ids.length) return;
+  if(!window.confirm('ปิดงานทั้งหมด '+ids.length+' งานในหมวดนี้?')) return;
+  ids.forEach(id=>{ try{ crmOptimistic({crm:'updateTask',id,status:'done',resultNote:'ปิดพร้อมกันหลายงาน'}); }catch(e){} });
+  crmRender(); crmUpdateBadge();
+  let ok=0; for(const id of ids){ try{ const r=await crmCall({crm:'updateTask',id,status:'done',resultNote:'ปิดพร้อมกันหลายงาน',by:crmBy()}); if(r&&r.ok) ok++; }catch(e){} }
+  if(ok===ids.length) showToast('ปิดแล้ว '+ok+' งาน ✅'); else showToast('ปิดได้ '+ok+'/'+ids.length+' งาน','error');
+  crmLoad(true);
+}
+function crmUndoBar_(msg, undoFn){
+  const old=document.getElementById('crmUndo'); if(old) old.remove();
+  const el=document.createElement('div'); el.id='crmUndo'; el.className='crm-undo';
+  el.innerHTML='<span>'+crmEsc(msg)+'</span><button type="button">↩ เลิกทำ</button>';
+  el.querySelector('button').onclick=()=>{ el.remove(); undoFn(); };
+  document.body.appendChild(el); setTimeout(()=>{ if(el.parentNode) el.remove(); },6000);
 }
 function crmFuCalled(id){
   const note = window.prompt('ผลการโทรติดตาม (ไม่บังคับ) เช่น "ปกติดี" หรือ "ปวดเล็กน้อย นัดดูอาการ"', '');
@@ -4232,7 +4387,8 @@ function crmCancelSend(id){
 function crmCloseTask(id){
   const note = window.prompt('ผลการติดต่อ (ไม่บังคับ) เช่น "เลื่อนเป็น 12 พ.ย. 14:00"', '');
   if(note===null) return;
-  crmDo({crm:'updateTask', id, status:'done', resultNote:note}, 'ปิดงานแล้ว ✅');
+  crmDo({crm:'updateTask', id, status:'done', resultNote:note}, '');
+  crmUndoBar_('ปิดงานแล้ว', ()=>crmDo({crm:'updateTask', id, status:'open'}, 'เปิดงานอีกครั้งแล้ว'));
 }
 
 /* ---------- 7) คนไข้เก่า ---------- */
@@ -4479,14 +4635,18 @@ function crmViewSettings(){
       <div class="full"><label>ข้อความอวยพรวันเกิด (ใช้ {name} ชื่อ · {month} เดือนเกิด · {phone} เบอร์คลินิก · {clinic} ชื่อคลินิก)</label><textarea class="form-control" id="crmS_birthdayText" style="min-height:110px;">${crmEsc(s.birthdayText)}</textarea></div>
       <div class="full"><label>ข้อความตอบเมื่อคนไข้กดยืนยันนัด</label><input class="form-control" id="crmS_confirmThanksText" value="${crmEsc(s.confirmThanksText)}"></div>
     </div></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;"><button class="crm-btn p" style="padding:10px 22px;font-size:14px;" onclick="crmSaveSettings()">💾 บันทึกการตั้งค่า</button></div>
+    <div class="crm-card"><h4>🔗 ลิงก์และกติกาเพิ่มเติม</h4><div class="crm-form">
+      <div class="full"><label>ลิงก์แชท LINE OA (ใช้กับปุ่ม 💬 แชท ในงานโทรกลับ) — เปิด chat.line.biz แล้วคัดลอกลิงก์ส่วนต้นจนถึงรหัสบัญชี เช่น https://chat.line.biz/Uxxxxxxxx</label><input class="form-control" id="crmS_oaChatBase" value="${crmEsc(s.oaChatBase||'')}" placeholder="https://chat.line.biz/U..."></div>
+      <div class="full"><label>กติกาเด้งไปหน้ารีวิวต่อหมอ — รูปแบบ <b>คำในชื่อหมอ=รหัสงาน,รหัสงาน</b> คั่นหมอด้วย ; (เว้นว่าง = หมอทุกคน ทุกงาน · หมอที่ไม่อยู่ในรายการ = ไม่เด้ง)<br><span class="crm-muted">รหัสงาน: ${(d.templates||[]).map(t=>crmEsc(t.id.replace(/^tpl_/,'tpl_'))+' = '+crmEsc(t.name)).join(' · ')}</span></label><input class="form-control" id="crmS_reviewDocRules" value="${crmEsc(s.reviewDocRules||'')}"></div>
+    </div></div>
+    <div class="crm-savebar" id="crmSaveBar"><span class="msg">ยังไม่มีการแก้ไข</span><button class="crm-btn p" style="padding:10px 22px;font-size:14px;" onclick="crmSaveSettings()">💾 บันทึกการตั้งค่า</button></div>
     <div class="crm-card"><h4>🛠️ ข้อมูลระบบ</h4><div class="crm-check">
       <div>${d.tokenSet?'✅':'⬜'} LINE token</div><div>${d.tickInstalled?'✅':'⬜'} trigger crmTick ทุก 10 นาที</div>
       <div>${d.richMenu?'✅':'⬜'} rich menu ${crmEsc(d.richMenu||'(ยังไม่สร้าง — รัน crmSetupRichMenu())')}</div><div>🔗 LIFF: ${crmEsc(d.liffUrl||'')}</div></div></div>`;
 }
 function crmSaveSettings(){
   const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','receiptWaitMin','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
-    'confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText','birthdayText'];
+    'confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText','birthdayText','oaChatBase','reviewDocRules'];
   const s={};
   keys.forEach(k=>{ const el=document.getElementById('crmS_'+k); if(!el) return; s[k]= el.type==='checkbox' ? el.checked : (el.type==='number' ? +el.value : el.value); });
   { const on=document.getElementById('crmS_staffNotifyOn');
@@ -4500,6 +4660,7 @@ function crmSaveSettings(){
   if(s.enabled && !s.testMode && (!old.enabled || old.testMode)){
     if(!confirm('เปิดส่งข้อความถึงคนไข้จริง?\nตรวจสอบในโหมดทดสอบเรียบร้อยแล้วใช่ไหม')) return;
   }
+  CRM.setDirty=false;
   crmDo({crm:'saveSettings', settings:s}, 'บันทึกการตั้งค่าแล้ว').then(r=>{ if(r && r.baseline) showToast('เปิดระบบแล้ว — ข้าม '+r.baseline+' รายการที่มีอยู่ก่อน'); });
 }
 async function crmRunNow(){
