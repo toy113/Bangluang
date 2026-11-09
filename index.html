@@ -635,7 +635,16 @@ select.form-control { cursor: pointer; }
 /* DOCTOR SHARE TABLE */
 .share-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
 .share-grid.share-list { display:flex; flex-direction:column; gap:8px; }
-.share-grid.share-one { grid-template-columns:1fr !important; }   /* เลือกหมอคนเดียว → การ์ดเต็มความกว้าง */
+.share-grid.share-one { grid-template-columns:1fr !important; }
+@media(min-width:1100px){ .share-grid.share-one.share-multi { grid-template-columns:repeat(2,minmax(0,1fr)) !important; } }   /* หลายหมอ → 2 คอลัมน์บนจอใหญ่ */
+.inc-kpis{grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:16px;}
+@media(max-width:1100px){ .inc-kpis{grid-template-columns:repeat(3,minmax(0,1fr));} }
+@media(max-width:768px){ .inc-kpis{grid-template-columns:1fr 1fr !important;} .inc-kpis .stat-card:first-child{grid-column:1 / -1;} }
+#page-income .section-title{display:none;}   /* ชื่อหน้าซ้ำกับแถบด้านบน */
+.inc-zero{grid-column:1 / -1;font-size:12.5px;color:var(--text-light);padding:4px 2px;}
+#bankStatsCard.empty #bankStatsBody{display:none;}
+#bankStatsCard.empty .card-box-hdr{border-bottom:0;}
+@media(min-width:769px){ #income-doc-filter{max-width:280px;} }   /* เลือกหมอคนเดียว → การ์ดเต็มความกว้าง */
 .share-row { display:grid; grid-template-columns:minmax(150px,1.6fr) 70px repeat(2,minmax(90px,1fr)) 20px; gap:10px; align-items:center; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:12px; cursor:pointer; }
 .share-row:hover { border-color:var(--wine-light); box-shadow:0 2px 10px rgba(107,45,94,.1); }
 .share-row .n { font-weight:800; color:var(--wine-dark); }
@@ -1084,7 +1093,22 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 .toast.error { background: var(--red); }
 
 /* LAB SPECIFIC */
-.lab-badge { display: inline-flex; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.lab-badge { display: inline-flex; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+#labTop{padding:12px 16px 6px;border-bottom:1px solid var(--border);}
+.lab-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.lab-kpi{flex:1 1 150px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;}
+.lab-kpi .l{font-size:12px;color:var(--text-light);font-weight:700;} .lab-kpi .v{font-size:20px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;line-height:1.25;} .lab-kpi .s{font-size:12px;color:var(--text-mid);}
+.lab-kpi.main{background:var(--wine-pale);} .lab-kpi.main .v{color:var(--wine);}
+.lab-kpi.warn{background:#fffaf0;border-color:rgba(162,102,8,.4);cursor:pointer;} .lab-kpi.warn .v{color:#A26608;}
+.lab-kpi.ok{background:#f1fbf5;border-color:rgba(29,130,92,.3);} .lab-kpi.ok .v{color:var(--green);}
+.lab-kpi.df{background:#FFF4DC;border-color:#F0D79A;} .lab-kpi.df .v{color:#8A6200;}
+.lab-fil{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+.lab-fil input{height:36px;flex:1 1 180px;max-width:280px;}
+.lab-chip{border:1px solid var(--border);background:#fff;border-radius:20px;padding:5px 11px;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--text-mid);cursor:pointer;min-height:32px;white-space:nowrap;}
+.lab-chip.on{background:var(--wine);border-color:var(--wine);color:#fff;}
+.lab-chip b{font-weight:800;margin-left:4px;}
+.bill-lbl{display:none;}
+@media(max-width:768px){ .bill-lbl{display:inline;font-size:11.5px;color:var(--text-mid);margin-left:4px;font-weight:600;} #labTop{padding:10px 12px 4px;} .lab-kpi{flex:1 1 40%;padding:8px 10px;} .lab-kpi .v{font-size:17px;} }
 .lab-snt { background: rgba(52,152,219,0.12); color: #1a6ea8; border: 1px solid rgba(52,152,219,0.25); }
 .lab-sc { background: rgba(107,45,94,0.12); color: var(--wine); border: 1px solid rgba(107,45,94,0.25); }
 .lab-pc { background: rgba(46,204,144,0.12); color: #1a9e6a; border: 1px solid rgba(46,204,144,0.25); }
@@ -1658,7 +1682,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <input type="date" id="income-filter-day" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
               <input type="month" id="income-filter-month" class="form-control" style="height:36px;width:150px;display:none;" onchange="renderIncome()">
               <input type="number" id="income-filter-year" class="form-control" style="height:36px;width:100px;display:none;" placeholder="ปี พ.ศ." min="2560" max="2600" onchange="renderIncome()">
-              <div id="income-filter-range" style="display:none;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <div id="income-filter-range" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
                 <input type="date" id="income-range-start" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
                 <span style="color:var(--text-light);font-size:13px;">ถึง</span>
                 <input type="date" id="income-range-end" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
@@ -1676,19 +1700,20 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           </div>
         </div>
       </div>
+      <div class="stat-grid inc-kpis">
+        <div class="stat-card purple"><div class="stat-icon">💰</div><div class="stat-label">รายได้รวม</div><div class="stat-value" id="i-total">0</div><div class="stat-sub">บาท</div></div>
+        <div class="stat-card green"><div class="stat-icon">💵</div><div class="stat-label">เงินสด</div><div class="stat-value" id="i-cash">0</div><div class="stat-sub">บาท</div></div>
+        <div class="stat-card gold"><div class="stat-icon">📲</div><div class="stat-label">โอน</div><div class="stat-value" id="i-transfer">0</div><div class="stat-sub">บาท</div></div>
+        <div class="stat-card rose"><div class="stat-icon">🏛️</div><div class="stat-label">ประกันสังคม</div><div class="stat-value" id="i-sso">0</div><div class="stat-sub">บาท</div></div>
+        <div class="stat-card purple" id="i-clinic-card"><div class="stat-icon">🏥</div><div class="stat-label">ส่วนคลินิก</div><div class="stat-value" id="i-clinic">0</div><div class="stat-sub" id="i-clinic-sub">หลังหักส่วนแบ่งหมอ</div></div>
+
+      </div>
       <div class="card-box" style="margin-bottom:20px;">
         <div class="card-box-hdr" style="padding:18px 24px;">
           <div class="card-box-title" style="font-size:17px;">👨‍⚕️ ส่วนแบ่งรายได้ตามหมอ <span id="sharePeriodLbl" style="color:var(--wine);font-weight:800;"></span></div>
           <div id="shareTotalBadge" style="font-size:13px;font-weight:700;color:var(--wine-mid);"></div>
         </div>
         <div style="padding:20px 24px;"><div class="share-grid" id="shareGrid"></div></div>
-      </div>
-      <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
-        <div class="stat-card purple"><div class="stat-icon">💰</div><div class="stat-label">รายได้รวม</div><div class="stat-value" id="i-total">0</div><div class="stat-sub">บาท</div></div>
-        <div class="stat-card green"><div class="stat-icon">💵</div><div class="stat-label">เงินสด</div><div class="stat-value" id="i-cash">0</div><div class="stat-sub">บาท</div></div>
-        <div class="stat-card gold"><div class="stat-icon">📲</div><div class="stat-label">โอน</div><div class="stat-value" id="i-transfer">0</div><div class="stat-sub">บาท</div></div>
-        <div class="stat-card rose"><div class="stat-icon">🏛️</div><div class="stat-label">ประกันสังคม</div><div class="stat-value" id="i-sso">0</div><div class="stat-sub">บาท</div></div>
-
       </div>
       <div class="card-box" style="margin-bottom:20px;" id="bankStatsCard">
         <div class="card-box-hdr" style="padding:16px 24px;flex-wrap:wrap;gap:8px;">
@@ -1782,6 +1807,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
             <button class="btn btn-primary btn-sm" id="btnAddLab" onclick="openAddLab()">+ เพิ่มค่าแลป</button>
           </div>
         </div>
+        <div id="labTop"></div>
         <div class="table-scroll">
         <table>
           <thead id="labPageHead"><tr><th>วันที่</th><th>HN</th><th>ชื่อ</th><th>งาน</th><th>แลป</th><th>ราคา</th><th>ตรงบิล</th><th>หมอ</th><th>หมายเหตุ</th><th id="labPageColLast">จัดการ</th></tr></thead>
@@ -1790,7 +1816,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
       </div>
       <div class="card-box" style="margin-top:16px;">
-        <div class="card-box-hdr"><div class="card-box-title">📋 สรุปค่าแลปรายเดือน</div></div>
+        <div class="card-box-hdr"><div class="card-box-title">📋 สรุปค่าแลปรายเดือน · แยกตามหมอ</div></div>
         <div style="padding:16px;"><div id="labSummary"></div></div>
       </div>
     </div>
@@ -6339,7 +6365,8 @@ function buildBankStats(rows, period, selYrBE){
   const cnt = keys.reduce((s,k)=>s+agg[k].n,0);
   const badge = document.getElementById('bankStatsBadge');
   if(badge) badge.textContent = incomePeriodLabel()+' · โอนรวม '+fmt(total)+' ('+cnt+' รายการ)';
-  if(!total){ body.innerHTML = '<div class="endo-empty">ไม่มียอดโอนในช่วงนี้</div>'; return; }
+  const _bc=document.getElementById('bankStatsCard'); if(_bc) _bc.classList.toggle('empty', !total);
+  if(!total){ if(badge) badge.textContent = incomePeriodLabel()+' · ไม่มียอดโอนในช่วงนี้'; body.innerHTML = '<div class="endo-empty">ไม่มียอดโอนในช่วงนี้</div>'; return; }
 
   let html = '<div class="bank-grid">'+keys.map(k=>{
     const pct = total ? agg[k].amt/total*100 : 0;
@@ -7403,8 +7430,12 @@ function buildShareGrid(rows){
             <span><span class="k" style="display:block;">ส่วนแบ่งหมอ</span><span class="v" style="color:var(--gold);">${fmt(x.share)}</span></span>
             <span class="arr" style="color:var(--text-light);">›</span></div>`).join('')
       : '<div style="padding:24px;text-align:center;color:var(--text-light);">วันนี้ยังไม่มียอดรายได้</div>';
-  } else
-  el.innerHTML=docList.map((doc,docIdx)=>{
+  } else {
+  const _tot=doc=>rows.filter(r=>r.docName===doc.name).reduce((s,r)=>s+totalPrice(r),0);
+  const _withRows=docList.map((doc,docIdx)=>({doc,docIdx,t:_tot(doc),n:rows.filter(r=>r.docName===doc.name).length}));
+  const _zero=_withRows.filter(x=>!x.n && !incLabDeduct_(x.doc)), _shown=_withRows.filter(x=>x.n || incLabDeduct_(x.doc)).sort((a,b)=>b.t-a.t);
+  el.classList.toggle('share-multi', _shown.length>1);
+  el.innerHTML=_shown.map(({doc,docIdx})=>{
     const dr=rows.filter(r=>r.docName===doc.name);
     const tot=dr.reduce((s,r)=>s+totalPrice(r),0);
     const dfSum=dr.reduce((s,r)=>s+dfAmt(r,doc),0);
@@ -7455,7 +7486,11 @@ function buildShareGrid(rows){
       <div class="share-card-more">ดูรายการรักษา ›</div>
     </div>`;
   }).join('');
+  el.innerHTML += (_zero.length ? `<div class="inc-zero">ไม่มีรายได้ในช่วงนี้: ${_zero.map(x=>_escHtml(x.doc.name)).join(' · ')}</div>` : '') + (!_shown.length?'<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--text-light);">ช่วงนี้ยังไม่มียอดรายได้</div>':'');
+  }
 
+  { const cc=document.getElementById('i-clinic-card'); if(cc) cc.style.display=isManager?'':'none'; }
+  { const ce=document.getElementById('i-clinic'); if(ce){ const cs=chartRows.reduce((a,x)=>a+(+x.clinicShare||0),0), sh=chartRows.reduce((a,x)=>a+(+x.share||0),0); ce.textContent=fmt(cs); const sb=document.getElementById('i-clinic-sub'); if(sb) sb.textContent='ส่วนแบ่งหมอ '+fmt(sh); } }
   // กราฟเทียบรายได้ระหว่างหมอแต่ละคน (แยกส่วนแบ่งหมอ/คลินิกเป็นแท่งซ้อน) เสริมจากการ์ดด้านบนที่ดูทีละคน
   const chartCanvas = document.getElementById('doctorShareChart');
   if(chartCanvas && typeof Chart!=='undefined'){
@@ -7660,7 +7695,7 @@ function labBillCell(l){
   const ok=isLabBillOk(l);
   if(!isManager) return ok?'<span class="bill-ok-ro" title="ยอดตรงบิลแล้ว">✓</span>':'<span style="color:var(--text-light)">—</span>';
   const stamp=ok?labBillStamp(l):'';
-  return `<input type="checkbox" class="bill-chk" ${ok?'checked':''} aria-label="ยอดตรงกับบิล" onchange="toggleLabBill('${l.id}',this.checked)">${stamp?`<div class="bill-cap">${stamp}</div>`:''}`;
+  return `<label style="display:inline-flex;align-items:center;cursor:pointer;"><input type="checkbox" class="bill-chk" ${ok?'checked':''} aria-label="ยอดตรงกับบิล" onchange="toggleLabBill('${l.id}',this.checked)"><span class="bill-lbl">ตรงบิล</span></label>${stamp?`<div class="bill-cap">${stamp}</div>`:''}`;
 }
 function toggleLabBill(id, checked){
   if(!isManager) return;
@@ -7691,19 +7726,21 @@ function renderLabPage(){
   else if(!isManager) rows=rows.filter(l=>l.docName===currentUser.name);
   rows=rows.filter(l=>l.date&&l.date.startsWith(month));
   rows=sortRowsByPatient(rows);
+  const monthRows=rows;
+  rows=labTopRender_(monthRows, isManager ? (docFilterEl?.value||'') : currentUser.name);   // แถบสรุปบนสุด + ตัวกรอง (ค้นหา / ตรงบิล / แลป)
   const tbody=document.getElementById('labPageBody');
   if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${isManager?10:9}" style="text-align:center;padding:20px;color:var(--text-light)">ไม่มีรายการ${isManager?' · <a href="javascript:void(0)" onclick="openAddLab()" style="color:var(--wine);font-weight:700;text-decoration:underline;">+ เพิ่มรายการแรก</a>':''}</td></tr>`; }
   else {
     tbody.innerHTML=rows.map(l=>`
       <tr>
-        <td>${fmtDate(l.date)}</td>
+        <td style="white-space:nowrap;">${crmThaiShort(l.date)}</td>
         <td class="text-caption hn-cell">${l.hn||'—'}</td>
         <td style="font-weight:600">${ocTag_(l.hn,l.patName)}${l.patName}${orthoPayBadge({hn:l.hn})}</td>
         <td>${l.work}</td>
         <td><span class="lab-badge ${labBadgeClass(l.lab)}">${l.lab}</span></td>
         <td style="font-weight:700;color:var(--wine-dark)">${fmt(+l.price||0)}</td>
         <td>${labBillCell(l)}</td>
-        <td>${docBadge(l.docName)}</td>
+        <td>${docBadge(l.docName,true)}</td>
         <td style="font-size:12px;color:var(--text-light);font-style:${l.note?'normal':'italic'}">${l.note||'—'}</td>
         ${isManager
           ? `<td><div style="display:flex;gap:6px;">
@@ -7718,8 +7755,35 @@ function renderLabPage(){
   if(colLast) colLast.style.display = isManager ? '' : 'none';
   const docF = isManager ? (document.getElementById('labDocFilter')?.value||'') : currentUser.name;
   const billBadge = document.getElementById('labBillBadge');
-  if(billBadge) billBadge.textContent = rows.length ? ('ตรงบิลแล้ว '+rows.filter(isLabBillOk).length+'/'+rows.length) : '';
-  buildLabSummary(rows,month,docF);
+  if(billBadge) billBadge.textContent = monthRows.length ? ('ตรงบิลแล้ว '+monthRows.filter(isLabBillOk).length+'/'+monthRows.length) : '';
+  buildLabSummary(monthRows,month,docF);
+}
+// ---- ค่าแลป: แถบสรุป + ตัวกรอง ด้านบนตาราง ----
+const LABUI={ q:'', bill:'all', lab:'' };
+function labTopRender_(monthRows, docName){
+  const box=document.getElementById('labTop'); if(!box) return monthRows;
+  const sum=a=>a.reduce((n,l)=>n+(+l.price||0),0);
+  const notOk=monthRows.filter(l=>!isLabBillOk(l)), okRows=monthRows.filter(isLabBillOk);
+  const byLab={}; monthRows.forEach(l=>{ const k=l.lab||'อื่นๆ'; (byLab[k]=byLab[k]||{n:0,t:0}); byLab[k].n++; byLab[k].t+=(+l.price||0); });
+  const labs=Object.keys(byLab).sort((a,b)=>byLab[b].t-byLab[a].t);
+  if(LABUI.lab && !byLab[LABUI.lab]) LABUI.lab='';
+  const pct=docName?labDfPct_(docName):null;
+  const kpi=(cls,l,v,sub,click)=>`<div class="lab-kpi ${cls}" ${click?`role="button" onclick="${click}"`:''}><div class="l">${l}</div><div class="v">${v}</div>${sub?`<div class="s">${sub}</div>`:''}</div>`;
+  const qv=_escHtml(LABUI.q||'');
+  box.innerHTML = `<div class="lab-kpis">
+      ${kpi('main','ค่าแลปเดือนนี้',fmt(sum(monthRows)),monthRows.length+' รายการ')}
+      ${kpi(notOk.length?'warn':'ok', notOk.length?'ยังไม่ตรงบิล':'ตรงบิลครบแล้ว', notOk.length?fmt(sum(notOk)):'✓', notOk.length?notOk.length+' รายการ · แตะเพื่อดู':okRows.length+' รายการ', notOk.length?"LABUI.bill='no';renderLabPage()":'')}
+      ${pct!==null?kpi('df','ส่วนค่าแลปของหมอ (DF '+pct+'%)',fmt(Math.round(sum(monthRows)*pct)/100),_escHtml(docName)):''}
+    </div>
+    <div class="lab-fil">
+      <input class="form-control" id="labSearch" placeholder="🔍 ค้นหา ชื่อ / HN / งาน" value="${qv}" oninput="LABUI.q=this.value;renderLabPage();setTimeout(()=>{const e=document.getElementById('labSearch'); if(e){e.focus(); e.setSelectionRange(e.value.length,e.value.length);}},0)">
+      ${[['all','ทั้งหมด',monthRows.length],['no','ยังไม่ตรงบิล',notOk.length],['ok','ตรงบิลแล้ว',okRows.length]].map(x=>`<button type="button" class="lab-chip ${LABUI.bill===x[0]?'on':''}" onclick="LABUI.bill='${x[0]}';renderLabPage()">${x[1]}<b>${x[2]}</b></button>`).join('')}
+    </div>
+    ${labs.length>1?`<div class="lab-fil">${labs.map(k=>`<button type="button" class="lab-chip ${LABUI.lab===k?'on':''}" onclick="LABUI.lab=LABUI.lab==='${_escHtml(k)}'?'':'${_escHtml(k)}';renderLabPage()">${_escHtml(k)}<b>${fmt(byLab[k].t)}</b></button>`).join('')}</div>`:''}`;
+  const q=String(LABUI.q||'').trim().toLowerCase();
+  return monthRows.filter(l=> (LABUI.bill==='all' || (LABUI.bill==='ok')===isLabBillOk(l))
+    && (!LABUI.lab || (l.lab||'อื่นๆ')===LABUI.lab)
+    && (!q || [l.patName,l.hn,l.work,l.note,orthoCodeOf_?orthoCodeOf_(l.hn,l.patName,''):''].some(x=>String(x||'').toLowerCase().includes(q))));
 }
 // % DF ปกติของหมอ (ที่ตั้งไว้ในตั้งค่า) ใช้คิดส่วนค่าแลปที่หมอรับผิดชอบ
 function labDfPct_(docName){
@@ -7759,23 +7823,15 @@ function buildLabSummary(rows,month,docFilter){
   }
   // ค่าแลปส่วนของหมอ = ค่าแลป × % DF ปกติของหมอคนนั้น (เมื่อเลือกดูหมอคนเดียว / หมอดูของตัวเอง)
   let docShareBox = '';
-  if(docFilter || !isManager){
+  if(false){   // ส่วนค่าแลปของหมอ ย้ายไปแสดงในแถบสรุปด้านบนแล้ว
     const nm = docFilter || currentUser.name, pct = labDfPct_(nm);
     docShareBox = `<div style="flex:1;min-width:160px;background:#FFF4DC;border:1px solid #F0D79A;border-radius:10px;padding:12px 14px;">
       <div style="font-size:12px;color:#8A6200;font-weight:700;">ส่วนค่าแลปของหมอ (DF ${pct}%)</div>
       <div style="font-size:20px;font-weight:800;color:#8A6200;font-family:'Prompt',sans-serif;">${fmt(Math.round(grand*pct)/100)}</div>
     </div>`;
   }
-  el.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-    ${labs_list.filter(lb=>totLab[lb]>0).map(lb=>`<div style="flex:1;min-width:160px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-      <div style="font-size:12px;color:var(--text-light);font-weight:700;">${lb}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--wine-dark);font-family:'Prompt',sans-serif;">${fmt(totLab[lb])}</div>
-    </div>`).join('')}
-    <div style="flex:1;min-width:160px;background:var(--wine-pale);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-      <div style="font-size:12px;color:var(--wine);font-weight:700;">รวมทั้งหมด</div>
-      <div style="font-size:20px;font-weight:800;color:var(--wine);font-family:'Prompt',sans-serif;">${fmt(grand)}</div>
-    </div>${docShareBox}
-  </div>${docBreakdown}`;
+  el.innerHTML = docBreakdown;   // ยอดรวม/แยกแลป/ส่วนหมอ ย้ายไปแถบสรุปบนตารางแล้ว — ตรงนี้เหลือแยกตามหมอ
+  { const card=el.closest('.card-box'); if(card) card.style.display = docBreakdown ? '' : 'none'; }
 }
 function labBadgeClass(lab){ return {สายน้ำทิพย์:'lab-snt',SC:'lab-sc',PC:'lab-pc',Dentaneer:'lab-dent',Hexa:'lab-hexa',อื่นๆ:'lab-other'}[lab]||'lab-snt'; }
 
