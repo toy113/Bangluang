@@ -1784,22 +1784,21 @@ var CRM_SSO_URL = 'https://bangluangsmile.com/prakan-sangkom-tamfun.html';
 var CRM_SSO_LIMIT = 900;   // อุด/ถอน/ขูดหินปูน รวมต่อปี (ตามข้อตกลงที่มีผล 1 พ.ค. 2569)
 var CRM_FAQ_BOOK = { 'ขอนัดใช้สิทธิประกันสังคม': '🏛️ ขอนัดใช้สิทธิประกันสังคม (กดจากการ์ดประกันสังคม)', 'ขอนัดตรวจฟัน': '🦷 ขอนัดตรวจฟัน (กดจากการ์ดราคา)' };
 var CRM_FAQ_ASK = 'ขอสอบถามแอดมินค่ะ';
-var CRM_PRICE_ROWS = [   // [คำค้น(regex), ชื่อ, ราคา, หมายเหตุ]
-  [/ขูดหินปูน|หินปูน/, 'ขูดหินปูน', '800–1,200', ''],
-  [/อุดฟัน|อุด/, 'อุดฟัน', '800–1,200', 'ต่อซี่'],
-  [/ถอนฟัน|ถอน(?!.*คุด)/, 'ถอนฟัน', '800–1,200', 'ต่อซี่'],
-  [/ฟันคุด|คุด/, 'ผ่าฟันคุด', '3,000–4,000', 'ต่อซี่ · ต้องเอ็กซเรย์ก่อน'],
-  [/ฟันปลอม|ฟันเทียมถอด/, 'ฟันปลอม', 'เริ่ม 3,000', 'ต่อชิ้น'],
-  [/รีเทนเนอร์/, 'รีเทนเนอร์ทำใหม่', '4,000', 'ต่อคู่ บน+ล่าง'],
-  [/รักษาราก|รากฟัน(?!เทียม)/, 'รักษารากฟัน', 'ประเมินหลังตรวจ', ''],
-  [/ครอบ|วีเนียร์/, 'ครอบฟัน / วีเนียร์', 'ประเมินหลังตรวจ', ''],
-  [/รากฟันเทียม|รากเทียม|implant/i, 'รากฟันเทียม', 'ประเมินหลังตรวจ', '']
+var CRM_PRICE_GROUPS = [   // ราคาตามที่แอดมินตอบคนไข้จริง (Toy ยืนยัน 9 พ.ย. 2569) · re = คำค้นที่ทำให้หมวดนี้ขึ้น
+  { re: /ขูดหินปูน|หินปูน/, title: '🪥 ขูดหินปูน', rows: [['ขูดหินปูน', '900–1,200', ''], ['หินปูนมาก / คราบกาแฟ-บุหรี่', '1,200–1,500', 'กรณีไม่ได้ทำมานาน']] },
+  { re: /อุด/, title: '🦷 อุดฟัน', rows: [['อุดฟันทั่วไป', '800–1,500', 'ต่อซี่'], ['อุดฟันหลายด้าน', '1,500–3,000', 'ต่อซี่']] },
+  { re: /ถอน|คุด/, title: '🦷 ถอนฟัน / ฟันคุด', rows: [['ถอนฟันทั่วไป', '700–900', 'ต่อซี่'], ['ถอนฟันกราม', '900–1,200', 'ต่อซี่'], ['ถอนฟันคุด', '1,200–1,500', 'ต่อซี่'], ['ผ่าฟันคุด', 'เริ่ม 3,500–4,500', 'ต่อซี่ · ต้องเอ็กซเรย์ก่อน']] },
+  { re: /รักษาราก|รากฟัน(?!เทียม)|คลองราก/, title: '🦷 รักษารากฟัน', rows: [['ฟันหน้า', '7,000', ''], ['ฟันกรามน้อย', '9,000', ''], ['ฟันกรามใหญ่', '10,000–12,000', '']], note: 'แบ่งจ่ายได้ 2 รอบ · หมอรักษารากเข้าทุกวันอังคาร' },
+  { re: /ครอบ|เดือย|วีเนียร์/, title: '👑 ครอบฟัน', rows: [['ปักเดือย', '4,000', ''], ['ครอบฟัน', 'เริ่ม 12,000–17,000', 'แบ่งจ่ายได้ 2 รอบ']] },
+  { re: /ฟันปลอม|ฟันเทียมถอด|ฐานนิ่ม/, title: '😁 ฟันปลอม', rows: [['ฟันปลอมฐานนิ่ม', '5,500', 'ซี่แรก · ซี่ถัดไป +400 ต่อซี่'], ['ฟันปลอมทั่วไป', 'เริ่ม 3,000', 'ต่อชิ้น']] },
+  { re: /รีเทนเนอร์/, title: '😬 รีเทนเนอร์', rows: [['รีเทนเนอร์ทำใหม่', '4,000', 'ต่อคู่ บน+ล่าง']] },
+  { re: /รากฟันเทียม|รากเทียม|implant/i, title: '🦷 รากฟันเทียม', rows: [['รากฟันเทียม', 'ประเมินหลังตรวจ', 'แจ้งราคาก่อนเริ่มรักษา']] }
 ];
 function crmFaqTopic_(t) {
   if (/ประกันสังคม|ปกส|ป\.ก\.ส|ใช้สิทธิ|สิทธิ์?ทำฟัน|สิทธิ์?ทันต|สิทธิ์?เหลือ/.test(t)) return 'sso';
-  if (!/นัด/.test(t) && /เปิดกี่โมง|ปิดกี่โมง|เปิดกี่|ปิดกี่|เปิดถึง|ปิดถึง|ถึงกี่โมง|เวลาเปิด|เวลาทำการ|เปิดไหม|เปิดมั้ย|เปิดมั๊ย|เปิดหรือเปล่า|เปิดวัน|ปิดวัน|หยุดวัน|วันหยุด|เปิดทุกวัน|อยู่ตรงไหน|อยู่ที่ไหน|ที่อยู่|แผนที่|ไปยังไง|ไปทางไหน|เดินทาง|จอดรถ|โลเคชั่น|location|พิกัด/i.test(t)) return 'hours';
+  if (!/นัด/.test(t) && /เปิดกี่โมง|ปิดกี่โมง|เปิดกี่|ปิดกี่|เปิดถึง|ปิดถึง|ถึงกี่โมง|เวลาเปิด|เวลาทำการ|เปิดไหม|เปิดมั้ย|เปิดมั๊ย|เปิดหรือเปล่า|เปิดวัน|ปิดวัน|หยุดวัน|วันหยุด|เปิดทุกวัน|อยู่ตรงไหน|อยู่ที่ไหน|อยู่แถวไหน|อยู่ไหน|แถวไหน|ที่อยู่|แผนที่|ไปยังไง|ไปทางไหน|เดินทาง|จอดรถ|โลเคชั่น|location|พิกัด/i.test(t)) return 'hours';
   var priceQ = /ราคา|เท่าไ[หร]|เท่าไร|กี่บาท|ค่าทำ|ค่ารักษา|ค่าใช้จ่าย/.test(t);
-  if (priceQ && CRM_PRICE_ROWS.some(function (r) { return r[0].test(t); })) return 'price';
+  if (priceQ && CRM_PRICE_GROUPS.some(function (g) { return g.re.test(t); })) return 'price';
   return '';
 }
 function crmFaqHandle_(s, ev, uid, text, chatting) {
@@ -1868,7 +1867,7 @@ function crmFaqSsoMessage_(s, uid) {
   var body = [
     { type: 'text', text: 'สิทธิทันตกรรม มาตรา 33 และ 39', size: 'sm', weight: 'bold', color: '#2b1026' },
     crmFaqRow_('อุดฟัน · ถอนฟัน · ขูดหินปูน', 'รวม 900/ปี', false, 'เกินวงเงินชำระส่วนต่าง'),
-    crmFaqRow_('ผ่าฟันคุด', '1,500–2,500', false, 'ต่อซี่ แยกจากวงเงิน 900 ตามเงื่อนไข'),
+    crmFaqRow_('ฟันคุดที่เข้าเกณฑ์ใหม่', 'ฟรี', true, 'แยกจากวงเงิน 900 · นัดมาตรวจก่อนค่ะ'),
     crmFaqRow_('ฟันเทียมถอดได้', '1,500–6,000', false, 'ตามประเภทและหลักเกณฑ์'),
     { type: 'text', text: '📄 นำบัตรประชาชนมาด้วย · เจ้าหน้าที่ตรวจสิทธิ์ให้ที่คลินิก', size: 'xs', color: '#555555', wrap: true, margin: 'md' }
   ];
@@ -1924,14 +1923,29 @@ function crmFaqHoursMessage_(s) {
       { type: 'uri', label: '📞 โทร ' + (s.clinicPhone || '095-947-6759'), uri: crmTelUriClinic_(s) },
       { type: 'message', label: '📌 นัดตรวจฟัน', text: 'ขอนัดตรวจฟัน' }]) } };
 }
-/* ราคาโดยประมาณ: ไฮไลต์หัตถการที่ถาม */
+/* ราคาโดยประมาณ: แสดงเฉพาะหมวดที่ถาม (เช่น "รักษารากรวมครอบ" → 2 หมวด) */
 function crmFaqPriceMessage_(s, t) {
-  var rows = CRM_PRICE_ROWS.map(function (r) { return crmFaqRow_(r[1], r[2], r[0].test(t), r[3]); });
-  return { type: 'flex', altText: '🦷 ราคาทำฟันโดยประมาณ', contents: { type: 'bubble', size: 'mega',
-    header: crmFaqHeader_('🦷 ราคาโดยประมาณ', 'ค่าทำฟัน', 'ราคาจริงขึ้นกับสภาพช่องปาก แจ้งค่าใช้จ่ายก่อนเริ่มรักษาทุกครั้ง'),
-    body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none', contents: rows.concat([
-      { type: 'separator', margin: 'md', color: '#eeeeee' },
-      { type: 'text', text: '🏛️ อุด/ถอน/ขูดหินปูน ใช้สิทธิประกันสังคมได้ รวม 900 บาท/ปี', size: 'xs', color: '#1d7a43', wrap: true, margin: 'md', weight: 'bold' }]) },
+  var groups = CRM_PRICE_GROUPS.filter(function (g) { return g.re.test(t); });
+  if (!groups.length) groups = CRM_PRICE_GROUPS.slice(0, 3);
+  if (groups.some(function (g) { return /รักษาราก/.test(g.title); }) && !groups.some(function (g) { return /ครอบ/.test(g.title); }))
+    groups.push(CRM_PRICE_GROUPS.filter(function (g) { return /ครอบ/.test(g.title); })[0]);   // รักษารากส่วนใหญ่ต้องครอบต่อ → แสดงราคาครอบด้วย
+  var body = [];
+  groups.forEach(function (g, i) {
+    body.push({ type: 'text', text: g.title, size: 'sm', weight: 'bold', color: '#4A1A40', margin: i ? 'lg' : 'none' });
+    g.rows.forEach(function (r) { body.push(crmFaqRow_(r[0], r[1], false, r[2])); });
+    if (g.note) body.push({ type: 'text', text: '💡 ' + g.note, size: 'xs', color: '#7a5200', wrap: true, margin: 'sm' });
+  });
+  var ssoRel = groups.some(function (g) { return /ขูด|อุด|ถอน/.test(g.title); });
+  if (ssoRel) {
+    body.push({ type: 'separator', margin: 'lg', color: '#eeeeee' });
+    body.push({ type: 'box', layout: 'vertical', backgroundColor: '#E7F6EC', cornerRadius: '10px', paddingAll: '10px', margin: 'md', contents: [
+      { type: 'text', text: '🏛️ มีประกันสังคม ใช้สิทธิได้ 900 บาท', size: 'sm', weight: 'bold', color: '#1d7a43', wrap: true },
+      { type: 'text', text: groups.some(function (g) { return /คุด/.test(g.title); }) ? 'ฟันคุดที่เข้าเกณฑ์ใหม่ของประกันสังคม ฟรี — นัดมาตรวจก่อนค่ะ' : 'สำหรับอุด / ถอน / ขูดหินปูน รวมต่อปี', size: 'xs', color: '#1d7a43', wrap: true, margin: 'xs' }] });
+  }
+  body.push({ type: 'text', text: 'ราคาจริงขึ้นกับสภาพช่องปาก คลินิกแจ้งค่าใช้จ่ายก่อนเริ่มรักษาทุกครั้ง', size: 'xxs', color: '#999999', wrap: true, margin: 'md' });
+  return { type: 'flex', altText: '🦷 ราคาโดยประมาณ: ' + groups.map(function (g) { return g.title.replace(/^\S+\s/, ''); }).join(', '), contents: { type: 'bubble', size: 'mega',
+    header: crmFaqHeader_('🦷 ราคาโดยประมาณ', groups.map(function (g) { return g.title.replace(/^\S+\s/, ''); }).join(' + '), ''),
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none', contents: body },
     footer: crmFaqFooter_([
       { type: 'message', label: '📌 นัดตรวจฟัน', text: 'ขอนัดตรวจฟัน' },
       { type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_FAQ_ASK }]) } };
