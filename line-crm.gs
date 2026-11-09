@@ -571,7 +571,8 @@ function crmBubble_(s, title, subtitle, bodyRows, buttons, accent) {
   return bubble;
 }
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
-function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม\nโทร. ' + String((s && s.clinicPhone) || '0959476759').replace(/[^0-9]/g, '') + '\nพิมพ์ในแชทนี้ได้เลยค่ะ', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
+function crmPhoneFmt_(p) { var d = String(p || '').replace(/[^0-9]/g, ''); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : String(p || ''); }
+function crmInquiryNote_(s) { return { type: 'text', text: 'สอบถามเพิ่มเติม\nโทร. ' + crmPhoneFmt_((s && s.clinicPhone) || '0959476759') + '\nพิมพ์ในแชทนี้ได้เลยค่ะ', wrap: true, size: 'sm', color: '#6B2D5E', align: 'center', margin: 'md' }; }
 /* ข้อความเน้นขอให้กดยืนยันนัด — ใส่เหนือปุ่มในการ์ดเตือนนัด */
 function crmConfirmAsk_() { return { type: 'text', text: 'ถ้ามาได้ รบกวนกด ✅ ยืนยันนัด ด้วยค่ะ 🙏', wrap: true, size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'center' }; }
 function crmTelUri_(s) { return 'tel:' + String(s.clinicPhone || '').replace(/[^0-9+]/g, ''); }
@@ -603,16 +604,17 @@ function crmAptMessage_(s, apt, kind, mv) {
   var sameDay = !!(mv && mv.date === apt.date);
   var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'move' ? (sameDay ? '🔄 เปลี่ยนเวลานัดหมาย' : '🔄 เลื่อนนัดหมายแล้ว') : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '📌 ใบนัด'));
   // ชื่อ ตามด้วย HN — คนไข้จัดฟันที่มีรหัสจัดฟัน (A-###) ใส่รหัสแทน HN (ทุกข้อความถึงคนไข้ใช้ crmWho_)
-  var sub = 'คุณ' + crmWho_(apt.patName, apt.hn) + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : (kind === 'move' ? ' คลินิกได้' + (sameDay ? 'เปลี่ยนเวลา' : 'เลื่อน') + 'นัดหมายของคุณให้แล้วค่ะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ'));
+  var sub = 'คุณ' + crmWho_(apt.patName, apt.hn) + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : (kind === 'move' ? ' คลินิกได้' + (sameDay ? 'เปลี่ยนเวลา' : 'เลื่อน') + 'นัดหมายของคุณให้แล้วค่ะ' : (kind === 'change' ? ' คลินิกได้ปรับรายละเอียดนัดหมายของคุณ กรุณาตรวจสอบวัน-เวลาใหม่ด้านล่างค่ะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ')));
   var rows = [];
   if (kind === 'move' && mv) rows.push(crmRow_('นัดเดิม', (sameDay ? '' : crmThaiDate_(mv.date) + ' ') + (mv.time ? mv.time + ' น. ' : '') + '(ยกเลิกแล้ว)'));
-  rows.push(crmRow_(kind === 'move' ? 'นัดใหม่' : 'วัน', crmThaiDate_(apt.date)), crmRow_('เวลา', (apt.time || '-') + ' น.'));
+  rows.push(crmRow_(kind === 'move' ? 'นัดใหม่' : (kind === 'change' ? 'วัน (ใหม่)' : 'วัน'), crmThaiDate_(apt.date)), crmRow_(kind === 'change' ? 'เวลา (ใหม่)' : 'เวลา', (apt.time || '-') + ' น.'));
   if (apt.docName) rows.push(crmRow_('ทันตแพทย์', apt.docName));
   if (apt.proc) rows.push(crmRow_('รายการ', apt.proc));
   var buttons = [];
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
   if (kind === 'remind') { buttons.push(crmConfirmAsk_()); buttons.push({ type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '✅ ยืนยันนัด', text: crmReschedText_(apt.date, 'ยืนยันนัด') } }); }
   buttons.push({ type: 'button', style: 'secondary', height: 'md', action: { type: 'message', label: '🔄 ขอเลื่อนนัด', text: crmReschedText_(apt.date) } });
+  if (kind !== 'remind') buttons.push({ type: 'button', style: 'secondary', height: 'md', action: { type: 'uri', label: '📍 นำทางมาคลินิก', uri: CRM_CLINIC_MAP } });
   buttons.push(crmInquiryNote_(s));
   return { type: 'flex', altText: title.replace(/^\S+\s/, '') + ' ' + crmThaiDate_(apt.date) + ' ' + (apt.time || '') + ' น.',
     contents: crmBubble_(s, title, sub, rows, buttons) };
@@ -622,7 +624,7 @@ function crmAptGroupMessage_(s, list) {
   var a0 = list[0], ids = list.map(function (a) { return a.id; }).join(',');
   var rows = [crmRow_('วัน', crmThaiDate_(a0.date))];
   list.forEach(function (a, i) {
-    rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace(':', '.') + ' น.', [a.proc, a.docName].filter(Boolean).join('\n')));
+    rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace('.', ':') + ' น.', [a.proc, a.docName].filter(Boolean).join('\n')));
   });
   var buttons = [
     crmConfirmAsk_(),
@@ -632,7 +634,8 @@ function crmAptGroupMessage_(s, list) {
   return { type: 'flex', altText: 'เตือนนัดหมาย ' + crmThaiDate_(a0.date) + ' ' + list.length + ' นัด',
     contents: crmBubble_(s, '🔔 เตือนนัดหมาย', 'คุณ' + crmWho_(a0.patName, a0.hn) + ' อย่าลืมนัดหมายของคุณนะคะ (' + list.length + ' นัดในวันเดียวกัน)', rows, buttons) };
 }
-function crmMoney_(n) { return '฿' + String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function crmMoney_(n) { return crmNum_(n) + ' บาท'; }
+function crmNum_(n) { return String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 // สรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ (+ คำแนะนำหลังรักษาในการ์ดเดียวกัน ถ้ามี template ที่อนุมัติแล้ว)
 // trs = รายการรักษา (อันเดียวหรือ array) · extra = { tpls: [...], notes: [...] } (ไม่บังคับ)
 function crmTreatAmt_(t) { return (+t.cash || 0) + (+t.transfer || 0) + (+t.sso || 0); }
@@ -677,12 +680,16 @@ function crmReceiptMessage_(s, trs, extra) {
   } else {
     items.forEach(function (x, i) { rows.push(crmRow_(i === 0 ? 'การรักษา' : '', (i + 1) + '. ' + x.proc + (x.price !== null ? ' — ' + crmMoney_(x.price) : ''))); });
   }
-  if (total > 0) {
-    rows.push(crmRow_('ค่าใช้จ่าย', crmMoney_(total)));
-    var parts = [];
-    if (cash > 0) parts.push(['เงินสด', cash]); if (tr > 0) parts.push(['โอนเงิน', tr]); if (sso > 0) parts.push(['ประกันสังคม', sso]);
-    if (parts.length > 1) parts.forEach(function (x) { rows.push(crmRow_('  ' + x[0], crmMoney_(x[1]))); });
-    else if (parts.length === 1 && parts[0][0] !== 'เงินสด') rows.push(crmRow_('ชำระโดย', parts[0][0]));
+  var paid = cash + tr;
+  if (total > 0) {   // ค่ารักษารวม → หักสิทธิประกันสังคม → ยอดที่คนไข้ชำระจริง (ตรงกับใบเสร็จ)
+    rows.push({ type: 'separator', margin: 'md' });
+    if (sso > 0) {
+      rows.push(crmRow_('ค่ารักษารวม', crmMoney_(total)));
+      rows.push(crmRow_('ใช้สิทธิประกันสังคม', '−' + crmMoney_(sso)));
+      rows.push(crmRow_('ชำระ', paid > 0 ? crmMoney_(paid) : 'ไม่ต้องชำระเพิ่ม'));
+    } else rows.push(crmRow_('ชำระ', crmMoney_(paid)));
+    if (cash > 0 && tr > 0) { rows.push(crmRow_('  เงินสด', crmMoney_(cash))); rows.push(crmRow_('  โอนเงิน', crmMoney_(tr))); }
+    else if (paid > 0) rows.push(crmRow_('ชำระโดย', cash > 0 ? 'เงินสด' : 'โอนเงิน'));
   } else rows.push(crmRow_('ค่าใช้จ่าย', 'ไม่มีค่าใช้จ่าย'));
   var tpls = (extra && extra.tpls) || [], notes = (extra && extra.notes) || [];
   var hasAfter = tpls.length || notes.length;
@@ -694,9 +701,9 @@ function crmReceiptMessage_(s, trs, extra) {
     rows.push({ type: 'text', text: 'มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ', wrap: true, size: 'xs', color: '#83627C', margin: 'md' });
   }
   var corrected = !!(extra && extra.corrected);
-  var sub = corrected ? ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขออภัยในความคลาดเคลื่อนค่ะ คลินิกขอแก้ไขข้อมูลค่าใช้จ่ายดังนี้') : ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูรอยยิ้มของคุณค่ะ☺️');
+  var sub = corrected ? ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขออภัยในความคลาดเคลื่อนค่ะ คลินิกขอแก้ไขข้อมูลค่าใช้จ่ายดังนี้') : ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูแลรอยยิ้มของคุณค่ะ ☺️');
   var buttons = [crmInquiryNote_(s)];
-  return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ' + crmMoney_(total) : '') + (hasAfter ? ' และคำแนะนำหลังรักษา' : '') + ' ขอบคุณที่มาใช้บริการค่ะ',
+  return { type: 'flex', altText: 'สรุปการรักษา' + (total > 0 ? ' ชำระ ' + crmMoney_(cash + tr) : '') + (hasAfter ? ' และคำแนะนำหลังรักษา' : '') + ' ขอบคุณที่มาใช้บริการค่ะ',
     contents: crmBubble_(s, corrected ? '🧾 แก้ไขสรุปค่าใช้จ่าย' : (hasAfter ? '🧾 สรุปการรักษา & คำแนะนำ' : '🧾 สรุปการรักษา'), sub, rows, buttons, '#1D825C') };
 }
 function crmAftercareMessages_(s, patName, date, tpls, notes, hn) {
@@ -1358,10 +1365,11 @@ function crmOrthoVisitMessage_(s, v) {
     contents: crmBubble_(s, '🦷 สรุปการมาจัดฟันวันนี้', 'ขอบคุณที่มาตามนัดค่ะ คุณ' + crmWho_(v.patName, v.hn), rows, [crmInquiryNote_(s)]) };
 }
 function crmCancelMessage_(s, task) {
-  var rows = [crmRow_('วัน', crmThaiDate_(task.aptDate))];
+  var rows = [crmRow_('วัน', crmThaiDate_(task.aptDate) + ' (ยกเลิก)')];
   if (task.aptTime) rows.push(crmRow_('เวลา', task.aptTime + ' น.'));
+  var buttons = [{ type: 'button', style: 'primary', color: '#6B2D5E', height: 'md', action: { type: 'message', label: '📌 ขอนัดวันใหม่', text: 'ขอนัดวันใหม่' } }, crmInquiryNote_(s)];
   return { type: 'flex', altText: 'แจ้งยกเลิกนัดหมาย ' + crmThaiDate_(task.aptDate),
-    contents: crmBubble_(s, '📌 แจ้งยกเลิกนัดหมาย', 'คุณ' + crmWho_(task.patName, task.hn) + ' คลินิกขอยกเลิกนัดหมายนี้ค่ะ หากต้องการนัดหมายใหม่ ติดต่อคลินิกได้เลยค่ะ', rows, [crmInquiryNote_(s)]) };
+    contents: crmBubble_(s, '❌ แจ้งยกเลิกนัดหมาย', 'คุณ' + crmWho_(task.patName, task.hn) + ' คลินิกขอยกเลิกนัดหมายนี้ค่ะ ต้องการนัดวันใหม่ กดปุ่มด้านล่างได้เลยค่ะ', rows, buttons, '#8B2E3B') };
 }
 function crmCreateTask_(t) {
   var now = crmNow_();
@@ -1789,7 +1797,7 @@ var CRM_CLINIC_ADDR = '119/14 หมู่ 3 ซ.ปทุมธานี-สา
 var CRM_CLINIC_MAP = 'https://maps.google.com/?cid=13261426560365025658';
 var CRM_SSO_URL = 'https://bangluangsmile.com/prakan-sangkom-tamfun.html';
 var CRM_SSO_LIMIT = 900;   // อุด/ถอน/ขูดหินปูน รวมต่อปี (ตามข้อตกลงที่มีผล 1 พ.ค. 2569)
-var CRM_FAQ_BOOK = { 'ขอนัดใช้สิทธิประกันสังคม': '🏛️ ขอนัดใช้สิทธิประกันสังคม (กดจากการ์ดประกันสังคม)', 'ขอนัดตรวจฟัน': '🦷 ขอนัดตรวจฟัน (กดจากการ์ดราคา)' };
+var CRM_FAQ_BOOK = { 'ขอนัดวันใหม่': '📌 ขอนัดวันใหม่ (กดจากการ์ดแจ้งยกเลิกนัด)', 'ขอนัดใช้สิทธิประกันสังคม': '🏛️ ขอนัดใช้สิทธิประกันสังคม (กดจากการ์ดประกันสังคม)', 'ขอนัดตรวจฟัน': '🦷 ขอนัดตรวจฟัน (กดจากการ์ดราคา)' };
 var CRM_FAQ_ASK = 'ขอสอบถามแอดมินค่ะ';
 var CRM_PRICE_GROUPS = [   // ราคาตามที่แอดมินตอบคนไข้จริง (Toy ยืนยัน 9 พ.ย. 2569) · re = คำค้นที่ทำให้หมวดนี้ขึ้น
   { re: /ขูดหินปูน|หินปูน/, pick: 'ขูดหินปูน', title: '🪥 ขูดหินปูน', rows: [['ขูดหินปูน', '900–1,200', ''], ['หินปูนมาก / คราบกาแฟ-บุหรี่', '1,200–1,500', 'กรณีไม่ได้ทำมานาน']] },
@@ -1904,7 +1912,7 @@ function crmFaqSsoMessage_(s, uid) {
       body.push({ type: 'text', text: '👤 สิทธิ์ของคุณปีนี้ (ประมาณการ)', size: 'sm', weight: 'bold', color: '#2b1026', margin: 'lg' });
       hns.forEach(function (h) {
         var k = crmHN_(h), u = used[k] || 0, left = Math.max(0, CRM_SSO_LIMIT - u);
-        body.push(crmFaqRow_(crmWho_(names[k] || '', h), u ? ('ใช้ไป ' + crmMoney_(u)) : 'ยังไม่ได้ใช้', true, 'คงเหลือประมาณ ' + crmMoney_(left) + ' บาท (อุด/ถอน/ขูดหินปูน)'));
+        body.push(crmFaqRow_(crmWho_(names[k] || '', h), u ? ('ใช้ไป ' + crmNum_(u)) : 'ยังไม่ได้ใช้', true, 'คงเหลือประมาณ ' + crmNum_(left) + ' บาท (อุด/ถอน/ขูดหินปูน)'));
       });
       body.push({ type: 'text', text: 'คำนวณจากการรักษาที่คลินิกนี้เท่านั้น ถ้าใช้สิทธิ์ที่อื่นด้วย ยอดจริงอาจต่างไป เจ้าหน้าที่จะตรวจสอบให้อีกครั้งค่ะ', size: 'xxs', color: '#999999', wrap: true, margin: 'sm' });
     }
@@ -1917,7 +1925,6 @@ function crmFaqSsoMessage_(s, uid) {
       { type: 'uri', label: '📄 อ่านรายละเอียดสิทธิ์', uri: CRM_SSO_URL },
       { type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_FAQ_ASK }]) } };
 }
-function crmMoney_(n) { return String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 /* เวลาทำการ + แผนที่: บอกสถานะตอนนี้ (เปิดอยู่/ปิดแล้ว) + ตารางทั้งสัปดาห์ */
 function crmFaqHoursMessage_(s) {
   var dow = crmDow_(), h = CRM_CLINIC_HOURS[dow], now = crmHm_();
