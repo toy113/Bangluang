@@ -467,13 +467,13 @@ var CRM_REPLY_CALLBACK = 'รับเรื่องแล้วค่ะ 🙏 
 
 function crmSeedTemplates_() {
   var surgOpts = [crmOpt_('ปกติดี', 'ok', CRM_REPLY_OK), crmOpt_('ปวดเล็กน้อย', 'mild', CRM_REPLY_MILD), crmOpt_('ปวดมาก', 'severe', CRM_REPLY_SEVERE),
-    crmOpt_('บวมมาก', 'severe', CRM_REPLY_SEVERE), crmOpt_('เลือดออกไม่หยุด', 'emergency', ''), crmOpt_('หายใจ/กลืนลำบาก', 'emergency', ''),
+    crmOpt_('บวมมาก', 'severe', CRM_REPLY_SEVERE),
     crmOpt_('ให้คลินิกโทรกลับ', 'callback', CRM_REPLY_CALLBACK)];
   var basicOpts = [crmOpt_('ปกติดี', 'ok', CRM_REPLY_OK), crmOpt_('เสียวฟัน/เจ็บเล็กน้อย', 'mild', 'อาการเสียวหรือเจ็บเล็กน้อยพบได้ในช่วงไม่กี่วันแรก และมักดีขึ้นเองค่ะ\nถ้าไม่ดีขึ้นหรือเป็นมากขึ้น กดปุ่ม "ให้คลินิกโทรกลับ" ได้เลยค่ะ'),
     crmOpt_('ปวดมาก', 'severe', CRM_REPLY_SEVERE), crmOpt_('ให้คลินิกโทรกลับ', 'callback', CRM_REPLY_CALLBACK)];
   var endoOpts = [crmOpt_('ปกติดี', 'ok', CRM_REPLY_OK), crmOpt_('เจ็บเวลากัดเล็กน้อย', 'mild', 'อาการเจ็บเวลากัดเล็กน้อยพบได้ 2–3 วันหลังรักษารากฟันค่ะ เลี่ยงเคี้ยวด้านนั้นและรับประทานยาตามที่ทันตแพทย์สั่ง\nถ้าไม่ดีขึ้น กดปุ่ม "ให้คลินิกโทรกลับ" ได้เลยค่ะ'),
     crmOpt_('ปวดมาก', 'severe', CRM_REPLY_SEVERE), crmOpt_('บวม', 'severe', CRM_REPLY_SEVERE), crmOpt_('วัสดุอุดหลุด', 'callback', CRM_REPLY_CALLBACK),
-    crmOpt_('หายใจ/กลืนลำบาก', 'emergency', ''), crmOpt_('ให้คลินิกโทรกลับ', 'callback', CRM_REPLY_CALLBACK)];
+    crmOpt_('ให้คลินิกโทรกลับ', 'callback', CRM_REPLY_CALLBACK)];
   var dentureOpts = [crmOpt_('ใส่ได้ปกติ', 'ok', CRM_REPLY_OK), crmOpt_('เจ็บเหงือกเล็กน้อย', 'mild', 'ช่วงแรกอาจรู้สึกแน่นหรือเจ็บเหงือกเล็กน้อยได้ค่ะ\nถ้าเจ็บจนเป็นแผล อย่าแก้ฟันปลอมเอง กดปุ่ม "ให้คลินิกโทรกลับ" เพื่อนัดปรับได้เลยค่ะ'),
     crmOpt_('เป็นแผล/เจ็บมาก', 'severe', CRM_REPLY_SEVERE), crmOpt_('หลวม/หลุดบ่อย', 'callback', CRM_REPLY_CALLBACK), crmOpt_('ให้คลินิกโทรกลับ', 'callback', CRM_REPLY_CALLBACK)];
   var crownOpts = [crmOpt_('ปกติดี', 'ok', CRM_REPLY_OK),
@@ -719,6 +719,7 @@ function crmReviewAllowed_(s, docNames, tplId) {
   });
   return ok;   // หมอที่ไม่อยู่ในกติกา = ไม่เด้งไปรีวิว
 }
+var CRM_HIDDEN_OPT_LABELS_ = ['เลือดออกไม่หยุด', 'หายใจ/กลืนลำบาก'];   // ไม่แสดงเป็นปุ่มในการ์ดติดตามอาการ (คนไข้ยังพิมพ์แจ้งเองได้ — ระบบจับคำฉุกเฉินจากข้อความเหมือนเดิม)
 function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
   var opts = [];
   try { opts = JSON.parse(tpl.followupOptions || '[]'); } catch (e) {}
@@ -730,8 +731,10 @@ function crmFollowupMessage_(s, fu, tpl, patName, procText, docOk) {
       okReview = !crmRead_('followups').some(function (r) { return crmHN_(r.hn) === hk0 && r.reviewAt && String(r.reviewAt).slice(0, 10) > since0; });
     }
   } catch (eOk) { okReview = false; }
-  var buttons = opts.slice(0, 9).map(function (o, i) {
-    var em = o.kind === 'emergency', sev = o.kind === 'severe';
+  var buttons = opts.slice(0, 9).map(function (o, i) { return { o: o, i: i }; }).filter(function (x) {
+    return CRM_HIDDEN_OPT_LABELS_.indexOf(String(x.o.label || '').replace(/\s+/g, '')) === -1;   // ซ่อนปุ่มเลือดออก/หายใจลำบาก (เก็บ index เดิมไว้ให้ postback ตรงกับตัวเลือกในแม่แบบ)
+  }).map(function (x) {
+    var o = x.o, i = x.i, em = o.kind === 'emergency', sev = o.kind === 'severe';
     return { type: 'button', height: 'sm', style: em ? 'primary' : (o.kind === 'ok' ? 'primary' : 'secondary'),
       color: em ? '#C0392B' : (o.kind === 'ok' ? '#1D825C' : (sev ? '#F5D7DB' : undefined)),
       action: (o.kind === 'ok' && okReview)   // ปกติดี → เด้งไปหน้ารีวิว Google ทันที (ผ่านหน้า rate.html ที่บันทึกคำตอบก่อน)
