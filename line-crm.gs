@@ -1785,20 +1785,21 @@ var CRM_SSO_LIMIT = 900;   // อุด/ถอน/ขูดหินปูน �
 var CRM_FAQ_BOOK = { 'ขอนัดใช้สิทธิประกันสังคม': '🏛️ ขอนัดใช้สิทธิประกันสังคม (กดจากการ์ดประกันสังคม)', 'ขอนัดตรวจฟัน': '🦷 ขอนัดตรวจฟัน (กดจากการ์ดราคา)' };
 var CRM_FAQ_ASK = 'ขอสอบถามแอดมินค่ะ';
 var CRM_PRICE_GROUPS = [   // ราคาตามที่แอดมินตอบคนไข้จริง (Toy ยืนยัน 9 พ.ย. 2569) · re = คำค้นที่ทำให้หมวดนี้ขึ้น
-  { re: /ขูดหินปูน|หินปูน/, title: '🪥 ขูดหินปูน', rows: [['ขูดหินปูน', '900–1,200', ''], ['หินปูนมาก / คราบกาแฟ-บุหรี่', '1,200–1,500', 'กรณีไม่ได้ทำมานาน']] },
-  { re: /อุด/, title: '🦷 อุดฟัน', rows: [['อุดฟันทั่วไป', '800–1,500', 'ต่อซี่'], ['อุดฟันหลายด้าน', '1,500–3,000', 'ต่อซี่']] },
-  { re: /ถอน|คุด/, title: '🦷 ถอนฟัน / ฟันคุด', rows: [['ถอนฟันทั่วไป', '700–900', 'ต่อซี่'], ['ถอนฟันกราม', '900–1,200', 'ต่อซี่'], ['ถอนฟันคุด', '1,200–1,500', 'ต่อซี่'], ['ผ่าฟันคุด', 'เริ่ม 3,500–4,500', 'ต่อซี่ · ต้องเอ็กซเรย์ก่อน']] },
-  { re: /รักษาราก|รากฟัน(?!เทียม)|คลองราก/, title: '🦷 รักษารากฟัน', rows: [['ฟันหน้า', '7,000', ''], ['ฟันกรามน้อย', '9,000', ''], ['ฟันกรามใหญ่', '10,000–12,000', '']], note: 'แบ่งจ่ายได้ 2 รอบ · หมอรักษารากเข้าทุกวันอังคาร' },
-  { re: /ครอบ|เดือย|วีเนียร์/, title: '👑 ครอบฟัน', rows: [['ปักเดือย', '4,000', ''], ['ครอบฟัน', 'เริ่ม 12,000–17,000', 'แบ่งจ่ายได้ 2 รอบ']] },
-  { re: /ฟันปลอม|ฟันเทียมถอด|ฐานนิ่ม/, title: '😁 ฟันปลอม', rows: [['ฟันปลอมฐานนิ่ม', '5,500', 'ซี่แรก · ซี่ถัดไป +400 ต่อซี่'], ['ฟันปลอมทั่วไป', 'เริ่ม 3,000', 'ต่อชิ้น']] },
-  { re: /รีเทนเนอร์/, title: '😬 รีเทนเนอร์', rows: [['รีเทนเนอร์ทำใหม่', '4,000', 'ต่อคู่ บน+ล่าง']] },
-  { re: /รากฟันเทียม|รากเทียม|implant/i, title: '🦷 รากฟันเทียม', rows: [['รากฟันเทียม', 'ประเมินหลังตรวจ', 'แจ้งราคาก่อนเริ่มรักษา']] }
+  { re: /ขูดหินปูน|หินปูน/, pick: 'ขูดหินปูน', title: '🪥 ขูดหินปูน', rows: [['ขูดหินปูน', '900–1,200', ''], ['หินปูนมาก / คราบกาแฟ-บุหรี่', '1,200–1,500', 'กรณีไม่ได้ทำมานาน']] },
+  { re: /อุด/, pick: 'อุดฟัน', title: '🦷 อุดฟัน', rows: [['อุดฟันทั่วไป', '800–1,500', 'ต่อซี่'], ['อุดฟันหลายด้าน', '1,500–3,000', 'ต่อซี่']] },
+  { re: /ถอน|คุด/, pick: 'ถอนฟัน/ฟันคุด', title: '🦷 ถอนฟัน / ฟันคุด', rows: [['ถอนฟันทั่วไป', '700–900', 'ต่อซี่'], ['ถอนฟันกราม', '900–1,200', 'ต่อซี่'], ['ถอนฟันคุด', '1,200–1,500', 'ต่อซี่'], ['ผ่าฟันคุด', 'เริ่ม 3,500–4,500', 'ต่อซี่ · ต้องเอ็กซเรย์ก่อน']] },
+  { re: /รักษาราก|รากฟัน(?!เทียม)|คลองราก/, pick: 'รักษารากฟัน', title: '🦷 รักษารากฟัน', rows: [['ฟันหน้า', '7,000', ''], ['ฟันกรามน้อย', '9,000', ''], ['ฟันกรามใหญ่', '10,000–12,000', '']], note: 'แบ่งจ่ายได้ 2 รอบ · หมอรักษารากเข้าทุกวันอังคาร' },
+  { re: /ครอบ|เดือย|วีเนียร์/, pick: 'ครอบฟัน', title: '👑 ครอบฟัน', rows: [['ปักเดือย', '4,000', ''], ['ครอบฟัน', 'เริ่ม 12,000–17,000', 'แบ่งจ่ายได้ 2 รอบ']] },
+  { re: /ฟันปลอม|ฟันเทียมถอด|ฐานนิ่ม/, pick: 'ฟันปลอม', title: '😁 ฟันปลอม', rows: [['ฟันปลอมฐานนิ่ม', '5,500', 'ซี่แรก · ซี่ถัดไป +400 ต่อซี่'], ['ฟันปลอมทั่วไป', 'เริ่ม 3,000', 'ต่อชิ้น']] },
+  { re: /รีเทนเนอร์/, pick: 'รีเทนเนอร์', title: '😬 รีเทนเนอร์', rows: [['รีเทนเนอร์ทำใหม่', '4,000', 'ต่อคู่ บน+ล่าง']] },
+  { re: /รากฟันเทียม|รากเทียม|implant/i, pick: 'รากฟันเทียม', title: '🦷 รากฟันเทียม', rows: [['รากฟันเทียม', 'ประเมินหลังตรวจ', 'แจ้งราคาก่อนเริ่มรักษา']] }
 ];
 function crmFaqTopic_(t) {
   if (/ประกันสังคม|ปกส|ป\.ก\.ส|ใช้สิทธิ|สิทธิ์?ทำฟัน|สิทธิ์?ทันต|สิทธิ์?เหลือ/.test(t)) return 'sso';
   if (!/นัด/.test(t) && /เปิดกี่โมง|ปิดกี่โมง|เปิดกี่|ปิดกี่|เปิดถึง|ปิดถึง|ถึงกี่โมง|เวลาเปิด|เวลาทำการ|เปิดไหม|เปิดมั้ย|เปิดมั๊ย|เปิดหรือเปล่า|เปิดวัน|ปิดวัน|หยุดวัน|วันหยุด|เปิดทุกวัน|อยู่ตรงไหน|อยู่ที่ไหน|อยู่แถวไหน|อยู่ไหน|แถวไหน|ที่อยู่|แผนที่|ไปยังไง|ไปทางไหน|เดินทาง|จอดรถ|โลเคชั่น|location|พิกัด/i.test(t)) return 'hours';
   var priceQ = /ราคา|เท่าไ[หร]|เท่าไร|กี่บาท|ค่าทำ|ค่ารักษา|ค่าใช้จ่าย/.test(t);
   if (priceQ && CRM_PRICE_GROUPS.some(function (g) { return g.re.test(t); })) return 'price';
+  if (/ราคา|กี่บาท|ค่าทำฟัน|ค่ารักษา|ค่าใช้จ่าย/.test(t) && t.indexOf('จัดฟัน') === -1) return 'pricemenu';   // ถามราคาแบบไม่ระบุ → ให้เลือกหัวข้อก่อน
   return '';
 }
 function crmFaqHandle_(s, ev, uid, text, chatting) {
@@ -1816,6 +1817,15 @@ function crmFaqHandle_(s, ev, uid, text, chatting) {
     crmReply_(ev.replyToken, [crmText_('ได้เลยค่ะ 😊 พิมพ์คำถามไว้ได้เลย ' + (crmPromoInHours_(s) ? 'แอดมินจะตอบโดยเร็วค่ะ' : 'แอดมินจะตอบกลับ ' + crmPromoBackText_(s) + ' ค่ะ'))]);
     return true;
   }
+  if (tm === CRM_PRICE_MENU_TXT || tm.indexOf(CRM_PRICE_PICK_PREFIX) === 0) {   // ปุ่มจากเมนูราคา/การ์ดราคา → ตอบทันที
+    var pick = tm.slice(CRM_PRICE_PICK_PREFIX.length), g = CRM_PRICE_GROUPS.filter(function (x) { return x.pick === pick; })[0];
+    var m = tm === CRM_PRICE_MENU_TXT ? crmFaqPriceMenu_() : pick === 'จัดฟัน' ? crmOrthoPromoMessage_(s) : g ? crmFaqPriceMessage_(s, '', [g]) : null;
+    if (m) {
+      crmReply_(ev.replyToken, [m]);
+      try { crmAppend_('log', { key: 'faq:pick:' + uid + ':' + Date.now(), type: 'faq', hn: '', patName: '', lineUserId: uid, refId: 'price', status: 'sent', detail: 'เลือกจากเมนูราคา · ' + tm, createdAt: crmNow_(), pushCount: 0 }); } catch (eP) {}
+      return true;
+    }
+  }
   if (!(s.faqOn === true || s.faqOn === 'true' || s.faqOn === 'TRUE' || s.faqOn === undefined)) return false;
   var topic = crmFaqTopic_(tm);
   if (!topic) return false;
@@ -1825,16 +1835,16 @@ function crmFaqHandle_(s, ev, uid, text, chatting) {
   if (chatting) return false;
   var cache = CacheService.getScriptCache(), ck = 'crm_faq_' + topic + '_' + uid;
   if (cache.get(ck)) return false;   // หัวข้อเดิมภายใน 6 ชม. → ให้แอดมินตอบ
-  var msg = topic === 'sso' ? crmFaqSsoMessage_(s, uid) : topic === 'hours' ? crmFaqHoursMessage_(s) : crmFaqPriceMessage_(s, tm);
+  var msg = topic === 'sso' ? crmFaqSsoMessage_(s, uid) : topic === 'hours' ? crmFaqHoursMessage_(s) : topic === 'pricemenu' ? crmFaqPriceMenu_() : crmFaqPriceMessage_(s, tm);
   var msgs = [msg];
-  if (!crmPromoInHours_(s) && topic !== 'hours') msgs.push(crmText_('ขณะนี้อยู่นอกเวลาทำการค่ะ 🌙 แอดมินจะติดต่อกลับ ' + crmPromoBackText_(s) + ' ค่ะ'));
+  if (!crmPromoInHours_(s) && topic !== 'hours' && topic !== 'pricemenu') msgs.push(crmText_('ขณะนี้อยู่นอกเวลาทำการค่ะ 🌙 แอดมินจะติดต่อกลับ ' + crmPromoBackText_(s) + ' ค่ะ'));
   var res = crmApi_('post', '/v2/bot/message/reply', { replyToken: ev.replyToken, messages: msgs });
   if (!res || res.code !== 200) {
     try { crmAppend_('log', { key: 'faqerr:' + Date.now(), type: 'faq', hn: '', patName: '', lineUserId: uid, refId: topic, status: 'error', detail: String(res && res.text || '').slice(0, 300), createdAt: crmNow_(), pushCount: 0 }); } catch (eE) {}
     return false;   // ส่งการ์ดไม่สำเร็จ → ปล่อยให้แจ้งแอดมินตามปกติ
   }
   cache.put(ck, '1', 21600);
-  var w3 = whoOf(), label = { sso: 'ประกันสังคม', hours: 'เวลาทำการ/แผนที่', price: 'ราคา' }[topic];
+  var w3 = whoOf(), label = { sso: 'ประกันสังคม', hours: 'เวลาทำการ/แผนที่', price: 'ราคา', pricemenu: 'เมนูเลือกราคา' }[topic];
   try { crmAppend_('log', { key: 'faq:' + topic + ':' + uid + ':' + Date.now(), type: 'faq', hn: w3.hn || '', patName: w3.name || '', lineUserId: uid, refId: topic, status: 'sent', detail: label + ' · ' + tm.slice(0, 150), createdAt: crmNow_(), pushCount: 0 }); } catch (eL) {}
   try { crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: w3.hn, patName: w3.name, lineUserId: uid, detail: '🤖 ตอบอัตโนมัติแล้ว (' + label + '): ' + tm.slice(0, 150) }); } catch (eN) {}
   return true;
@@ -1924,8 +1934,8 @@ function crmFaqHoursMessage_(s) {
       { type: 'message', label: '📌 นัดตรวจฟัน', text: 'ขอนัดตรวจฟัน' }]) } };
 }
 /* ราคาโดยประมาณ: แสดงเฉพาะหมวดที่ถาม (เช่น "รักษารากรวมครอบ" → 2 หมวด) */
-function crmFaqPriceMessage_(s, t) {
-  var groups = CRM_PRICE_GROUPS.filter(function (g) { return g.re.test(t); });
+function crmFaqPriceMessage_(s, t, forced) {
+  var groups = forced || CRM_PRICE_GROUPS.filter(function (g) { return g.re.test(t); });
   if (!groups.length) groups = CRM_PRICE_GROUPS.slice(0, 3);
   if (groups.some(function (g) { return /รักษาราก/.test(g.title); }) && !groups.some(function (g) { return /ครอบ/.test(g.title); }))
     groups.push(CRM_PRICE_GROUPS.filter(function (g) { return /ครอบ/.test(g.title); })[0]);   // รักษารากส่วนใหญ่ต้องครอบต่อ → แสดงราคาครอบด้วย
@@ -1948,7 +1958,26 @@ function crmFaqPriceMessage_(s, t) {
     body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'none', contents: body },
     footer: crmFaqFooter_([
       { type: 'message', label: '📌 นัดตรวจฟัน', text: 'ขอนัดตรวจฟัน' },
+      { type: 'message', label: '📋 ดูราคาเรื่องอื่น', text: CRM_PRICE_MENU_TXT },
       { type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_FAQ_ASK }]) } };
+}
+/* เมนูเลือกหัวข้อราคา: ปุ่ม 2 คอลัมน์ → กดแล้วส่ง "ราคา<หัวข้อ>" กลับมา = ได้การ์ดราคากลุ่มนั้น */
+var CRM_PRICE_MENU_TXT = 'ดูราคาเรื่องอื่น';
+var CRM_PRICE_PICK_PREFIX = 'ราคา';
+function crmFaqPriceMenu_() {
+  var items = [['🪥', 'ขูดหินปูน'], ['🦷', 'อุดฟัน'], ['🦷', 'ถอนฟัน/ฟันคุด'], ['🦷', 'รักษารากฟัน'], ['👑', 'ครอบฟัน'], ['😁', 'ฟันปลอม'], ['😬', 'จัดฟัน'], ['🦷', 'รากฟันเทียม']];
+  var btn = function (it) {
+    return { type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#F3ECF1', cornerRadius: '10px', paddingAll: '10px', justifyContent: 'center',
+      action: { type: 'message', label: it[1], text: CRM_PRICE_PICK_PREFIX + it[1] },
+      contents: [{ type: 'text', text: it[0] + ' ' + it[1], size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'center', wrap: true }] };
+  };
+  var rows = [];
+  for (var i = 0; i < items.length; i += 2) rows.push({ type: 'box', layout: 'horizontal', spacing: 'sm', contents: [btn(items[i]), btn(items[i + 1])] });
+  return { type: 'flex', altText: '🦷 สนใจราคาเรื่องไหนคะ? เลือกหัวข้อได้เลย', contents: { type: 'bubble', size: 'mega',
+    header: crmFaqHeader_('🦷 ราคาโดยประมาณ', 'สนใจเรื่องไหนคะ?', 'แตะหัวข้อ แล้วส่งราคาให้ทันทีค่ะ'),
+    body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm', contents: rows.concat([
+      { type: 'text', text: 'ไม่เจอเรื่องที่ต้องการ พิมพ์ถามได้เลยค่ะ', size: 'xxs', color: '#999999', align: 'center', margin: 'md' }]) },
+    footer: crmFaqFooter_([{ type: 'message', label: '💬 สอบถามแอดมิน', text: CRM_FAQ_ASK }]) } };
 }
 
 /* ============================ PATIENT PORTAL (LIFF) ============================ */
