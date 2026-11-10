@@ -2140,8 +2140,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           </div>
           <div style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--wine);">▾</div>
           <div id="treat-proc-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;
-            background:#fff;border:1.5px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;
-            box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-top:4px;padding:8px 0;">
+            background:#fff;border:1.5px solid var(--border);border-radius:10px;max-height:340px;overflow-y:auto;
+            box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-top:4px;padding:0 0 8px;">
           </div>
         </div>
         <input type="hidden" id="treat-proc">
@@ -2149,6 +2149,15 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <div class="form-group" id="treat-teeth-wrap" style="display:none;">
         <label>🦷 ซี่ฟัน (ระบบ FDI 2 หลัก) <span style="color:#C0392B;">*</span> <span style="font-size:11px;color:var(--text-light);font-weight:400;">(อุดฟัน · ถอนฟัน · ฟันคุด · รักษารากฟัน · ครอบฟัน ต้องระบุซี่)</span></label>
         <div id="treat-teeth-list"></div>
+      </div>
+      <div class="form-group" id="treat-denture-wrap" style="display:none;">
+        <label>😁 งานฟันปลอม — วิธีคิดเงิน</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label class="den-opt" style="flex:1;min-width:150px;display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;"><input type="radio" name="treat-den-bill" value="รวม" checked onchange="setDentureBilling_(this.value)" style="margin-top:3px;"><span><b>รวมทั้งงาน</b><br><span style="color:var(--text-light);font-size:11px;">คิดราคาที่ตัวฟันปลอม · ขั้นตอนอื่นไม่คิดเพิ่ม</span></span></label>
+          <label class="den-opt" style="flex:1;min-width:150px;display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;"><input type="radio" name="treat-den-bill" value="แยก" onchange="setDentureBilling_(this.value)" style="margin-top:3px;"><span><b>แยกตามขั้นตอน</b><br><span style="color:var(--text-light);font-size:11px;">ใส่ราคาแต่ละขั้นตอนที่ทำวันนี้</span></span></label>
+        </div>
+        <input type="hidden" id="treat-den-billing" value="รวม">
+        <div id="treat-den-hint" style="font-size:12px;margin-top:8px;"></div>
       </div>
       <div class="form-group" id="treat-pp-wrap" style="display:none;">
         <label>💰 ราคาแต่ละรายการ <span style="font-size:11px;color:var(--text-light);font-weight:400;">(อุดฟัน/ถอนฟัน/ฟันคุด/รากฟัน/ครอบฟัน ต้องกรอกราคาแยกรายซี่ · รายการอื่นไม่บังคับ — ถ้ากรอก ข้อความสรุปที่ส่งคนไข้ทาง LINE จะแยกราคาให้)</span></label>
@@ -2490,7 +2499,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="เช็ครีเทนเนอร์"> เช็ครีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ปักหมุด"> ปักหมุด</label>
           <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="ขูดหินปูน"> ขูดหินปูน</label>
-          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="X-ray"> X-ray</label>
+          <label class="checkbox-label"><input type="checkbox" class="olog-do-chk" value="เอ็กซเรย์ฟัน"> เอ็กซเรย์ฟัน</label>
         </div>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
@@ -2534,7 +2543,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="เช็ครีเทนเนอร์" onchange="cameCalc()"> เช็ครีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ทำรีเทนเนอร์" onchange="cameCalc()"> ทำรีเทนเนอร์</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="พิมพ์ปาก" onchange="cameCalc()"> พิมพ์ปาก</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
-          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="X-ray" onchange="cameCalc()"> X-ray</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
+          <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="เอ็กซเรย์ฟัน" onchange="cameCalc()"> เอ็กซเรย์ฟัน</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ติดเครื่องมือบน" onchange="cameCalc()"> ติดเครื่องมือบน</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ติดเครื่องมือล่าง" onchange="cameCalc()"> ติดเครื่องมือล่าง</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="checkbox-label" style="flex:1;"><input type="checkbox" class="came-ex" data-name="ปักหมุด" onchange="cameCalc()"> ปักหมุด</label><input type="number" class="form-control came-exfee" placeholder="บาท" min="0" step="50" style="width:100px;" oninput="cameCalc()"></div>
@@ -2607,7 +2616,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="เช็ครีเทนเนอร์"> เช็ครีเทนเนอร์</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ปักหมุด"> ปักหมุด</label>
           <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="ถอดเครื่องมือจัดฟัน"> ถอดเครื่องมือจัดฟัน</label>
-          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="X-ray"> X-ray</label>
+          <label class="checkbox-label"><input type="checkbox" class="resched-do-chk" value="เอ็กซเรย์ฟัน"> เอ็กซเรย์ฟัน</label>
         </div>
       </div>
       <div class="form-group" style="grid-column:1/-1;">
@@ -2846,7 +2855,42 @@ const DOCTORS_DATA = [
 ];
 const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
-const PROCEDURES = ['ขูดหินปูน','อุดฟัน','อุดชั่วคราว','onlay','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','ตรวจฟัน','X-Ray','X-Ray BW','ดูอาการ','TP','RPD','Valplast','Splint','เดือยฟัน','จ่ายยา','ตัดไหม','เกลารากฟัน','รากฟันเทียม','จัดฟัน','ปรึกษาจัดฟัน','เช็ครีเทนเนอร์','ปรับเครื่องมือ','ติดเครื่องมือบน','ติดเครื่องมือล่าง','ติดเหล็กหลุด','ปักหมุด','ทำรีเทนเนอร์','ถอดเครื่องมือจัดฟัน','ฟอกสีฟัน','ครอบฟัน','รักษารากฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์','ใส่รีเทนเนอร์','พิมพ์รีเทนเนอร์','พิมพ์ปาก','recheck','ใส่ฟัน','ใส่ครอบฟัน','อื่นๆ','MI','FRC','ลองโครง','ลองฟัน','Bite Block','ถอนฟันน้ำนม','เสียวฟัน'];
+/* ===== รายการรักษา: ชื่อไทยตั้งแต่ต้นทาง · จัดเป็นหมวด ===== */
+const PROC_RENAME = {'X-Ray':'เอ็กซเรย์ฟัน','X-Ray BW':'เอ็กซเรย์ตรวจฟันผุ','x-ray':'เอ็กซเรย์ฟัน','TP':'ฟันปลอมถอดได้ฐานพลาสติก','RPD':'ฟันปลอมถอดได้โครงโลหะ','Valplast':'ฟันปลอมฐานนิ่ม','Splint':'เฝือกสบฟัน','recheck':'ตรวจติดตามอาการ','onlay':'ครอบฟันบางส่วน','MI':'รักษารากฟัน (รอบย่อย)','FRC':'อุดคลองรากฟัน','Bite Block':'บันทึกการสบฟัน','Biteblock':'บันทึกการสบฟัน','ใส่ฟัน':'ใส่ฟันปลอม','ลองโครง':'ลองโครงฟันปลอม','ลองฟัน':'ลองฟันปลอม'};
+const DENTURE_TYPES = ['ฟันปลอมถอดได้ฐานพลาสติก','ฟันปลอมถอดได้โครงโลหะ','ฟันปลอมฐานนิ่ม','ฟันปลอมทั้งปาก'];
+const DENTURE_STEPS = ['พิมพ์แบบฟันปลอม','ลองโครงฟันปลอม','บันทึกการสบฟัน','ลองฟันปลอม','ใส่ฟันปลอม','ปรับแก้ฟันปลอม'];
+const PROC_GROUPS = [
+  {name:'ตรวจ / วินิจฉัย', icon:'🔍', items:['ตรวจฟัน','เอ็กซเรย์ฟัน','เอ็กซเรย์ตรวจฟันผุ','ดูอาการ','ตรวจติดตามอาการ']},
+  {name:'อุดฟัน / ซ่อมฟัน', icon:'🦷', items:['อุดฟัน','อุดชั่วคราว','เดือยฟัน','เสียวฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์']},
+  {name:'ขูดหินปูน / เหงือก / ฟอกสี', icon:'✨', items:['ขูดหินปูน','เกลารากฟัน','ฟอกสีฟัน']},
+  {name:'รักษารากฟัน', icon:'🩺', items:['รักษารากฟัน','รักษารากฟัน (รอบย่อย)','อุดคลองรากฟัน']},
+  {name:'ถอนฟัน / ผ่าตัด', icon:'🔧', items:['ถอนฟัน','ถอนฟันน้ำนม','ถอนฟันคุด','ผ่าฟันคุด','ตัดไหม','รากฟันเทียม']},
+  {name:'ครอบฟัน', icon:'👑', items:['ครอบฟัน','ใส่ครอบฟัน','ครอบฟันบางส่วน']},
+  {name:'ฟันปลอม', icon:'😁', items:DENTURE_TYPES.concat(DENTURE_STEPS), denture:true},
+  {name:'จัดฟัน', icon:'😬', items:['จัดฟัน','ปรึกษาจัดฟัน','ติดเครื่องมือบน','ติดเครื่องมือล่าง','ปรับเครื่องมือ','ติดเหล็กหลุด','ปักหมุด','ถอดเครื่องมือจัดฟัน','พิมพ์รีเทนเนอร์','ทำรีเทนเนอร์','ใส่รีเทนเนอร์','เช็ครีเทนเนอร์']},
+  {name:'อื่นๆ', icon:'📌', items:['เฝือกสบฟัน','จ่ายยา','อื่นๆ']}
+];
+const PROCEDURES = PROC_GROUPS.reduce((a,g)=>a.concat(g.items),[]);
+function procNormList_(v){ return String(v||'').split(',').map(x=>procNorm_(x)).filter(Boolean).join(','); }
+function procNorm_(s){ s=String(s||'').trim(); return PROC_RENAME[s]||s; }
+function isDentureProc_(p){ return DENTURE_TYPES.includes(p)||DENTURE_STEPS.includes(p); }
+// รายการรักษาแบบจัดหมวด + ช่องค้นหา (ใช้ทั้งฟอร์มบันทึกการรักษาและฟอร์มนัด)
+function procGroupsHtml_(onchange, big){
+  const pad=big?'8px 14px':'6px 8px', fs=big?14:13;
+  return PROC_GROUPS.map((g,gi)=>`<div class="pg" data-g="${gi}">
+    <div class="pg-h" onclick="event.stopPropagation();pgToggle_(this)" style="display:flex;align-items:center;gap:6px;padding:7px ${big?14:8}px;font-size:12px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);cursor:pointer;position:sticky;top:0;z-index:1;"><span class="pg-ar">▾</span><span>${g.icon} ${g.name}</span><span class="pg-n" style="margin-left:auto;font-weight:700;color:var(--wine);"></span></div>
+    <div class="pg-b">${g.items.map(p=>`<label onclick="event.stopPropagation()" class="pg-i" data-n="${p}" style="display:flex;align-items:center;gap:10px;padding:${pad};cursor:pointer;font-size:${fs}px;">
+      <input type="checkbox" value="${p}" onchange="${onchange}" style="width:16px;height:16px;accent-color:var(--wine);cursor:pointer;"><span>${p}</span></label>`).join('')}</div></div>`).join('');
+}
+function pgToggle_(h){ const b=h.nextElementSibling, open=b.style.display==='none'; b.style.display=open?'':'none'; h.querySelector('.pg-ar').textContent=open?'▾':'▸'; }
+function pgSearch_(inp){
+  const box=inp.closest('.pg-root'), q=inp.value.trim().toLowerCase();
+  box.querySelectorAll('.pg').forEach(g=>{ let any=false;
+    g.querySelectorAll('.pg-i').forEach(l=>{ const hit=!q||l.dataset.n.toLowerCase().includes(q)||g.querySelector('.pg-h').textContent.toLowerCase().includes(q); l.style.display=hit?'flex':'none'; if(hit) any=true; });
+    g.style.display=any?'':'none'; const b=g.querySelector('.pg-b'); if(q&&any){ b.style.display=''; g.querySelector('.pg-ar').textContent='▾'; } });
+}
+function pgCount_(root){ root.querySelectorAll('.pg').forEach(g=>{ const n=g.querySelectorAll('input:checked').length; g.querySelector('.pg-n').textContent=n?('เลือก '+n):''; }); }
+function procSearchBox_(){ return '<div style="padding:6px 10px 8px;position:sticky;top:0;z-index:2;background:#fff;"><input type="search" placeholder="🔎 ค้นหารายการรักษา..." oninput="pgSearch_(this)" onclick="event.stopPropagation()" style="width:100%;height:36px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-size:14px;"></div>'; }
 
 const PROC_COLORS = {
   'ขูดหินปูน':    '#2980B9',
@@ -2889,6 +2933,9 @@ const PROC_COLORS = {
   'onlay':       '#D68910',
   'ดูอาการ':     '#5D6D7E',
   'อื่นๆ':        '#626567',
+  'เอ็กซเรย์ฟัน':'#16A085','เอ็กซเรย์ตรวจฟันผุ':'#117864','ฟันปลอมถอดได้ฐานพลาสติก':'#D35400','ฟันปลอมถอดได้โครงโลหะ':'#E67E22','ฟันปลอมฐานนิ่ม':'#F39C12','ฟันปลอมทั้งปาก':'#CA6F1E',
+  'เฝือกสบฟัน':'#5D6D7E','ตรวจติดตามอาการ':'#52BE80','ครอบฟันบางส่วน':'#D68910','รักษารากฟัน (รอบย่อย)':'#148F77','อุดคลองรากฟัน':'#0E6655',
+  'พิมพ์แบบฟันปลอม':'#839192','ลองโครงฟันปลอม':'#DC7633','บันทึกการสบฟัน':'#AF601A','ลองฟันปลอม':'#DC7633','ใส่ฟันปลอม':'#DC7633','ปรับแก้ฟันปลอม':'#BA4A00',
 };
 
 const TIME_SLOTS = [];
@@ -3216,13 +3263,7 @@ function populateSelects(){
   document.getElementById('apt-doc').innerHTML = docOpts;
   // apt-proc is now multi-select checkbox - build options
   const procBox = document.getElementById('apt-proc-options');
-  if(procBox){
-    procBox.innerHTML = PROCEDURES.map(p=>`
-  <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;transition:background 0.12s;" onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background='transparent'">
-    <input type="checkbox" value="${p}" onchange="updateProcLabel()" style="accent-color:var(--wine);width:15px;height:15px;cursor:pointer;">
-    <span>${p}</span>
-  </label>`).join('');
-  }
+  if(procBox){ procBox.classList.add('pg-root'); procBox.innerHTML = procSearchBox_()+procGroupsHtml_('updateProcLabel()',false); }
   // apt-time is now type=time input, no need to populate
   document.getElementById('treat-doc').innerHTML = docOpts;
   document.getElementById('treat-proc').innerHTML = procOpts;
@@ -5775,7 +5816,8 @@ function openAddTreat(t=null){
   }
   document.getElementById('treat-proc').value = t?.proc||'';
   _ppVals = {};
-  setProcSelected(t?.proc||'');
+  setDentureBilling_(t?.dentureBilling||'รวม', true);
+  setProcSelected(procNormList_(t?.proc||''));
   setProcTeeth(t?.procTeeth||''); setToothPrices(t?.toothPrices||'');
   setProcPrices(t?.procPrices||'');
   document.getElementById('treat-cash').value = t?.cash||'';
@@ -5874,6 +5916,7 @@ function saveTreat(){
     status:'เสร็จ',
     docShare,
     procPrices:getProcPrices(),
+    dentureBilling:(String(getProcSelected()).split(',').some(x=>isDentureProc_(x.trim()))?dentureBilling_():''),
     procTeeth:getProcTeeth(),
     toothPrices:getToothPrices(),
     itemDfRate:(existingTreat && existingTreat.itemDfRate!==undefined) ? existingTreat.itemDfRate : '',
@@ -6158,7 +6201,7 @@ function receiptRowsFor_(t){
     .sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
 }
 // ชื่อหัตถการแบบที่คนไข้/บริษัทอ่านเข้าใจ (ใช้บนใบเสร็จ) — ตรงกับ CRM_PAT_TERMS ใน line-crm.gs
-const PAT_TERMS_ = [['X-Ray BW','เอ็กซเรย์ตรวจฟันผุ'],['X-Ray','เอ็กซเรย์ฟัน'],['TP','ฟันปลอมถอดได้ฐานพลาสติก'],['recheck','ตรวจติดตามอาการ'],['onlay','ครอบฟันบางส่วน (Onlay)'],['RPD','ฟันปลอมถอดได้ (โครงโลหะ)'],['Valplast','ฟันปลอมฐานนิ่ม'],['Bite Block','บันทึกการสบฟัน'],['Biteblock','บันทึกการสบฟัน'],['MI','รักษารากฟัน (รอบย่อย)'],['FRC','อุดคลองรากฟัน'],['Splint','เฝือกสบฟัน'],['ใส่ฟัน','ใส่ฟันปลอม'],['ลองโครง','ลองโครงฟันปลอม'],['ลองฟัน','ลองฟันปลอม'],['พิมพ์ปาก','พิมพ์แบบฟัน'],['ปักหมุด','ปักหมุดจัดฟัน'],['ติดเหล็กหลุด','ติดเครื่องมือจัดฟันที่หลุด'],['ปรับเครื่องมือ','ปรับเครื่องมือจัดฟัน'],['เกลารากฟัน','เกลารากฟัน (รักษาโรคเหงือก)'],['เสียวฟัน','รักษาอาการเสียวฟัน'],['จ่ายยา','รับยา'],['ดูอาการ','ตรวจดูอาการ'],['อื่นๆ','ค่ารักษาทางทันตกรรม']];
+const PAT_TERMS_ = Object.entries(PROC_RENAME);   // สำรองสำหรับข้อมูลเก่าที่ยังไม่ได้ย้ายชื่อ
 function patTerm_(item){ const t=String(item||'').trim(), low=t.toLowerCase(); for(const [k,v] of PAT_TERMS_){ const kl=k.toLowerCase(); if(low===kl || (low.indexOf(kl)===0 && /^[\s(]/.test(t.charAt(k.length)))) return v+t.slice(k.length); } return t; }
 function receiptItemsOf_(t){   // แยกรายการตามหัตถการ/ซี่ฟัน/ราคาที่บันทึกไว้ (procPrices, toothPrices, procTeeth) · ถ้ารวมไม่ตรงยอดจริง ใช้ 1 บรรทัดยอดรวม (ยังบอกซี่ในชื่อรายการ)
   const tot=totalPrice(t); let pp={}, tp={};
@@ -9884,6 +9927,7 @@ function updateProcLabel(){
     label.style.color='var(--text-dark)';
   }
   if(hidden) hidden.value = vals.join(', ');
+  const _r=document.getElementById('apt-proc-options'); if(_r) pgCount_(_r);
 }
 function clearProcSelection(){
   document.querySelectorAll('#apt-proc-options input[type=checkbox]').forEach(c=>c.checked=false);
@@ -10320,12 +10364,8 @@ function autoFillPatient(hn, prefix){
 function buildProcDropdown(){
   const dd = document.getElementById('treat-proc-dropdown');
   if(!dd) return;
-  dd.innerHTML = PROCEDURES.map(p=>`
-  <label onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:14px;transition:background 0.1s;"
-    onmouseover="this.style.background='var(--wine-pale)'" onmouseout="this.style.background=''">
-    <input type="checkbox" value="${p}" onchange="updateProcDisplay()" style="width:16px;height:16px;accent-color:var(--wine);cursor:pointer;">
-    <span>${p}</span>
-  </label>`).join('');
+  dd.classList.add('pg-root');
+  dd.innerHTML = procSearchBox_()+procGroupsHtml_('updateProcDisplay()',true);
 }
 
 function toggleTreatProcDropdown(){
@@ -10333,7 +10373,7 @@ function toggleTreatProcDropdown(){
   if(!dd) return;
   const isOpen = dd.style.display !== 'none';
   dd.style.display = isOpen ? 'none' : 'block';
-  if(!isOpen) dd.querySelectorAll('input[type=checkbox]')[0]?.focus();
+  if(!isOpen){ const q=dd.querySelector('input[type=search]'); if(q){ q.value=''; pgSearch_(q); } }
 }
 
 function closeTreatProcDropdown(){
@@ -10375,10 +10415,35 @@ function updateProcDisplay(){
     tag.textContent = p;
     display.insertBefore(tag, ph||null);
   });
+  pgCount_(dd);
+  renderDentureBox_(selected);
   renderTeeth_(selected);
   renderProcPrices(selected);
 }
 
+
+// ---- งานฟันปลอม: เลือกคิดเงินรวม/แยกขั้นตอน ----
+function dentureBilling_(){ return (document.getElementById('treat-den-billing')||{}).value==='แยก'?'แยก':'รวม'; }
+function setDentureBilling_(v, quiet){
+  const h=document.getElementById('treat-den-billing'); if(h) h.value=(v==='แยก'?'แยก':'รวม');
+  document.querySelectorAll('input[name=treat-den-bill]').forEach(r=>{ r.checked=(r.value===(v==='แยก'?'แยก':'รวม')); r.closest('.den-opt').style.background=r.checked?'var(--wine-pale)':''; r.closest('.den-opt').style.borderColor=r.checked?'var(--wine)':''; });
+  if(!quiet){ try{ renderProcPrices(getProcSelected().split(',').map(x=>x.trim()).filter(Boolean)); }catch(e){} }
+}
+function renderDentureBox_(selected){
+  const w=document.getElementById('treat-denture-wrap'); if(!w) return;
+  const has=(selected||[]).some(isDentureProc_);
+  w.style.display=has?'':'none'; if(!has) return;
+  setDentureBilling_(dentureBilling_(), true);
+  // ความคืบหน้า: ขั้นตอนที่เคยลงไว้ของคนไข้คนนี้
+  const hn=String((document.getElementById('treat-hn')||{}).value||'').trim(), hint=document.getElementById('treat-den-hint');
+  if(!hint) return;
+  const idEl=document.getElementById('treat-id'), curId=idEl?idEl.value:'';
+  const done={}; if(hn){ (treatments||[]).forEach(t=>{ if(String(t.hn||'').trim()!==hn || (curId&&String(t.id)===String(curId))) return;
+    String(t.proc||'').split(',').map(x=>procNorm_(x)).forEach(x=>{ if(isDentureProc_(x)&&!done[x]) done[x]=String(t.date||'').slice(0,10); }); }); }
+  const order=DENTURE_TYPES.concat(DENTURE_STEPS), ks=order.filter(k=>done[k]);
+  hint.innerHTML = ks.length ? '<div style="color:var(--text-mid);font-weight:700;margin-bottom:3px;">ที่เคยทำแล้ว</div>'+ks.map(k=>'<div>✅ '+_escHtml(k)+' <span style="color:var(--text-light);">'+_escHtml(done[k])+'</span></div>').join('')
+    + (DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).length?'<div style="margin-top:3px;color:var(--text-light);">ยังไม่ได้ทำ: '+DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).map(_escHtml).join(' · ')+'</div>':'') : '';
+}
 
 // ---- ราคาแยกรายการ (procPrices) ----
 let _ppVals = {};
@@ -10394,7 +10459,9 @@ function renderProcPrices(selected){
     <span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(label)}</span>
     <input type="number" min="0" class="form-control" ${attr} value="${_escHtml(val||'')}" placeholder="บาท" oninput="calcProcPriceCheck()" style="width:130px;height:38px;text-align:right;">
   </div>`;
+  const _den = dentureBilling_()==='รวม';
   box.innerHTML = selected.map(p=>{ const col=PROC_COLORS[p]||'var(--wine)', mt=multiTeeth_(p);
+    if(_den && DENTURE_STEPS.includes(p)) return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(p)}</span><span style="font-size:12px;color:var(--text-light);">รวมในราคาฟันปลอม</span></div>`;
     return mt.length ? mt.map(n=>_row(p+' ซี่ '+n,'data-tooth="'+_escHtml(p+'|'+n)+'"',(_tpVals[p+'|'+n]!==undefined?_tpVals[p+'|'+n]:(mt.length===1?_ppVals[p]:'')),col)).join('')
                      : _row(p,'data-proc="'+_escHtml(p)+'"',_ppVals[p],col); }).join('');
   calcProcPriceCheck();
@@ -10403,6 +10470,7 @@ function getProcPrices(){
   ppCollect_();
   const sel = getProcSelected().split(',').map(x=>x.trim()).filter(Boolean), o = {};
   sel.forEach(p=>{
+    if(dentureBilling_()==='รวม' && DENTURE_STEPS.includes(p)) return;
     const mt=multiTeeth_(p);
     if(mt.length){ let sum=0, any=false; mt.forEach(n=>{ const raw=_tpVals[p+'|'+n]; if(raw!==undefined && raw!=='' && +raw>=0){ sum+=+raw; any=true; } }); if(any) o[p]=sum; return; }
     const raw = _ppVals[p]; if(raw!==undefined && raw!=='' && +raw>=0) o[p] = +raw; });
@@ -10550,7 +10618,7 @@ function totalPrice(t){ return (+t.cash||0)+(+t.transfer||0)+(+t.sso||0); }
 function xrayRuleStart(){ return '2026-10-01'; }
 function isXrayOnly(proc){
   const parts = String(proc||'').split(',').map(p=>p.trim()).filter(Boolean);
-  return parts.length>0 && parts.every(p=>/^x[\s-]?ray(?:[\s-]*bw)?$/i.test(p));
+  return parts.length>0 && parts.every(_isXrayProc);
 }
 function xrayRuleApplies(t){
   const d = String((t&&t.date)||'').slice(0,10);
@@ -10572,7 +10640,7 @@ function drugRuleApplies(t){
   return /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=drugRuleStart() && isDrugOnly(t.proc);
 }
 // X-Ray ที่ลงรวมกับหัตถการอื่น: ส่วน "ราคา X-Ray" (จากช่องราคาแยกรายการ procPrices) ไม่คิด DF — ส่วนที่เหลือคิด % ปกติ · ไม่บังคับหมอ
-function _isXrayProc(p){ return /^x[\s-]?ray(?:[\s-]*bw)?$/i.test(String(p||'').trim()); }
+function _isXrayProc(p){ return /^(?:x[\s-]?ray(?:[\s-]*bw)?|เอ็กซเรย์(?:ฟัน|ตรวจฟันผุ)?)$/i.test(String(p||'').trim()); }
 function xrayMixedPrice(t){
   const d = String((t&&t.date)||'').slice(0,10);
   if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=xrayRuleStart())) return 0;

@@ -877,3 +877,79 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+
+/* ============================================================================
+   ย้ายชื่อรายการรักษาเป็นภาษาไทย (ครั้งเดียว) — ตารางเดียวกับที่หน้าเว็บใช้ (PROC_RENAME ใน index.html)
+   วิธีใช้ใน Apps Script (เลือกฟังก์ชันแล้วกด ▶ Run):
+     1) migrateProcNamesPreview()  → ดูผลใน Execution log ว่าจะแก้กี่แถว (ยังไม่แก้จริง)
+     2) migrateProcNamesRun()      → สำเนาสำรองทั้งไฟล์ Google Sheet ก่อน แล้วค่อยแก้จริง
+   รันซ้ำได้ ไม่เสียหาย (ชื่อที่เป็นไทยแล้วจะไม่ถูกแตะ)
+   ============================================================================ */
+var MIG_PROC_RENAME_ = {
+  'x-ray bw':'เอ็กซเรย์ตรวจฟันผุ', 'x-ray':'เอ็กซเรย์ฟัน', 'xray':'เอ็กซเรย์ฟัน', 'tp':'ฟันปลอมถอดได้ฐานพลาสติก', 'rpd':'ฟันปลอมถอดได้โครงโลหะ',
+  'valplast':'ฟันปลอมฐานนิ่ม', 'splint':'เฝือกสบฟัน', 'recheck':'ตรวจติดตามอาการ', 'onlay':'ครอบฟันบางส่วน', 'mi':'รักษารากฟัน (รอบย่อย)',
+  'frc':'อุดคลองรากฟัน', 'bite block':'บันทึกการสบฟัน', 'biteblock':'บันทึกการสบฟัน', 'ใส่ฟัน':'ใส่ฟันปลอม', 'ลองโครง':'ลองโครงฟันปลอม', 'ลองฟัน':'ลองฟันปลอม'
+};
+// [ชีต, คอลัมน์ข้อความคั่นด้วย ",", คอลัมน์ JSON ที่คีย์เป็นชื่อรายการ]
+var MIG_TARGETS_ = [
+  ['บันทึกการรักษา', ['proc'], ['procPrices','toothPrices','procTeeth']],
+  ['ตารางนัด', ['proc'], []],
+  ['ortho_log', ['ทำอะไร'], []],
+  ['crm_followups', ['proc'], []],
+  ['crm_templates', ['procKeywords'], []]
+];
+function migRenameToken_(t) {
+  var k = String(t).trim().toLowerCase();
+  return MIG_PROC_RENAME_.hasOwnProperty(k) ? MIG_PROC_RENAME_[k] : null;
+}
+function migRenameList_(v) {
+  var s = String(v == null ? '' : v); if (!s) return s;
+  return s.split(/(\s*,\s*)/).map(function (part, i) {
+    if (i % 2 === 1) return part;
+    var lead = part.match(/^\s*/)[0], trail = part.match(/\s*$/)[0], core = part.trim();
+    var n = core ? migRenameToken_(core) : null;
+    return n ? lead + n + trail : part;
+  }).join('');
+}
+function migRenameJson_(v) {
+  var s = String(v == null ? '' : v); if (!s || s.charAt(0) !== '{') return s;
+  try {
+    var o = JSON.parse(s), out = {}, changed = false;
+    Object.keys(o).forEach(function (k) {
+      var n = migRenameToken_(k), nk = n || k; if (n) changed = true;
+      if (out.hasOwnProperty(nk) && n) return;   // มีชื่อใหม่อยู่แล้ว ไม่ทับ
+      out[nk] = o[k];
+    });
+    return changed ? JSON.stringify(out) : s;
+  } catch (e) { return s; }
+}
+function migrateProcNames_(apply) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), report = [];
+  MIG_TARGETS_.forEach(function (T) {
+    var sh = ss.getSheetByName(T[0]); if (!sh) { report.push(T[0] + ': (ไม่มีชีตนี้ ข้าม)'); return; }
+    var lr = sh.getLastRow(), lc = sh.getLastColumn(); if (lr < 2 || lc < 1) { report.push(T[0] + ': ไม่มีข้อมูล'); return; }
+    var hdr = sh.getRange(1, 1, 1, lc).getValues()[0], rng = sh.getRange(2, 1, lr - 1, lc), vals = rng.getValues(), rows = 0, cells = 0;
+    var cols = [];
+    T[1].forEach(function (c) { var i = hdr.indexOf(c); if (i >= 0) cols.push([i, migRenameList_]); });
+    T[2].forEach(function (c) { var i = hdr.indexOf(c); if (i >= 0) cols.push([i, migRenameJson_]); });
+    vals.forEach(function (r) {
+      var hit = false;
+      cols.forEach(function (c) { var o = r[c[0]]; if (typeof o !== 'string') return; var n = c[1](o); if (n !== o) { r[c[0]] = n; cells++; hit = true; } });
+      if (hit) rows++;
+    });
+    if (apply && cells) rng.setValues(vals);
+    report.push(T[0] + ': ' + rows + ' แถว (' + cells + ' ช่อง)' + (apply ? ' — แก้แล้ว' : ' — จะแก้'));
+  });
+  return report;
+}
+function migrateProcNamesPreview() {
+  var r = migrateProcNames_(false);
+  Logger.log('ตัวอย่าง (ยังไม่แก้จริง)\n' + r.join('\n') + '\n\nถ้าตัวเลขดูถูกต้อง ให้รัน migrateProcNamesRun()');
+}
+function migrateProcNamesRun() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var copy = DriveApp.getFileById(ss.getId()).makeCopy('สำรองก่อนย้ายชื่อรายการรักษา ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm'));
+  var r = migrateProcNames_(true);
+  Logger.log('สำรองไว้ที่: ' + copy.getUrl() + '\n' + r.join('\n') + '\n\nเสร็จแล้ว — บอกคุณ Claude ได้เลยว่าย้ายเสร็จ เพื่อเปิดหน้าเว็บเวอร์ชันใหม่');
+}
