@@ -5923,6 +5923,10 @@ function saveTreat(){
     itemDfRate:(existingTreat && existingTreat.itemDfRate!==undefined) ? existingTreat.itemDfRate : '',
   };
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
+  { const _ds=String(t.proc||'').split(',').map(x=>x.trim());
+    if(_ds.some(x=>DENTURE_STEPS.includes(x)) && !_ds.some(x=>DENTURE_TYPES.includes(x))){
+      showToast('งานฟันปลอม: กรุณาเลือกชนิดฟันปลอมด้วย (เช่น ฟันปลอมฐานนิ่ม) ก่อนบันทึก','error');
+      try{ document.getElementById('treat-denture-wrap').scrollIntoView({block:'center'}); }catch(e){} return; } }
   if(!String(t.hn||'').trim()){ showToast('กรุณากรอก HN','error'); try{ document.getElementById('treat-hn').focus(); }catch(e){} return; }
   // X-Ray ลงรวมกับหัตถการอื่น: ต้องกรอกราคา X-Ray ในช่องราคาแต่ละรายการ (ส่วนนี้ DF = 0)
   { const _parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
@@ -10451,8 +10455,9 @@ function renderDentureBox_(selected){
   const done={}; if(hn){ (treatments||[]).forEach(t=>{ if(String(t.hn||'').trim()!==hn || (curId&&String(t.id)===String(curId))) return;
     String(t.proc||'').split(',').map(x=>procNorm_(x)).forEach(x=>{ if(isDentureProc_(x)&&!done[x]) done[x]=String(t.date||'').slice(0,10); }); }); }
   const order=DENTURE_TYPES.concat(DENTURE_STEPS), ks=order.filter(k=>done[k]);
-  hint.innerHTML = ks.length ? '<div style="color:var(--text-mid);font-weight:700;margin-bottom:3px;">ที่เคยทำแล้ว</div>'+ks.map(k=>'<div>✅ '+_escHtml(k)+' <span style="color:var(--text-light);">'+_escHtml(done[k])+'</span></div>').join('')
-    + (DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).length?'<div style="margin-top:3px;color:var(--text-light);">ยังไม่ได้ทำ: '+DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).map(_escHtml).join(' · ')+'</div>':'') : '';
+  const _warn=(selected.some(x=>DENTURE_STEPS.includes(x)) && !selected.some(x=>DENTURE_TYPES.includes(x)))?'<div style="color:#C0392B;font-weight:700;margin-bottom:6px;">⚠️ ยังไม่ได้เลือกชนิดฟันปลอม (ฐานพลาสติก / โครงโลหะ / ฐานนิ่ม / ทั้งปาก)</div>':'';
+  hint.innerHTML = _warn + ( ks.length ? '<div style="color:var(--text-mid);font-weight:700;margin-bottom:3px;">ที่เคยทำแล้ว</div>'+ks.map(k=>'<div>✅ '+_escHtml(k)+' <span style="color:var(--text-light);">'+_escHtml(done[k])+'</span></div>').join('')
+    + (DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).length?'<div style="margin-top:3px;color:var(--text-light);">ยังไม่ได้ทำ: '+DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).map(_escHtml).join(' · ')+'</div>':'') : '');
 }
 
 // ---- ราคาแยกรายการ (procPrices) ----
