@@ -59,7 +59,7 @@ var CRM_DEFAULT_SETTINGS = {
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
   aftercareOn: true, aftercareDelayMin: 0,
   birthdayOn: true,          // ส่งคำอวยพรวันเกิด (เช้าวันเกิด) เฉพาะคนที่กรอกวันเกิดใน LIFF และยินยอมรับข้อความ
-  birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n🎁 ของขวัญวันเกิด: รับยาสีฟันฟรี 1 หลอด เมื่อมาตามนัดที่คลินิกในเดือน{month}นี้ค่ะ\nนัดคิวได้เลยโดยพิมพ์ในแชทนี้ หรือโทร {phone} 💜\n{clinic}',
+  birthdayText: '🎂 สุขสันต์วันเกิดค่ะ คุณ{name}\nขอให้สุขภาพแข็งแรง ยิ้มได้สดใสทุกวันนะคะ\n\n{clinic}',
   followupOn: true, followupHour: '10:00',
   reviewDocRules: 'สรวิศ=tpl_extraction,tpl_surgery;พัทธนันท์=tpl_extraction,tpl_filling;ภาคภูมิ=tpl_extraction,tpl_filling,tpl_surgery',   // จำกัดการเด้งไปหน้ารีวิว: หมอที่ชื่อมีคำนี้ → เฉพาะเทมเพลตที่ระบุ (รูปแบบ  คำในชื่อหมอ=tplId,tplId ; อีกคน=...) · หมอที่ไม่อยู่ในรายการ = ไม่เด้งไปรีวิว · ว่าง = ไม่จำกัด
   reviewOnOk: true,          // คนไข้ตอบ "ปกติดี" ในข้อความถามอาการ → ส่งการ์ดปุ่มไปหน้ารีวิว Google ทันที (ต่อคนไข้ไม่เกิน 1 ครั้งต่อ 360 วัน) · ใช้เมื่อปิดการให้คะแนนอยู่
@@ -1215,7 +1215,7 @@ function crmTickInner_() {
         var bk = crmKey_(s, 'bday:' + crmHN_(l.hn) + ':' + yr0);
         if (crmIsDone_(state, bk)) return;
         var nm = String(l.patName || '').split(' ')[0];   // วันเกิด: ชื่ออย่างเดียว ไม่ใส่ HN/รหัสจัดฟัน
-        var txt = String(s.birthdayText || '').replace(/\{name\}/g, nm).replace(/\{month\}/g, CRM_TH_MONTHS[+md0.slice(0, 2) - 1]).replace(/\{phone\}/g, s.clinicPhone || '').replace(/\{clinic\}/g, s.clinicName || '');
+        var txt = String(s.birthdayText || '').replace(/\n*🎁[^\n]*\n?[^\n]*(?:\{phone\}|โทร)[^\n]*(?=\n|$)/, '').replace(/\{name\}/g, nm).replace(/\{month\}/g, CRM_TH_MONTHS[+md0.slice(0, 2) - 1]).replace(/\{phone\}/g, s.clinicPhone || '').replace(/\{clinic\}/g, s.clinicName || '');
         tg.forEach(function (t) {
           if (crmSend_(s, state, { key: bk + '>' + t.lineUserId, type: 'birthday', hn: l.hn, patName: l.patName, lineUserId: t.lineUserId, refId: 'bday-' + yr0, detail: md0 }, [crmText_(txt)])) summary.birthday = (summary.birthday || 0) + 1;
         });
