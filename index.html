@@ -10474,8 +10474,9 @@ function renderProcPrices(selected){
     <span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(label)}</span>
     <input type="number" min="0" class="form-control" ${attr} value="${_escHtml(val||'')}" placeholder="บาท" oninput="calcProcPriceCheck()" style="width:130px;height:38px;text-align:right;">
   </div>`;
-  const _den = dentureBilling_()==='รวม';
+  const _den = dentureBilling_()==='รวม', _splitTypeOff = !_den && selected.some(x=>DENTURE_STEPS.includes(x));
   box.innerHTML = selected.map(p=>{ const col=PROC_COLORS[p]||'var(--wine)', mt=multiTeeth_(p);
+    if(_splitTypeOff && DENTURE_TYPES.includes(p)) return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(p)}</span><span style="font-size:12px;color:var(--text-light);">ระบุชนิดงาน · ไม่คิดเงิน (คิดที่ขั้นตอนด้านล่าง)</span></div>`;
     if(_den && DENTURE_STEPS.includes(p)) return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(p)}</span><span style="font-size:12px;color:var(--text-light);">รวมในราคาฟันปลอม</span></div>`;
     return mt.length ? mt.map(n=>_row(p+' ซี่ '+n,'data-tooth="'+_escHtml(p+'|'+n)+'"',(_tpVals[p+'|'+n]!==undefined?_tpVals[p+'|'+n]:(mt.length===1?_ppVals[p]:'')),col)).join('')
                      : _row(p,'data-proc="'+_escHtml(p)+'"',_ppVals[p],col); }).join('');
@@ -10486,6 +10487,7 @@ function getProcPrices(){
   const sel = getProcSelected().split(',').map(x=>x.trim()).filter(Boolean), o = {};
   sel.forEach(p=>{
     if(dentureBilling_()==='รวม' && DENTURE_STEPS.includes(p)) return;
+    if(dentureBilling_()==='แยก' && DENTURE_TYPES.includes(p) && sel.some(x=>DENTURE_STEPS.includes(x))) return;
     const mt=multiTeeth_(p);
     if(mt.length){ let sum=0, any=false; mt.forEach(n=>{ const raw=_tpVals[p+'|'+n]; if(raw!==undefined && raw!=='' && +raw>=0){ sum+=+raw; any=true; } }); if(any) o[p]=sum; return; }
     const raw = _ppVals[p]; if(raw!==undefined && raw!=='' && +raw>=0) o[p] = +raw; });
