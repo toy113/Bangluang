@@ -6072,7 +6072,7 @@ function openCertificateModal(t){
   document.getElementById('cert-treatId').value = t.id;
   document.getElementById('cert-patName-display').textContent = t.patName||'';
   document.getElementById('cert-hn-display').textContent = t.hn||'—';
-  document.getElementById('cert-proc').value = certProcCompose_(t.proc);
+  document.getElementById('cert-proc').value = certProcCompose_(String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).map(p=>{ const tx=toothText_(t,p); return tx?p+' (ซี่ '+tx+')':p; }).join(', '));
   document.getElementById('cert-treatDate-display').textContent = fmtDate(t.date);
   document.getElementById('cert-age').value = '';
   const docSel = document.getElementById('cert-doc');
@@ -6565,7 +6565,7 @@ h1{text-align:center;font-size:21px;margin:14px 0 2px;color:#3d1435}.en{text-ali
 }
 // ใบรับรอง: งานฟันปลอมเขียนเป็น "ชนิด (ขั้นตอน: ...)" ให้อ่านรู้ว่าทำอะไรกับฟันปลอมแบบไหน
 function certProcCompose_(txt){
-  const parts=String(txt||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const parts=String(txt||'').split(/,(?![^()]*\))/).map(x=>x.trim()).filter(Boolean);   // ไม่ตัดจุลภาคที่อยู่ในวงเล็บ (ซี่ 16, 26)
   if(parts.some(x=>x.indexOf('ขั้นตอน:')>=0)) return parts.join(', ');
   const type=parts.find(x=>DENTURE_TYPES.includes(x)), steps=parts.filter(x=>DENTURE_STEPS.includes(x));
   if(!type || !steps.length) return parts.join(', ');
