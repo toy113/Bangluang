@@ -2077,8 +2077,9 @@ function crmProcWithTeeth_(t) {
     var th = String(tm[n] || '').trim(), lb = crmPT1_(n); return th ? lb + ' ซี่ ' + th : lb;
   }).join(', ');
 }
+var CRM_TEST_USER_ = null;   // ใช้เฉพาะ crmPortalSelfTest() (ตัวแปรในเซิร์ฟเวอร์ ผู้ใช้ภายนอกตั้งค่าไม่ได้)
 function crmPortal_(p) {
-  var u = crmVerifyUser_(p);
+  var u = CRM_TEST_USER_ || crmVerifyUser_(p);
   if (!u) return { ok: false, error: 'auth' };
   var links = crmRead_('links').filter(function (l) { return l.lineUserId === u.userId; });
   var active = {}, pending = [];
@@ -2602,4 +2603,29 @@ function crmSetupRichMenu() {
   var msg = '✅ rich menu ใหม่: ' + id + ' | ลบเมนูเดิม ' + deleted + ' อัน';
   Logger.log(msg);
   return msg;
+}
+
+
+/* ============================================================================
+   ตรวจหน้า LIFF ฝั่งเซิร์ฟเวอร์: รันใน Apps Script (เลือก crmPortalSelfTest → Run) แล้วดู Execution log
+   จำลองการโหลดหน้าหลักของคนไข้ที่ผูก LINE ไว้ 8 คนแรก บอกเวลา ขนาดข้อมูล และ error (ถ้ามี) — ไม่แก้ข้อมูลใด ๆ
+   ============================================================================ */
+function crmPortalSelfTest() {
+  var out = [], links = crmRead_('links').filter(function (l) { return l.status === 'active' && l.lineUserId; });
+  var seen = {}, users = [];
+  links.forEach(function (l) { if (!seen[l.lineUserId] && users.length < 8) { seen[l.lineUserId] = 1; users.push(l); } });
+  out.push('ผู้ใช้ที่ผูก LINE ทดสอบ ' + users.length + ' คน (ทั้งหมด active ' + links.length + ' แถว)');
+  users.forEach(function (l) {
+    var t0 = Date.now();
+    try {
+      CRM_TEST_USER_ = { userId: l.lineUserId, name: l.displayName || '' };
+      var r = crmPortal_({}), js = JSON.stringify(r);
+      var pts = (r.patients || []).map(function (x) { return x.hn + ' next:' + (x.next || []).length + ' hist:' + (x.history || []).length + (x.ortho ? ' ortho-logs:' + (x.ortho.logs || []).length : ''); });
+      out.push('✅ HN ' + l.hn + ' · ' + (Date.now() - t0) + ' ms · ' + js.length + ' ตัวอักษร · ' + (r.ok ? 'ok' : 'ERR ' + r.error) + ' · ' + pts.join(' | '));
+    } catch (e) {
+      out.push('❌ HN ' + l.hn + ' · ' + (Date.now() - t0) + ' ms · ' + e + (e && e.stack ? ' @ ' + String(e.stack).split('\n')[1] : ''));
+    } finally { CRM_TEST_USER_ = null; }
+  });
+  var tt = Date.now(); try { crmReadByName_('ortho'); crmReadByName_('links'); out.push('อ่านชีต ortho+links ' + (Date.now() - tt) + ' ms'); } catch (e2) { out.push('❌ อ่านชีตไม่ได้: ' + e2); }
+  Logger.log(out.join('\n'));
 }
