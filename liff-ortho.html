@@ -154,7 +154,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-10g';
+  const APP_VER = '2026-11-10h';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -169,12 +169,14 @@
     }catch(e){}
   })();
   const LIFF_ID = '2012312037-ZWyIL0I7';
+  window.addEventListener('DOMContentLoaded',function(){ var v=document.getElementById('verTag'); if(v) v.textContent='v'+APP_VER.slice(-1); });
+  window.addEventListener('error',function(e){ try{ var m=document.getElementById('errorMsg'); if(m && !window.__shown){ m.textContent='เกิดข้อผิดพลาด: '+String(e.message||'').slice(0,120); ['loading','bindView','pendingView','mainView'].forEach(function(x){var el=document.getElementById(x); if(el) el.classList.add('hide');}); document.getElementById('errorView').classList.remove('hide'); } }catch(_){} });
   const API = 'https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
   const CLINIC_PHONE_FALLBACK = '095-947-6759';
 </script>
 
 <!-- LOADING -->
-<div id="loading"><div class="spin"></div><p class="center muted">กำลังโหลด...</p></div>
+<div id="loading"><div class="spin"></div><p class="center muted">กำลังโหลด...</p><p class="center muted" id="verTag" style="font-size:11px;margin-top:6px"></p></div>
 
 <!-- ERROR -->
 <div id="errorView" class="hide">
