@@ -3817,6 +3817,7 @@ var APT_CONFIRM_SHORT_ = { yes:'✅', move:'📅 ขอเลื่อน', remi
 function aptConfirmChip_(a, small){
   const st=aptConfirmState_(a); if(!st) return '';
   const m=APT_CONFIRM_LBL_[st];
+  if(st==='noline') return `<span title="${m[0]}" aria-label="${m[0]}" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#9AA0A6;vertical-align:middle;margin:0 2px;"></span>`;   // ไม่มี LINE: จุดกลมเทาล้วน ไม่มีข้อความ (แตะค้างดูคำเต็ม)
   if(small) return `<span title="${m[0]}" style="display:inline-block;white-space:nowrap;background:${m[1]};color:${m[2]};border:1px solid ${m[3]};border-radius:999px;padding:0 5px;font-size:10px;font-weight:800;line-height:1.5;">${APT_CONFIRM_SHORT_[st]}</span>`;
   let via=''; if(st==='yes'){ try{ const r=crmAptRecFor_(a); via = r&&r.confirmedAt ? ' (LINE)' : ' (แอดมิน)'; }catch(e){} }
   const short = st==='yes' ? (via===' (LINE)' ? '✅ LINE' : '✅') : APT_CONFIRM_SHORT_[st];   // ป้ายสั้น · คำเต็มดูได้ตอนแตะค้าง/เอาเมาส์ชี้
