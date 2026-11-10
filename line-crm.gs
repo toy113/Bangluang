@@ -522,6 +522,12 @@ function crmSeedTemplates_() {
       try { crmUpdate_('templates', e._row, { procKeywords: 'อุดฟัน,อุดชั่วคราว,อุดปิดช่องว่าง' }); } catch (e2) {}
     }
   });
+  existing.forEach(function (e) {   // แม่แบบฟันปลอม: ส่งเฉพาะตอนใส่/ปรับแก้ (ไม่ส่งตอนพิมพ์/ลองฟัน) — แก้เฉพาะที่ยังเป็นค่าเริ่มต้นเดิมหรือที่ผ่านการย้ายชื่อมา
+    var k = String(e.procKeywords || '');
+    if (e.id === 'tpl_denture' && (k === 'RPD,Valplast,ใส่ฟัน,ฟันปลอม' || k === 'ฟันปลอมถอดได้โครงโลหะ,ฟันปลอมฐานนิ่ม,ใส่ฟันปลอม,ฟันปลอม')) {
+      try { crmUpdate_('templates', e._row, { procKeywords: 'ใส่ฟันปลอม,ปรับแก้ฟันปลอม,ฟันปลอมถอดได้,ฟันปลอมฐานนิ่ม,ฟันปลอมทั้งปาก' }); } catch (e3) {}
+    }
+  });
   existing.forEach(function (e) {   // แม่แบบอุดฟันเดิมที่ยังเป็นข้อความเริ่มต้น → แก้ข้อ 1 เป็น "กรณีฉีดยาชา ..."
     if (e.id === 'tpl_filling' && String(e.aftercareText).indexOf('\n1. ถ้ายังชาอยู่ (ประมาณ 2–3 ชั่วโมง)') >= 0) {
       try { crmUpdate_('templates', e._row, { aftercareText: String(e.aftercareText).replace('\n1. ถ้ายังชาอยู่ (ประมาณ 2–3 ชั่วโมง)', '\n1. กรณีฉีดยาชา ถ้ายังชาอยู่ (ประมาณ 2–3 ชั่วโมง)') }); } catch (e3) {}
@@ -2330,7 +2336,7 @@ function crmDashboard_() {
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
   try {   // แม่แบบใหม่ที่เพิ่มในโค้ด (เช่น เคลือบฟลูออไรด์) → สร้างเป็นร่างให้เองครั้งเดียวต่อรุ่น ไม่ต้องรัน crmSetup
     var _pr = PropertiesService.getScriptProperties();
-    if (_pr.getProperty('CRM_TPL_SEED_VER') !== '2') { crmSeedTemplates_(); _pr.setProperty('CRM_TPL_SEED_VER', '2'); }
+    if (_pr.getProperty('CRM_TPL_SEED_VER') !== '3') { crmSeedTemplates_(); _pr.setProperty('CRM_TPL_SEED_VER', '3'); }
   } catch (eSeed) {}
   var links = crmRead_('links'), orthoAll = crmReadByName_('ortho'), followersAll = crmRead_('followers');
   return { ok: true, caps: { orthoTreat: true, confirmOne: true, followerDelete: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
