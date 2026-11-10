@@ -155,7 +155,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-10d';
+  const APP_VER = '2026-11-10e';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -301,6 +301,10 @@ async function api(params, noToken){
   }
   throw lastErr;
 }
+/* กันหน้าขาวเปล่า: ถ้าวาดหน้าไม่สำเร็จ (ข้อมูลรูปแบบแปลก/แคชเก่า) → ล้างแคชในเครื่อง + แสดงข้อความสาเหตุ แทนที่จะค้างว่างเปล่า */
+(function(){ const _r = render; render = function(){ try{ return _r.apply(this, arguments); }catch(e){
+  console.error(e); try{ if(CKEY) localStorage.removeItem(CKEY); localStorage.removeItem('bl_portal_last'); }catch(_){}
+  fail('แสดงผลไม่สำเร็จ กรุณาปิดแล้วเปิดใหม่อีกครั้ง\n(' + String(e && e.message || e).slice(0,160) + ')'); } }; })();
 async function boot(){
   TAB = initialTab();
   // แสดงข้อมูลรอบก่อนทันที "ก่อน" รอ LINE เริ่มระบบ (เครื่องเดิม บัญชีเดิม) — ตรวจตัวตนจริงอีกครั้งหลัง liff.init
