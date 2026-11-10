@@ -2148,7 +2148,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <input type="text" id="treat-proc-other" class="form-control" maxlength="60" placeholder="พิมพ์ชื่อรายการเอง เช่น ปรับแต่งฟันปลอมเดิม" style="display:none;margin-top:8px;" onchange="procOtherChanged_()">
       </div>
       <div class="form-group" id="treat-teeth-wrap" style="display:none;">
-        <label>🦷 ซี่ฟัน (ระบบ FDI 2 หลัก) <span style="color:#C0392B;">*</span> <span style="font-size:11px;color:var(--text-light);font-weight:400;">(อุดฟัน · ถอนฟัน · ฟันคุด · รักษารากฟัน · ครอบฟัน ต้องระบุซี่)</span></label>
+        <label>🦷 ซี่ฟัน (ระบบ FDI 2 หลัก) <span style="color:#C0392B;">*</span> <span style="font-size:11px;color:var(--text-light);font-weight:400;">(งานที่ทำเป็นซี่ — อุด ถอน ฟันคุด รากฟัน ครอบฟัน Onlay รากเทียม เดือยฟัน — ต้องระบุซี่)</span></label>
         <div id="treat-teeth-list"></div>
       </div>
       <div class="form-group" id="treat-denture-wrap">
@@ -2170,7 +2170,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         </div>
       </div>
       <div class="form-group" id="treat-pp-wrap" style="display:none;">
-        <label>💰 ราคาแต่ละรายการ <span style="font-size:11px;color:var(--text-light);font-weight:400;">(อุดฟัน/ถอนฟัน/ฟันคุด/รากฟัน/ครอบฟัน ต้องกรอกราคาแยกรายซี่ · รายการอื่นไม่บังคับ — ถ้ากรอก ข้อความสรุปที่ส่งคนไข้ทาง LINE จะแยกราคาให้)</span></label>
+        <label>💰 ราคาแต่ละรายการ <span style="font-size:11px;color:var(--text-light);font-weight:400;">(งานที่ระบุซี่ ต้องกรอกราคาแยกรายซี่ · รายการอื่นไม่บังคับ — ถ้ากรอก ข้อความสรุปที่ส่งคนไข้ทาง LINE จะแยกราคาให้)</span></label>
         <div id="treat-pp-list"></div>
         <div id="treat-pp-check" style="font-size:12px;margin-top:6px;"></div>
       </div>
@@ -10775,7 +10775,7 @@ function procColor(proc){
   return PROC_COLORS[first] || 'var(--text-mid)';
 }
 // ===== ระบุซี่ฟัน (ระบบ FDI 2 หลัก) — อุดฟัน/ถอนฟัน/รักษารากฟัน/ครอบฟัน ต้องระบุซี่ (บันทึกตั้งแต่ TOOTH_RULE_START) =====
-const TOOTH_PROCS = ['อุดฟัน','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','รักษารากฟัน','ครอบฟัน'];   // เพิ่มรายการที่ต้องระบุซี่ได้ที่นี่
+const TOOTH_PROCS = ['อุดฟัน','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','รักษารากฟัน','ครอบฟัน','ครอบฟันบางส่วน','ใส่ครอบฟัน','อุดคลองรากฟัน','นัดต่อเนื่องรักษารากฟัน','ถอนฟันน้ำนม','รากฟันเทียม','เดือยฟัน','อุดชั่วคราว'];   // เพิ่มรายการที่ต้องระบุซี่ได้ที่นี่
 const TOOTH_RULE_START = '2026-11-06';
 const FDI_PERM_UP=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28], FDI_PERM_LO=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
 const FDI_DEC_UP=[55,54,53,52,51,61,62,63,64,65], FDI_DEC_LO=[85,84,83,82,81,71,72,73,74,75];
@@ -10800,7 +10800,7 @@ function renderTeeth_(selected){
   wrap.style.display=need.length?'':'none';
   box.innerHTML=need.map(p=>`<div style="margin-bottom:8px;">
     <div style="display:flex;align-items:center;gap:8px;">
-      <span style="width:104px;font-size:13px;font-weight:700;color:${PROC_COLORS[p]||'var(--wine)'};">${_escHtml(p)}</span>
+      <span style="width:104px;flex:none;font-size:13px;line-height:1.25;font-weight:700;color:${PROC_COLORS[p]||'var(--wine)'};">${_escHtml(p)}</span>
       <input type="text" inputmode="numeric" class="form-control" data-tproc="${_escHtml(p)}" value="${_escHtml(_toothVals[p]||'')}" placeholder="เช่น 16, 26" oninput="toothInput_(this)" style="flex:1;height:38px;">
       <button type="button" class="btn btn-outline" onclick="openToothPicker('${_escHtml(p)}')" style="height:38px;padding:0 12px;white-space:nowrap;">เลือกซี่</button>
     </div><div class="tooth-msg" data-tmsg="${_escHtml(p)}" style="font-size:11.5px;margin:2px 0 0 112px;"></div></div>`).join('');
