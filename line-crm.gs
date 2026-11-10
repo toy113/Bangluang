@@ -1881,6 +1881,10 @@ function crmFaqHandle_(s, ev, uid, text, chatting) {
   if (crmSplitList_(s.staffNotifyIds).indexOf(uid) !== -1 && uid !== s.testUserId) return false;
   if (chatting) return false;
   var cache = CacheService.getScriptCache(), ck = 'crm_faq_' + topic + '_' + uid;
+  if (topic === 'price') {   // ถามราคาคนละหมวด (อุดฟัน แล้วต่อด้วยถอนฟัน) ตอบได้เลย — กันซ้ำเฉพาะหมวดเดิมใน 6 ชม.
+    var sig = CRM_PRICE_GROUPS.filter(function (g) { return g.re.test(tm); }).map(function (g) { return g.pick || g.title; }).join('+') || 'default';
+    ck = 'crm_faq_price_' + sig.slice(0, 60) + '_' + uid;
+  }
   if (cache.get(ck)) return false;   // หัวข้อเดิมภายใน 6 ชม. → ให้แอดมินตอบ
   var msg = topic === 'sso' ? crmFaqSsoMessage_(s, uid) : topic === 'hours' ? crmFaqHoursMessage_(s) : topic === 'pricemenu' ? crmFaqPriceMenu_() : crmFaqPriceMessage_(s, tm);
   var msgs = [msg];
