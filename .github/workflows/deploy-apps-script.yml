@@ -37,7 +37,10 @@ jobs:
       - name: เตรียมโฟลเดอร์ build
         run: |
           mkdir build
-          cp *.gs build/
+          # ในโปรเจกต์จริง ไฟล์หลักชื่อ "รหัส" (ภาษาไทยของ Code) → ต้องส่งทับชื่อเดิม ไม่งั้นจะได้ฟังก์ชันซ้ำ 2 ไฟล์
+          for f in *.gs; do
+            if [ "$f" = "Code.gs" ]; then cp "$f" "build/รหัส.gs"; else cp "$f" "build/$f"; fi
+          done
           cp apps-script-manifest.json build/appsscript.json
           echo "{\"scriptId\":\"${{ secrets.SCRIPT_ID }}\",\"rootDir\":\"build\"}" > .clasp.json
           echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
