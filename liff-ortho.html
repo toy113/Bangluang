@@ -154,7 +154,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-10f';
+  const APP_VER = '2026-11-10g';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -649,13 +649,15 @@ async function setConsent(on){
 }
 /* โหลด LIFF SDK แบบไม่บล็อกหน้า: เดิมแท็ก <script> ใน head ถ้าเซิร์ฟเวอร์ LINE ช้า/สะดุด หน้าจะขาวเปล่าไม่ขึ้นอะไรเลย → ตอนนี้ขึ้น "กำลังโหลด..." ทันที แล้วค่อยโหลด SDK (ลองซ้ำ 1 ครั้ง) */
 (function(){
-  let tries = 0;
+  let tries = 0, done = false;
   function load(){
     tries++;
     const sc = document.createElement('script');
     sc.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js' + (tries > 1 ? '?r=' + Date.now() : '');
-    sc.onload = function(){ boot(); };
-    sc.onerror = function(){ if(tries < 2) setTimeout(load, 800); else fail('เชื่อมต่อระบบ LINE ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); };
+    const retry = function(){ if(done) return; try{ sc.remove(); }catch(_){} if(tries < 3) setTimeout(load, 300); else fail('เชื่อมต่อระบบ LINE ไม่สำเร็จ (โหลดช้าหรือถูกบล็อก) กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); };
+    const tm = setTimeout(retry, 7000);   // ค้างเงียบ ๆ (ไม่ error) ก็ถือว่าล้มเหลว
+    sc.onload = function(){ if(done) return; done = true; clearTimeout(tm); boot(); };
+    sc.onerror = function(){ clearTimeout(tm); retry(); };
     document.head.appendChild(sc);
   }
   if(window.liff) boot(); else load();
