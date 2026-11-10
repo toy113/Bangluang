@@ -6223,11 +6223,12 @@ function receiptItemsOf_(t){   // แยกรายการตามหัต�
   try{ tp=typeof t.toothPrices==='string'?JSON.parse(t.toothPrices||'{}'):(t.toothPrices||{}); }catch(e){}
   const names=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
   const teeth=n=>toothText_(t,n);
-  const items=[];
+  const items=[], _dt=names.find(x=>DENTURE_TYPES.includes(x));
+  const _lbl=n=>patTerm_(n)+((_dt && DENTURE_STEPS.includes(n))?' ('+_dt+')':'');   // ขั้นตอนฟันปลอมบอกชนิดกำกับในใบเสร็จ
   names.forEach(n=>{
     const per=tp&&tp[n]&&typeof tp[n]==='object'?tp[n]:null, keys=per?Object.keys(per).filter(k=>+per[k]>0).sort((x,y)=>+x-+y):[];
-    if(keys.length){ keys.forEach(k=>items.push({ name:patTerm_(n)+' ซี่ '+k, price:+per[k] })); }
-    else if(+pp[n]>0){ const tx=teeth(n); items.push({ name:patTerm_(n)+(tx?' ซี่ '+tx:''), price:+pp[n] }); }
+    if(keys.length){ keys.forEach(k=>items.push({ name:_lbl(n)+' ซี่ '+k, price:+per[k] })); }
+    else if(+pp[n]>0){ const tx=teeth(n); items.push({ name:_lbl(n)+(tx?' ซี่ '+tx:''), price:+pp[n] }); }
   });
   const sum=items.reduce((a,x)=>a+x.price,0);
   if(items.length && Math.abs(sum-tot)<0.01) return items;
