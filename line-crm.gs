@@ -2328,6 +2328,10 @@ function crmDashboard_() {
   }
   var lastTick = null; try { lastTick = JSON.parse(crmProp_('CRM_LAST_TICK', 'null')); } catch (e) {}
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
+  try {   // แม่แบบใหม่ที่เพิ่มในโค้ด (เช่น เคลือบฟลูออไรด์) → สร้างเป็นร่างให้เองครั้งเดียวต่อรุ่น ไม่ต้องรัน crmSetup
+    var _pr = PropertiesService.getScriptProperties();
+    if (_pr.getProperty('CRM_TPL_SEED_VER') !== '2') { crmSeedTemplates_(); _pr.setProperty('CRM_TPL_SEED_VER', '2'); }
+  } catch (eSeed) {}
   var links = crmRead_('links'), orthoAll = crmReadByName_('ortho'), followersAll = crmRead_('followers');
   return { ok: true, caps: { orthoTreat: true, confirmOne: true, followerDelete: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
     followups: recentRated('followups', 'sentAt', since, crmAddDays_(crmToday_(), -400)),
