@@ -3769,6 +3769,13 @@ function aptConfirmChip_(a, small){
   let via=''; if(st==='yes'){ try{ const r=crmAptRecFor_(a); via = r&&r.confirmedAt ? ' (LINE)' : ' (แอดมิน)'; }catch(e){} }
   return `<span title="สถานะยืนยันนัด" style="display:inline-block;white-space:nowrap;background:${m[1]};color:${m[2]};border:1px solid ${m[3]};border-radius:999px;padding:0 ${small?6:8}px;font-size:${small?10:10.5}px;font-weight:800;line-height:1.55;">${m[0]}${via}</span>`;
 }
+/* ป้ายยืนยันนัดแบบเงียบ (การ์ดนัดทั่วไป): ซ่อนที่ซ้ำกับป้ายสถานะ "คอนเฟิร์ม" และ "มี LINE รอรอบเตือน" ซึ่งไม่ต้องทำอะไร
+   โชว์เฉพาะที่ต้องรู้/ต้องทำ: ขอเลื่อน · เตือนแล้วรอตอบ · ต้องโทร · คนไข้กดยืนยันเองใน LINE */
+function aptConfirmChipQuiet_(a){
+  const st=aptConfirmState_(a); if(!st || st==='wait') return '';
+  if(st==='yes'){ let viaLine=false; try{ const r=crmAptRecFor_(a); viaLine=!!(r&&r.confirmedAt); }catch(e){} if(!viaLine) return ''; }
+  return aptConfirmChip_(a);
+}
 /* สรุปทั้งวัน (หัวคอลัมน์ในหน้าดูนัด) */
 function aptConfirmSummary_(list, fg){
   const c={yes:0,move:0,reminded:0,wait:0,call:0};
@@ -9279,12 +9286,13 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
             style="background:rgba(231,76,60,0.1);border:none;border-radius:4px;padding:4px 6px;min-width:24px;min-height:24px;cursor:pointer;font-size:11px;">🗑️</button>
         </div>
       </div>
-      ${(a.proc||a.note||a.contactChannel||aptConfirmState_(a))?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
-        ${aptConfirmChip_(a)}
+      ${(()=>{ const _cc=aptConfirmChipQuiet_(a), _ch=a.contactChannel==='line'?'':contactBadge(a.contactChannel);   // จองทาง LINE เป็นค่าปกติ (มีจุดเขียวหน้าชื่ออยู่แล้ว) → ไม่แสดงซ้ำ
+        return (a.proc||a.note||_ch||_cc)?`<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
+        ${_cc}
         ${a.proc?procBadge(a.proc):''}
-        ${contactBadge(a.contactChannel)}
+        ${_ch}
         ${a.note?`<span style="font-size:10px;color:var(--text-mid);">📝 ${a.note}</span>`:''}
-      </div>`:''}
+      </div>`:''; })()}
     </div>`;
   }
 
