@@ -2151,14 +2151,23 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>🦷 ซี่ฟัน (ระบบ FDI 2 หลัก) <span style="color:#C0392B;">*</span> <span style="font-size:11px;color:var(--text-light);font-weight:400;">(อุดฟัน · ถอนฟัน · ฟันคุด · รักษารากฟัน · ครอบฟัน ต้องระบุซี่)</span></label>
         <div id="treat-teeth-list"></div>
       </div>
-      <div class="form-group" id="treat-denture-wrap" style="display:none;">
-        <label>😁 งานฟันปลอม — วิธีคิดเงิน</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <label class="den-opt" style="flex:1;min-width:150px;display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;"><input type="radio" name="treat-den-bill" value="รวม" checked onchange="setDentureBilling_(this.value)" style="margin-top:3px;"><span><b>รวมทั้งงาน</b><br><span style="color:var(--text-light);font-size:11px;">คิดราคาที่ตัวฟันปลอม · ขั้นตอนอื่นไม่คิดเพิ่ม</span></span></label>
-          <label class="den-opt" style="flex:1;min-width:150px;display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;"><input type="radio" name="treat-den-bill" value="แยก" onchange="setDentureBilling_(this.value)" style="margin-top:3px;"><span><b>แยกตามขั้นตอน</b><br><span style="color:var(--text-light);font-size:11px;">ใส่ราคาแต่ละขั้นตอนที่ทำวันนี้</span></span></label>
+      <div class="form-group" id="treat-denture-wrap">
+        <button type="button" id="treat-den-open" class="btn btn-secondary" onclick="denOpen_()" style="width:100%;justify-content:center;">😁 ลงงานฟันปลอม (เลือกชนิด + ขั้นตอน)</button>
+        <div id="treat-den-body" style="display:none;border:1.5px solid var(--border);border-radius:12px;padding:12px;background:#fff;">
+          <div style="display:flex;align-items:center;margin-bottom:8px;"><b style="font-size:14px;color:var(--wine-dark);">😁 งานฟันปลอม</b><button type="button" onclick="denClear_()" style="margin-left:auto;border:0;background:none;color:var(--text-light);font-size:12px;cursor:pointer;">ล้าง</button></div>
+          <div style="font-size:12px;font-weight:800;color:var(--wine-dark);margin-bottom:6px;">① ชนิดฟันปลอม</div>
+          <div id="den-types" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+          <div id="den-sug"></div>
+          <div style="font-size:12px;font-weight:800;color:var(--wine-dark);margin-bottom:6px;">② ขั้นตอนที่ทำวันนี้ <span style="font-weight:400;color:var(--text-light);">(เลือกได้หลายอัน)</span></div>
+          <div id="den-steps" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+          <div style="font-size:12px;font-weight:800;color:var(--wine-dark);margin-bottom:6px;">③ วิธีคิดเงิน</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <label class="den-opt" style="flex:1;min-width:140px;display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;"><input type="radio" name="treat-den-bill" value="รวม" checked onchange="setDentureBilling_(this.value)" style="margin-top:3px;"><span><b>รวมทั้งงาน</b><br><span style="color:var(--text-light);font-size:11px;">ราคาเดียว · ขั้นตอนไม่คิดเพิ่ม</span></span></label>
+            <label class="den-opt" style="flex:1;min-width:140px;display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;"><input type="radio" name="treat-den-bill" value="แยก" onchange="setDentureBilling_(this.value)" style="margin-top:3px;"><span><b>แยกตามขั้นตอน</b><br><span style="color:var(--text-light);font-size:11px;">ราคาแต่ละขั้นตอนที่ทำวันนี้</span></span></label>
+          </div>
+          <input type="hidden" id="treat-den-billing" value="รวม">
+          <div id="treat-den-hint" style="font-size:12px;margin-top:10px;"></div>
         </div>
-        <input type="hidden" id="treat-den-billing" value="รวม">
-        <div id="treat-den-hint" style="font-size:12px;margin-top:8px;"></div>
       </div>
       <div class="form-group" id="treat-pp-wrap" style="display:none;">
         <label>💰 ราคาแต่ละรายการ <span style="font-size:11px;color:var(--text-light);font-weight:400;">(อุดฟัน/ถอนฟัน/ฟันคุด/รากฟัน/ครอบฟัน ต้องกรอกราคาแยกรายซี่ · รายการอื่นไม่บังคับ — ถ้ากรอก ข้อความสรุปที่ส่งคนไข้ทาง LINE จะแยกราคาให้)</span></label>
@@ -10443,21 +10452,37 @@ function setDentureBilling_(v, quiet){
   document.querySelectorAll('input[name=treat-den-bill]').forEach(r=>{ r.checked=(r.value===(v==='แยก'?'แยก':'รวม')); r.closest('.den-opt').style.background=r.checked?'var(--wine-pale)':''; r.closest('.den-opt').style.borderColor=r.checked?'var(--wine)':''; });
   if(!quiet){ try{ renderProcPrices(getProcSelected().split(',').map(x=>x.trim()).filter(Boolean)); }catch(e){} }
 }
+let _denOpen=false;
+function denOpen_(){ _denOpen=true; renderDentureBox_(getProcSelected().split(',').map(x=>x.trim()).filter(Boolean)); }
+function denCb_(v){ const dd=document.getElementById('treat-proc-dropdown'); return dd?[...dd.querySelectorAll('input[type=checkbox]')].find(c=>c.value===v):null; }
+function denTap_(v){
+  const cb=denCb_(v); if(!cb) return;
+  if(DENTURE_TYPES.includes(v)){ DENTURE_TYPES.forEach(t=>{ const c=denCb_(t); if(c&&t!==v) c.checked=false; }); cb.checked=!cb.checked; if(!cb.checked||v!=='ฟันปลอมถอดได้โครงโลหะ'){ const m=denCb_('ลองโครงฟันปลอม'); if(m&&v!=='ฟันปลอมถอดได้โครงโลหะ') m.checked=false; } }
+  else cb.checked=!cb.checked;
+  updateProcDisplay();
+}
+function denClear_(){ DENTURE_TYPES.concat(DENTURE_STEPS).forEach(v=>{ const c=denCb_(v); if(c) c.checked=false; }); _denOpen=false; updateProcDisplay(); }
 function renderDentureBox_(selected){
-  const w=document.getElementById('treat-denture-wrap'); if(!w) return;
+  const open=document.getElementById('treat-den-open'), body=document.getElementById('treat-den-body'); if(!body) return;
   const has=(selected||[]).some(isDentureProc_);
-  w.style.display=has?'':'none'; if(!has) return;
+  if(!has && !_denOpen){ body.style.display='none'; open.style.display=''; return; }
+  open.style.display='none'; body.style.display='';
+  const type=DENTURE_TYPES.find(t=>selected.includes(t))||'';
+  const ICON={'ฟันปลอมถอดได้ฐานพลาสติก':'🟠','ฟันปลอมถอดได้โครงโลหะ':'⚙️','ฟันปลอมฐานนิ่ม':'🫧','ฟันปลอมทั้งปาก':'😁'};
+  const chip=(v,on,dis,label,extra)=>`<button type="button" ${dis?'disabled':''} onclick="denTap_('${v}')" style="${extra||''}border:1.5px solid ${on?'var(--wine)':'var(--border)'};background:${on?'var(--wine)':'#fff'};color:${on?'#fff':(dis?'#b9a9b5':'var(--text-dark)')};border-radius:${extra?'12px':'20px'};padding:${extra?'10px 8px':'7px 12px'};font-size:13px;font-weight:700;cursor:${dis?'not-allowed':'pointer'};text-align:center;">${label}</button>`;
+  document.getElementById('den-types').innerHTML=DENTURE_TYPES.map(t=>chip(t,t===type,false,(ICON[t]||'')+' '+_escHtml(t),'line-height:1.35;')).join('');
+  const steps=DENTURE_STEPS.filter(x=>x!=='ลองโครงฟันปลอม'||type==='ฟันปลอมถอดได้โครงโลหะ');
+  document.getElementById('den-steps').innerHTML=steps.map(x=>chip(x,selected.includes(x),!type,_escHtml(x))).join('')+(!type?'<div style="flex-basis:100%;font-size:12px;color:#C0392B;font-weight:700;">⚠️ เลือกชนิดฟันปลอมก่อน แล้วค่อยเลือกขั้นตอน</div>':'');
   setDentureBilling_(dentureBilling_(), true);
-  // ความคืบหน้า: ขั้นตอนที่เคยลงไว้ของคนไข้คนนี้
-  const hn=String((document.getElementById('treat-hn')||{}).value||'').trim(), hint=document.getElementById('treat-den-hint');
-  if(!hint) return;
+  const hn=String((document.getElementById('treat-hn')||{}).value||'').trim(), hint=document.getElementById('treat-den-hint'), sug=document.getElementById('den-sug');
   const idEl=document.getElementById('treat-id'), curId=idEl?idEl.value:'';
   const done={}; if(hn){ (treatments||[]).forEach(t=>{ if(String(t.hn||'').trim()!==hn || (curId&&String(t.id)===String(curId))) return;
     String(t.proc||'').split(',').map(x=>procNorm_(x)).forEach(x=>{ if(isDentureProc_(x)&&!done[x]) done[x]=String(t.date||'').slice(0,10); }); }); }
   const order=DENTURE_TYPES.concat(DENTURE_STEPS), ks=order.filter(k=>done[k]);
-  const _warn=(selected.some(x=>DENTURE_STEPS.includes(x)) && !selected.some(x=>DENTURE_TYPES.includes(x)))?'<div style="color:#C0392B;font-weight:700;margin-bottom:6px;">⚠️ ยังไม่ได้เลือกชนิดฟันปลอม (ฐานพลาสติก / โครงโลหะ / ฐานนิ่ม / ทั้งปาก)</div>':'';
-  hint.innerHTML = _warn + ( ks.length ? '<div style="color:var(--text-mid);font-weight:700;margin-bottom:3px;">ที่เคยทำแล้ว</div>'+ks.map(k=>'<div>✅ '+_escHtml(k)+' <span style="color:var(--text-light);">'+_escHtml(done[k])+'</span></div>').join('')
-    + (DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).length?'<div style="margin-top:3px;color:var(--text-light);">ยังไม่ได้ทำ: '+DENTURE_STEPS.filter(k=>!done[k]&&!selected.includes(k)).map(_escHtml).join(' · ')+'</div>':'') : '');
+  const pastType=DENTURE_TYPES.find(t=>done[t]);
+  sug.innerHTML=(!type&&pastType)?`<button type="button" onclick="denTap_('${pastType}')" style="width:100%;margin:-4px 0 12px;border:1.5px dashed var(--wine);background:var(--wine-pale);color:var(--wine-dark);border-radius:10px;padding:8px;font-size:13px;font-weight:700;cursor:pointer;">↩︎ ใช้ชนิดเดิมของคนไข้: ${_escHtml(pastType)} (${_escHtml(done[pastType])})</button>`:'';
+  hint.innerHTML = ks.length ? '<div style="color:var(--text-mid);font-weight:700;margin-bottom:3px;">คนไข้รายนี้ที่เคยทำแล้ว</div>'+ks.map(k=>'<div>✅ '+_escHtml(k)+' <span style="color:var(--text-light);">'+_escHtml(done[k])+'</span></div>').join('')
+    + (steps.filter(k=>!done[k]&&!selected.includes(k)).length?'<div style="margin-top:3px;color:var(--text-light);">ยังไม่ได้ทำ: '+steps.filter(k=>!done[k]&&!selected.includes(k)).map(_escHtml).join(' · ')+'</div>':'') : '';
 }
 
 // ---- ราคาแยกรายการ (procPrices) ----
@@ -10534,6 +10559,7 @@ function setProcSelected(procs){
     cb.checked = list.includes(cb.value) || (cb.value==='อื่นๆ' && list.some(x=>x.indexOf('อื่นๆ:')===0));
   });
   { const oi=document.getElementById('treat-proc-other'), o=list.find(x=>x.indexOf('อื่นๆ:')===0); if(oi) oi.value=o?o.slice(o.indexOf(':')+1).trim():''; }
+  _denOpen=false;
   _procProgrammatic=true; try{ updateProcDisplay(); } finally { _procProgrammatic=false; }
 }
 
