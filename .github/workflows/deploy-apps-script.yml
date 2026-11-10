@@ -1,0 +1,52 @@
+# Auto-deploy Apps Script (Code.gs, line-crm.gs, ortho-backend.gs, richmenu-setup.gs)
+# ทำงานเมื่อมีการ push ไฟล์ .gs ขึ้น main หรือกดรันเองที่แท็บ Actions
+# ต้องตั้ง Secrets 3 ตัว: CLASPRC_JSON, SCRIPT_ID, DEPLOYMENT_ID  (ดู APPS-SCRIPT-AUTO-DEPLOY.md)
+name: Deploy Apps Script
+on:
+  push:
+    branches: [main]
+    paths: ['**/*.gs', 'apps-script-manifest.json', '.github/workflows/deploy-apps-script.yml']
+  workflow_dispatch:
+concurrency:
+  group: deploy-apps-script
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: ตรวจว่ามี secrets และ manifest ครบ
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
+        run: |
+          for v in CLASPRC_JSON SCRIPT_ID DEPLOYMENT_ID; do
+            if [ -z "${!v}" ]; then echo "::error::ยังไม่ได้ตั้ง secret $v"; exit 1; fi
+          done
+          test -f apps-script-manifest.json || { echo "::error::ไม่พบ apps-script-manifest.json (ต้องดึงจากโปรเจกต์จริงด้วย clasp pull ก่อน)"; exit 1; }
+
+      - name: ตรวจ syntax ทุกไฟล์ .gs (ผิดแล้วไม่ deploy)
+        run: |
+          mkdir -p /tmp/syn
+          for f in *.gs; do cp "$f" "/tmp/syn/${f%.gs}.js"; node --check "/tmp/syn/${f%.gs}.js" || { echo "::error::syntax ผิดใน $f"; exit 1; }; done
+
+      - name: เตรียมโฟลเดอร์ build
+        run: |
+          mkdir build
+          cp *.gs build/
+          cp apps-script-manifest.json build/appsscript.json
+          echo "{\"scriptId\":\"${{ secrets.SCRIPT_ID }}\",\"rootDir\":\"build\"}" > .clasp.json
+          echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: push โค้ด + สร้างเวอร์ชัน + อัปเดต deployment เดิม (URL เดิม)
+        run: |
+          npm i -g @google/clasp@2
+          clasp push -f
+          clasp version "auto ${GITHUB_SHA::7}" | tee v.txt
+          VER=$(grep -oE '[0-9]+' v.txt | tail -1)
+          clasp deploy -i "${{ secrets.DEPLOYMENT_ID }}" -V "$VER" -d "auto ${GITHUB_SHA::7}"
+          echo "deployed version $VER"
