@@ -2274,6 +2274,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="form-group">
       <label>หัตถการ / การวินิจฉัย (แก้ไขได้)</label>
       <input type="text" class="form-control" id="cert-proc">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;margin-top:6px;color:var(--text-mid);"><input type="checkbox" id="cert-showteeth" onchange="certRefreshProc_()" style="width:15px;height:15px;"> แสดงซี่ฟันในใบรับรอง <span style="color:var(--text-light);">(ลาป่วย = ไม่แสดง · เบิกประกัน/อื่น ๆ = แสดง)</span></label>
     </div>
     <div class="form-grid">
       <div class="form-group">
@@ -6068,11 +6069,16 @@ function escapeHtml(s){
   return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+let _certTreat=null;
+function certRefreshProc_(){
+  const t=_certTreat; if(!t) return; const show=document.getElementById('cert-showteeth').checked;
+  document.getElementById('cert-proc').value = certProcCompose_(String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).map(p=>{ const tx=show?toothText_(t,p):''; return tx?p+' (ซี่ '+tx+')':p; }).join(', '));
+}
 function openCertificateModal(t){
   document.getElementById('cert-treatId').value = t.id;
   document.getElementById('cert-patName-display').textContent = t.patName||'';
   document.getElementById('cert-hn-display').textContent = t.hn||'—';
-  document.getElementById('cert-proc').value = certProcCompose_(String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).map(p=>{ const tx=toothText_(t,p); return tx?p+' (ซี่ '+tx+')':p; }).join(', '));
+  _certTreat = t; document.getElementById('cert-showteeth').checked = false; certRefreshProc_();
   document.getElementById('cert-treatDate-display').textContent = fmtDate(t.date);
   document.getElementById('cert-age').value = '';
   const docSel = document.getElementById('cert-doc');
@@ -6108,6 +6114,7 @@ function toggleCertRestFields(){
 }
 
 function toggleCertPurposeOther(){
+  { const pv=document.querySelector('input[name="cert-purpose"]:checked')?.value||'', cb=document.getElementById('cert-showteeth'); if(cb){ cb.checked = pv.indexOf('ลาป่วย')<0; certRefreshProc_(); } }   // ลาป่วยไม่แสดงซี่ · เบิกประกัน/อื่น ๆ แสดง
   const isOther = document.querySelector('input[name="cert-purpose"]:checked')?.value === 'อื่นๆ';
   const wrap = document.getElementById('cert-purpose-other-wrap');
   const input = document.getElementById('cert-purpose-other');
