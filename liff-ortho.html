@@ -154,7 +154,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-10j';
+  const APP_VER = '2026-11-10k';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -172,7 +172,8 @@
   dbg('script1 ok | '+navigator.userAgent.slice(-70));
   window.addEventListener('error',function(e){ dbg('ERROR '+e.message+' @'+(e.lineno||'')); });
   window.addEventListener('unhandledrejection',function(e){ dbg('REJECT '+String(e.reason&&e.reason.message||e.reason)); });
-  document.addEventListener('DOMContentLoaded',function(){ dbg('DOM ready'); var n=0; var iv=setInterval(function(){ n++; var v=['loading','errorView','bindView','pendingView','mainView'].filter(function(x){var el=document.getElementById(x);return el&&!el.classList.contains('hide');}); dbg('tick '+n+' views='+v.join(',')+' vis='+document.visibilityState); if(n>=5) clearInterval(iv); },2000); });
+  document.addEventListener('DOMContentLoaded',function(){ dbg('DOM ready'); var n=0; var iv=setInterval(function(){ n++; var v=['loading','errorView','bindView','pendingView','mainView'].filter(function(x){var el=document.getElementById(x);return el&&!el.classList.contains('hide');}); dbg('tick '+n+' views='+v.join(',')+' vis='+document.visibilityState);
+ try{ ['mainView','.header','#m-name','.tabs'].forEach(function(sel){ var el=sel.charAt(0)==='#'||sel.charAt(0)==='.'?document.querySelector(sel):document.getElementById(sel); if(!el){ dbg(sel+' none'); return; } var r=el.getBoundingClientRect(), c=getComputedStyle(el); dbg(sel+' '+Math.round(r.left)+','+Math.round(r.top)+' '+Math.round(r.width)+'x'+Math.round(r.height)+' disp='+c.display+' op='+c.opacity+' vis='+c.visibility+' bg='+c.backgroundColor.slice(0,24)); }); dbg('win '+innerWidth+'x'+innerHeight+' scrollY='+scrollY+' bodyH='+document.body.scrollHeight+' textLen='+document.body.innerText.length+' name='+String((document.getElementById('m-name')||{}).textContent).slice(0,20)); }catch(e){ dbg('diag err '+e.message); } if(n>=5) clearInterval(iv); },2000); });
   const LIFF_ID = '2012312037-ZWyIL0I7';
   window.addEventListener('DOMContentLoaded',function(){ var v=document.getElementById('verTag'); if(v) v.textContent='v'+APP_VER.slice(-1); });
   window.addEventListener('error',function(e){ try{ var m=document.getElementById('errorMsg'); if(m && !window.__shown){ m.textContent='เกิดข้อผิดพลาด: '+String(e.message||'').slice(0,120); ['loading','bindView','pendingView','mainView'].forEach(function(x){var el=document.getElementById(x); if(el) el.classList.add('hide');}); document.getElementById('errorView').classList.remove('hide'); } }catch(_){} });
@@ -364,6 +365,7 @@ async function load(silent){
   }catch(e){ console.error(e); if(!silent) fail('เชื่อมต่อไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
 }
 function render(){
+  dbg('render() patients='+(DATA&&DATA.patients&&DATA.patients.length));
   const d = DATA;
   if(!d.patients.length){
     if(d.pending.length) return show('pendingView');
