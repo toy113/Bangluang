@@ -154,7 +154,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-10i';
+  const APP_VER = '2026-11-10j';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -168,7 +168,7 @@
       }).catch(()=>{});
     }catch(e){}
   })();
-  window.dbg=function(m){ try{ if(!/[?&]dbg=1/.test(location.search)) return; var d=document.getElementById('dbg'); if(!d){ d=document.createElement('div'); d.id='dbg'; d.style.cssText='position:fixed;left:0;right:0;bottom:0;max-height:70%;overflow:auto;background:#fff;color:#000;font:12px/1.4 monospace;padding:6px;z-index:99999;white-space:pre-wrap;border-top:3px solid red'; (document.body||document.documentElement).appendChild(d);} d.textContent+=new Date().toISOString().slice(14,23)+' '+m+'\n'; }catch(_){} };
+  window.dbg=function(m){ try{ var q=location.search; try{ q=decodeURIComponent(q); }catch(_){} if(!/dbg=1/.test(q) && !/dbg=1/.test(location.href)) return; var d=document.getElementById('dbg'); if(!d){ d=document.createElement('div'); d.id='dbg'; d.style.cssText='position:fixed;left:0;right:0;bottom:0;max-height:70%;overflow:auto;background:#fff;color:#000;font:12px/1.4 monospace;padding:6px;z-index:99999;white-space:pre-wrap;border-top:3px solid red'; (document.body||document.documentElement).appendChild(d);} d.textContent+=new Date().toISOString().slice(14,23)+' '+m+'\n'; }catch(_){} };
   dbg('script1 ok | '+navigator.userAgent.slice(-70));
   window.addEventListener('error',function(e){ dbg('ERROR '+e.message+' @'+(e.lineno||'')); });
   window.addEventListener('unhandledrejection',function(e){ dbg('REJECT '+String(e.reason&&e.reason.message||e.reason)); });
