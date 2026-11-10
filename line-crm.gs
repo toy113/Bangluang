@@ -1641,9 +1641,10 @@ function crmHandleText_(s, ev, uid) {
     return;
   }
   // ตอบอัตโนมัติ: โปรจัดฟัน / ประกันสังคม / เวลาทำการ-แผนที่ / ราคา (+ ปุ่มในการ์ด)
-  var chatting = crmConvTouch_(uid);
+  var chatting = crmConvPeek_(uid);   // คนไข้กำลังคุยกับแอดมินอยู่ (มีข้อความจริงก่อนหน้าใน 30 นาที) → ไม่แทรก
   if (crmOrthoPromoHandle_(s, ev, uid, text, chatting)) return;
   if (crmFaqHandle_(s, ev, uid, text, chatting)) return;
+  crmConvMark_(uid, text);   // ข้อความที่บอทไม่ได้ตอบ = เป็นเรื่องที่แอดมินต้องคุย (ทักทาย/ขอบคุณไม่นับ)
   // ขอเลื่อนนัด / ยืนยันนัด (ปุ่มในการ์ดส่งเป็นข้อความจริง หรือคนไข้พิมพ์เอง) → จับคู่นัดข้างหน้าของคนไข้แล้วเข้ากระบวนการเดียวกับปุ่มเดิม
   var tm = text.replace(/\s+/g, ' ').trim(), aptWord = /^ขอเลื่อนนัด(\s|$)/.test(tm) ? 'resched' : (/^ยืนยันนัด(\s|$)/.test(tm) ? 'confirm' : '');
   if (aptWord && tm.length <= 40) {
@@ -1702,11 +1703,12 @@ function crmIsOrthoPatientUid_(uid) {
 }
 function crmHm_(d) { return Utilities.formatDate(d || new Date(), CRM_TZ, 'HH:mm'); }
 /* มีข้อความจากคนนี้ภายใน 30 นาทีก่อนหน้า = กำลังคุยกับแอดมินอยู่ (ระบบมองไม่เห็นข้อความที่แอดมินตอบใน OA Chat จึงใช้ข้อความฝั่งคนไข้แทน) */
-function crmConvTouch_(uid) {
-  var cache = CacheService.getScriptCache(), k = 'crm_conv_' + uid, was = !!cache.get(k);
-  cache.put(k, '1', 1800);
-  return was;
+function crmConvPeek_(uid) { return !!CacheService.getScriptCache().get('crm_conv_' + uid); }
+function crmIsGreeting_(text) {
+  var t = String(text || '').replace(/\s+/g, '');
+  return t.length <= 20 && /^(สวัสดี|หวัดดี|ดี|เฮลโล|hello|hi|hey|ขอบคุณ|ขอบใจ|โอเค|ok|okay)(ครับ|ค่ะ|คะ|คับ|จ้า|จ้ะ|นะครับ|นะคะ|มากครับ|มากค่ะ|มากๆ)*[!.]*$/i.test(t);
 }
+function crmConvMark_(uid, text) { if (!crmIsGreeting_(text)) CacheService.getScriptCache().put('crm_conv_' + uid, '1', 1800); }
 function crmOrthoPromoHandle_(s, ev, uid, text, chatting) {
   var tm = String(text || '').replace(/\s+/g, ' ').trim();
   var who = null; var whoOf = function () { return who || (who = crmNameOfUid_(uid)); };
