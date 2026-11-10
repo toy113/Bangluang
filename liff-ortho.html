@@ -154,7 +154,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-10k';
+  const APP_VER = '2026-11-10l';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -201,7 +201,7 @@
       <div class="field"><label>HN ของคนไข้</label><input id="b-hn" inputmode="numeric" placeholder="เช่น 62-3037" maxlength="8" autocomplete="off" oninput="fmtHn(this)"><div class="muted" style="margin-top:4px;">ดู HN ได้บนบัตรคนไข้ ใบนัด หรือใบเสร็จของคลินิก (6–7 หลัก) · ไม่ทราบ HN สอบถามคลินิกได้ค่ะ</div></div>
       <div class="field"><label>เบอร์โทรที่ให้ไว้กับคลินิก</label><input id="b-phone" inputmode="tel" placeholder="08x-xxx-xxxx" maxlength="12" autocomplete="off" oninput="fmtPhone(this)"></div>
       <div class="field"><label>วันเกิด (วัน / เดือน) — ไม่บังคับ</label>
-        <div style="display:flex;gap:8px;"><select id="b-bd" class="bsel"><option value="">วัน</option></select><select id="b-bm" class="bsel"><option value="">เดือน</option></select></div>
+        <div style="display:flex;gap:8px;"><select id="b-bd" class="bsel"><option value="">วัน</option></select><select id="b-bm" class="bsel"><option value="">เดือน</option></select></div></div>
       <label class="check"><input type="checkbox" id="b-consent">
         <span>ยินยอมให้คลินิกเชื่อมบัญชี LINE นี้กับข้อมูลคนไข้ และส่งข้อความยืนยันนัด เตือนนัด คำแนะนำหลังการรักษา และติดตามอาการทาง LINE (ยกเลิกได้ทุกเมื่อในหน้านี้)</span></label>
       <button class="btn btn-primary" id="bindBtn" onclick="doBind()">ผูกบัญชี</button>
