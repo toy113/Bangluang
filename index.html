@@ -6072,7 +6072,7 @@ function openCertificateModal(t){
   document.getElementById('cert-treatId').value = t.id;
   document.getElementById('cert-patName-display').textContent = t.patName||'';
   document.getElementById('cert-hn-display').textContent = t.hn||'—';
-  document.getElementById('cert-proc').value = String(t.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
+  document.getElementById('cert-proc').value = certProcCompose_(t.proc);
   document.getElementById('cert-treatDate-display').textContent = fmtDate(t.date);
   document.getElementById('cert-age').value = '';
   const docSel = document.getElementById('cert-doc');
@@ -6187,7 +6187,7 @@ function printLangSel_(){
 var EN_MONTHS_ = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function fmtDateEn_(s){ const [y,m,d]=String(s||'').slice(0,10).split('-').map(Number); if(!y||!m||!d) return s||'—'; return d+' '+EN_MONTHS_[m-1]+' '+y; }
 // แปลชื่อหัตถการที่พบบ่อยเป็นอังกฤษ — คำที่ไม่อยู่ในรายการจะคงภาษาไทยไว้ (ตรวจก่อนยื่นเอกสารทุกครั้ง)
-var EN_PROC_ = [['ปรับเครื่องมือจัดฟัน','Orthodontic adjustment'],['ถอดเครื่องมือจัดฟัน','Orthodontic appliance removal'],['ติดเครื่องมือจัดฟัน','Orthodontic bonding'],['เครื่องมือจัดฟัน','Orthodontic appliance'],['จัดฟัน','Orthodontic treatment'],['ผ่าฟันคุด','Surgical removal of impacted tooth'],['ถอนฟันคุด','Removal of impacted tooth'],['ถอนฟัน','Tooth extraction'],['รักษารากฟัน','Root canal treatment'],['เกลารากฟัน','Root planing'],['รากฟันเทียม','Dental implant'],['ขูดหินปูน','Scaling'],['ขัดฟัน','Polishing'],['อุดฟัน','Dental filling'],['ครอบฟัน','Dental crown'],['สะพานฟัน','Dental bridge'],['ฟันปลอม','Denture'],['ฟอกสีฟัน','Teeth whitening'],['เคลือบหลุมร่องฟัน','Fissure sealant'],['เคลือบฟลูออไรด์','Fluoride application'],['ตรวจฟัน','Dental examination'],['ตรวจช่องปาก','Oral examination'],['รีเทนเนอร์','Retainer'],['เอ็กซเรย์','X-Ray'],['ค่าแลป','Laboratory fee'],['ฟันน้ำนม','primary tooth'],['ซี่','tooth']];
+var EN_PROC_ = [['ฟันปลอมถอดได้ฐานพลาสติก','Removable acrylic denture'],['ฟันปลอมถอดได้โครงโลหะ','Removable partial denture (metal framework)'],['ฟันปลอมฐานนิ่ม','Flexible (soft-base) denture'],['ฟันปลอมทั้งปาก','Complete denture'],['พิมพ์แบบฟันปลอม','impression'],['ลองโครงฟันปลอม','framework try-in'],['บันทึกการสบฟัน','bite registration'],['ลองฟันปลอม','try-in'],['ใส่ฟันปลอม','delivery'],['ปรับแก้ฟันปลอม','adjustment'],['ขั้นตอน:','stage:'],['นัดต่อเนื่องรักษารากฟัน','Root canal treatment (follow-up visit)'],['อุดคลองรากฟัน','Root canal filling'],['ครอบฟันบางส่วน','Onlay'],['ใส่ครอบฟัน','Crown cementation'],['เอ็กซเรย์ตรวจฟันผุ','Bitewing X-Ray'],['เอ็กซเรย์ฟัน','Dental X-Ray'],['เฝือกสบฟัน','Occlusal splint'],['ตรวจติดตามอาการ','Follow-up examination'],['ปรับเครื่องมือจัดฟัน','Orthodontic adjustment'],['ถอดเครื่องมือจัดฟัน','Orthodontic appliance removal'],['ติดเครื่องมือจัดฟัน','Orthodontic bonding'],['เครื่องมือจัดฟัน','Orthodontic appliance'],['จัดฟัน','Orthodontic treatment'],['ผ่าฟันคุด','Surgical removal of impacted tooth'],['ถอนฟันคุด','Removal of impacted tooth'],['ถอนฟัน','Tooth extraction'],['รักษารากฟัน','Root canal treatment'],['เกลารากฟัน','Root planing'],['รากฟันเทียม','Dental implant'],['ขูดหินปูน','Scaling'],['ขัดฟัน','Polishing'],['อุดฟัน','Dental filling'],['ครอบฟัน','Dental crown'],['สะพานฟัน','Dental bridge'],['ฟันปลอม','Denture'],['ฟอกสีฟัน','Teeth whitening'],['เคลือบหลุมร่องฟัน','Fissure sealant'],['เคลือบฟลูออไรด์','Fluoride application'],['ตรวจฟัน','Dental examination'],['ตรวจช่องปาก','Oral examination'],['รีเทนเนอร์','Retainer'],['เอ็กซเรย์','X-Ray'],['ค่าแลป','Laboratory fee'],['ฟันน้ำนม','primary tooth'],['ซี่','tooth']];
 function enProc_(t){ let x=String(t||''); EN_PROC_.forEach(([a,b])=>{ x=x.split(a).join(b); }); return x; }
 var EN_PURPOSE_ = {'ลาป่วยต่อนายจ้าง/สถานศึกษา':'Sick leave (employer / school)','ยื่นเบิกประกันสุขภาพ':'Health insurance claim','ยื่นเบิกต้นสังกัด':'Reimbursement claim to employing agency','ยื่นเบิกบริษัท':'Reimbursement claim to employer (company)'};
 function bahtTextEn_(n){
@@ -6563,9 +6563,18 @@ h1{text-align:center;font-size:21px;margin:14px 0 2px;color:#3d1435}.en{text-ali
   w.document.open(); w.document.write(html); w.document.close();
   closeModal('modalReferral');
 }
+// ใบรับรอง: งานฟันปลอมเขียนเป็น "ชนิด (ขั้นตอน: ...)" ให้อ่านรู้ว่าทำอะไรกับฟันปลอมแบบไหน
+function certProcCompose_(txt){
+  const parts=String(txt||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(parts.some(x=>x.indexOf('ขั้นตอน:')>=0)) return parts.join(', ');
+  const type=parts.find(x=>DENTURE_TYPES.includes(x)), steps=parts.filter(x=>DENTURE_STEPS.includes(x));
+  if(!type || !steps.length) return parts.join(', ');
+  const rest=parts.filter(x=>x!==type && !steps.includes(x));
+  return [type+' (ขั้นตอน: '+steps.join(', ')+')'].concat(rest).join(', ');
+}
 function buildCertPrintHtml(cert, lang){
   const en = lang==='en';
-  const procRaw = String(cert.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ');
+  const procRaw = certProcCompose_(cert.proc);
   const procList = en ? enProc_(procRaw) : procRaw;
   const purpose = en ? (EN_PURPOSE_[cert.purpose]||cert.purpose) : cert.purpose;
   const dt = x => en ? fmtDateEn_(x) : fmtDateThai(x);
