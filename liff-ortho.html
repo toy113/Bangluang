@@ -116,6 +116,29 @@
   .spin{width:38px;height:38px;border:4px solid var(--wine-pale);border-top-color:var(--wine);border-radius:50%;animation:sp 0.8s linear infinite;margin:60px auto 14px;}
   @keyframes sp{to{transform:rotate(360deg);}}
   .hide{display:none!important;}
+  /* ===== WOW: skeleton · เปลี่ยนแท็บนุ่มๆ · Smile Journey · เหรียญรางวัล · คอนเฟตติ ===== */
+  .sk{background:linear-gradient(90deg,#efe6ee 25%,#f9f4f8 50%,#efe6ee 75%);background-size:200% 100%;animation:skm 1.2s linear infinite;border-radius:14px;}
+  @keyframes skm{to{background-position:-200% 0}}
+  .panel-in{animation:pin .34s cubic-bezier(.2,.8,.2,1);}
+  @keyframes pin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .sj{display:flex;align-items:center;gap:16px;}
+  .sj-ring{position:relative;width:118px;height:118px;flex-shrink:0;}
+  .sj-ring svg{transform:rotate(-90deg);display:block;}
+  .sj-ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .sj-ring .c b{font-size:28px;color:var(--wine);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+  .sj-ring .c span{font-size:11px;color:var(--text-mid);margin-top:3px;}
+  .sj-arc{transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1);}
+  .sj-msg{font-size:15px;font-weight:800;color:var(--wine-dark);line-height:1.45;}
+  .sj-sub{font-size:12.5px;color:var(--text-mid);margin-top:4px;line-height:1.5;}
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 6px;margin-top:14px;}
+  .badge{text-align:center;font-size:10.5px;color:var(--text-light);line-height:1.25;}
+  .badge i{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 5px;border-radius:50%;font-style:normal;font-size:22px;background:#f1edf2;filter:grayscale(1);opacity:.4;}
+  .badge.on{color:var(--wine-dark);font-weight:700;}
+  .badge.on i{background:radial-gradient(circle at 30% 30%,#fff6d6,#E0C273 60%,#C9A24B);filter:none;opacity:1;box-shadow:0 4px 12px rgba(201,162,75,.45);}
+  .badge.new i{animation:bpop .9s cubic-bezier(.2,1.6,.4,1);}
+  @keyframes bpop{0%{transform:scale(.3) rotate(-30deg)}60%{transform:scale(1.18) rotate(6deg)}100%{transform:none}}
+  #confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99;}
+  @media (prefers-reduced-motion:reduce){.panel-in,.sj-arc,.badge.new i,.sk{animation:none!important;transition:none!important;}}
   /* แถบวันเกิดแบบย่อ (แท็บนัดเท่านั้น) */
   .bd-mini{padding:12px 14px;}
   .bd-row{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-size:14.5px;font-weight:700;color:var(--wine);}
@@ -154,7 +177,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-11m';
+  const APP_VER = '2026-11-11n';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -182,7 +205,7 @@
 </script>
 
 <!-- LOADING -->
-<div id="loading"><div class="spin"></div><p class="center muted">กำลังโหลด...</p><p class="center muted" id="verTag" style="font-size:11px;margin-top:6px"></p></div>
+<div id="loading"><div class="sk" style="height:112px;border-radius:0 0 22px 22px;"></div><div class="wrap"><div class="sk" style="height:46px;margin-bottom:16px;"></div><div class="sk" style="height:196px;border-radius:20px;margin-bottom:12px;"></div><div class="sk" style="height:96px;"></div></div><p class="center muted">กำลังโหลด...</p><p class="center muted" id="verTag" style="font-size:11px;margin-top:6px"></p></div>
 
 <!-- ERROR -->
 <div id="errorView" class="hide">
@@ -392,7 +415,9 @@ function render(){
 function setTab(t){
   TAB = t;
   ['next','history','ortho'].forEach(x=>{ $('tab-'+x).classList.toggle('on', x===t); $('panel-'+x).classList.toggle('hide', x!==t); });
+  const pn = $('panel-'+t); if(pn){ pn.classList.remove('panel-in'); void pn.offsetWidth; pn.classList.add('panel-in'); }
   bdUpdate_();
+  if(t==='ortho') sjCelebrate_();
 }
 /* ---------- วันเกิด: แถบเล็ก เฉพาะแท็บนัด · "ไว้ทีหลัง" ซ่อน 30 วัน ---------- */
 function bdSnoozed_(hn){ try{ return Date.now() < +(localStorage.getItem('bl_bd_snooze_'+hn)||0); }catch(e){ return false; } }
@@ -453,7 +478,7 @@ function renderNext(p){
       ${dow?`<div class="wl-dow">วัน${esc(dow)}</div>`:''}
       <div class="wl-date">${dd}</div>
       <div class="wl-sub">${a.time?esc(a.time)+' น.':''}${a.time&&a.docName?' · ':''}${a.docName?esc(a.docName):''}</div>
-      <span class="wl-when">⏳ ${esc(cntText(n))}</span>
+      <span class="wl-when" id="wlWhen">⏳ ${esc(cntText(n))}</span>
       <div class="wl-proc">${a.kind==='ortho'?'😬 ':''}${esc(a.proc||'')}</div>
     </div></div>`;
   const info = `<div class="card wl-info">
@@ -468,6 +493,23 @@ function renderNext(p){
   $('panel-next').innerHTML = card + info + (more?'<h3 style="font-size:14px;color:var(--wine);margin:4px 2px 8px;">นัดถัดๆ ไป</h3>'+more:'') +
     `<p class="muted center" style="margin:4px 0 12px;">ต้องการเลื่อนนัด กดปุ่ม "ขอเลื่อนนัด" ในข้อความเตือนนัด หรือโทรหาคลินิก</p>`;
   wlTiltInit_();
+  wlLive_(a, n);
+}
+/* นับถอยหลังสดบนบัตรนัด (เฉพาะนัดวันนี้/พรุ่งนี้ที่มีเวลา) · อัปเดตทุก 20 วิ */
+let _wlLiveT = null;
+function wlLive_(a, n){
+  if(_wlLiveT){ clearInterval(_wlLiveT); _wlLiveT = null; }
+  const pd = ymd(a.date), tm = String(a.time||'').match(/^(\d{1,2}):(\d{2})/);
+  if(!pd || !tm || n===null || n<0 || n>1) return;
+  const target = Date.UTC(pd.y, pd.m-1, pd.d, +tm[1]-7, +tm[2]);   // เวลาไทย
+  const tick = () => {
+    const el = document.getElementById('wlWhen'); if(!el){ clearInterval(_wlLiveT); _wlLiveT = null; return; }
+    const ms = target - Date.now();
+    if(ms <= 0){ el.textContent = '🦷 ถึงเวลานัดแล้ว รอพบคุณนะคะ'; clearInterval(_wlLiveT); _wlLiveT = null; return; }
+    const m = Math.floor(ms/60000), h = Math.floor(m/60);
+    el.textContent = '⏳ ' + (n===1 && h>=12 ? 'พรุ่งนี้ · ' : '') + 'อีก ' + (h ? h+' ชม. ' : '') + (m%60) + ' นาที';
+  };
+  tick(); _wlLiveT = setInterval(tick, 20000);
 }
 /* แสงบนบัตรขยับตามการเอียงมือถือ (ถ้าเครื่องอนุญาต) · ไม่อนุญาต = แสงวิ่งเองทุก 4.5 วิ */
 let _wlTiltOn = false;
@@ -588,7 +630,9 @@ function renderOrtho(p){
     return `<div class="tl-item${extra?' tl-x'+(TL_ALL?'':' hide'):''}">${no?`<div class="tl-visitno">ปรับครั้งที่ ${no}</div>`:''}<div class="tl-date">${esc(thaiDateDow_(d))}</div>${items}${looseTxt}</div>`;
   }).join('') : '<p class="muted">ยังไม่มีบันทึก</p>';
   const tlMore = tlDays.length > TL_SHOW ? `<button type="button" class="tl-more" id="tlMoreBtn" onclick="tlToggle_()">${tlMoreLbl_(tlDays.length - TL_SHOW)}</button>` : '';
-  $('panel-ortho').innerHTML = `
+  const sj = sjCard_(p, { planN: planM ? +planM[1] : 0, visits: visits.length, retained, overdue, loose: loose.length,
+    started: !!(pr['วันเริ่ม'] || pr['วันติดบน'] || pr['วันติดล่าง'] || logs.length) });
+  $('panel-ortho').innerHTML = sj + `
     <div class="overdue-banner" style="display:${overdue?'block':'none'}">⚠️ คุณไม่ได้มาปรับเครื่องมือ ${since} วันแล้ว<br>กรุณาติดต่อคลินิกเพื่อนัดเข้ามาปรับเครื่องมือ</div>
     <div class="card"><h3>📈 ความคืบหน้า ${esc(braceLabel(pr['แบบจัด']))} *</h3><p class="muted" style="margin:-4px 0 8px;font-size:12px;">* ข้อมูลยึดตามบัตรจัดฟันที่คลินิกเป็นหลัก</p>${prog}
       ${(()=>{ const up=pr['วันติดบน']?String(pr['วันติดบน']).slice(0,10):'', lo=pr['วันติดล่าง']?String(pr['วันติดล่าง']).slice(0,10):'', row=(k,d)=>`<div class="row"><span class="k">${k}</span><span class="v">${d?esc(thaiDateShort(d)):'—'}</span></div>`;
@@ -610,6 +654,74 @@ function renderOrtho(p){
       <li>มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น</li>
       <li>กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์เปลี่ยนเป็นชำระ 1,500 บาทจนกว่าจะเสร็จค่ะ</li>
     </ul></div>`;
+}
+/* ===== Smile Journey: วงแหวนความคืบหน้า + ข้อความกำลังใจ + เหรียญรางวัล (ฉลองด้วยคอนเฟตติเมื่อได้เหรียญใหม่) ===== */
+let _sjPending = null;
+function sjCard_(p, o){
+  const pct = o.retained ? 100 : (o.planN ? Math.min(100, Math.round(o.visits / o.planN * 100)) : null);
+  const R = 50, C = 2 * Math.PI * R, off = pct === null ? 0 : C * (1 - pct / 100);
+  let msg, sub = '';
+  if(o.retained){ msg = 'ยินดีด้วย! รอยยิ้มใหม่ของคุณพร้อมแล้ว ✨'; sub = 'ใส่รีเทนเนอร์สม่ำเสมอ เพื่อรักษาฟันให้เรียงสวยตลอดไป'; }
+  else if(o.overdue){ msg = 'มาปรับเครื่องมือให้ต่อเนื่องนะคะ 🙏'; sub = 'การมาตามนัดทำให้ฟันเข้าที่เร็วขึ้น'; }
+  else if(pct === null){ msg = o.visits ? 'กำลังเดินทางสู่รอยยิ้มใหม่ 💪' : 'เริ่มต้นการเดินทางสู่รอยยิ้มใหม่ 🦷'; sub = 'มาปรับเครื่องมือแล้ว ' + o.visits + ' ครั้ง'; }
+  else if(pct < 25){ msg = 'เริ่มต้นการเดินทางสู่รอยยิ้มใหม่ 💪'; }
+  else if(pct < 50){ msg = 'ไปได้สวย! ฟันกำลังค่อยๆ เข้าที่ 😁'; }
+  else if(pct < 75){ msg = 'ผ่านครึ่งทางแล้ว เก่งมากค่ะ 🎉'; }
+  else { msg = 'ใกล้เสร็จแล้ว อีกนิดเดียว! 🏁'; }
+  if(pct !== null && !o.retained && !sub) sub = 'ปรับเครื่องมือแล้ว ' + o.visits + ' จาก ' + o.planN + ' ครั้ง';
+  const half = o.planN ? Math.ceil(o.planN / 2) : 15;
+  const B = [
+    ['start','🦷','ติดเครื่องมือ', o.started],
+    ['v1','🔧','ปรับครั้งแรก', o.visits >= 1],
+    ['v5','⭐','ปรับ 5 ครั้ง', o.visits >= 5],
+    ['v10','🌟','ปรับ 10 ครั้ง', o.visits >= 10],
+    ['half','🏅','ครึ่งทาง', o.retained || o.visits >= half],
+    ['v20','💎','ปรับ 20 ครั้ง', o.visits >= 20],
+    ['strong','🛡️','ไม่หลุดเลย', o.loose === 0 && o.visits >= 3],
+    ['ret','👑','รอยยิ้มใหม่', o.retained]
+  ];
+  const key = 'bl_badges_' + p.hn; let seen = null;
+  try{ seen = JSON.parse(localStorage.getItem(key) || 'null'); }catch(e){}
+  const earned = B.filter(b => b[3]).map(b => b[0]);
+  const fresh = earned.filter(id => !(seen || []).includes(id));
+  _sjPending = fresh.length ? { key, earned } : null;
+  const ring = `<div class="sj-ring"><svg width="118" height="118" viewBox="0 0 118 118">
+      <defs><linearGradient id="sjg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E0C273"/><stop offset="1" stop-color="#6B2D5E"/></linearGradient></defs>
+      <circle cx="59" cy="59" r="${R}" fill="none" stroke="#F3E9F0" stroke-width="11"/>
+      <circle class="sj-arc" cx="59" cy="59" r="${R}" fill="none" stroke="url(#sjg)" stroke-width="11" stroke-linecap="round"
+        stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}" data-off="${off.toFixed(1)}"/></svg>
+      <div class="c">${pct === null ? `<b>${o.visits}</b><span>ครั้งที่ปรับ</span>` : `<b data-to="${pct}">0%</b><span>ความคืบหน้า</span>`}</div></div>`;
+  return `<div class="card"><h3>✨ Smile Journey</h3><div class="sj">${ring}<div><div class="sj-msg">${msg}</div>${sub ? `<div class="sj-sub">${esc(sub)}</div>` : ''}</div></div>
+    <div class="badges">${B.map(b => `<div class="badge${b[3] ? ' on' : ''}${b[3] && fresh.includes(b[0]) ? ' new' : ''}"><i>${b[1]}</i>${b[2]}</div>`).join('')}</div></div>`;
+}
+/* วงแหวนวิ่ง + ตัวเลขนับขึ้น ทุกครั้งที่เปิดแท็บจัดฟัน · คอนเฟตติเฉพาะตอนได้เหรียญใหม่ (ครั้งเดียวต่อเหรียญ) */
+function sjCelebrate_(){
+  const arc = document.querySelector('#panel-ortho .sj-arc');
+  if(arc){ arc.style.transition = 'none'; arc.style.strokeDashoffset = arc.getAttribute('stroke-dasharray'); void arc.getBoundingClientRect(); arc.style.transition = ''; requestAnimationFrame(() => { arc.style.strokeDashoffset = arc.dataset.off; }); }
+  const num = document.querySelector('#panel-ortho .sj-ring b[data-to]');
+  if(num){ const to = +num.dataset.to, t0 = performance.now(); const step = t => { const k = Math.min(1, (t - t0) / 1400), e = 1 - Math.pow(1 - k, 3); num.textContent = Math.round(to * e) + '%'; if(k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+  if(!_sjPending) return;
+  const pend = _sjPending; _sjPending = null;
+  try{ localStorage.setItem(pend.key, JSON.stringify(pend.earned)); }catch(e){}
+  setTimeout(confetti_, 450);
+}
+function confetti_(){
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = document.createElement('canvas'); cv.id = 'confetti'; document.body.appendChild(cv);
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; const x = cv.getContext('2d'); x.scale(dpr, dpr);
+  const col = ['#6B2D5E','#C9A24B','#E0C273','#a2609a','#1D825C','#F27A0D'];
+  const ps = Array.from({length: 120}, () => ({ x: W/2 + (Math.random()-.5)*60, y: H*0.35, vx: (Math.random()-.5)*11, vy: -Math.random()*12-4,
+    w: 6+Math.random()*6, h: 8+Math.random()*8, r: Math.random()*6, vr: (Math.random()-.5)*.4, c: col[Math.floor(Math.random()*col.length)] }));
+  const t0 = performance.now();
+  const f = t => {
+    const el = t - t0; x.clearRect(0, 0, W, H);
+    ps.forEach(q => { q.vy += 0.32; q.vx *= 0.99; q.x += q.vx; q.y += q.vy; q.r += q.vr;
+      x.save(); x.globalAlpha = Math.max(0, 1 - el/2600); x.translate(q.x, q.y); x.rotate(q.r); x.fillStyle = q.c; x.fillRect(-q.w/2, -q.h/2, q.w, q.h); x.restore(); });
+    if(el < 2600) requestAnimationFrame(f); else cv.remove();
+  };
+  requestAnimationFrame(f);
+  try{ if(navigator.vibrate) navigator.vibrate([30, 40, 30]); }catch(e){}
 }
 // วันเกิด (วัน/เดือน) — เก็บเป็น MM-DD
 function bdInit(){
