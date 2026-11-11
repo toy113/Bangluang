@@ -1031,3 +1031,15 @@ function migrateProcNamesRun() {
   var r = migrateProcNames_(true);
   Logger.log('สำรองไว้ที่: ' + copy.getUrl() + '\n' + r.join('\n') + '\n\nเสร็จแล้ว — บอกคุณ Claude ได้เลยว่าย้ายเสร็จ เพื่อเปิดหน้าเว็บเวอร์ชันใหม่');
 }
+
+/* ลบบัญชี part (หมอพาร์ท) ออกจากชีต settings — รันครั้งเดียว เก็บสำเนาในชีต "ถังขยะ"; ไม่แตะนัด/บันทึกการรักษาเดิม */
+function authRemovePart() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('settings'), done = 0;
+  if (!sh || sh.getLastRow() < 2) { Logger.log('ไม่มีชีต settings'); return; }
+  for (var r = sh.getLastRow(); r >= 2; r--) {
+    if (String(sh.getRange(r, 1).getValue()).trim() !== 'part') continue;
+    gaTrash_(sh, r); sh.deleteRow(r); done++; Logger.log('ลบแล้ว: แถว part (' + sh.getRange(1, 1).getValue() + ') สำเนาอยู่ในชีต ถังขยะ');
+  }
+  PropertiesService.getScriptProperties().deleteProperty('AUTH_PIN_part');
+  Logger.log('เสร็จ: ลบ ' + done + ' แถว');
+}
