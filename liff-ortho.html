@@ -177,7 +177,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-11o';
+  const APP_VER = '2026-11-11p';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -668,7 +668,7 @@ function sjCard_(p, o){
   const half = o.planN ? Math.ceil(o.planN / 2) : 15;
   const B = [
     ['start','🦷','ติดเครื่องมือ', o.started],
-    ['v1','🔧','ปรับครั้งแรก', o.visits >= 1],
+    ['v1','🌱','ปรับครั้งแรก', o.visits >= 1],
     ['v5','⭐','ปรับ 5 ครั้ง', o.visits >= 5],
     ['v10','🌟','ปรับ 10 ครั้ง', o.visits >= 10],
     ['half','🏅','ครึ่งทาง', o.retained || o.visits >= half],
