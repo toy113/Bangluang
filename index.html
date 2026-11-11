@@ -5423,22 +5423,41 @@ function syncXrayRuleToForm(){
     _xrayFormLocked = true;
   } else if(_xrayFormLocked){
     docEl.disabled = false;
-    if(shareEl){ shareEl.disabled = false; shareEl.value = treatShareDefault_(docEl.value); shareEl.dataset.autoFor = docEl.value; shareEl.dataset.autoVal = shareEl.value; }
+    if(shareEl){ shareEl.disabled = false; shareEl.value = treatShareDefault_(docEl.value); shareEl.dataset.autoFor = shareKey_(docEl.value); shareEl.dataset.autoVal = shareEl.value; }
     if(hint) hint.style.display = 'none';
     _xrayFormLocked = false;
   }
 }
 // ส่วนแบ่งหมอ: ตั้งค่าเริ่มต้นตาม % ที่ตั้งไว้ของหมอคนนั้น · เปลี่ยนหมอแล้วตามหมอใหม่ ถ้าไม่ได้พิมพ์แก้เอง
-function treatShareDefault_(docName){
+/* % เริ่มต้นเฉพาะหมอ + หมวดรายการ (ใช้กับรายการใหม่เท่านั้น · รายการเดิมเก็บ % ไว้ในตัวแล้ว ไม่เปลี่ยนย้อนหลัง)
+   เงื่อนไข: ทุกรายการที่เลือกต้องอยู่ในหมวดนั้น (ลงรวมกับหมวดอื่น → ใช้ % ปกติของหมอ แก้เองได้ในช่องส่วนแบ่ง) */
+const SHARE_RULES = [
+  { doc:'ทพ.ภาคภูมิ สุนทราภิรมย์', group:'รักษารากฟัน', pct:60 },
+];
+function shareRuleFor_(docName, proc){
+  const ps = String(proc||'').split(',').map(x=>procNorm_(x)).filter(Boolean);
+  if(!ps.length) return null;
+  for(const r of SHARE_RULES){
+    if(docAlias(docName)!==r.doc) continue;
+    const g = PROC_GROUPS.find(x=>x.name===r.group);
+    if(g && ps.every(p=>g.items.includes(p))) return r.pct;
+  }
+  return null;
+}
+function shareKey_(docName, proc){ return String(docName||'')+'|'+procNormList_(proc===undefined ? getProcSelected() : proc); }
+function treatShareDefault_(docName, proc){
+  const _r = shareRuleFor_(docName, proc===undefined ? getProcSelected() : proc);
+  if(_r!==null) return String(_r);
   const d = doctors.find(x=>x.name===docName) || DOCTORS_DATA.find(x=>x.name===docName);
   return d && d.share!==undefined && d.share!=='' ? String(d.share) : '';
 }
 function syncShareDefault_(){
   const docEl = document.getElementById('treat-doc'), el = document.getElementById('treat-share');
   if(!docEl || !el || el.disabled || el.dataset.autoFor===undefined) return;
-  if(el.dataset.autoFor === docEl.value) return;
+  const _k = shareKey_(docEl.value);
+  if(el.dataset.autoFor === _k) return;
   if(el.value==='' || String(el.value)===String(el.dataset.autoVal)){ el.value = treatShareDefault_(docEl.value); }
-  el.dataset.autoFor = docEl.value; el.dataset.autoVal = treatShareDefault_(docEl.value);
+  el.dataset.autoFor = _k; el.dataset.autoVal = treatShareDefault_(docEl.value);
 }
 function renderTreatSaveSummary(){
   syncXrayRuleToForm();
@@ -5866,8 +5885,8 @@ function openAddTreat(t=null){
   if(shareWrap) shareWrap.style.display = isManager ? '' : 'none';
   if(shareInput){
     const _dn = document.getElementById('treat-doc').value;
-    shareInput.value = (t && t.docShare!==undefined && t.docShare!=='') ? t.docShare : treatShareDefault_(_dn);
-    shareInput.dataset.autoFor = _dn; shareInput.dataset.autoVal = shareInput.value;
+    shareInput.value = (t && t.docShare!==undefined && t.docShare!=='') ? t.docShare : treatShareDefault_(_dn, t?.proc||'');
+    shareInput.dataset.autoFor = shareKey_(_dn, t?.proc||''); shareInput.dataset.autoVal = shareInput.value;
   }
   document.getElementById('treat-proc').value = t?.proc||'';
   _ppVals = {};
@@ -5954,7 +5973,7 @@ function saveTreat(){
   const docShare = shareOverride!==null ? shareOverride
     : (existingTreat && existingTreat.docName===docName && existingTreat.docShare!==undefined && existingTreat.docShare!=='')
     ? existingTreat.docShare
-    : (doc ? doc.share : '');
+    : (()=>{ const _r = shareRuleFor_(docName, getProcSelected()||document.getElementById('treat-proc').value); return _r!==null ? _r : (doc ? doc.share : ''); })();
   const t = {
     id, date:document.getElementById('treat-date').value,
     time:treatTimeEl?.value||'10:00',
