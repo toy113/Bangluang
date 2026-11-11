@@ -597,6 +597,12 @@ function crmPT1_(item) {
   }
   return t;
 }
+/* ชื่อหมอที่คนไข้เห็น: ใช้ชื่อจริง (ทพ./ทพญ. + ชื่อ นามสกุล) ไม่ใช้ชื่อเล่น — ข้อมูลในชีตยังเก็บชื่อเล่นตามเดิม แปลงเฉพาะตอนแสดงให้คนไข้ */
+var CRM_DOC_FULL_ = {'หมอทอย':'ทพ.สรวิศ สุภาพ','หมอมายด์':'ทพ.ภาคภูมิ สุนทราภิรมย์','หมอก้อย':'ทพญ.พัทธนันท์ กฐินหอม','หมอข้าว':'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์','หมอป้อง':'ทพ.สหพล หังสพฤกษ์','หมอเบญ':'ทพญ.ภาสิริ ศิริรังษี','หมอเอม':'ทพญ.วัจน์กร เสือดี','ทพญ.พัทธนันท์ กฤินหอม':'ทพญ.พัทธนันท์ กฐินหอม','ทพ.สิรวิชญ์ พินิจรัตนพันธ์':'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์'};
+function crmDocFull_(n) {
+  var s = String(n || ''); if (!s) return s;
+  return s.split(/(\s*[,\/&]\s*)/).map(function (t) { return CRM_DOC_FULL_[t.trim()] || t; }).join('');
+}
 function crmPT_(text) { return String(text || '').split(/\s*,\s*/).filter(String).map(crmPT1_).join(', '); }
 /* ข้อความบอกช่องทางสอบถาม — เป็นข้อความธรรมดา ไม่ใช่ปุ่ม ไม่มีลิงก์ */
 function crmPhoneFmt_(p) { var d = String(p || '').replace(/[^0-9]/g, ''); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : String(p || ''); }
@@ -636,7 +642,7 @@ function crmAptMessage_(s, apt, kind, mv) {
   var rows = [];
   if (kind === 'move' && mv) rows.push(crmRow_('นัดเดิม', (sameDay ? '' : crmThaiDate_(mv.date) + ' ') + (mv.time ? mv.time + ' น. ' : '') + '(ยกเลิกแล้ว)'));
   rows.push(crmRow_(kind === 'move' ? 'นัดใหม่' : (kind === 'change' ? 'วัน (ใหม่)' : 'วัน'), crmThaiDate_(apt.date)), crmRow_(kind === 'change' ? 'เวลา (ใหม่)' : 'เวลา', (apt.time || '-') + ' น.'));
-  if (apt.docName) rows.push(crmRow_('ทันตแพทย์', apt.docName));
+  if (apt.docName) rows.push(crmRow_('ทันตแพทย์', crmDocFull_(apt.docName)));
   if (apt.proc) rows.push(crmRow_('รายการ', crmPT_(apt.proc)));
   var buttons = [];
   // ปุ่มยืนยันนัดมีเฉพาะข้อความเตือนนัด (ข้อความยืนยัน/เปลี่ยนนัดตอนลงนัดไม่มีปุ่มนี้)
@@ -652,7 +658,7 @@ function crmAptGroupMessage_(s, list) {
   var a0 = list[0], ids = list.map(function (a) { return a.id; }).join(',');
   var rows = [crmRow_('วัน', crmThaiDate_(a0.date))];
   list.forEach(function (a, i) {
-    rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace('.', ':') + ' น.', [crmPT_(a.proc), a.docName].filter(Boolean).join('\n')));
+    rows.push(crmRow_((i + 1) + '. ' + String(a.time || '-').replace('.', ':') + ' น.', [crmPT_(a.proc), crmDocFull_(a.docName)].filter(Boolean).join('\n')));
   });
   var buttons = [
     crmConfirmAsk_(),
@@ -674,7 +680,7 @@ function crmReceiptMessage_(s, trs, extra) {
   list.forEach(function (t) { cash += +t.cash || 0; tr += +t.transfer || 0; sso += +t.sso || 0; if (t.docName && docs.indexOf(t.docName) === -1) docs.push(t.docName); });
   var total = cash + tr + sso;
   var rows = [crmRow_('วัน', crmThaiDate_(crmDateOnly_(t0.date)))];
-  if (docs.length) rows.push(crmRow_('ทันตแพทย์', docs.join(', ')));
+  if (docs.length) rows.push(crmRow_('ทันตแพทย์', docs.map(crmDocFull_).join(', ')));
   // รายการรักษา: ถ้ามีราคาแยกรายการ (procPrices) แสดงราคาต่อรายการ · ไม่มีก็แสดงชื่ออย่างเดียว
   var items = [], anyPrice = false;
   list.forEach(function (t) {
@@ -901,7 +907,7 @@ function crmArchiveLog_(keepDays) {
 // เพื่อให้ได้ข้อความยืนยัน/เปลี่ยนนัด/เตือนนัด + ปุ่มขอเลื่อนเหมือนนัดทั่วไป · ถ้ามีนัดในตารางนัดวันเดียวกัน (เวลาตรง หรือฝั่งใดไม่ระบุเวลา) ถือว่าซ้ำ ใช้แถวของตารางนัด ไม่สร้างเสมือน
 // หมอคนเดียวกัน? (ตัดคำนำหน้า/ช่องว่าง) — ใช้ตัดสินว่านัดในตารางนัดซ้ำกับนัดจัดฟันในการ์ดหรือไม่ · หมอคนละคนในวัน+เวลาเดียวกัน = คนละนัด (เช่น หมอจัดฟัน + หมออื่นขูดหินปูน)
 function crmSameDoc_(a, b) {
-  var f = function (v) { return String(v || '').replace(/\s+/g, '').replace(/^(ทพญ\.|ทพ\.|หมอ)/, ''); };
+  var f = function (v) { return String(crmDocFull_(v) || '').replace(/\s+/g, '').replace(/^(ทพญ\.|ทพ\.|หมอ)/, ''); };
   var x = f(a), y = f(b);
   return !x || !y || x === y;
 }
@@ -1371,7 +1377,7 @@ var CRM_ORTHO_CARE_ = [
 // สรุปการมาจัดฟัน: รายการ + ราคา (0 บาท = ฟรี) + ยอดรวม (+ ข้อควรปฏิบัติ)
 function crmOrthoVisitMessage_(s, v) {
   var rows = [crmRow_('วัน', crmThaiDate_(v.date))];
-  if (v.doc) rows.push(crmRow_('ทันตแพทย์', v.doc));
+  if (v.doc) rows.push(crmRow_('ทันตแพทย์', crmDocFull_(v.doc)));
   var total = 0;
   v.items.forEach(function (x, i) {
     if (x.price !== null) total += x.price;
@@ -2098,7 +2104,7 @@ function crmPortal_(p) {
   var patients = keys.map(function (k) {
     var a = active[k];
     var next = apts.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) >= today && ['ยกเลิก', 'เสร็จสิ้น', 'เสร็จ'].indexOf(x.status) === -1; })
-      .map(function (x) { return { id: x.id, date: crmDateOnly_(x.date), time: x.time || '', proc: crmPT_(x.proc || ''), docName: x.docName || '', status: x.status || '' }; })
+      .map(function (x) { return { id: x.id, date: crmDateOnly_(x.date), time: x.time || '', proc: crmPT_(x.proc || ''), docName: crmDocFull_(x.docName || ''), status: x.status || '' }; })
       .sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); }).slice(0, 5);
     // นัดจัดฟัน (เก็บแยกในชีตจัดฟัน คอลัมน์ นัดถัดไป) รวมเข้ารายการนัด · ซ้ำกับตารางนัดเมื่อวัน+เวลาตรงกัน ให้ใช้รายการตารางนัด
     var oNext = null;
@@ -2109,14 +2115,14 @@ function crmPortal_(p) {
         var ot = String(oNext['นัดถัดไปเวลา'] || '').trim().slice(0, 5);
         var dup = apts.some(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) === od && (!ot || !x.time || String(x.time).slice(0, 5) === ot) && crmSameDoc_(x.docName, oNext['หมอ']); });
         if (!dup) {
-          next.push({ id: 'ortho-' + k, date: od, time: ot, proc: crmPT_(oNext['รายการนัดถัดไป'] || 'นัดจัดฟัน'), docName: oNext['หมอ'] || '', kind: 'ortho' });
+          next.push({ id: 'ortho-' + k, date: od, time: ot, proc: crmPT_(oNext['รายการนัดถัดไป'] || 'นัดจัดฟัน'), docName: crmDocFull_(oNext['หมอ'] || ''), kind: 'ortho' });
           next.sort(function (x, y) { return (x.date + x.time).localeCompare(y.date + y.time); });
           if (next.length > 5) next = next.slice(0, 5);
         }
       }
     }
     var hist = treats.filter(function (x) { return crmHN_(x.hn) === k && crmDateOnly_(x.date) && crmDateOnly_(x.date) <= today; })
-      .map(function (x) { return { date: crmDateOnly_(x.date), proc: crmProcWithTeeth_(x), docName: x.docName || '' }; })
+      .map(function (x) { return { date: crmDateOnly_(x.date), proc: crmProcWithTeeth_(x), docName: crmDocFull_(x.docName || '') }; })
       .sort(function (x, y) { return y.date.localeCompare(x.date); }).slice(0, 40);
     var oRow = null;
     for (var i = 0; i < orthoRows.length; i++) if (crmHN_(orthoRows[i].hn) === k) { oRow = orthoRows[i]; break; }

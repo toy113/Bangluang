@@ -154,7 +154,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-10l';
+  const APP_VER = '2026-11-11m';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -282,6 +282,8 @@ function todayStr(){ const d=new Date(Date.now()+7*3600000); return d.toISOStrin
 function daysUntil(s){ const p=ymd(s); if(!p) return null; const t=ymd(todayStr()); return Math.round((Date.UTC(p.y,p.m-1,p.d)-Date.UTC(t.y,t.m-1,t.d))/86400000); }
 function fmtPhone(input){ let v=input.value.replace(/[^0-9]/g,''); if(v.length>6) v=v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6,10); else if(v.length>3) v=v.slice(0,3)+'-'+v.slice(3,6); input.value=v; }
 function braceLabel(t){ return t==='โลหะ' ? 'จัดฟันโลหะ' : (t||''); }
+const DOC_FULL = {'หมอทอย':'ทพ.สรวิศ สุภาพ','หมอมายด์':'ทพ.ภาคภูมิ สุนทราภิรมย์','หมอก้อย':'ทพญ.พัทธนันท์ กฐินหอม','หมอข้าว':'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์','หมอป้อง':'ทพ.สหพล หังสพฤกษ์','หมอเบญ':'ทพญ.ภาสิริ ศิริรังษี','หมอเอม':'ทพญ.วัจน์กร เสือดี'};
+function docFull(n){ return String(n||'').split(/(\s*[,\/&]\s*)/).map(function(t){ return DOC_FULL[t.trim()]||t; }).join(''); }
 function show(id){ ['loading','errorView','bindView','pendingView','mainView'].forEach(x=>$(x).classList.add('hide')); $(id).classList.remove('hide'); window.scrollTo(0,0); }
 function fail(msg){ $('errorMsg').textContent = msg; show('errorView'); }
 
@@ -593,7 +595,7 @@ function renderOrtho(p){
         if(!up && !lo) return row('วันติดเครื่องมือ', pr['วันเริ่ม']);          // การ์ดเก่ายังไม่มีข้อมูลแยกบน/ล่าง
         if(up && lo && up===lo) return row('วันติดเครื่องมือ (บน+ล่าง)', up);   // ติดวันเดียวกัน → บรรทัดเดียว
         return row('วันติดเครื่องมือบน', up) + row('วันติดเครื่องมือล่าง', lo); })()}
-      <div class="row"><span class="k">ทันตแพทย์</span><span class="v">${esc(pr['หมอ']||'—')}</span></div>
+      <div class="row"><span class="k">ทันตแพทย์</span><span class="v">${esc(docFull(pr['หมอ'])||'—')}</span></div>
       ${pr['วันใส่รีเทนเนอร์']?`<div class="row"><span class="k">วันใส่รีเทนเนอร์</span><span class="v">${esc(thaiDateShort(pr['วันใส่รีเทนเนอร์']))}</span></div>`:''}
     </div>
     <div class="card"><h3>🔧 เครื่องมือหลุด</h3><div class="center"><div class="big">${loose.length} ครั้ง</div></div>
