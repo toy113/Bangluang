@@ -676,7 +676,10 @@ select.form-control { cursor: pointer; }
 .share-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .share-card-name { font-size: 16px; font-weight: 700; color: var(--wine-dark); margin-bottom:2px; }
 .share-card-pct { font-size: 12px; color: var(--text-light); font-weight:600; }
-.share-card-amount { font-size: 28px; font-weight: 800; color: var(--gold); font-family: 'Prompt', sans-serif; margin-top: 10px; line-height:1; }
+.share-card-amount { font-size: 38px; font-weight: 800; color: #8A6414; font-family: 'Prompt', sans-serif; margin-top: 12px; line-height:1.05;
+  background: linear-gradient(135deg,#FFF8E3,#F5E3AE); border: 1px solid #EBD38E; border-radius: 14px; padding: 10px 14px 12px; letter-spacing: .3px; font-variant-numeric: tabular-nums; }
+.share-card-amount small { display:block; font-size: 11px; font-weight: 800; color: #9A7A2E; letter-spacing: .5px; margin-bottom: 4px; font-family: 'Sarabun', sans-serif; }
+.share-card-amount .cur { font-size: .55em; margin-right: 3px; vertical-align: .35em; }
 
 /* DOCTOR BREAKDOWN (กดการ์ดหมอในหน้าสรุปรายได้) */
 .share-card-click { cursor: pointer; }
@@ -989,7 +992,7 @@ select.form-control { cursor: pointer; }
   /* Share grid */
   .share-grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
   .share-card { padding: 14px 12px !important; }
-  .share-card-amount { font-size: 20px !important; }
+  .share-card-amount { font-size: 26px !important; padding: 8px 10px 10px !important; }
 
   /* Forms */
   .form-grid { grid-template-columns: 1fr !important; }
@@ -8067,7 +8070,7 @@ function buildShareGrid(rows){
         </div>
         <div style="background:var(--wine-pale);color:var(--wine);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;">${effectivePct}%</div>
       </div>
-      <div class="share-card-amount">${fmt(share)}</div>
+      <div class="share-card-amount"><small>ส่วนแบ่งหมอ</small><span class="cur">฿</span>${fmt(share)}</div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;">
         <span style="font-size:11px;color:var(--text-light);">รายได้รวม</span>
         <span style="font-size:12px;font-weight:700;color:var(--wine-dark);">${fmt(tot)}</span>
