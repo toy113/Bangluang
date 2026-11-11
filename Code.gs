@@ -548,7 +548,14 @@ function authRemoveUnusedAccounts() {
     var id = String(sh.getRange(r, 1).getValue()), nm = String(sh.getRange(r, 2).getValue());
     if (ids.indexOf(id) < 0) continue;
     var ref = authRefCount_(nm);
-    if (ref > 0) { Logger.log('ข้าม [' + id + '] ' + nm + ': ยังถูกอ้างในนัด/รักษา ' + ref + ' รายการ (ไม่ลบ ปล่อยให้ authLegacyOff ล็อกเข้าไม่ได้แทน)'); continue; }
+    /* แถวซ้ำ: ชื่อเดียวกับบัญชีอื่นที่มี PIN ใหม่แล้ว (เช่น id พิมพ์ผิดมีอักขระแปลกนำหน้า) → ประวัติยังอ้างผ่านบัญชีจริง ลบแถวซ้ำได้ */
+    var dup = false, pins = PropertiesService.getScriptProperties();
+    for (var q = 2; q <= sh.getLastRow(); q++) {
+      if (q === r) continue;
+      var oid = String(sh.getRange(q, 1).getValue());
+      if (String(sh.getRange(q, 2).getValue()) === nm && pins.getProperty('AUTH_PIN_' + oid)) { dup = true; break; }
+    }
+    if (ref > 0 && !dup) { Logger.log('ข้าม [' + id + '] ' + nm + ': ยังถูกอ้างในนัด/รักษา ' + ref + ' รายการ (ไม่ลบ ปล่อยให้ authLegacyOff ล็อกเข้าไม่ได้แทน)'); continue; }
     gaTrash_(sh, r); sh.deleteRow(r); done++; Logger.log('ลบแล้ว [' + id + '] ' + nm);
   }
   Logger.log('เสร็จ: ลบ ' + done + ' แถว');
