@@ -177,7 +177,7 @@
 
 <script>
   /* อัปเดตหน้าอัตโนมัติ: LINE มักเก็บหน้าเก่าไว้ในแคช → เช็กไฟล์ล่าสุดบนเซิร์ฟเวอร์ ถ้าเวอร์ชันใหม่กว่าให้โหลดใหม่ 1 ครั้ง (แก้ APP_VER ทุกครั้งที่แก้ไฟล์นี้) */
-  const APP_VER = '2026-11-11n';
+  const APP_VER = '2026-11-11o';
   (function(){
     try{
       if(sessionStorage.getItem('bl_liff_reloaded') === APP_VER) return;
@@ -481,11 +481,7 @@ function renderNext(p){
       <span class="wl-when" id="wlWhen">⏳ ${esc(cntText(n))}</span>
       <div class="wl-proc">${a.kind==='ortho'?'😬 ':''}${esc(a.proc||'')}</div>
     </div></div>`;
-  const info = `<div class="card wl-info">
-      ${status?`<div class="row" style="border-bottom:none;padding-top:0;"><span class="k">สถานะนัด</span>${status}</div>`:''}
-      <a class="btn btn-primary btn-cal" style="margin-top:${status?6:0}px;" href="#" onclick="addToCalendar(0);return false;">＋ เพิ่มลงปฏิทินมือถือ</a>
-      <a class="btn btn-ghost" href="https://maps.google.com/?cid=13261426560365025658" onclick="return openExt(this.href)">📍 นำทางมาคลินิก</a>
-    </div>`;
+  const info = '';   // ตัดกล่องสถานะนัด + ปุ่มปฏิทิน/นำทางออก (มีปุ่มแผนที่ด้านล่างแล้ว)
   const more = p.next.slice(1).map(x=>`<div class="card appt appt-more">
       <div class="when">${esc(thaiDateDow_(x.date))}${x.time?' · '+esc(x.time)+' น.':''}</div>
       <div class="sub">${x.kind==='ortho'?'😬 จัดฟัน · ':''}${[x.proc, x.docName].filter(Boolean).map(esc).join(' · ')}</div>
