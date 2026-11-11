@@ -409,7 +409,7 @@ function gaFastGetAll_(p) {
 // ============================================================
 var AUTH_TTL_MS = 24 * 3600 * 1000;
 var AUTH_PUBLIC_GET = ['crmPortal', 'crmBind', 'crmConsent', 'crmBirthday', 'crmPortalAct', 'crmRateOpen', 'authLogin'];   // หน้า LINE ของคนไข้ (ยืนยันตัวตนด้วย LINE เอง) + ล็อกอิน
-var AUTH_LEGACY_DEFAULT = { toy: '1111', mind: '6465', koi: '9677', pong: '3467', aim: '7699', khao: '8986', part: '8888', ben: '2233', manager: '1234' }; // รั่วแล้ว → ใช้เข้าได้แต่ต้องเปลี่ยนทันที
+var AUTH_LEGACY_DEFAULT = { toy: '1111', mind: '6465', koi: '9677', pong: '3467', aim: '7699', khao: '8986', ben: '2233', manager: '1234' }; // รั่วแล้ว → ใช้เข้าได้แต่ต้องเปลี่ยนทันที
 var AUTH_CTX = null;
 
 function authSecret_() {
@@ -515,6 +515,43 @@ function authGate_(action, tok, isPublic) {
   } catch (e) {}
   if (PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === '1') return authJson_({ ok: false, error: 'auth_required' });
   return null;
+}
+/* ===== จัดการบัญชีที่ไม่ใช้แล้ว (บัญชีที่ยังไม่ตั้ง PIN ใหม่) ===== */
+function authNoPinIds_() {
+  var pr = PropertiesService.getScriptProperties(), have = {};
+  pr.getKeys().forEach(function (k) { if (k.indexOf('AUTH_PIN_') === 0) have[k.slice(9)] = true; });
+  return Object.keys(authKnownIds_()).filter(function (k) { return !have[k]; });
+}
+function authRefCount_(name) {
+  var n = 0; name = String(name || '').trim(); if (!name) return 0;
+  ['ตารางนัด', 'บันทึกการรักษา'].forEach(function (t) {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(t); if (!sh || sh.getLastRow() < 2) return;
+    var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], c = hdr.indexOf('docName'); if (c < 0) return;
+    sh.getRange(2, c + 1, sh.getLastRow() - 1, 1).getValues().forEach(function (r) { if (String(r[0]).trim() === name) n++; });
+  });
+  return n;
+}
+/* ดูก่อนลบ: แสดงบัญชีที่ไม่มี PIN ใหม่ + แถวในชีต settings + จำนวนนัด/รักษาที่อ้างชื่อนั้น */
+function authAccountsPreview() {
+  var ids = authNoPinIds_(), sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('settings'), rows = (sh && sh.getLastRow() > 1) ? sh.getRange(2, 1, sh.getLastRow() - 1, Math.max(sh.getLastColumn(), 6)).getValues() : [];
+  if (!ids.length) { Logger.log('ไม่มีบัญชีที่ค้าง PIN เดิม'); return; }
+  ids.forEach(function (id) {
+    var hit = rows.filter(function (r) { return String(r[0]) === id; });
+    Logger.log('บัญชี [' + id + '] (รหัสตัวอักษร: ' + id.split('').map(function (ch) { return ch.charCodeAt(0).toString(16); }).join(' ') + ') · แถวในชีต settings: ' + hit.length + (hit.length ? ' · ชื่อ: ' + hit[0][1] + ' · ถูกอ้างในนัด/รักษา: ' + authRefCount_(hit[0][1]) + ' รายการ' : ' · (มีแค่ในโค้ดเดิม ไม่มีแถว)'));
+  });
+}
+/* ลบแถวบัญชีที่ไม่มี PIN ใหม่ออกจากชีต settings (เก็บสำเนาในชีต "ถังขยะ") — ข้ามถ้ามีนัด/รักษาอ้างชื่อนั้นอยู่ */
+function authRemoveUnusedAccounts() {
+  var ids = authNoPinIds_(), sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('settings'), done = 0;
+  if (!sh || sh.getLastRow() < 2) { Logger.log('ไม่มีชีต settings'); return; }
+  for (var r = sh.getLastRow(); r >= 2; r--) {
+    var id = String(sh.getRange(r, 1).getValue()), nm = String(sh.getRange(r, 2).getValue());
+    if (ids.indexOf(id) < 0) continue;
+    var ref = authRefCount_(nm);
+    if (ref > 0) { Logger.log('ข้าม [' + id + '] ' + nm + ': ยังถูกอ้างในนัด/รักษา ' + ref + ' รายการ (ไม่ลบ ปล่อยให้ authLegacyOff ล็อกเข้าไม่ได้แทน)'); continue; }
+    gaTrash_(sh, r); sh.deleteRow(r); done++; Logger.log('ลบแล้ว [' + id + '] ' + nm);
+  }
+  Logger.log('เสร็จ: ลบ ' + done + ' แถว');
 }
 /* ปิด/เปิดการใช้ PIN เดิม (PIN เดิมเคยรั่วในโค้ด) — รันหลังทุกคนตั้ง PIN ใหม่แล้ว (ดูรายชื่อด้วย authReport) */
 function authLegacyOff() {
