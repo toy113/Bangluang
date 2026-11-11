@@ -1347,7 +1347,7 @@ function crmCancelTask_(s, state, a, how) {
   if (!informed) { crmMark_(state, key, 'aptcancel', ctx, 'skipped', 'คนไข้ยังไม่เคยได้รับข้อความนัดนี้'); return false; }
   var tm = String(a.time || '').slice(0, 5);
   crmCreateTask_({ type: 'aptcancel', priority: 'high', hn: a.hn, patName: a.patName, aptId: a.id, aptDate: dd, aptTime: tm,
-    detail: how + ' · นัดวันที่ ' + crmThaiDate_(dd) + (tm ? ' ' + tm + ' น.' : '') + ((a.proc || a.docName) ? ' (' + [a.proc, a.docName].filter(Boolean).join(' · ') + ')' : '')
+    detail: how + ' · นัดวันที่ ' + crmThaiDate_(dd) + (tm ? ' ' + tm + ' น.' : '') + ((a.proc || a.docName) ? ' (' + [a.proc, crmDocFull_(a.docName)].filter(Boolean).join(' · ') + ')' : '')
       + ' — คนไข้เคยได้รับข้อความนัดนี้แล้ว ต้องการส่งข้อความแจ้งยกเลิกทาง LINE ไหม? (ถ้าลบเพราะลงซ้ำ/พิมพ์ผิด ให้กด "ไม่ต้องแจ้ง")' });
   crmMark_(state, key, 'aptcancel', ctx, 'done', how);
   return true;
@@ -1560,7 +1560,7 @@ function crmHandlePostback_(s, ev, uid) {
     found.sort(function (x, y) { return String(x.time || '').localeCompare(String(y.time || '')); });
     var apt = found[0], aptId = found.map(function (x) { return x.id; }).join(',');
     var aptRows = crmRead_('apt'), now = crmNow_();
-    var aptLine = function (x) { return crmDateOnly_(x.date) + ' ' + (x.time || '') + (x.proc ? ' (' + x.proc + ')' : '') + (x.docName ? ' ' + x.docName : ''); };
+    var aptLine = function (x) { return crmDateOnly_(x.date) + ' ' + (x.time || '') + (x.proc ? ' (' + x.proc + ')' : '') + (x.docName ? ' ' + crmDocFull_(x.docName) : ''); };
     var recAct = function (x, fields) {
       var ar = crmFind_(aptRows, 'aptId', x.id);
       if (ar) crmUpdate_('apt', ar._row, fields);
