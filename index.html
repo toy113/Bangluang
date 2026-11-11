@@ -2967,6 +2967,40 @@ for(let h=10;h<=18;h++) for(let m=0;m<60;m+=30){
 let currentUser = null;
 let isManager = false;
 let doctors = JSON.parse(JSON.stringify(DOCTORS_DATA)); // editable copy
+/* ===== หมอที่เพิ่มใหม่จากหน้าตั้งค่า (เก็บในชีต settings: id,name,gender,specialty,share,fullName,licenseNo · อีโมจิ/สีสร้างจาก id ให้คงที่) ===== */
+const NEWDOC_EMOJIS = ['🩺','🌟','🍀','🌈','🎯','🐳','🌻','🍉','🦋','🍊'];
+const NEWDOC_COLORS = ['#8E44AD','#117A65','#B9770E','#2E86C1','#CB4335','#566573','#1ABC9C','#AF601A'];
+const NEWDOC_ID_RE = /^[a-z][a-z0-9_]{1,19}$/;
+function ensureDoctor_(rec){
+  if(!rec || !rec.id) return null;
+  const id = String(rec.id);
+  let d = doctors.find(x=>String(x.id)===id);
+  if(d) return d;
+  if(id==='manager' || !NEWDOC_ID_RE.test(id)) return null;   // แถวแปลกๆ ในชีต (เช่น id มีอักขระประหลาด) ไม่สร้างเป็นหมอ
+  let h = 0; for(const c of id) h = (h*31 + c.charCodeAt(0)) >>> 0;
+  d = { id, name: docAlias(String(rec.name||id).replace(/[<>&"']/g,'')), emoji: NEWDOC_EMOJIS[h%NEWDOC_EMOJIS.length], specialty: rec.specialty||'', gender: rec.gender==='male'?'male':'female',
+        share: (rec.share!==undefined && rec.share!=='' && !isNaN(+rec.share)) ? +rec.share : 50, color: NEWDOC_COLORS[h%NEWDOC_COLORS.length], fullName: rec.fullName||'', licenseNo: rec.licenseNo||'' };
+  doctors.push(d); DOCTORS_DATA.push(JSON.parse(JSON.stringify(d)));
+  return d;
+}
+/* รายชื่อหน้าล็อกอิน: ดึงจากเซิร์ฟเวอร์ (เฉพาะบัญชีที่ตั้ง PIN ใหม่แล้ว) → หมอใหม่โผล่เองโดยไม่ต้องแก้โค้ด · ดึงไม่ได้ก็ใช้รายการในโค้ดเดิม */
+async function loadLoginRoster_(){
+  try{
+    const r = await fetch(APPS_SCRIPT_URL + '?action=authRoster');
+    const o = await r.json();
+    if(!o || !o.ok || !Array.isArray(o.roster) || !o.roster.length) return;
+    const dd = document.getElementById('doctorDropdown'); if(!dd) return;
+    const ids = {}; o.roster.forEach(x=>{ if(x && x.id) ids[String(x.id)] = x; });
+    Array.from(dd.options).forEach(op=>{ if(op.value && !ids[op.value]) op.remove(); });
+    const have = {}; Array.from(dd.options).forEach(op=>{ have[op.value] = true; });
+    o.roster.forEach(x=>{
+      if(!x || !x.id || have[String(x.id)]) return;
+      const d = ensureDoctor_(x); if(!d) return;
+      const op = document.createElement('option'); op.value = d.id; op.textContent = d.name; dd.appendChild(op);
+    });
+  }catch(e){ console.warn('roster', e); }
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', loadLoginRoster_); else setTimeout(loadLoginRoster_, 0);
 // ---- local cache แบบกะทัดรัด: ชื่อคอลัมน์เก็บครั้งเดียว (เล็กลง ~40%) + hash ของข้อมูลฝั่งเซิร์ฟเวอร์ ----
 var _gaH = {};       // hash ต่อตารางของข้อมูลที่อยู่ในเครื่อง (ใช้ถามเซิร์ฟเวอร์ว่า "มีอะไรเปลี่ยนไหม")
 var _gaLastFull = Date.now(); // เวลาที่ดึงข้อมูลเต็มครั้งล่าสุด (ดึงเต็มทุก 5 นาทีกันข้อมูลในเครื่องเพี้ยน; ตอนเปิดแอปเชื่อ cache ที่มี hash)
@@ -3049,7 +3083,7 @@ function doSelectDoctor(id){
   selectedLoginDoc = id;
   var avatars = {toy:'🦷',mind:'😎',koi:'🌸',pong:'📷',aim:'💫',khao:'⭐',manager:'🔐'};
   var doc = id==='manager' ? MANAGER : (doctors.find(function(d){return d.id===id;})||DOCTORS_DATA.find(function(d){return d.id===id;}));
-  document.getElementById('loginPinAvatar').textContent = avatars[id]||'🦷';
+  document.getElementById('loginPinAvatar').textContent = avatars[id]||(doc&&doc.emoji)||'🦷';
   document.getElementById('pinForName').textContent = doc ? doc.name : id;
   document.getElementById('loginError').textContent = '';
   currentPin = ''; updatePinDots2();
@@ -8434,7 +8468,25 @@ function buildSettingsPage(){
       tabsEl.innerHTML = '';
     }
   }
-  grid.innerHTML=docList.map(doc=>`
+  const addCard = isManager ? `
+    <div class="settings-card" id="settings-newdoc" style="scroll-margin-top:70px;border:2px dashed var(--border);">
+      <div class="settings-card-title">➕ เพิ่มหมอใหม่</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="form-group"><label>ชื่อผู้ใช้สำหรับเข้าระบบ (ภาษาอังกฤษพิมพ์เล็ก/ตัวเลข 2–20 ตัว)</label>
+          <input class="form-control" id="nd-id" placeholder="เช่น nok" maxlength="20" autocapitalize="none" autocomplete="off"></div>
+        <div class="form-group"><label>ชื่อ-นามสกุล (ที่แสดงในระบบ)</label>
+          <input class="form-control" id="nd-name" placeholder="เช่น ทพญ.สมใจ ใจดี"></div>
+        <div class="form-group"><label>เพศ</label>
+          <select class="form-control" id="nd-gender"><option value="female">👩 หญิง</option><option value="male">👨 ชาย</option></select></div>
+        <div class="form-group"><label>ความเชี่ยวชาญ</label><input class="form-control" id="nd-spec" placeholder="เช่น ทันตกรรมทั่วไป"></div>
+        <div class="form-group"><label>เลขที่ใบอนุญาตประกอบวิชาชีพ</label><input class="form-control" id="nd-license" placeholder="เช่น ท.12951"></div>
+        <div class="form-group"><label>ส่วนแบ่งหมอ (%)</label><input type="number" class="form-control" id="nd-share" value="50" min="0" max="100"></div>
+        <div class="form-group"><label>PIN เข้าระบบ (ตัวเลข 4 หลัก ห้ามซ้ำกันหมด/1234/0000)</label>
+          <input class="form-control" id="nd-pin" maxlength="4" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" placeholder="ตั้ง PIN 4 หลัก"></div>
+        <button class="btn btn-primary" style="width:100%" id="nd-btn" onclick="addNewDoctor()">➕ เพิ่มหมอและตั้ง PIN</button>
+      </div>
+    </div>` : '';
+  grid.innerHTML = addCard + docList.map(doc=>`
     <div class="settings-card" id="settings-doc-${doc.id}" style="scroll-margin-top:70px;">
       <div class="settings-card-title">${doc.emoji||'🦷'} ${doc.name}</div>
       <div style="display:flex;flex-direction:column;gap:12px;">
@@ -8491,6 +8543,30 @@ function saveDoctorSettingsLocal(){
   } catch(e){ console.warn('saveDoctorSettingsLocal error:', e); }
 }
 
+async function addNewDoctor(){
+  if(!isManager){ showToast('เฉพาะผู้จัดการเท่านั้น','error'); return; }
+  const v = id=>String(document.getElementById(id)?.value||'').trim();
+  const id = v('nd-id').toLowerCase(), name = v('nd-name').replace(/[<>&"']/g,''), pin = v('nd-pin');
+  if(!NEWDOC_ID_RE.test(id)){ showToast('ชื่อผู้ใช้ต้องเป็น a-z/0-9/_ ขึ้นต้นด้วยตัวอักษร 2–20 ตัว','error'); return; }
+  if(id==='manager' || doctors.some(d=>d.id===id)){ showToast('ชื่อผู้ใช้นี้มีอยู่แล้ว','error'); return; }
+  if(!name){ showToast('กรุณากรอกชื่อ-นามสกุล','error'); return; }
+  if(doctors.some(d=>String(d.name).trim()===name)){ showToast('มีชื่อนี้อยู่แล้ว ใช้ชื่อซ้ำไม่ได้ (นัด/รักษาอ้างด้วยชื่อ)','error'); return; }
+  if(!/^\d{4}$/.test(pin)){ showToast('PIN ต้องเป็นตัวเลข 4 หลัก','error'); return; }
+  if(/^(\d)\1{3}$/.test(pin) || pin==='1234'){ showToast('PIN ง่ายเกินไป กรุณาตั้งใหม่','error'); return; }
+  const share = Math.min(100, Math.max(0, parseInt(v('nd-share'))||50));
+  const btn = document.getElementById('nd-btn'); if(btn){ btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; }
+  const d = ensureDoctor_({ id, name, gender:v('nd-gender'), specialty:v('nd-spec'), share, fullName:name, licenseNo:v('nd-license') });
+  const rollback = ()=>{ doctors = doctors.filter(x=>x.id!==id); const i = DOCTORS_DATA.findIndex(x=>x.id===id); if(i>=0) DOCTORS_DATA.splice(i,1); };
+  try{
+    await syncToSheet('settings', d);                       // 1) เขียนแถวหมอลงชีตก่อน (เซิร์ฟเวอร์ต้องรู้จัก id ก่อนตั้ง PIN)
+  }catch(e){ rollback(); if(btn){ btn.disabled=false; btn.textContent='➕ เพิ่มหมอและตั้ง PIN'; } showToast('❌ เพิ่มหมอไม่สำเร็จ (บันทึกลงชีตไม่ได้) ลองใหม่','error'); return; }
+  let pinOk = false, pinErr = '';
+  try{ const r = await authApi({ action:'authSetPin', id, pin }); pinOk = !!(r && r.ok); pinErr = (r && r.error) || ''; }catch(e){ pinErr = 'เชื่อมต่อไม่ได้'; }
+  saveDoctorSettingsLocal(); saveLocal();
+  buildSettingsPage();
+  if(pinOk) showToast('เพิ่ม '+name+' แล้ว 🎉 เข้าระบบด้วยชื่อผู้ใช้ '+id+' + PIN ที่ตั้ง');
+  else showToast('เพิ่ม '+name+' แล้ว แต่ตั้ง PIN ไม่สำเร็จ ('+pinErr+') — ไปที่การ์ดของหมอคนนี้แล้วตั้ง PIN ใหม่อีกครั้ง','error');
+}
 function saveDocSettings(docId){
   const doc=doctors.find(d=>d.id===docId);
   if(!doc) return;
@@ -8776,6 +8852,7 @@ async function syncAllInner_(opts){
     if(Array.isArray(d.settings) && d.settings.length){
       d.settings.forEach(s=>{
         if(!s.id) return;
+        ensureDoctor_(s);
         const doc = doctors.find(x=>String(x.id)===String(s.id));
         const orig = DOCTORS_DATA.find(x=>String(x.id)===String(s.id));
         [doc, orig].forEach(x=>{

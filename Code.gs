@@ -487,6 +487,14 @@ function authHandle_(a, p) {
     var t = authIssue_(String(p.id)); t.ok = true; t.mustChange = (r === 'legacy');
     return authJson_(t);
   }
+  if (a === 'authRoster') {   // รายชื่อหน้าล็อกอิน: เฉพาะ id + ชื่อ ของบัญชีที่ตั้ง PIN ใหม่แล้ว (ไม่ส่งข้อมูลอื่น)
+    var have = {}; PropertiesService.getScriptProperties().getKeys().forEach(function (k) { if (k.indexOf('AUTH_PIN_') === 0) have[k.slice(9)] = true; });
+    var out = [], shr = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('settings');
+    if (shr && shr.getLastRow() > 1) shr.getRange(2, 1, shr.getLastRow() - 1, 2).getValues().forEach(function (r) {
+      var id = String(r[0] || ''); if (id && id !== 'manager' && have[id]) out.push({ id: id, name: String(r[1] || id) });
+    });
+    return authJson_({ ok: true, roster: out });
+  }
   var me = authVerify_(p._t);
   if (a === 'authChangePin') {
     if (!me) return authJson_({ ok: false, error: 'auth_required' });
