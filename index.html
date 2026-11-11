@@ -2840,9 +2840,17 @@ function authToken(){ const s=authSess(); if(s && s.token && s.exp>Date.now()) r
   const _f = window.fetch.bind(window);
   window.fetch = function(url, opts){
     try{ if(typeof url==='string' && url.indexOf('https://script.google.com/macros/s/')===0){ const tk=authToken(); if(tk && !/[?&]_t=/.test(url)) url += (url.indexOf('?')>-1?'&':'?')+'_t='+encodeURIComponent(tk); } }catch(e){}
-    return _f(url, opts);
+    const _gas = (typeof url==='string' && url.indexOf('https://script.google.com/macros/s/')===0);
+    const pr = _f(url, opts);
+    if(!_gas) return pr;
+    return pr.then(function(res){
+      try{ if(res && res.type!=='opaque'){ const _tx=res.text.bind(res); res.text=function(){ return _tx().then(xssNeutral_); }; res.json=function(){ return res.text().then(JSON.parse); }; } }catch(e){}
+      return res;
+    });
   };
 })();
+// กันข้อความในข้อมูล (ชื่อคนไข้/หมายเหตุ/ชื่อ LINE) ถูกรันเป็นโค้ด: เปลี่ยน < > เป็นตัวเต็มความกว้างที่หน้าตาเหมือนเดิมแต่ไม่ใช่แท็ก HTML
+function xssNeutral_(t){ return String(t==null?'':t).replace(/</g,'\uFF1C').replace(/>/g,'\uFF1E'); }
 async function authApi(payload){
   const r = await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(Object.assign({ _t: authToken() }, payload)) });
   return await r.json();
@@ -2969,7 +2977,7 @@ function lsGetTable_(key, hkey){
   try{
     const raw = localStorage.getItem(key);
     if(!raw) return [];
-    const d = JSON.parse(raw);
+    const d = JSON.parse(xssNeutral_(raw));
     if(Array.isArray(d)) return d; // รูปแบบเดิม (array ของ object)
     if(d && d.c===2 && Array.isArray(d.k) && Array.isArray(d.r)){
       if(hkey && d.h) _gaH[hkey] = d.h;
@@ -8550,22 +8558,32 @@ async function syncToSheet(type, data){
   const dot = document.getElementById('syncDot');
   const txt = document.getElementById('syncText');
   if(dot) dot.style.background='var(--gold)';
-  try {
-    await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type,data}),
-    });
-    if(dot) dot.style.background='var(--green)';
-    if(txt) txt.textContent='ซิงค์แล้ว '+new Date().toLocaleTimeString('th-TH');
-    return Promise.resolve();
-  } catch(e){
-    console.warn('Sync error',e);
+  // ส่งแบบอ่านผลตอบกลับได้ (text/plain ไม่ต้อง preflight) → รู้จริงว่าเซิร์ฟเวอร์รับหรือปฏิเสธ · อ่านไม่ได้ค่อยถอยไปแบบ no-cors เหมือนเดิม
+  const body = JSON.stringify({type,data});
+  const fail = (msg, e) => {
     if(dot) dot.style.background='var(--red)';
     if(txt) txt.textContent='⚠️ sync ไม่สำเร็จ';
-    return Promise.reject(e);
+    try{ if(msg) showToast(msg); }catch(_){}
+    return Promise.reject(e || new Error(msg||'sync failed'));
+  };
+  let out = null;
+  try{
+    const r = await fetch(APPS_SCRIPT_URL,{ method:'POST', body });
+    out = await r.text();
+  }catch(e){
+    try{
+      await fetch(APPS_SCRIPT_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body });
+    }catch(e2){ console.warn('Sync error',e2); return fail('', e2); }
   }
+  if(out !== null){
+    const o = String(out).trim();
+    if(/"error"\s*:\s*"auth_required"/.test(o)) return fail('⚠️ บันทึกไม่ขึ้นระบบ: หมดเวลาเข้าสู่ระบบ กรุณาออกแล้วเข้าใหม่');
+    if(/"error"\s*:\s*"forbidden"/.test(o)) return fail('⚠️ บันทึกไม่ขึ้นระบบ: บัญชีนี้ไม่มีสิทธิ์ทำรายการนี้');
+    if(/^error/i.test(o) || /"ok"\s*:\s*false/.test(o)) return fail('⚠️ บันทึกไม่ขึ้นระบบ กรุณาลองใหม่ ('+o.slice(0,80)+')');
+  }
+  if(dot) dot.style.background='var(--green)';
+  if(txt) txt.textContent='ซิงค์แล้ว '+new Date().toLocaleTimeString('th-TH');
+  return Promise.resolve();
 }
 // sync ซ้อนกันไม่ได้: ถ้ากำลังดึงอยู่ ใช้ผลรอบเดียวกัน (กันมือถือยิงซ้ำทุก 5 วิตอนเน็ตช้า)
 let _syncP = null;
@@ -11972,6 +11990,8 @@ function logout(){
   if(!confirm('ออกจากระบบ?')) return;
   localStorage.removeItem('bl_session');
   localStorage.removeItem('bl_lastPage'); // ล้างหน้าสุดท้ายเพื่อป้องกัน restore ไปหน้า manager-only
+  // ล้างข้อมูลคนไข้ที่แคชไว้ในเบราว์เซอร์ (กันคนถัดไปที่ใช้เครื่องนี้เปิดดูได้) — เข้าใหม่จะโหลดจากเซิร์ฟเวอร์เอง
+  try{ ['bl_patients','bl_apt','bl_treat','bl_lab','bl_crm_cache','bl_ortho_cache','bl_recall','bl_line_hns'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
   currentUser=null; isManager=false;
   // ซ่อน tab manager-only ก่อนกลับหน้า login
   ['nav-settings','ttab-settings','nav-schedule','ttab-schedule','mnav-schedule',
@@ -11983,6 +12003,7 @@ function logout(){
   document.getElementById('appShell').classList.remove('visible');
   document.getElementById('loginScreen').classList.add('visible');
   currentPin=''; goBackToSelect();
+  setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 60);   // ล้างข้อมูลคนไข้ที่ค้างในหน่วยความจำ + หยุดการซิงค์เบื้องหลัง
 }
 
 // ============================================================
@@ -13346,5 +13367,6 @@ buildDoctorGrid();
 // settings: id, name, gender, specialty, share, pin
 // ============================================================
 -->
+</div><!-- /#appShell -->
 </body>
 </html>

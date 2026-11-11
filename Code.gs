@@ -317,7 +317,7 @@ function gaReadTab_(ss, tab) {
     if (!hasData) continue;
     var obj = {};
     for (var c2 = 0; c2 < hdr.length; c2++) obj[hdr[c2]] = cellToStr(row[c2], hdr[c2]);
-    if (tab === 'settings' && (AUTH_CTX || PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === '1')) delete obj.pin;   // ไม่ส่ง PIN ออกไปหน้าเว็บรุ่นใหม่ (รุ่นเก่าที่ยังไม่มีบัตรผ่านยังได้ PIN เดิม ระหว่างเปลี่ยนผ่าน — PIN ที่ตั้งใหม่เก็บแบบ hash ไม่อยู่ในชีต)
+    if (tab === 'settings') delete obj.pin;   // ไม่ส่ง PIN ออกไปหน้าเว็บรุ่นใหม่ (รุ่นเก่าที่ยังไม่มีบัตรผ่านยังได้ PIN เดิม ระหว่างเปลี่ยนผ่าน — PIN ที่ตั้งใหม่เก็บแบบ hash ไม่อยู่ในชีต)
     result.push(obj);
   }
   return result;
@@ -347,6 +347,18 @@ function gaTouch_(key) {
   try { CacheService.getScriptCache().put('ga2g:' + key, String(Date.now()) + '-' + Math.random(), 21600); } catch (e) {}
 }
 function gaOk_(key) { gaTouch_(key); return ContentService.createTextOutput('ok'); }
+/* กันสูตรแฝง: ข้อความที่ขึ้นต้นด้วย = + @ จะถูกชีตตีความเป็นสูตร → ใส่ ' นำหน้าให้เป็นข้อความธรรมดา (อ่านกลับมาได้ค่าเดิม) */
+function gaSafe_(v) { return (typeof v === 'string' && /^[=+@]/.test(v)) ? "'" + v : v; }
+/* ถังขยะ: เก็บสำเนาแถวก่อนลบถาวร (กู้คืนได้จากชีต "ถังขยะ") */
+function gaTrash_(sh, rowNo) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet(), t = ss.getSheetByName('ถังขยะ');
+    if (!t) { t = ss.insertSheet('ถังขยะ'); t.appendRow(['deletedAt', 'by', 'sheet', 'row']); t.getRange('A:D').setNumberFormat('@STRING@'); }
+    var lc = Math.max(sh.getLastColumn(), 1), hdr = sh.getRange(1, 1, 1, lc).getValues()[0], vals = sh.getRange(rowNo, 1, 1, lc).getValues()[0], o = {};
+    for (var c = 0; c < lc; c++) if (hdr[c] !== '' && vals[c] !== '' && vals[c] !== null) o[String(hdr[c])] = (vals[c] instanceof Date) ? Utilities.formatDate(vals[c], TZ, 'yyyy-MM-dd HH:mm') : vals[c];
+    t.appendRow([Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'), (AUTH_CTX && AUTH_CTX.id) || '', sh.getName(), gaSafe_(JSON.stringify(o))]);
+  } catch (e) {}
+}
 function gaIds_(sh) {
   var n = sh.getLastRow();
   if (n < 1) return [];
@@ -452,6 +464,7 @@ function authCheck_(id, pin) {
   var stored = PropertiesService.getScriptProperties().getProperty('AUTH_PIN_' + id);
   var res = 'bad';
   if (stored) res = (stored === authHashPin_(id, pin)) ? 'ok' : 'bad';
+  else if (PropertiesService.getScriptProperties().getProperty('AUTH_LEGACY_OFF') === '1') res = 'bad';   // ปิด PIN เดิมแล้ว: บัญชีที่ยังไม่ตั้ง PIN ใหม่เข้าไม่ได้ (ผู้จัดการตั้งให้ได้)
   else { var lg = authLegacyPin_(id); res = (lg && pin === lg) ? 'legacy' : 'bad'; }
   if (res === 'bad') { if (authFail_(id) >= 5) return 'locked'; }
   else CacheService.getScriptCache().remove('authf_' + id);
@@ -503,11 +516,19 @@ function authGate_(action, tok, isPublic) {
   if (PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === '1') return authJson_({ ok: false, error: 'auth_required' });
   return null;
 }
+/* ปิด/เปิดการใช้ PIN เดิม (PIN เดิมเคยรั่วในโค้ด) — รันหลังทุกคนตั้ง PIN ใหม่แล้ว (ดูรายชื่อด้วย authReport) */
+function authLegacyOff() {
+  var pr = PropertiesService.getScriptProperties();
+  if (!pr.getProperty('AUTH_PIN_toy') && !pr.getProperty('AUTH_PIN_manager')) { Logger.log('ยังปิดไม่ได้: บัญชีผู้จัดการ (toy/manager) ต้องตั้ง PIN ใหม่อย่างน้อย 1 บัญชีก่อน ไม่งั้นจะไม่มีใครเข้าไปตั้ง PIN ให้คนอื่นได้'); return; }
+  pr.setProperty('AUTH_LEGACY_OFF', '1'); Logger.log('ปิด PIN เดิมแล้ว — บัญชีที่ยังไม่ตั้ง PIN ใหม่จะเข้าไม่ได้จนกว่าผู้จัดการตั้งให้');
+}
+function authLegacyOn() { PropertiesService.getScriptProperties().deleteProperty('AUTH_LEGACY_OFF'); Logger.log('เปิดให้ใช้ PIN เดิมได้อีกครั้ง'); }
 function authEnforceOn() { PropertiesService.getScriptProperties().setProperty('AUTH_ENFORCE', '1'); Logger.log('เปิดบังคับบัตรผ่านแล้ว'); }
 function authEnforceOff() { PropertiesService.getScriptProperties().deleteProperty('AUTH_ENFORCE'); Logger.log('ปิดบังคับบัตรผ่านแล้ว'); }
 function authReport() {
   var pr = PropertiesService.getScriptProperties(), keys = pr.getKeys().filter(function (k) { return k.indexOf('AUTH_PIN_') === 0; }).map(function (k) { return k.slice(9); });
   Logger.log('โหมดบังคับ: ' + (pr.getProperty('AUTH_ENFORCE') === '1' ? 'เปิด' : 'ยังไม่เปิด'));
+  Logger.log('PIN เดิม: ' + (pr.getProperty('AUTH_LEGACY_OFF') === '1' ? 'ปิดแล้ว' : 'ยังใช้เข้าได้ (ควรปิดด้วย authLegacyOff หลังทุกคนตั้ง PIN ใหม่)'));
   Logger.log('ตั้ง PIN ใหม่แล้ว: ' + (keys.join(', ') || '-'));
   Logger.log('ยังใช้ PIN เดิม: ' + Object.keys(authKnownIds_()).filter(function (k) { return keys.indexOf(k) === -1; }).join(', '));
   Logger.log('คำขอที่ไม่มีบัตรผ่าน (6 ชม.ล่าสุด): ' + (CacheService.getScriptCache().get('authmiss') || 'ไม่มี'));
@@ -541,23 +562,31 @@ function doPost(e) {
       var map = { treatments: 'บันทึกการรักษา', labs: 'แลป', appointments: 'ตารางนัด' };
       var sh = ss.getSheetByName(map[data.data.type]);
       if (sh) {
+        var delLock = LockService.getScriptLock(); delLock.waitLock(30000);   // ล็อกช่วงค้นหา+ลบ กันลบผิดแถวเมื่อมีคำขอพร้อมกัน
+        try {
         var ids = gaIds_(sh);
         var i = ids.indexOf(String(data.data.id));
         if (i > 0) {
+          gaTrash_(sh, i + 1);
           if (data.data.type === 'appointments') { try { crmOnAptRemoved_(String(data.data.id)); } catch (eC) {} }   // สร้างงาน "แจ้งยกเลิกนัด" ก่อนแถวหาย
           sh.deleteRow(i + 1);
         }
+        } finally { delLock.releaseLock(); }
       }
       return gaOk_(data.data.type);
     }
 
     // DELETE PATIENT
     if (data.type === 'delete_patient') {
+      if (AUTH_CTX && AUTH_CTX.role !== 'manager') return authJson_({ ok: false, error: 'forbidden' });   // ลบคนไข้ได้เฉพาะผู้จัดการ
       var sh = ss.getSheetByName('คนไข้');
       if (sh) {
-        var hns = gaIds_(sh);
-        var i = hns.indexOf(String(data.data.hn));
-        if (i > 0) sh.deleteRow(i + 1);
+        var dpLock = LockService.getScriptLock(); dpLock.waitLock(30000);
+        try {
+          var hns = gaIds_(sh);
+          var i = hns.indexOf(String(data.data.hn));
+          if (i > 0) { gaTrash_(sh, i + 1); sh.deleteRow(i + 1); }
+        } finally { dpLock.releaseLock(); }
       }
       return gaOk_('patients');
     }
@@ -576,7 +605,7 @@ function doPost(e) {
         if (PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === '1' && !(AUTH_CTX && AUTH_CTX.role === 'manager')) return authJson_({ ok: false, error: 'forbidden' });
         // PIN ไม่ส่งจากหน้าเว็บแล้ว (ตั้งผ่าน authSetPin) → คงค่าเดิมในคอลัมน์ pin ไว้ (ใช้เป็น PIN เดิมครั้งแรกก่อนบังคับเปลี่ยน)
         var oldPin = i >= 1 ? String(sh.getRange(i+1, 6).getValue() || '') : '';
-        var row = [r.id, r.name, r.gender||'', r.specialty||'', r.share||50, oldPin, r.fullName||'', r.licenseNo||''];
+        var row = [r.id, r.name, r.gender||'', r.specialty||'', r.share||50, oldPin, r.fullName||'', r.licenseNo||''].map(gaSafe_);
         if (i < 1) sh.appendRow(row);
         else sh.getRange(i+1,1,1,row.length).setValues([row]);
       }
@@ -588,10 +617,12 @@ function doPost(e) {
       var sh = ss.getSheetByName('คนไข้');
       if (sh) {
         var r = data.data;
+        var ptLock = LockService.getScriptLock(); ptLock.waitLock(30000);   // กันเพิ่มคนไข้ซ้ำเมื่อคำขอมาพร้อมกัน
+        try {
         var hns = gaIds_(sh);
         var i = hns.indexOf(String(r.hn));
         var addedAt = r.addedAt ? String(r.addedAt) : '';
-        var row = [String(r.hn||''), String(r.name||''), String(r.phone||''), String(r.lineId||''), r.sso?'TRUE':'FALSE', addedAt, String(r.orthoCode||'')];
+        var row = [String(r.hn||''), String(r.name||''), String(r.phone||''), String(r.lineId||''), r.sso?'TRUE':'FALSE', addedAt, String(r.orthoCode||'')].map(function (v, ix) { return ix === 2 ? v : gaSafe_(v); });   // เบอร์โทรคงรูปแบบเดิม
         if (String(sh.getRange(1,7).getValue()||'') === '') sh.getRange(1,7).setValue('รหัสจัดฟัน');
         if (i < 1) {
           sh.appendRow(row);
@@ -600,6 +631,7 @@ function doPost(e) {
           sh.getRange(i+1,1,1,row.length).setValues([row]);
           if (addedAt) sh.getRange(i+1,6).setNumberFormat('@STRING@').setValue(addedAt);
         }
+        } finally { ptLock.releaseLock(); }
       }
       return gaOk_('patients');
     }
@@ -689,6 +721,8 @@ function doPost(e) {
     // key ไหนยังไม่มี header ให้เข้าไปแทรกในช่อง blank ที่มีอยู่ก่อน ถ้าไม่มีช่อง blank ค่อยเพิ่มคอลัมน์ใหม่ต่อท้าย
       rKeys.forEach(function(k){
         if (hdr.indexOf(k) === -1) {
+          // สร้างคอลัมน์ใหม่เฉพาะชื่อฟิลด์ที่ถูกรูปแบบ และไม่เกิน 120 คอลัมน์ (กันคำขอแปลก ๆ สร้างคอลัมน์ขยะ)
+          if (!/^[A-Za-z\u0E00-\u0E7F][A-Za-z0-9_\u0E00-\u0E7F]{0,39}$/.test(String(k)) || hdr.length >= 120) return;
           var blankIdx = hdr.indexOf('');
           if (blankIdx !== -1) {
             hdr[blankIdx] = k;
@@ -703,7 +737,7 @@ function doPost(e) {
       var row = hdr.map(function(h){
         if (!h) return '';
         var v = r[h];
-        return (v===null||v===undefined)?'':v;
+        return (v===null||v===undefined)?'':gaSafe_(v);
       });
       var dateCol = -1, timeCol = -1;
       for (var c = 0; c < hdr.length; c++) {

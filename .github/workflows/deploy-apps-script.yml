@@ -53,3 +53,13 @@ jobs:
           VER=$(grep -oE '[0-9]+' v.txt | tail -1)
           clasp deploy -i "${{ secrets.DEPLOYMENT_ID }}" -V "$VER" -d "auto ${GITHUB_SHA::7}"
           echo "deployed version $VER"
+
+      - name: ตรวจหลัง deploy ว่าระบบจริงยังตอบปกติ (ถ้าไม่ตอบ → แจ้งล้มเหลว ให้ย้อนเวอร์ชัน)
+        run: |
+          URL="https://script.google.com/macros/s/${{ secrets.DEPLOYMENT_ID }}/exec?action=authLogin&id=__smoke__&pin=0"
+          for n in 1 2 3; do
+            OUT=$(curl -sS -L --max-time 60 "$URL" || true)
+            if echo "$OUT" | grep -q '"bad_pin"'; then echo "smoke test ok"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::หลัง deploy ระบบไม่ตอบตามคาด — ควรย้อนเวอร์ชันที่ Manage deployments"; echo "$OUT" | head -c 400; exit 1
