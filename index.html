@@ -176,6 +176,21 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .crm-btn.g{background:var(--green);color:#fff;border-color:var(--green);}
 .crm-btn.r{color:var(--red);border-color:rgba(225,31,49,.35);}
 .crm-btn:disabled{opacity:.5;cursor:default;}
+.omc{max-width:360px;margin:4px 0 12px;border:1px solid var(--border);border-radius:14px;padding:10px 10px 8px;background:#fff;}
+.omc-h{display:flex;align-items:center;justify-content:space-between;font-weight:800;color:var(--wine-dark);font-size:13.5px;margin-bottom:6px;}
+.omc-h button{border:0;background:var(--wine-pale);color:var(--wine);border-radius:8px;width:30px;height:28px;font-size:16px;cursor:pointer;}
+.omc-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.omc-w{font-size:10.5px;color:var(--text-light);text-align:center;font-weight:700;padding:2px 0;}
+.omc-d{position:relative;border:0;border-radius:9px;min-height:40px;padding:3px 0 2px;font-size:12px;color:var(--text-mid);background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;font-family:inherit;}
+.omc-d:hover{outline:1.5px solid var(--wine-light);}
+.omc-d .n{font-size:11px;font-weight:800;line-height:1;padding:2px 6px;border-radius:10px;background:var(--wine);color:#fff;}
+.omc-d .n.ok{background:#1D825C;}
+.omc-d.past{opacity:.5;}
+.omc-d.today{box-shadow:inset 0 0 0 2px var(--gold);font-weight:800;color:var(--wine-dark);}
+.omc-d.in{background:var(--wine-pale);}
+.omc-d.sel{background:var(--wine);color:#fff;}
+.omc-d.sel .n{background:#fff;color:var(--wine);}
+.omc-f{font-size:10.5px;color:var(--text-light);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;}
 .crm-seg{display:inline-flex;background:var(--wine-pale);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap;}
 .crm-seg button{border:none;background:transparent;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--wine);padding:6px 11px;border-radius:8px;cursor:pointer;}
 .crm-seg button.on{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);}
@@ -4227,6 +4242,7 @@ window.onload=function(){ fit(); setTimeout(function(){window.print()},300); };
 function crmViewOrthoApts(){
   const today=todayStr();
   const ranges={ yesterday:[crmAddDays(today,-1),crmAddDays(today,-1)], today:[today,today], tomorrow:[crmAddDays(today,1),crmAddDays(today,1)], week:[today,crmAddDays(today,7)], d14:[today,crmAddDays(today,14)], d30:[today,crmAddDays(today,30)] };
+  if(CRM.orthoRange==='pick' && /^\d{4}-\d{2}-\d{2}$/.test(CRM.orthoPick||'')) ranges.pick=[CRM.orthoPick, CRM.orthoPick];
   const rk=ranges[CRM.orthoRange]?CRM.orthoRange:'week', r=ranges[rk];
   if(typeof orthoData!=='undefined' && !_orthoLoaded && typeof loadOrthoData==='function') loadOrthoData().then(()=>{ if(CRM.sub==='orthoapt') crmRender(); }).catch(()=>{});
   const list=crmOrthoAptList(r[0], r[1]).filter(orthoAimOnly_);   // เฉพาะนัดของหมอเอม (หมอวัจน์กร)
@@ -4284,10 +4300,33 @@ function crmViewOrthoApts(){
     return head+rows;
   }).join('');
   return `<div class="crm-card"><h4>😬 นัดจัดฟัน — ยืนยันแล้วกี่คนจากกี่คน<span class="sp"></span>
-      <span class="crm-seg">${[['yesterday','เมื่อวาน'],['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';crmRender()">${x[1]}</button>`).join('')}</span></h4>
+      <span class="crm-seg">${[['yesterday','เมื่อวาน'],['today','วันนี้'],['tomorrow','พรุ่งนี้'],['week','7 วัน'],['d14','14 วัน'],['d30','30 วัน']].map(x=>`<button class="${rk===x[0]?'on':''}" onclick="CRM.orthoRange='${x[0]}';CRM.orthoCalYM='';crmRender()">${x[1]}</button>`).join('')}</span></h4>
       <div class="meta">รวม <b>${list.length}</b> คน · ✅ ยืนยัน ${tot.yes} · ⏳ ยังไม่ยืนยัน ${tot.wait+tot.noline}${tot.move?` · 📅 ขอเลื่อน ${tot.move}`:''} · 🟢 ผูกไลน์แล้ว ${list.filter(a=>crmHasLine(a.hn)).length}/${list.length}</div>
+      ${crmOrthoMiniCal_(r, rk)}
       <p class="crm-muted" style="margin:6px 0 10px;">ยืนยัน = คนไข้กดยืนยันใน LINE · แตะป้าย <b>เหลือง/แดง</b> เพื่อตั้งเป็น "ยืนยัน" เอง (เช่น คนไข้ยืนยันทางโทร) · ปุ่ม "มาตามนัด" กดได้เมื่อถึงวันนัด เพื่อบันทึกปรับเครื่องมือลงการ์ดจัดฟัน</p>
       ${dates.length?`<div class="crm-tablewrap" style="overflow-x:hidden;"><table class="crm-table" style="overflow-wrap:anywhere;word-break:break-word;table-layout:fixed;width:100%;"><colgroup><col style="width:52px"><col></colgroup><tr><th>เวลา</th><th>คนไข้ / รายการ / สถานะ</th></tr>${body}</table></div>`:'<div class="crm-empty">ไม่มีนัดจัดฟันในช่วงนี้</div>'}</div>`;
+}
+/* ปฏิทินย่อ: จำนวนคนไข้จัดฟัน (เฉพาะนัดหมอวัจน์กร) ต่อวัน · แตะวัน = ดูรายชื่อวันนั้น · ‹ › เปลี่ยนเดือน */
+function crmOrthoMiniCal_(r, rk){
+  const today=todayStr();
+  let ym=CRM.orthoCalYM || (rk==='pick' ? CRM.orthoPick : r[0]).slice(0,7);
+  const y=+ym.slice(0,4), m=+ym.slice(5,7), nd=new Date(y,m,0).getDate();
+  const first=ym+'-01', last=ym+'-'+String(nd).padStart(2,'0');
+  const by={}; crmOrthoAptList(first,last).filter(orthoAimOnly_).forEach(a=>{ const o=by[a.date]||(by[a.date]={n:0,yes:0}); o.n++; if(crmOrthoState(a)==='yes') o.yes++; });
+  const shift=k=>{ const d=new Date(Date.UTC(y,m-1+k,1)); return d.toISOString().slice(0,7); };
+  const MN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const total=Object.values(by).reduce((n,o)=>n+o.n,0);
+  let cells=['อา','จ','อ','พ','พฤ','ศ','ส'].map(w=>`<div class="omc-w">${w}</div>`).join('');
+  for(let i=0,b=new Date(y,m-1,1).getDay(); i<b; i++) cells+='<div></div>';
+  for(let d=1; d<=nd; d++){
+    const ds=ym+'-'+String(d).padStart(2,'0'), o=by[ds];
+    const cls=['omc-d', ds<today?'past':'', ds===today?'today':'', (ds>=r[0]&&ds<=r[1])?(r[0]===r[1]?'sel':'in'):''].filter(Boolean).join(' ');
+    cells+=`<button class="${cls}" title="${o?o.n+' คน · ยืนยัน '+o.yes:'ไม่มีนัดจัดฟัน'}" onclick="CRM.orthoRange='pick';CRM.orthoPick='${ds}';CRM.orthoCalYM='${ym}';crmRender()">${d}${o?`<span class="n${o.yes===o.n?' ok':''}">${o.n}</span>`:''}</button>`;
+  }
+  return `<div class="omc"><div class="omc-h"><button onclick="CRM.orthoCalYM='${shift(-1)}';crmRender()" aria-label="เดือนก่อน">‹</button>
+      <span>${MN[m-1]} ${y+543} · ${total} นัด</span><button onclick="CRM.orthoCalYM='${shift(1)}';crmRender()" aria-label="เดือนถัดไป">›</button></div>
+    <div class="omc-g">${cells}</div>
+    <div class="omc-f"><span><b style="color:var(--wine)">●</b> จำนวนคนจัดฟัน</span><span><b style="color:#1D825C">●</b> ยืนยันครบ</span>${rk==='pick'?`<span>เลือก ${crmEsc(crmThaiShort(CRM.orthoPick))}</span>`:''}</div></div>`;
 }
 function crmMarkConfirmed(id){
   const a=appointments.find(x=>String(x.id)===String(id)); if(!a) return;
