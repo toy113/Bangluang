@@ -1321,11 +1321,10 @@ function crmWelcome_(s) {
       { type: 'text', text: grp[k].join(' '), size: 'sm', color: '#4A3347', flex: 5, wrap: true },
       { type: 'text', text: k + ' น.', size: 'sm', color: '#4A3347', weight: 'bold', align: 'end', flex: 4 }] };
   }));
-  hours.push({ type: 'separator', margin: 'md', color: '#eeeeee' });
   return { type: 'flex', altText: 'ยินดีต้อนรับสู่' + s.clinicName,
-    contents: crmBubble_(s, 'ยินดีต้อนรับค่ะ 🦷', 'ขอบคุณที่เป็นเพื่อนกับคลินิกค่ะ ทางคลินิกจะแจ้งเตือนนัดและส่งสรุปการรักษาให้ทาง LINE นี้', [],
-      hours.concat([crmInquiryNote_(s)]),
-      [{ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'uri', label: '📍 นำทางมาคลินิก', uri: CRM_CLINIC_MAP } }]) };
+    contents: crmBubble_(s, 'ยินดีต้อนรับค่ะ 🦷', 'ขอบคุณที่เป็นเพื่อนกับคลินิกค่ะ ทางคลินิกจะแจ้งเตือนนัดและส่งสรุปการรักษาให้ทาง LINE นี้', hours,
+      [{ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'uri', label: '📍 นำทางมาคลินิก', uri: CRM_CLINIC_MAP } },
+       crmInquiryNote_(s)]) };
 }
 function crmUpsertFollower_(uid, status) {
   if (!uid) return;
