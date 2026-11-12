@@ -732,7 +732,6 @@ function crmReceiptMessage_(s, trs, extra) {
     rows.push({ type: 'text', text: '🩹 คำแนะนำหลังการรักษา', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
     tpls.forEach(function (tp) { var tx = String(tp.aftercareText || '').trim(); if (tx) rows.push({ type: 'text', text: tx, wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' }); });
     if (notes.length) rows.push({ type: 'text', text: '📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'), wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' });
-    rows.push({ type: 'text', text: 'มีข้อสงสัยโทร ' + s.clinicPhone + ' หรือพิมพ์ทักในแชทนี้ได้เลยค่ะ', wrap: true, size: 'xs', color: '#83627C', margin: 'md' });
   }
   var corrected = !!(extra && extra.corrected);
   var sub = corrected ? ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขออภัยในความคลาดเคลื่อนค่ะ คลินิกขอแก้ไขข้อมูลค่าใช้จ่ายดังนี้') : ('คุณ' + crmWho_(t0.patName, t0.hn) + '\nขอบคุณที่ไว้วางใจให้' + s.clinicName + 'ดูแลรอยยิ้มของคุณค่ะ ☺️');
