@@ -1313,9 +1313,19 @@ function crmHandleWebhook_(events, destination) {
   });
 }
 function crmWelcome_(s) {
+  /* เวลาเปิด-ปิด (จัดกลุ่มวันที่เวลาเท่ากัน จาก CRM_CLINIC_HOURS) + ปุ่มนำทาง */
+  var SH = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'], grp = {}, order = [];
+  [1, 2, 3, 4, 5, 6, 0].forEach(function (d) { var k = CRM_CLINIC_HOURS[d][0] + '–' + CRM_CLINIC_HOURS[d][1]; if (!grp[k]) { grp[k] = []; order.push(k); } grp[k].push(SH[d]); });
+  var hours = [{ type: 'text', text: '🕙 เวลาทำการ (เปิดทุกวัน)', size: 'sm', weight: 'bold', color: '#6B2D5E' }].concat(order.map(function (k) {
+    return { type: 'box', layout: 'horizontal', contents: [
+      { type: 'text', text: grp[k].join(' '), size: 'sm', color: '#4A3347', flex: 5, wrap: true },
+      { type: 'text', text: k + ' น.', size: 'sm', color: '#4A3347', weight: 'bold', align: 'end', flex: 4 }] };
+  }));
+  hours.push({ type: 'separator', margin: 'md', color: '#eeeeee' });
   return { type: 'flex', altText: 'ยินดีต้อนรับสู่' + s.clinicName,
     contents: crmBubble_(s, 'ยินดีต้อนรับค่ะ 🦷', 'ขอบคุณที่เป็นเพื่อนกับคลินิกค่ะ ทางคลินิกจะแจ้งเตือนนัดและส่งสรุปการรักษาให้ทาง LINE นี้', [],
-      [crmInquiryNote_(s)]) };
+      hours.concat([crmInquiryNote_(s)]),
+      [{ type: 'button', style: 'primary', color: '#6B2D5E', height: 'sm', action: { type: 'uri', label: '📍 นำทางมาคลินิก', uri: CRM_CLINIC_MAP } }]) };
 }
 function crmUpsertFollower_(uid, status) {
   if (!uid) return;
