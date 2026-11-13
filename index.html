@@ -5016,7 +5016,7 @@ function showPage(p){
 //  อัปโหลดสลิป → เซิร์ฟเวอร์เก็บรูปใน Drive + อ่านตัวอักษร (OCR) → หน้าเว็บแกะ วันที่/ยอด/ผู้รับ → ยืนยันแล้วค่อยบันทึก
 // ============================================================
 const EXP = { rows:null, loading:false, err:'', month:'', drafts:[] };
-const EXP_CATS = ['วัสดุทันตกรรม','ค่าแลป','เงินเดือน/ค่าแรง','จ่าย DF หมอ','ค่าเช่า','ค่าน้ำ/ไฟ/เน็ต','การตลาด','ซ่อมบำรุง/อุปกรณ์','ภาษี/ประกันสังคม','Book','บัตรเครดิต','Shopee','อื่นๆ'];
+const EXP_CATS = ['วัสดุทันตกรรม','เงินเดือน/ค่าแรง','ค่าเช่า','ค่าน้ำ/ไฟ/เน็ต','การตลาด','ซ่อมบำรุง/อุปกรณ์','ภาษี/ประกันสังคม','Book','บัตรเครดิต','Shopee','อื่นๆ'];
 function expApi(p){ return authApi(p); }
 function expNorm_(s){ return String(s||'').replace(/\s+/g,' ').trim().toLowerCase(); }
 /* แกะข้อความสลิป (ผล OCR) → { date:'YYYY-MM-DD', amount:Number, payee:'', ref:'' } · แกะไม่ได้ = ค่าว่าง ให้คนกรอกเอง */
@@ -5078,7 +5078,7 @@ function expGuessCat_(payee){
   const k = expNorm_(payee); if(!k) return '';
   const prev = (EXP.rows||[]).filter(r=>expNorm_(r.payee)===k && r.category).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
   if(prev) return prev.category;
-  const KW = [[/แลป|แล็บ|\blab\b/i,'ค่าแลป'],[/ไฟฟ้า|ประปา|\b(?:true|ais|3bb|nt)\b|อินเทอร์เน็ต|อินเตอร์เน็ต/i,'ค่าน้ำ/ไฟ/เน็ต'],[/เช่า/,'ค่าเช่า'],[/facebook|meta|google|tiktok|โฆษณา/i,'การตลาด'],
+  const KW = [[/ไฟฟ้า|ประปา|\b(?:true|ais|3bb|nt)\b|อินเทอร์เน็ต|อินเตอร์เน็ต/i,'ค่าน้ำ/ไฟ/เน็ต'],[/เช่า/,'ค่าเช่า'],[/facebook|meta|google|tiktok|โฆษณา/i,'การตลาด'],
     [/สรรพากร|ประกันสังคม/,'ภาษี/ประกันสังคม'],[/shopee|ช้อปปี้|ช็อปปี้/i,'Shopee'],[/dental|เดนทัล|เด็นทัล|ทันต|medical|เมดิคอล/i,'วัสดุทันตกรรม']];
   for(const x of KW) if(x[0].test(payee)) return x[1];
   return '';
