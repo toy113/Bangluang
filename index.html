@@ -206,6 +206,7 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .exp-cat .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--wine),var(--wine-light));border-radius:6px;}
 .exp-cat b{text-align:right;color:var(--wine-dark);}
 @media (max-width:600px){ .exp-draft{flex-direction:column;} .exp-thumb{flex-basis:auto;justify-content:flex-start;} .exp-grid{grid-template-columns:1fr;} .exp-cat{grid-template-columns:96px 1fr 76px;} .exp-total{font-size:24px;} }
+table:has(#treatListBody) thead th:nth-child(5), #treatListBody > tr > td:nth-child(5){display:none;}   /* หน้าหลัก: ชื่อหมออยู่ที่หัวกลุ่มแล้ว */
 .omc{max-width:360px;margin:4px 0 12px;border:1px solid var(--border);border-radius:14px;padding:10px 10px 8px;background:#fff;}
 .omc-h{display:flex;align-items:center;justify-content:space-between;font-weight:800;color:var(--wine-dark);font-size:13.5px;margin-bottom:6px;}
 .omc-h button{border:0;background:var(--wine-pale);color:var(--wine);border-radius:8px;width:30px;height:28px;font-size:16px;cursor:pointer;}
@@ -5589,19 +5590,15 @@ function renderTreatList(treats){
   const docNames = Object.keys(byDoc).sort();
   let html = '';
 
-  // ถ้ามีหมอเดียว แสดงแบบปกติ ไม่ต้องมี header กลุ่ม
-  if(docNames.length <= 1){
-    const sorted = [...treats].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-    html = sorted.map(t=>treatRow(t)).join('');
-  } else {
-    // หลายหมอ — แยกกลุ่ม
+  // จัดกลุ่มตามหมอเสมอ (แม้มีหมอคนเดียว) — ชื่อหมออยู่ที่หัวกลุ่ม ไม่แสดงซ้ำในแต่ละรายการ
+  {
     docNames.forEach(doc=>{
       const list = byDoc[doc].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
       const docTotal = list.reduce((s,t)=>s+totalPrice(t),0);
       const c = docColor(doc);
       html += `<tr style="background:${c}12;">
         <td colspan="10" style="padding:8px 12px;font-weight:800;color:${c};font-size:13px;border-left:4px solid ${c};">
-          ${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${list.length} ราย · ${fmt(docTotal)}</span>
+          ${(()=>{ const dd=doctors.find(x=>x.name===doc)||DOCTORS_DATA.find(x=>x.name===doc); return dd&&dd.emoji?dd.emoji+' ':''; })()}${doc} <span style="font-weight:600;color:var(--text-light);font-size:12px;">· ${list.length} ราย · ${fmt(docTotal)}</span>
         </td>
       </tr>`;
       html += list.map(t=>treatRow(t)).join('');
