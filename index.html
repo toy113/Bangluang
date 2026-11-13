@@ -4188,7 +4188,7 @@ function crmOrthoDfCopy(d){
   const out=[];
   Object.keys(byDoc).forEach((dn,gi)=>{
     const doc=doctors.find(x=>x.name===dn)||DOCTORS_DATA.find(x=>x.name===dn), list=byDoc[dn];
-    let tot=0, df=0;
+    let tot=0, df=0; const nd={xray:0,drug:0};
     if(gi) out.push('', '');
     out.push('🦷 สรุปงานจัดฟัน', dn+' · '+crmThaiShort(d), LINE);
     list.forEach((t,i)=>{
@@ -4198,12 +4198,13 @@ function crmOrthoDfCopy(d){
       out.push((i+1)+'. '+(t.patName||'—')+(no?' · ครั้งที่ '+no:''));
       parts.forEach(x=>{
         const price=+pp[x]||0, hit=ip.items.find(it=>it.name===x);
-        const rate=_isXrayProc(x)?0:(hit?hit.rate:pct);
+        const rate=(_isXrayProc(x)||drugRuleApplies(t))?0:(hit?hit.rate:pct);
+        noDfAdd_(nd, x, price, rate);
         out.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?'  → df '+rate+'% = '+baht(price*rate/100):(rate? '  (ฟรี)':'')));
       });
       tot+=totalPrice(t); df+=dfAmt(t,doc);
     });
-    out.push(LINE, '🧾 ยอดรวม  '+baht(tot), '✨ df รวม  '+baht(Math.round(df))+'  ('+list.length+' ราย)');
+    out.push(LINE, '🧾 ยอดรวม  '+baht(tot), '✨ df รวม  '+baht(Math.round(df))+'  ('+list.length+' ราย)', ...noDfLines_(nd));
     const pc=paid[dn]||0; if(pc>0) out.push(LINE, '💵 จ่ายเงินสดให้'+dn+'แล้ว  '+baht(pc), '📌 df คงเหลือ  '+baht(Math.round(df)-pc));
     out.push('Bangluang Dental 🦷');
   });
@@ -5044,7 +5045,7 @@ function homeDfLineSend(){
   if(!rows.length){ showToast('ยังไม่มีรายการรักษาของหมอคนนี้วันนี้','error'); return; }
   const doc=doctors.find(x=>x.name===docName)||DOCTORS_DATA.find(x=>x.name===docName);
   const out=['💰 สรุปรายการรักษา + DF', docName+' · '+crmThaiShort(d), LINE];
-  let tot=0, df=0;
+  let tot=0, df=0; const nd={xray:0,drug:0};
   rows.forEach((t,i)=>{
     let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
     const parts=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean), ip=itemDfParts(t), pct=docSharePct(t,doc);
@@ -5052,13 +5053,14 @@ function homeDfLineSend(){
     out.push((i+1)+'. '+(code?code+' ':'')+(t.patName||'—'));
     parts.forEach(x=>{
       const price=pp[x]!==undefined?(+pp[x]||0):(parts.length===1?totalPrice(t):0), hit=ip.items.find(it=>it.name===x);
-      const rate=_isXrayProc(x)?0:(hit?hit.rate:pct);
+      const rate=(_isXrayProc(x)||drugRuleApplies(t))?0:(hit?hit.rate:pct);
+      noDfAdd_(nd, x, price, rate);
       out.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?(rate===pct?'':'  → df '+rate+'% = '+baht(price*rate/100)):(rate?'  (ฟรี)':'')));   // df ปกติ (เท่า % ของหมอ) ไม่ต้องแสดง · แสดงเฉพาะรายการที่ df ต่างจากปกติ
     });
     tot+=totalPrice(t); df+=dfAmt(t,doc);
   });
   const n=new Date(), hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
-  out.push(LINE,'🧾 ยอดรวม  '+baht(tot),'✨ df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)');
+  out.push(LINE,'🧾 ยอดรวม  '+baht(tot),'✨ df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)', ...noDfLines_(nd));
   if(paid>0) out.push(LINE,'💵 จ่ายเงินสดให้'+docName+'แล้ว  '+baht(paid),'📌 df คงเหลือ  '+baht(Math.round(df)-paid));
   out.push(LINE,'🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(d)+' เวลา '+hm+' น.','Bangluang Dental 🦷');
   const text=out.join('\n');
@@ -10855,6 +10857,18 @@ function drugRuleApplies(t){
   return /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=drugRuleStart() && isDrugOnly(t.proc);
 }
 // X-Ray ที่ลงรวมกับหัตถการอื่น: ส่วน "ราคา X-Ray" (จากช่องราคาแยกรายการ procPrices) ไม่คิด DF — ส่วนที่เหลือคิด % ปกติ · ไม่บังคับหมอ
+/* สรุป DF ทาง LINE: ยอด X-Ray / ค่ายา ที่ไม่คิด DF (rate 0) แสดงแยกใต้บรรทัด df รวม */
+function noDfAdd_(acc, name, price, rate){
+  if(!(price>0) || rate!==0) return;
+  if(_isXrayProc(name)) acc.xray += price;
+  else if(/ยา/.test(String(name))) acc.drug += price;
+}
+function noDfLines_(acc){
+  const out=[];
+  if(acc.xray>0) out.push('🩻 เอ็กซเรย์  ฿'+fmt(acc.xray)+'  (ไม่คิด df)');
+  if(acc.drug>0) out.push('💊 ค่ายา  ฿'+fmt(acc.drug)+'  (ไม่คิด df)');
+  return out;
+}
 function _isXrayProc(p){ return /^(?:x[\s-]?ray(?:[\s-]*bw)?|เอ็กซเรย์(?:ฟัน|ตรวจฟันผุ)?)$/i.test(String(p||'').trim()); }
 function xrayMixedPrice(t){
   const d = String((t&&t.date)||'').slice(0,10);
