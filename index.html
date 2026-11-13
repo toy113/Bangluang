@@ -7689,18 +7689,34 @@ function renderStatsPage(){
         : kp('🌱 คนไข้ใหม่', fmt(cur.newP), _delta(cur.newP, prev&&prev.newP)) + kp('🔁 คนไข้เก่ากลับมา', cur.retPct.toFixed(0)+'%', prev?_delta(cur.retPct, prev.retPct):'<span class="st-delta flat">—</span>'))
     + '</div>';
 
+  // ----- แยก "งานจัดฟัน" ออกจาก "งานทั่วไป" -----
+  // คนไข้จัดฟันนัดมาเป็นกลุ่มใหญ่ในไม่กี่วันที่หมอจัดฟันเข้า → ถ้ารวมกัน วัน/ช่วงเวลา/หัตถการ "ที่ดีที่สุด" จะเป็นวันจัดฟันเสมอ เทียบกับวันอื่นไม่ได้
+  // จึงวิเคราะห์ วันในสัปดาห์ / ช่วงเวลายุ่ง / วันรายได้สูงสุด / หัตถการเด่น จากงานทั่วไป แล้วสรุปงานจัดฟันแยกต่างหาก
+  const isOrthoRow_ = t => isAimDoc_(docAlias(t.docName)) || String(t.proc||'').split(',').some(x=>ORTHO_DEFAULT_DOC_ITEMS.includes(x.trim()));
+  const oRows = rows.filter(isOrthoRow_), gRows = rows.filter(t=>!isOrthoRow_(t));
+  const split = oRows.length>0 && gRows.length>0;
+  const baseRows = split ? gRows : rows;
+  const sumRev_ = a => a.reduce((n,t)=>n+totalPrice(t),0);
+  const daysOf_ = a => new Set(a.map(t=>String(t.date).slice(0,10)));
+  const oRev = sumRev_(oRows), gRev = sumRev_(gRows), oDays = daysOf_(oRows), gDays = daysOf_(gRows);
+  const oDayRev = new Map(); oRows.forEach(t=>{ const d=String(t.date).slice(0,10); const o=oDayRev.get(d)||{v:0,n:0}; o.v+=totalPrice(t); o.n++; oDayRev.set(d,o); });
+  let bestODay = null; oDayRev.forEach((o,d)=>{ if(!bestODay || o.v>bestODay.v) bestODay={d,v:o.v,n:o.n}; });
+  const noOrtho = split ? ' <span style="font-weight:600;color:var(--text-light);">(ไม่รวมงานจัดฟัน)</span>' : '';
+
   // ----- รายวัน / ฮีทแมป / หัตถการ / ชำระเงิน -----
+  const dayRevAll = new Map();
+  rows.forEach(t=>{ const d=String(t.date).slice(0,10); dayRevAll.set(d,(dayRevAll.get(d)||0)+totalPrice(t)); });
+  const activeDays = dayRevAll.size;
   const dayRev = new Map(), dayCnt = new Map();
-  rows.forEach(t=>{ const d=String(t.date).slice(0,10); dayRev.set(d,(dayRev.get(d)||0)+totalPrice(t)); dayCnt.set(d,(dayCnt.get(d)||0)+1); });
+  baseRows.forEach(t=>{ const d=String(t.date).slice(0,10); dayRev.set(d,(dayRev.get(d)||0)+totalPrice(t)); dayCnt.set(d,(dayCnt.get(d)||0)+1); });
   let bestDay = null; dayRev.forEach((v,d)=>{ if(!bestDay || v>bestDay.v) bestDay={d,v,n:dayCnt.get(d)}; });
-  const activeDays = dayRev.size;
   const dowRev = Array(7).fill(0), dowDays = Array(7).fill(0);
   dayRev.forEach((v,d)=>{ const w=new Date(d+'T12:00').getDay(); dowRev[w]+=v; dowDays[w]++; });
   const dowAvg = dowRev.map((v,i)=>dowDays[i]?v/dowDays[i]:0);
   let bestDow = -1; dowAvg.forEach((v,i)=>{ if(v>0 && (bestDow<0 || v>dowAvg[bestDow])) bestDow=i; });
 
   const heat = Array.from({length:7},()=>({})); let hMin=24,hMax=0,hPeak={n:0,w:0,h:0};
-  rows.forEach(t=>{
+  baseRows.forEach(t=>{
     const h = parseInt(String(t.time||'').slice(0,2),10); if(isNaN(h)) return;
     const w = new Date(String(t.date).slice(0,10)+'T12:00').getDay();
     heat[w][h]=(heat[w][h]||0)+1; if(h<hMin) hMin=h; if(h>hMax) hMax=h;
@@ -7740,10 +7756,22 @@ function renderStatsPage(){
     const d=(cur.rev-prev.rev)/prev.rev*100;
     ins.push([d>=0?'📈':'📉','รายได้ช่วงนี้ <b>'+(d>=0?'เพิ่มขึ้น ':'ลดลง ')+Math.abs(d).toFixed(0)+'%</b> เมื่อเทียบกับช่วงก่อนหน้า (฿'+fmt(cur.rev)+' เทียบ ฿'+fmt(prev.rev)+')']);
   }
-  if(bestDay) ins.push(['🏆','วันที่ทำรายได้สูงสุดคือ <b>'+fmtDate(bestDay.d)+'</b> ฿'+fmt(bestDay.v)+' ('+bestDay.n+' เคส)']);
-  if(bestDow>=0 && activeDays>=7) ins.push(['📅','<b>วัน'+STATS_DOW[bestDow]+'</b> ทำรายได้เฉลี่ยสูงสุด ฿'+fmt(Math.round(dowAvg[bestDow]))+' ต่อวัน']);
-  if(hasHeat) ins.push(['⏰','คนไข้แน่นที่สุด <b>วัน'+STATS_DOW[hPeak.w]+' '+hPeak.h+':00–'+(hPeak.h+1)+':00</b> ('+hPeak.n+' เคสในช่วงนี้) — เหมาะวางนัดสำคัญเลี่ยงช่วงนี้']);
-  if(topProc.length) ins.push(['🦷','<b>'+_escHtml(topProc[0][0])+'</b> เป็นหัตถการที่สร้างรายได้สูงสุด '+(procTotal?Math.round(topProc[0][1].rev/procTotal*100):0)+'% ('+topProc[0][1].n+' ครั้ง)']);
+  const gTag = split ? 'งานทั่วไป: ' : '';
+  if(split){
+    ins.push(['😬','<b>งานจัดฟัน</b> มา '+oDays.size+' วัน จาก '+activeDays+' วันทำการ · ฿'+fmt(oRev)+' (<b>'+Math.round(oRev/(cur.rev||1)*100)+'%</b> ของรายได้) · '+oRows.length+' เคส · เฉลี่ย ฿'+fmt(Math.round(oRev/oDays.size))+' ต่อวันจัดฟัน'
+      +(bestODay&&oDays.size>1?' · สูงสุด '+fmtDate(bestODay.d)+' ฿'+fmt(bestODay.v)+' ('+bestODay.n+' เคส)':'')]);
+    ins.push(['🦷','<b>งานทั่วไป</b> '+gDays.size+' วัน · ฿'+fmt(gRev)+' · '+gRows.length+' เคส · เฉลี่ย ฿'+fmt(Math.round(gRev/gDays.size))+' ต่อวัน · ฿'+fmt(Math.round(gRev/gRows.length))+' ต่อเคส (จัดฟัน ฿'+fmt(Math.round(oRev/oRows.length))+' ต่อเคส)']);
+    if(prev && prevRows.length){
+      const pO = prevRows.filter(isOrthoRow_), pG = prevRows.filter(t=>!isOrthoRow_(t)), pOR = sumRev_(pO), pGR = sumRev_(pG), pOD = daysOf_(pO).size;
+      const chg = (a,b) => b>0 ? ((a-b)/b>=0?'▲ ':'▼ ')+Math.abs((a-b)/b*100).toFixed(0)+'%' : '—';
+      ins.push(['⚖️','เทียบช่วงก่อนหน้าแบบแยกส่วน: งานทั่วไป <b>'+chg(gRev,pGR)+'</b> · งานจัดฟัน <b>'+chg(oRev,pOR)+'</b> (ช่วงนี้ '+oDays.size+' วันจัดฟัน เทียบ '+pOD+' วัน'+(oDays.size!==pOD?' — จำนวนวันจัดฟันไม่เท่ากัน ยอดรวมจึงเทียบตรงๆ ไม่ได้':'')+')']);
+    }
+  }
+  if(bestDay) ins.push(['🏆',gTag+'วันที่ทำรายได้สูงสุดคือ <b>'+fmtDate(bestDay.d)+'</b> ฿'+fmt(bestDay.v)+' ('+bestDay.n+' เคส)']);
+  if(bestDow>=0 && dayRev.size>=7) ins.push(['📅',gTag+'<b>วัน'+STATS_DOW[bestDow]+'</b> ทำรายได้เฉลี่ยสูงสุด ฿'+fmt(Math.round(dowAvg[bestDow]))+' ต่อวัน']);
+  if(hasHeat) ins.push(['⏰',gTag+'คนไข้แน่นที่สุด <b>วัน'+STATS_DOW[hPeak.w]+' '+hPeak.h+':00–'+(hPeak.h+1)+':00</b> ('+hPeak.n+' เคสในช่วงนี้) — เหมาะวางนัดสำคัญเลี่ยงช่วงนี้']);
+  { const tp = split ? topProc.find(x=>!ORTHO_DEFAULT_DOC_ITEMS.includes(x[0])) : topProc[0];
+    if(tp) ins.push(['🦷',gTag+'<b>'+_escHtml(tp[0])+'</b> เป็นหัตถการที่สร้างรายได้สูงสุด '+(split?(gRev?Math.round(tp[1].rev/gRev*100):0)+'% ของงานทั่วไป':(procTotal?Math.round(tp[1].rev/procTotal*100):0)+'%')+' ('+tp[1].n+' ครั้ง)']); }
   if(prev && prev.avg>0 && Math.abs(cur.avg-prev.avg)/prev.avg>=0.1) ins.push([cur.avg>prev.avg?'💎':'🪙','ค่าเฉลี่ยต่อเคส'+(cur.avg>prev.avg?'สูงขึ้น':'ลดลง')+'เป็น ฿'+fmt(Math.round(cur.avg))+' (ก่อนหน้า ฿'+fmt(Math.round(prev.avg))+')']);
   if(cur.patients>0 && statsPeriod!=='all') ins.push(['🌱','คนไข้ใหม่ <b>'+cur.newP+' คน</b> จาก '+cur.patients+' คน ('+Math.round(cur.newP/cur.patients*100)+'%) · คนไข้เก่ากลับมา '+Math.round(cur.retPct)+'%']);
   if(payTotal>0 && sso>0) ins.push(['🏛️','ประกันสังคม (ปกส) คิดเป็น <b>'+Math.round(sso/payTotal*100)+'%</b> ของยอดชำระ ฿'+fmt(sso)]);
@@ -7755,13 +7783,19 @@ function renderStatsPage(){
   if(statsPeriod==='month' && cur.rev>0){
     const today = todayStr(); const [y,m] = today.slice(0,7).split('-').map(Number);
     const dim = new Date(y,m,0).getDate(), el = Number(today.slice(8,10)), remain = dim-el;
-    const ratio = activeDays/el, avgAct = cur.rev/activeDays;
-    const fc = cur.rev + avgAct*ratio*remain;
+    let ratio = activeDays/el, avgAct = cur.rev/activeDays, fc = cur.rev + avgAct*ratio*remain, fcNote = '';
+    if(split){   // งานทั่วไป: เฉลี่ยต่อวันที่มีเคส × สัดส่วนวันทำงาน · งานจัดฟัน: เฉลี่ยต่อวันจัดฟัน × จำนวนวันที่มีนัดจัดฟันรออยู่ในเดือนนี้
+      const mEnd = today.slice(0,7)+'-'+String(dim).padStart(2,'0');
+      const oFut = new Set(appointments.filter(a=>{ const d=String(a.date||'').slice(0,10); return d>today && d<=mEnd && a.status!=='ยกเลิก' && isAimDoc_(docAlias(a.docName)); }).map(a=>String(a.date).slice(0,10))).size;
+      const gAvg = gRev/gDays.size, oAvg = oRev/oDays.size; ratio = gDays.size/el;
+      fc = cur.rev + gAvg*ratio*remain + oAvg*oFut;
+      fcNote = 'งานทั่วไป ฿'+fmt(Math.round(gAvg))+'/วัน × สัดส่วนวันทำงาน ('+gDays.size+'/'+el+' วัน) + งานจัดฟัน ฿'+fmt(Math.round(oAvg))+'/วัน × '+oFut+' วันที่มีนัดจัดฟันรออยู่ · เหลืออีก '+remain+' วัน';
+    }
     const pmEnd = _addDays(today.slice(0,7)+'-01',-1), pmStart = pmEnd.slice(0,7)+'-01';
     const pmRev = statsRows(pmStart, pmEnd).reduce((s,t)=>s+totalPrice(t),0);
     const vs = pmRev>0 ? ' · เดือนก่อน ฿'+fmt(pmRev)+' ('+(fc>=pmRev?'▲ ':'▼ ')+Math.abs((fc-pmRev)/pmRev*100).toFixed(0)+'%)' : '';
     forecastHtml = '<div class="st-forecast">🔮 <b>คาดการณ์สิ้นเดือน ≈ ฿'+fmt(Math.round(fc))+'</b>'+vs
-      +'<br><span style="font-size:12px;color:var(--text-light);">คิดจากเฉลี่ย ฿'+fmt(Math.round(avgAct))+'/วันที่มีเคส × สัดส่วนวันทำงานที่ผ่านมา ('+activeDays+'/'+el+' วัน) · เหลืออีก '+remain+' วัน</span>'
+      +'<br><span style="font-size:12px;color:var(--text-light);">'+(fcNote || ('คิดจากเฉลี่ย ฿'+fmt(Math.round(avgAct))+'/วันที่มีเคส × สัดส่วนวันทำงานที่ผ่านมา ('+activeDays+'/'+el+' วัน) · เหลืออีก '+remain+' วัน'))+'</span>'
       +'<div class="st-pbar"><div style="width:'+Math.min(100,cur.rev/fc*100).toFixed(0)+'%"></div></div></div>';
   }
 
@@ -7817,12 +7851,12 @@ function renderStatsPage(){
     if(cur.rev>0 && cost/cur.rev>0.3) ins.push(['🧮','ค่าแลปคิดเป็น <b>'+(cost/cur.rev*100).toFixed(0)+'%</b> ของรายได้ ซึ่งค่อนข้างสูง']);
   }
 
-  const insHtml = ins.length ? _statsCard('💡 ข้อสังเกตอัตโนมัติ', ins.slice(0,10).map(i=>'<div class="st-insight"><span class="st-insight-ico">'+i[0]+'</span><div>'+i[1]+'</div></div>').join(''), 'สรุปจากข้อมูลช่วงนี้') : '';
+  const insHtml = ins.length ? _statsCard('💡 ข้อสังเกตอัตโนมัติ', ins.slice(0,12).map(i=>'<div class="st-insight"><span class="st-insight-ico">'+i[0]+'</span><div>'+i[1]+'</div></div>').join(''), 'สรุปจากข้อมูลช่วงนี้') : '';
 
   const ser = statsSeries(rows, R.start, R.end);
   const trendHtml = _statsCard('📊 แนวโน้มรายได้', statsBarChart(ser)+forecastHtml, R.label);
-  const heatCard = hasHeat ? _statsCard('🔥 ช่วงเวลายุ่งที่สุด (วัน × ชั่วโมง)', '<div style="overflow-x:auto;">'+heatHtml+'</div><div style="font-size:11px;color:var(--text-light);margin-top:6px;">สีเข้ม = จำนวนเคสมาก · ตัวเลขคือเวลาที่บันทึกรายการ</div>', 'จำนวนเคส') : '';
-  const dowCard = activeDays>=2 ? _statsCard('📅 รายได้เฉลี่ยต่อวัน แยกตามวันในสัปดาห์', statsRowsBar([1,2,3,4,5,6,0].filter(w=>dowDays[w]).map(w=>({name:'วัน'+STATS_DOW[w],val:dowAvg[w],color:w===bestDow?'#D4A843':'#6B2D5E',label:'฿'+fmt(Math.round(dowAvg[w]))}))), 'เฉพาะวันที่มีเคส') : '';
+  const heatCard = hasHeat ? _statsCard('🔥 ช่วงเวลายุ่งที่สุด (วัน × ชั่วโมง)'+noOrtho, '<div style="overflow-x:auto;">'+heatHtml+'</div><div style="font-size:11px;color:var(--text-light);margin-top:6px;">สีเข้ม = จำนวนเคสมาก · ตัวเลขคือเวลาที่บันทึกรายการ</div>', 'จำนวนเคส') : '';
+  const dowCard = dayRev.size>=2 ? _statsCard('📅 รายได้เฉลี่ยต่อวัน แยกตามวันในสัปดาห์'+noOrtho, statsRowsBar([1,2,3,4,5,6,0].filter(w=>dowDays[w]).map(w=>({name:'วัน'+STATS_DOW[w],val:dowAvg[w],color:w===bestDow?'#D4A843':'#6B2D5E',label:'฿'+fmt(Math.round(dowAvg[w]))}))), 'เฉพาะวันที่มีเคส') : '';
   const procCard = _statsCard('🦷 หัตถการยอดนิยม', statsRowsBar(topProc.map(([n,o])=>({name:n,html:procBadge(n),val:o.rev,color:(PROC_COLORS&&PROC_COLORS[n])||'#6B2D5E',label:'฿'+fmt(Math.round(o.rev))+'<div style="font-weight:600;color:var(--text-light);font-size:11px;">'+o.n+' ครั้ง · เฉลี่ย ฿'+fmt(Math.round(o.rev/o.n))+'</div>'})))
       +'<div style="font-size:11px;color:var(--text-light);margin-top:6px;">กรณีคิดเงินรวมหลายหัตถการในครั้งเดียว ระบบแบ่งยอดเท่าๆ กัน (ประมาณการ)</div>', 'เรียงตามรายได้');
   const payCard = _statsCard('💳 ช่องทางชำระเงิน', statsDonut([{k:'เงินสด',v:cash,c:'#27AE60'},{k:'โอน',v:trf,c:'#2078B4'},{k:'ปกส',v:sso,c:'#D68910'}], '฿'+_statsK(payTotal), 'ยอดชำระรวม'), R.label);
