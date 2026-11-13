@@ -3317,7 +3317,11 @@ function startApp(){
   // ทั้งที่จริงกำลังโหลดอยู่ — โชว์ overlay คลุมไว้จนกว่า sync ครั้งแรกจะเสร็จ
   const isFirstEverLoad = treatments.length===0 && appointments.length===0;
   const loadOverlay = document.getElementById('initialLoadOverlay');
-  if(isFirstEverLoad && loadOverlay) loadOverlay.style.display = 'flex';
+  if(isFirstEverLoad && loadOverlay){
+    loadOverlay.style.display = 'flex';
+    const _lt = loadOverlay.lastElementChild, _l0 = Date.now();   // นับวินาทีให้เห็นว่ายังทำงานอยู่
+    const _li = setInterval(()=>{ if(loadOverlay.style.display==='none'){ clearInterval(_li); return; } if(_lt) _lt.textContent = 'กำลังโหลดข้อมูล... '+Math.round((Date.now()-_l0)/1000)+' วิ'; }, 1000);
+  }
   setTimeout(()=>{ try{ loadChartJs().catch(()=>{}); }catch(e){} }, 4000); // โหลดกราฟไว้ล่วงหน้าตอนว่าง
   syncAll().finally(()=>{
     if(loadOverlay){ loadOverlay.classList.add('hide'); setTimeout(()=>loadOverlay.style.display='none', 300); }
@@ -8755,7 +8759,14 @@ function labBadgeClass(lab){ return {สายน้ำทิพย์:'lab-snt'
 // ============================================================
 //  SETTINGS
 // ============================================================
+function syncStatLine_(){
+  const grid=document.getElementById('settingsGrid'); if(!grid || !isManager) return;
+  let st=null; try{ st=JSON.parse(localStorage.getItem('bl_sync_stat')||'null'); }catch(e){}
+  let el=document.getElementById('syncStatLine'); if(!el){ el=document.createElement('div'); el.id='syncStatLine'; el.style.cssText='margin:14px 2px;font-size:12px;color:var(--text-light);'; grid.parentNode.insertBefore(el, grid.nextSibling); }
+  el.textContent = st ? ('⏱ โหลดข้อมูลเต็มครั้งล่าสุด ('+new Date(st.at).toLocaleString('th-TH')+'): รอเซิร์ฟเวอร์ '+(st.waitMs/1000).toFixed(1)+' วิ · อ่านข้อมูล '+(st.readMs/1000).toFixed(1)+' วิ · ขนาด '+fmt(st.kb)+' KB · นัด '+fmt(st.n.apt)+' · รักษา '+fmt(st.n.treat)+' · คนไข้ '+fmt(st.n.pat)) : '';
+}
 function buildSettingsPage(){
+  setTimeout(syncStatLine_, 0);
   const grid=document.getElementById('settingsGrid');
   const docList=isManager?doctors:doctors.filter(d=>d.id===currentUser.id);
   // แถบ tab กระโดดไปหาหมอแต่ละคน — จำเป็นตอนเป็นผู้จัดการเพราะฟอร์มหมอทุกคนเรียงต่อกันเป็นหน้ายาวมาก
@@ -8983,9 +8994,14 @@ async function syncAllInner_(opts){
     if(!full){
       hq = Object.keys(_gaH).filter(k=>_gaH[k] && !gaPending_(k)).map(k=>k+':'+_gaH[k]).join('|');
     }
+    const _t0=performance.now();
     const res=await fetch(APPS_SCRIPT_URL+'?action=getAll'+(hq?'&h='+encodeURIComponent(hq):'')+(opts.force?'&force=1':''),{cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
+    const _t1=performance.now();
     const d=await res.json();
+    // วัดความเร็วการโหลดเต็ม (ไม่มี hash = ดึงทุกตาราง) เก็บไว้ดูในหน้าตั้งค่า — ใช้หาสาเหตุเวลาเปิดช้า
+    if(!hq){ try{ const _t2=performance.now(); localStorage.setItem('bl_sync_stat', JSON.stringify({ at:new Date().toISOString(), waitMs:Math.round(_t1-_t0), readMs:Math.round(_t2-_t1),
+      kb:Math.round(JSON.stringify(d).length/1024), n:{ apt:(d.appointments||[]).length, treat:(d.treatments||[]).length, pat:(d.patients||[]).length, lab:(d.labs||[]).length } })); }catch(e){} }
     if(d && d._v===2 && full) _gaLastFull = Date.now();
     if(d && d._unchanged){
       if(txt) txt.textContent='ซิงค์แล้ว '+new Date().toLocaleTimeString('th-TH');
