@@ -1381,6 +1381,20 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
   #labPageBody > tr > td:nth-child(9) { flex-basis: 100%; }
   #labPageBody > tr > td:nth-child(9):not([style*="normal"]) { display: none; }
   #treatListBody .btn-icon, #treatPageBody .btn-icon, #labPageBody .btn-icon { min-width: 30px !important; min-height: 30px !important; padding: 3px !important; font-size: 13px; }
+  /* การ์ดรายการรักษาวันนี้ (หน้าหลัก): 3 บรรทัดตายตัว — 1) ชื่อ ........ ยอดรวม  2) เวลา · HN · รายการ  3) วิธีชำระ ........ ปุ่ม */
+  #treatListBody > tr:not(:has(> td[colspan])) { row-gap: 2px; padding: 10px 12px; }
+  #treatListBody > tr:not(:has(> td[colspan]))::before, #treatListBody > tr:not(:has(> td[colspan]))::after { content: ''; flex: 0 0 100%; height: 0; }
+  #treatListBody > tr:not(:has(> td[colspan]))::before { order: 3; }
+  #treatListBody > tr:not(:has(> td[colspan]))::after { order: 7; }
+  #treatListBody > tr > td:nth-child(3) { order: 1; flex: 1 1 0; }
+  #treatListBody > tr > td:nth-child(9) { order: 2; margin-left: auto; white-space: nowrap; }
+  #treatListBody > tr > td:nth-child(1) { order: 4; }
+  #treatListBody > tr > td:nth-child(2) { order: 5; }
+  #treatListBody > tr > td:nth-child(4) { order: 6; flex: 1 1 0; }
+  #treatListBody > tr > td:nth-child(6), #treatListBody > tr > td:nth-child(7), #treatListBody > tr > td:nth-child(8) { order: 8; white-space: nowrap; }
+  #treatListBody > tr > td:nth-child(10) { order: 9; margin-left: auto; }
+  #treatListBody .bank-tag { display: inline; margin-left: 5px; }
+  #treatListBody .bank-tag::before { content: '· '; }
 
   /* ---------- แท็บจัดฟัน: ตัวกรองจัดเป็นตาราง 6 ช่อง ---------- */
   #page-ortho .card-box-hdr > .filter-row { display: grid !important; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 7px !important; width: 100%; }
