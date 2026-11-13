@@ -192,6 +192,14 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .exp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
 .exp-total{font-size:30px;font-weight:800;color:#8A6414;font-family:'Prompt',sans-serif;text-align:right;line-height:1.1;}
 .exp-total small{display:block;font-size:11.5px;color:var(--text-light);font-weight:700;font-family:'Sarabun',sans-serif;}
+.exp-profit{border:1px solid #EBD38E;background:linear-gradient(135deg,#FFFBEF,#FBF1D2);border-radius:14px;padding:12px 14px;margin-bottom:14px;max-width:520px;}
+.exp-profit-h{font-weight:800;color:#8A6414;font-size:13.5px;margin-bottom:6px;}
+.exp-pl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13.5px;color:var(--text-mid);padding:4px 0;}
+.exp-pl small{display:block;font-size:11px;color:var(--text-light);font-weight:500;}
+.exp-pl b{color:var(--wine-dark);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.exp-pl.tot{border-top:1.5px solid #E0C070;margin-top:6px;padding-top:8px;font-weight:800;color:var(--wine-dark);font-size:15px;}
+.exp-pl.tot b{font-size:24px;color:#1D6B44;font-family:'Prompt',sans-serif;}
+.exp-pl.tot.neg b{color:#B3261E;}
 .exp-cats{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
 .exp-cat{display:grid;grid-template-columns:130px 1fr 90px;gap:10px;align-items:center;font-size:12.5px;color:var(--text-mid);}
 .exp-cat .bar{height:9px;background:var(--wine-pale);border-radius:6px;overflow:hidden;}
@@ -5171,6 +5179,36 @@ function expZoom(key){
   o.onclick = ()=>o.remove(); document.body.appendChild(o);
 }
 function expShiftMonth(k){ const y=+EXP.month.slice(0,4), m=+EXP.month.slice(5,7); EXP.month = new Date(Date.UTC(y,m-1+k,1)).toISOString().slice(0,7); renderExpensePage(); }
+/* กำไรสุทธิของเดือน — ใช้สูตรเดียวกับหน้าสรุปรายได้:
+   รายได้ = ยอดรับทุกรายการรักษาในเดือน (เงินสด+โอน+ประกันสังคม) · DF = dfAmt ต่อรายการ (ตาม % ที่บันทึกไว้ในรายการ)
+   ค่าแลป = ยอดแลปในเดือน · ถ้าเปิดตัวเลือก "หักค่าแลปจาก DF" ในหน้าสรุปรายได้ หมอร่วมจ่ายค่าแลป = ค่าแลป × % DF ปกติของหมอ
+   รายจ่าย = รายการในแท็บนี้ (ไม่นับหมวดเก่า ค่าแลป/จ่าย DF หมอ กันนับซ้ำ) */
+function expProfit_(month){
+  const tr = (typeof treatments!=='undefined'?treatments:[]).filter(t=>String(t.date||'').slice(0,7)===month);
+  const lb = (typeof labs!=='undefined'?labs:[]).filter(l=>String(l.date||'').slice(0,7)===month);
+  const docOf = n => doctors.find(x=>x.name===n) || DOCTORS_DATA.find(x=>x.name===n);
+  const revenue = tr.reduce((s,t)=>s+totalPrice(t),0);
+  const df = tr.reduce((s,t)=>s+dfAmt(t, docOf(t.docName)),0);
+  const lab = lb.reduce((s,l)=>s+(+l.price||0),0);
+  let labDed = false; try{ labDed = localStorage.getItem('bl_inc_labded')==='1'; }catch(e){}
+  const labShare = labDed ? lb.reduce((s,l)=>s+(+l.price||0)*labDfPct_(l.docName)/100,0) : 0;
+  const DUP = ['ค่าแลป','จ่าย DF หมอ'];
+  const ex = (EXP.rows||[]).filter(r=>String(r.date||'').slice(0,7)===month);
+  const expense = ex.filter(r=>!DUP.includes(r.category)).reduce((s,r)=>s+(+r.amount||0),0);
+  const skipped = ex.filter(r=>DUP.includes(r.category)).reduce((s,r)=>s+(+r.amount||0),0);
+  return { revenue, df, lab, labShare, labDed, expense, skipped, n:tr.length, profit: revenue - df - lab + labShare - expense };
+}
+function expProfitCard_(month){
+  const p = expProfit_(month), neg = p.profit<0, pct = p.revenue>0 ? Math.round(p.profit/p.revenue*100) : 0;
+  const row = (l,v,sign,sub) => `<div class="exp-pl"><span>${l}${sub?`<small>${sub}</small>`:''}</span><b>${sign}฿${fmt(Math.abs(v))}</b></div>`;
+  return `<div class="exp-profit"><div class="exp-profit-h">📊 กำไรสุทธิของเดือน</div>
+    ${row('รายได้จากการรักษา', p.revenue, '', p.n+' รายการ')}
+    ${row('DF หมอ', p.df, '−')}
+    ${row('ค่าแลป', p.lab, '−')}
+    ${p.labDed?row('หมอร่วมจ่ายค่าแลป', p.labShare, '+', 'ตามตัวเลือก "หักค่าแลปจาก DF" ในหน้าสรุปรายได้'):''}
+    ${row('รายจ่ายจากแท็บนี้', p.expense, '−', p.skipped?('ไม่นับหมวดค่าแลป/DF เดิม ฿'+fmt(p.skipped)+' กันนับซ้ำ'):'')}
+    <div class="exp-pl tot${neg?' neg':''}"><span>กำไรสุทธิ<small>${p.revenue>0?('คิดเป็น '+pct+'% ของรายได้'):''}</small></span><b>${neg?'−':''}฿${fmt(Math.abs(p.profit))}</b></div></div>`;
+}
 function expDraftCard_(d){
   const E = crmEsc, k = d.key, busy = d.status==='reading' || d.status==='saving';
   const inp = (f,type,ph,extra) => `<input class="form-control" type="${type}" value="${E(d[f])}" placeholder="${ph}" ${extra||''} oninput="expDraftSet('${k}','${f}',this.value)" ${busy?'disabled':''}>`;
@@ -5215,6 +5253,7 @@ function renderExpensePage(){
           <button type="button" class="date-nav-btn" onclick="expShiftMonth(1)" aria-label="เดือนถัดไป">›</button></div>
         <div class="exp-total"><small>รายจ่ายรวม · ${rows.length} รายการ</small>฿${fmt(total)}</div></div>
       ${EXP.loading?'<div class="crm-empty">กำลังโหลด...</div>':''}${EXP.err?`<div class="crm-empty" style="color:#B3261E;">โหลดไม่สำเร็จ: ${E(EXP.err)} <button class="btn" onclick="EXP.rows=null;renderExpensePage()">ลองใหม่</button></div>`:''}
+      ${EXP.loading||EXP.err?'':expProfitCard_(EXP.month)}
       ${cats.length?`<div class="exp-cats">${cats.map(c=>`<div class="exp-cat"><span>${E(c)}</span><div class="bar"><i style="width:${mx?Math.max(3,Math.round(by[c]/mx*100)):0}%"></i></div><b>฿${fmt(by[c])}</b></div>`).join('')}</div>`:''}
       ${rows.length?`<div class="crm-tablewrap"><table class="crm-table"><tr><th>วันที่</th><th>จ่ายให้ / หมายเหตุ</th><th>หมวด</th><th style="text-align:right;">ยอด</th><th></th></tr>
         ${rows.map(r=>`<tr><td style="white-space:nowrap;">${E(crmThaiShort(r.date))}</td><td><b>${E(r.payee||'—')}</b>${r.note?`<div class="crm-muted" style="font-size:12px;">${E(r.note)}</div>`:''}</td>
