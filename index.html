@@ -176,6 +176,28 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .crm-btn.g{background:var(--green);color:#fff;border-color:var(--green);}
 .crm-btn.r{color:var(--red);border-color:rgba(225,31,49,.35);}
 .crm-btn:disabled{opacity:.5;cursor:default;}
+.exp-up{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.exp-upbtn{cursor:pointer;font-size:15px;padding:11px 18px;}
+.exp-drafts{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.exp-draft{display:flex;gap:12px;border:1.5px dashed var(--wine-light);border-radius:14px;padding:12px;background:#FDFAFD;}
+.exp-thumb{flex:0 0 92px;display:flex;align-items:flex-start;justify-content:center;font-size:12px;color:var(--text-light);}
+.exp-thumb img{width:92px;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:zoom-in;}
+.exp-fields{flex:1;min-width:0;}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+.exp-grid label{font-size:11.5px;font-weight:700;color:var(--text-mid);display:flex;flex-direction:column;gap:3px;min-width:0;}
+.exp-grid label.w2{grid-column:1/-1;}
+.exp-msg{font-size:12.5px;margin-bottom:8px;color:var(--wine);font-weight:700;}
+.exp-msg.warn{color:#9A5B00;background:#FFF4D6;border-radius:8px;padding:6px 9px;font-weight:600;}
+.exp-acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.exp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.exp-total{font-size:30px;font-weight:800;color:#8A6414;font-family:'Prompt',sans-serif;text-align:right;line-height:1.1;}
+.exp-total small{display:block;font-size:11.5px;color:var(--text-light);font-weight:700;font-family:'Sarabun',sans-serif;}
+.exp-cats{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.exp-cat{display:grid;grid-template-columns:130px 1fr 90px;gap:10px;align-items:center;font-size:12.5px;color:var(--text-mid);}
+.exp-cat .bar{height:9px;background:var(--wine-pale);border-radius:6px;overflow:hidden;}
+.exp-cat .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--wine),var(--wine-light));border-radius:6px;}
+.exp-cat b{text-align:right;color:var(--wine-dark);}
+@media (max-width:600px){ .exp-draft{flex-direction:column;} .exp-thumb{flex-basis:auto;justify-content:flex-start;} .exp-grid{grid-template-columns:1fr;} .exp-cat{grid-template-columns:96px 1fr 76px;} .exp-total{font-size:24px;} }
 .omc{max-width:360px;margin:4px 0 12px;border:1px solid var(--border);border-radius:14px;padding:10px 10px 8px;background:#fff;}
 .omc-h{display:flex;align-items:center;justify-content:space-between;font-weight:800;color:var(--wine-dark);font-size:13.5px;margin-bottom:6px;}
 .omc-h button{border:0;background:var(--wine-pale);color:var(--wine);border-radius:8px;width:30px;height:28px;font-size:16px;cursor:pointer;}
@@ -1491,6 +1513,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="nav-item" onclick="showPage('income')" id="nav-income"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>สรุปรายได้</button>
       <button class="nav-item" onclick="showPage('stats')" id="nav-stats"><span class="nav-icon" style="font-size:17px;line-height:1;">📈</span>สถิติ</button>
       <button class="nav-item" onclick="showPage('lab')" id="nav-lab"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"/><path d="M9 2h6"/><path d="M8.5 13h7"/></svg></span>ค่าแลป</button>
+      <button class="nav-item" onclick="showPage('expense')" id="nav-expense" style="display:none"><span class="nav-icon" style="font-size:17px;line-height:1;">💸</span>รายจ่าย</button>
       <button class="nav-item" onclick="showPage('settings')" id="nav-settings" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>ตั้งค่า</button>
 
     </div>
@@ -1537,6 +1560,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       <button class="top-tab" id="ttab-income" onclick="showPage('income');setMobileNav('income')"><span class="mn-icon">📊</span>รายได้</button>
       <button class="top-tab" id="ttab-stats" onclick="showPage('stats');setMobileNav('stats')"><span class="mn-icon">📈</span>สถิติ</button>
       <button class="top-tab" id="ttab-lab" onclick="showPage('lab');setMobileNav('lab')"><span class="mn-icon">🧪</span>แลป</button>
+      <button class="top-tab" id="ttab-expense" style="display:none" onclick="showPage('expense');setMobileNav('expense')"><span class="mn-icon">💸</span>รายจ่าย</button>
       <button class="top-tab" id="ttab-settings" style="display:none;" onclick="showPage('settings');setMobileNav('settings')"><span class="mn-icon">⚙️</span>ตั้งค่า</button>
 
     </div>
@@ -1965,6 +1989,8 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
     <!-- ===== SETTINGS PAGE ===== -->
     <!-- ===== LINE CRM ===== -->
+    <div class="page" id="page-expense"><div id="expBody"></div></div>
+
     <div class="page" id="page-crm">
       <div class="section-hdr" style="margin-bottom:12px;flex-wrap:wrap;gap:10px;">
         <div class="section-title"><span>💬</span>LINE CRM</div>
@@ -3263,6 +3289,7 @@ function startApp(){
   if(isOrthoOnlyUser()) ['nav-ortho','ttab-ortho'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; });   // หมอเอมเห็นเมนูจัดฟันด้วย
   // แท็บสถิติ: เห็นเฉพาะ ทพ.สรวิศ (id 'toy')
   ['nav-stats','ttab-stats','mnav-stats'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = canSeeStats() ? '' : 'none'; });
+  ['nav-expense','ttab-expense'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = isAdminUser() ? '' : 'none'; });   // รายจ่าย: เฉพาะ ทพ.สรวิศ
   if(isManager||isOrthoOnlyUser()){
     try{ if(!orthoData.length){ const c=JSON.parse(localStorage.getItem('bl_ortho_cache')||'null'); if(Array.isArray(c)) orthoData=c; } }catch(e){}   // แคชรอบก่อน: โชว์รายการจัดฟันได้ทันที
     if(typeof loadOrthoData==='function') setTimeout(()=>{ loadOrthoData().then(()=>{ try{ if(document.getElementById('schSlotView') && document.getElementById('schSlotView').offsetParent!==null) renderSchedulePage(); }catch(e){} try{ if(document.getElementById('page-home')?.classList.contains('active')) renderHome(); }catch(e){} }).catch(()=>{}); }, 100);
@@ -4940,6 +4967,7 @@ function crmCloseModal(){ const m=document.getElementById('crmModal'); if(m) m.c
 function canSeeStats(){ return !!(currentUser && currentUser.id==='toy'); }
 function showPage(p){
   if(p==='stats' && !canSeeStats()) p='home';
+  if(p==='expense' && !isAdminUser()) p='home';
   if(isOrthoOnlyUser() && !ORTHO_ONLY_PAGES.includes(p)) p='treatment';
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
@@ -4948,7 +4976,7 @@ function showPage(p){
   if(navEl) navEl.classList.add('active');
   // Save last page for session restore
   localStorage.setItem('bl_lastPage', p);
-  const titles = {home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',endo:'🔁 เคสต่อเนื่อง',stats:'📈 สถิติ',crm:'💬 LINE CRM',schedule:'📅 ดูนัด',followup:'🔔 ติดตามประกันสังคม',recall:'🔔 Recall'};
+  const titles = {expense:'💸 บันทึกรายจ่าย',home:'🏠 หน้าหลัก',treatment:'📋 บันทึกการรักษา',income:'📊 สรุปรายได้',lab:'🧪 ค่าแลป',settings:'⚙️ ตั้งค่า',patients:'👥 รายชื่อคนไข้',ortho:'😬 จัดฟัน',endo:'🔁 เคสต่อเนื่อง',stats:'📈 สถิติ',crm:'💬 LINE CRM',schedule:'📅 ดูนัด',followup:'🔔 ติดตามประกันสังคม',recall:'🔔 Recall'};
   document.getElementById('pageTitle').textContent = titles[p]||p;
   if(p==='home') renderHome();
   if(p==='treatment') renderTreatPage();
@@ -4956,6 +4984,7 @@ function showPage(p){
   if(p==='lab') renderLabPage();
   if(p==='endo') renderEndoPage();
   if(p==='stats') renderStatsPage();
+  if(p==='expense') renderExpensePage();
   if(p==='settings') buildSettingsPage();
   // เดิม showPage('ortho') ไม่ได้เรียก renderOrthoPage() เลย — หน้าจัดฟันเลยว่างเปล่าจนกว่า
   // background syncAll() รอบถัดไปจะ re-render ให้ (นานสุดเท่าความถี่ auto-sync)
@@ -4976,6 +5005,219 @@ function showPage(p){
     syncAll().then(()=>{ renderScheduleDay(); renderSchMiniCal(); }).catch(()=>{});
   }
   setMobileNav(p);
+}
+
+// ============================================================
+//  EXPENSES — บันทึกรายจ่าย (เฉพาะ ทพ.สรวิศ · id 'toy')
+//  อัปโหลดสลิป → เซิร์ฟเวอร์เก็บรูปใน Drive + อ่านตัวอักษร (OCR) → หน้าเว็บแกะ วันที่/ยอด/ผู้รับ → ยืนยันแล้วค่อยบันทึก
+// ============================================================
+const EXP = { rows:null, loading:false, err:'', month:'', drafts:[] };
+const EXP_CATS = ['วัสดุทันตกรรม','ค่าแลป','เงินเดือน/ค่าแรง','จ่าย DF หมอ','ค่าเช่า','ค่าน้ำ/ไฟ/เน็ต','การตลาด','ซ่อมบำรุง/อุปกรณ์','ภาษี/ประกันสังคม','อื่นๆ'];
+function expApi(p){ return authApi(p); }
+function expNorm_(s){ return String(s||'').replace(/\s+/g,' ').trim().toLowerCase(); }
+/* แกะข้อความสลิป (ผล OCR) → { date:'YYYY-MM-DD', amount:Number, payee:'', ref:'' } · แกะไม่ได้ = ค่าว่าง ให้คนกรอกเอง */
+function expParseSlip_(text){
+  const raw = String(text||'').replace(/\r/g,'').replace(/ํา/g,'ำ');
+  const lines = raw.split('\n').map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const money = s => { const out=[], re=/(\d{1,3}(?:,\d{3})+|\d+)\.(\d{2})(?!\d)/g; let m; while((m=re.exec(s))) out.push(parseFloat((m[1]+'.'+m[2]).replace(/,/g,''))); return out; };
+  const feeRe = /ค่าธรรมเนียม|fee/i, amtRe = /จำนวนเงิน|จำนวน|ยอดเงิน|ยอดชำระ|ยอดโอน|amount|total/i;
+  let amount = 0;
+  for(let i=0; i<lines.length && !amount; i++){
+    if(!amtRe.test(lines[i]) || feeRe.test(lines[i])) continue;
+    for(let j=i; j<=i+2 && j<lines.length; j++){ if(j>i && feeRe.test(lines[j])) break; const v=money(lines[j]).filter(x=>x>0); if(v.length){ amount=v[0]; break; } }
+  }
+  if(!amount){ const c=[]; lines.forEach(l=>{ if(!feeRe.test(l) && /บาท|THB|฿/i.test(l)) c.push(...money(l)); }); amount = c.filter(x=>x>0)[0] || 0; }
+  if(!amount){ const m = raw.match(/(\d{1,3}(?:,\d{3})+|\d+)\s*(?:บาท|THB)/i); if(m) amount = parseFloat(m[1].replace(/,/g,'')) || 0; }
+  if(!amount){ const all=[]; lines.forEach(l=>{ if(!feeRe.test(l)) all.push(...money(l)); }); amount = all.length ? Math.max(...all) : 0; }
+  // วันที่
+  const MON = { 'มกราคม':1,'กุมภาพันธ์':2,'มีนาคม':3,'เมษายน':4,'พฤษภาคม':5,'มิถุนายน':6,'กรกฎาคม':7,'สิงหาคม':8,'กันยายน':9,'ตุลาคม':10,'พฤศจิกายน':11,'ธันวาคม':12,
+    'มค':1,'กพ':2,'มีค':3,'เมย':4,'พค':5,'มิย':6,'กค':7,'สค':8,'กย':9,'ตค':10,'พย':11,'ธค':12,
+    'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12 };
+  const pad = n => String(n).padStart(2,'0');
+  const mk = (d,mo,y,thai) => {
+    d=+d; mo=+mo; y=+y;
+    if(y>2400) y-=543; else if(y<100) y = thai ? (2500+y-543) : (y>=60 ? 2500+y-543 : 2000+y);
+    if(!(d>=1&&d<=31&&mo>=1&&mo<=12&&y>=2020&&y<=2100)) return '';
+    return y+'-'+pad(mo)+'-'+pad(d);
+  };
+  let date = '';
+  const mT = raw.match(/(\d{1,2})\s*(มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม|ม\.?\s?ค\.?|ก\.?\s?พ\.?|มี\.?\s?ค\.?|เม\.?\s?ย\.?|พ\.?\s?ค\.?|มิ\.?\s?ย\.?|ก\.?\s?ค\.?|ส\.?\s?ค\.?|ก\.?\s?ย\.?|ต\.?\s?ค\.?|พ\.?\s?ย\.?|ธ\.?\s?ค\.?)\s*(\d{4}|\d{2})(?!\d)/);
+  if(mT) date = mk(mT[1], MON[mT[2].replace(/[.\s]/g,'')], mT[3], true);
+  if(!date){ const mE = raw.match(/(\d{1,2})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s*(\d{4}|\d{2})(?!\d)/i); if(mE) date = mk(mE[1], MON[mE[2].toLowerCase()], mE[3], false); }
+  if(!date){ const mN = raw.match(/(?:^|[^\d])(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})(?!\d)/); if(mN) date = mk(mN[1], mN[2], mN[3], false); }
+  // ผู้รับเงิน
+  const bankRe = /ธนาคาร|ธ\.|กสิกร|ไทยพาณิชย์|กรุงเทพ|กรุงไทย|กรุงศรี|ทหารไทย|ทีทีบี|ออมสิน|พร้อมเพย์|prompt ?pay|\b(?:scb|kbank|bbl|ktb|ttb|bay|gsb|uob|cimb)\b/i;
+  const acctRe = /(?:[xX*•]|\d)[xX*•\d\- ]{5,}/;
+  const nameRe = /^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|บจก\.?|บมจ\.?|บริษัท|หจก\.?|ห้างหุ้นส่วน|ร้าน|คุณ|mr\.?|mrs\.?|ms\.?|miss)\s*\S+/i;
+  const toRe = /^(?:โอนไปยัง|ไปยัง|ไปที่|ถึง|ชื่อผู้รับ|ผู้รับเงิน|ผู้รับ|เข้าบัญชี|ชื่อร้านค้า|ร้านค้า|biller|to)(?:\s|:|$)\s*:?\s*(.*)$/i;
+  const okName = l => l && l.length>=3 && !(acctRe.test(l) && l.replace(/[^ก-๙A-Za-z]/g,'').length<4) && !/^\d/.test(l) && !amtRe.test(l) && !feeRe.test(l);
+  const clean = l => String(l||'').replace(acctRe,' ').replace(/\s+/g,' ').trim();
+  const isOwner = l => /สรวิศ/.test(l) || /บางหลวง/.test(l) && /ทันตกรรม/.test(l);
+  let payee = '';
+  for(let i=0; i<lines.length && !payee; i++){
+    const m = lines[i].match(toRe); if(!m) continue;
+    const cand = [m[1]].concat(lines.slice(i+1, i+4));
+    for(const c of cand){ if(okName(c) && !bankRe.test(c) || (okName(c) && nameRe.test(c))){ payee = clean(c); break; } }
+  }
+  if(!payee){
+    const all = lines.filter(l=>nameRe.test(l)), other = all.filter(l=>!isOwner(l));
+    payee = clean(all.length>=2 ? (isOwner(all[1]) ? (other[0]||'') : all[1]) : (other[0]||''));   // สลิปโอน: ชื่อแรก = ผู้โอน, ชื่อที่สอง = ผู้รับ
+  }
+  // เลขอ้างอิง
+  let ref = '';
+  const refRe = /(?:เลขที่รายการ|รหัสอ้างอิง|เลขที่อ้างอิง|หมายเลขอ้างอิง|เลขอ้างอิง|ref(?:erence)?\.?\s*(?:no\.?|id)?)\s*[:：.]?\s*([A-Za-z0-9]{8,})?/i;
+  for(let i=0; i<lines.length && !ref; i++){ const m = lines[i].match(refRe); if(!m) continue; ref = m[1] || ((lines[i+1]||'').match(/^[A-Za-z0-9]{8,}$/)||[''])[0]; }
+  return { date, amount, payee: payee.slice(0,80), ref };
+}
+/* เดาหมวด: 1) ผู้รับคนเดิมเคยลงหมวดไหน ใช้หมวดนั้น  2) คำสำคัญในชื่อ */
+function expGuessCat_(payee){
+  const k = expNorm_(payee); if(!k) return '';
+  const prev = (EXP.rows||[]).filter(r=>expNorm_(r.payee)===k && r.category).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
+  if(prev) return prev.category;
+  const KW = [[/แลป|แล็บ|\blab\b/i,'ค่าแลป'],[/ไฟฟ้า|ประปา|\b(?:true|ais|3bb|nt)\b|อินเทอร์เน็ต|อินเตอร์เน็ต/i,'ค่าน้ำ/ไฟ/เน็ต'],[/เช่า/,'ค่าเช่า'],[/facebook|meta|google|tiktok|โฆษณา/i,'การตลาด'],
+    [/สรรพากร|ประกันสังคม/,'ภาษี/ประกันสังคม'],[/dental|เดนทัล|เด็นทัล|ทันต|medical|เมดิคอล/i,'วัสดุทันตกรรม']];
+  for(const x of KW) if(x[0].test(payee)) return x[1];
+  return '';
+}
+/* ย่อรูปก่อนส่ง (ด้านยาวสุด 1600px, JPEG) — สลิปจากมือถือมักใหญ่เกินจำเป็น */
+function expShrink_(file){
+  return new Promise((res,rej)=>{
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = ()=>{ try{
+      const k = Math.min(1, 1600/Math.max(img.width,img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width*k); c.height = Math.round(img.height*k);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg',0.85));
+    }catch(e){ rej(e); } };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error('เปิดรูปไม่ได้')); };
+    img.src = url;
+  });
+}
+async function expLoad_(){
+  if(EXP.loading) return; EXP.loading = true; EXP.err = '';
+  try{ const r = await expApi({ exp:'list' }); if(r && r.ok) EXP.rows = r.rows||[]; else EXP.err = (r && r.error) || 'โหลดไม่สำเร็จ'; }
+  catch(e){ EXP.err = 'เชื่อมต่อไม่ได้'; }
+  EXP.loading = false;
+  if(EXP.rows===null) EXP.rows = [];
+  if(document.getElementById('page-expense')?.classList.contains('active')) renderExpensePage();
+}
+async function expPickFiles(input){
+  const files = Array.from(input.files||[]); input.value = '';
+  if(!files.length) return;
+  const mine = files.map(f=>{ const d = { key:'d'+Date.now()+Math.random().toString(36).slice(2,7), status:'reading', name:f.name, thumb:'', date:todayStr(), amount:'', payee:'', category:'', note:'', ref:'', fileId:'', url:'', msg:'' }; EXP.drafts.unshift(d); return [f,d]; });
+  renderExpensePage();
+  for(const [f,d] of mine){      // ทีละใบ กันชนโควตา/เวลา Apps Script
+    try{
+      const data = await expShrink_(f); d.thumb = data; renderExpensePage();
+      const r = await expApi({ exp:'ocr', b64:data.split(',')[1], name:f.name });
+      if(!r || !r.ok) throw new Error((r && r.error) || 'อ่านสลิปไม่สำเร็จ');
+      d.fileId = r.fileId||''; d.url = r.url||'';
+      const p = expParseSlip_(r.text||'');
+      if(p.date) d.date = p.date; if(p.amount) d.amount = p.amount; d.payee = p.payee||''; d.ref = p.ref||'';
+      d.category = expGuessCat_(d.payee);
+      d.msg = (r.ocrError ? 'เก็บรูปแล้ว แต่อ่านตัวอักษรไม่ได้ ('+r.ocrError+') — กรอกเอง' : (!p.amount ? 'อ่านยอดเงินไม่ออก — กรุณากรอกเอง' : ''));
+      d.status = 'ready';
+    }catch(e){ d.status = 'ready'; d.msg = 'อ่านสลิปไม่สำเร็จ ('+(e.message||e)+') — กรอกเองได้ แต่รูปยังไม่ได้เก็บ'; }
+    renderExpensePage();
+  }
+}
+function expDraftSet(key, f, v){ const d = EXP.drafts.find(x=>x.key===key); if(d) d[f] = v; }
+function expAddManual(){ EXP.drafts.unshift({ key:'d'+Date.now(), status:'ready', name:'', thumb:'', date:todayStr(), amount:'', payee:'', category:'', note:'', ref:'', fileId:'', url:'', msg:'' }); renderExpensePage(); }
+function expEdit(id){
+  const r = (EXP.rows||[]).find(x=>String(x.id)===String(id)); if(!r || EXP.drafts.some(d=>d.id===r.id)) return;
+  EXP.drafts.unshift(Object.assign({ key:'e'+r.id, status:'ready', thumb:'', msg:'', name:'' }, r)); renderExpensePage(); window.scrollTo({ top:0, behavior:'smooth' });
+}
+async function expConfirm(key){
+  const d = EXP.drafts.find(x=>x.key===key); if(!d || d.status==='saving') return;
+  const amount = Math.round((parseFloat(String(d.amount).replace(/,/g,''))||0)*100)/100;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d.date||'')){ showToast('กรุณาใส่วันที่','error'); return; }
+  if(!(amount>0)){ showToast('กรุณาใส่ยอดเงิน','error'); return; }
+  if(!d.category){ showToast('กรุณาเลือกหมวด','error'); return; }
+  const dup = (EXP.rows||[]).find(r=>r.id!==d.id && ((d.ref && r.ref && String(r.ref)===String(d.ref)) || (r.date===d.date && +r.amount===amount && expNorm_(r.payee)===expNorm_(d.payee))));
+  if(dup && !confirm('มีรายการคล้ายกันอยู่แล้ว ('+dup.date+' · '+fmt(+dup.amount)+' · '+(dup.payee||'-')+')\nบันทึกซ้ำหรือไม่?')) return;
+  const row = { id:d.id || ('EX'+Date.now()+Math.random().toString(36).slice(2,6)), date:d.date, amount, payee:String(d.payee||'').trim(), category:d.category, note:String(d.note||'').trim(), ref:d.ref||'', fileId:d.fileId||'', url:d.url||'', createdAt:d.createdAt || new Date().toISOString() };
+  d.status = 'saving'; renderExpensePage();
+  try{
+    const r = await expApi({ exp:'save', row });
+    if(!r || !r.ok) throw new Error((r && r.error) || 'บันทึกไม่สำเร็จ');
+    EXP.rows = (EXP.rows||[]).filter(x=>x.id!==row.id).concat([row]);
+    EXP.drafts = EXP.drafts.filter(x=>x.key!==key);
+    EXP.month = row.date.slice(0,7);
+    showToast('บันทึกรายจ่ายแล้ว ✅');
+  }catch(e){ d.status = 'ready'; showToast('❌ '+(e.message||e),'error'); }
+  renderExpensePage();
+}
+function expDiscard(key){
+  const d = EXP.drafts.find(x=>x.key===key); if(!d) return;
+  EXP.drafts = EXP.drafts.filter(x=>x.key!==key);
+  if(!d.id && d.fileId) expApi({ exp:'discard', fileId:d.fileId }).catch(()=>{});   // สลิปที่ยังไม่บันทึก → ทิ้งรูปใน Drive ด้วย
+  renderExpensePage();
+}
+async function expDelete(id){
+  const r = (EXP.rows||[]).find(x=>String(x.id)===String(id)); if(!r) return;
+  if(!confirm('ลบรายจ่ายนี้?\n'+r.date+' · '+fmt(+r.amount)+' บาท · '+(r.payee||'-'))) return;
+  try{ const o = await expApi({ exp:'delete', id:r.id }); if(!o || !o.ok) throw new Error((o && o.error)||'ลบไม่สำเร็จ'); EXP.rows = EXP.rows.filter(x=>x.id!==r.id); showToast('ลบแล้ว (สำเนาอยู่ในชีต ถังขยะ)'); }
+  catch(e){ showToast('❌ '+(e.message||e),'error'); }
+  renderExpensePage();
+}
+function expZoom(key){
+  const d = EXP.drafts.find(x=>x.key===key); if(!d || !d.thumb) return;
+  const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;';
+  const im = document.createElement('img'); im.src = d.thumb; im.style.cssText = 'max-width:100%;max-height:100%;border-radius:8px;'; o.appendChild(im);
+  o.onclick = ()=>o.remove(); document.body.appendChild(o);
+}
+function expShiftMonth(k){ const y=+EXP.month.slice(0,4), m=+EXP.month.slice(5,7); EXP.month = new Date(Date.UTC(y,m-1+k,1)).toISOString().slice(0,7); renderExpensePage(); }
+function expDraftCard_(d){
+  const E = crmEsc, k = d.key, busy = d.status==='reading' || d.status==='saving';
+  const inp = (f,type,ph,extra) => `<input class="form-control" type="${type}" value="${E(d[f])}" placeholder="${ph}" ${extra||''} oninput="expDraftSet('${k}','${f}',this.value)" ${busy?'disabled':''}>`;
+  return `<div class="exp-draft">
+    <div class="exp-thumb">${d.thumb?`<img src="${d.thumb}" alt="สลิป" onclick="expZoom('${k}')">`:(d.url?`<a href="${E(d.url)}" target="_blank" rel="noopener">🧾 ดูสลิป</a>`:'<span>ไม่มีสลิป</span>')}</div>
+    <div class="exp-fields">
+      ${d.status==='reading'?'<div class="exp-msg">⏳ กำลังอ่านสลิป...</div>':''}${d.msg?`<div class="exp-msg warn">⚠️ ${E(d.msg)}</div>`:''}
+      <div class="exp-grid">
+        <label>วันที่${inp('date','date','')}</label>
+        <label>ยอดเงิน (บาท)${inp('amount','number','0.00','step="0.01" min="0" inputmode="decimal"')}</label>
+        <label class="w2">จ่ายให้${inp('payee','text','ชื่อผู้รับเงิน / ร้าน')}</label>
+        <label>หมวด<select class="form-control" onchange="expDraftSet('${k}','category',this.value)" ${busy?'disabled':''}><option value="">— เลือกหมวด —</option>${EXP_CATS.map(c=>`<option${d.category===c?' selected':''}>${E(c)}</option>`).join('')}</select></label>
+        <label>หมายเหตุ${inp('note','text','(ไม่บังคับ)')}</label>
+      </div>
+      <div class="exp-acts"><button class="btn btn-primary" onclick="expConfirm('${k}')" ${busy?'disabled':''}>${d.status==='saving'?'กำลังบันทึก...':(d.id?'💾 บันทึกการแก้ไข':'✅ ยืนยันบันทึก')}</button>
+        <button class="btn" onclick="expDiscard('${k}')" ${d.status==='saving'?'disabled':''}>${d.id?'ยกเลิก':'🗑 ทิ้ง'}</button></div>
+    </div></div>`;
+}
+function renderExpensePage(){
+  const box = document.getElementById('expBody'); if(!box) return;
+  if(!isAdminUser()){ box.innerHTML = '<div class="crm-empty">หน้านี้สำหรับ ทพ.สรวิศ เท่านั้น</div>'; return; }
+  if(!EXP.month) EXP.month = todayStr().slice(0,7);
+  if(EXP.rows===null){ if(!EXP.loading) expLoad_(); }
+  const E = crmEsc, rows = (EXP.rows||[]).filter(r=>String(r.date||'').slice(0,7)===EXP.month).sort((a,b)=>String(b.date).localeCompare(String(a.date)) || String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  const total = rows.reduce((s,r)=>s+(+r.amount||0),0), by = {};
+  rows.forEach(r=>{ by[r.category||'อื่นๆ'] = (by[r.category||'อื่นๆ']||0) + (+r.amount||0); });
+  const cats = Object.keys(by).sort((a,b)=>by[b]-by[a]), mx = cats.length ? by[cats[0]] : 0;
+  const MN = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const mLabel = MN[+EXP.month.slice(5,7)-1]+' '+(+EXP.month.slice(0,4)+543);
+  box.innerHTML = `
+    <div class="card-box" style="margin-bottom:14px;padding:16px;">
+      <div class="exp-up">
+        <label class="btn btn-primary exp-upbtn">📸 อัปโหลดสลิป<input type="file" accept="image/*" multiple style="display:none" onchange="expPickFiles(this)"></label>
+        <button class="btn" onclick="expAddManual()">＋ เพิ่มเอง (ไม่มีสลิป)</button>
+        <span class="crm-muted" style="font-size:12.5px;">เลือกได้หลายใบ · ระบบอ่านวันที่ ยอดเงิน ผู้รับ ให้ แล้วรอคุณกดยืนยัน</span>
+      </div>
+      ${EXP.drafts.length?`<div class="exp-drafts">${EXP.drafts.map(expDraftCard_).join('')}</div>`:''}
+    </div>
+    <div class="card-box" style="padding:16px;">
+      <div class="exp-head"><div class="date-nav"><button type="button" class="date-nav-btn" onclick="expShiftMonth(-1)" aria-label="เดือนก่อนหน้า">‹</button>
+          <b style="min-width:150px;text-align:center;color:var(--wine-dark);">${mLabel}</b>
+          <button type="button" class="date-nav-btn" onclick="expShiftMonth(1)" aria-label="เดือนถัดไป">›</button></div>
+        <div class="exp-total"><small>รายจ่ายรวม · ${rows.length} รายการ</small>฿${fmt(total)}</div></div>
+      ${EXP.loading?'<div class="crm-empty">กำลังโหลด...</div>':''}${EXP.err?`<div class="crm-empty" style="color:#B3261E;">โหลดไม่สำเร็จ: ${E(EXP.err)} <button class="btn" onclick="EXP.rows=null;renderExpensePage()">ลองใหม่</button></div>`:''}
+      ${cats.length?`<div class="exp-cats">${cats.map(c=>`<div class="exp-cat"><span>${E(c)}</span><div class="bar"><i style="width:${mx?Math.max(3,Math.round(by[c]/mx*100)):0}%"></i></div><b>฿${fmt(by[c])}</b></div>`).join('')}</div>`:''}
+      ${rows.length?`<div class="crm-tablewrap"><table class="crm-table"><tr><th>วันที่</th><th>จ่ายให้ / หมายเหตุ</th><th>หมวด</th><th style="text-align:right;">ยอด</th><th></th></tr>
+        ${rows.map(r=>`<tr><td style="white-space:nowrap;">${E(crmThaiShort(r.date))}</td><td><b>${E(r.payee||'—')}</b>${r.note?`<div class="crm-muted" style="font-size:12px;">${E(r.note)}</div>`:''}</td>
+          <td><span class="crm-chip">${E(r.category||'—')}</span></td><td style="text-align:right;font-weight:800;color:var(--wine-dark);white-space:nowrap;">฿${fmt(+r.amount||0)}</td>
+          <td style="white-space:nowrap;text-align:right;">${r.url?`<a class="crm-btn" href="${E(r.url)}" target="_blank" rel="noopener" title="เปิดรูปสลิปใน Drive">🧾</a> `:''}<button class="crm-btn" onclick="expEdit('${E(r.id)}')" title="แก้ไข">✏️</button> <button class="crm-btn" onclick="expDelete('${E(r.id)}')" title="ลบ">🗑️</button></td></tr>`).join('')}</table></div>`
+        :(EXP.loading||EXP.err?'':'<div class="crm-empty">ยังไม่มีรายจ่ายในเดือนนี้</div>')}
+    </div>`;
 }
 
 // ============================================================

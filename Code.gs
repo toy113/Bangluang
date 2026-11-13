@@ -598,6 +598,8 @@ function doPost(e) {
     var _deny = authGate_(_pb ? (_pb.crm ? 'crm:' + _pb.crm : (_pb.type || _pb.action || 'post')) : 'post', _pq._t || (_pb && _pb._t), _isHook);
     if (_deny) return _deny;
 
+    if (_pb && _pb.exp) return expRoute_(_pb);   // บันทึกรายจ่าย (เฉพาะ toy)
+
     // ---- LINE CRM: webhook + งานหลังบ้าน CRM (อยู่ในไฟล์ line-crm.gs) — ต้องอยู่ก่อน ortho ----
     var _crm = (typeof crmRoutePost_ === 'function') ? crmRoutePost_(e) : null; // ไม่มีไฟล์ line-crm.gs ก็ยังทำงานได้
     if (_crm) return _crm;
@@ -1050,4 +1052,96 @@ function authRemovePart() {
   }
   PropertiesService.getScriptProperties().deleteProperty('AUTH_PIN_part');
   Logger.log('เสร็จ: ลบ ' + done + ' แถว');
+}
+
+/* ============================================================
+   EXPENSES — บันทึกรายจ่าย (เฉพาะบัญชี toy)
+   POST { exp:'list'|'ocr'|'save'|'delete'|'discard', ... }  · ข้อมูลอยู่ชีต "รายจ่าย" (ไม่อยู่ใน getAll → คนอื่นอ่านไม่ได้)
+   รูปสลิปเก็บในโฟลเดอร์ Drive "Bangluang รายจ่าย-สลิป" (ส่วนตัวของเจ้าของสคริปต์)
+   ============================================================ */
+var EXP_HEAD = ['id', 'date', 'amount', 'payee', 'category', 'note', 'ref', 'fileId', 'url', 'createdAt'];
+function expSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName('รายจ่าย');
+  if (!sh) { sh = ss.insertSheet('รายจ่าย'); sh.getRange(1, 1, 1, EXP_HEAD.length).setValues([EXP_HEAD]).setFontWeight('bold'); sh.setFrozenRows(1); sh.getRange('B:B').setNumberFormat('@STRING@'); sh.getRange('G:G').setNumberFormat('@STRING@'); }
+  return sh;
+}
+function expFolder_() {
+  var pr = PropertiesService.getScriptProperties(), id = pr.getProperty('EXP_FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  var f = DriveApp.createFolder('Bangluang รายจ่าย-สลิป'); pr.setProperty('EXP_FOLDER_ID', f.getId()); return f;
+}
+function expList_() {
+  var sh = expSheet_(); if (sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, EXP_HEAD.length).getValues().filter(function (r) { return r[0] !== ''; }).map(function (r) {
+    var o = {}; EXP_HEAD.forEach(function (h, i) { var v = r[i]; if (v instanceof Date) v = Utilities.formatDate(v, TZ, h === 'date' ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm:ss"); o[h] = v; });
+    o.date = String(o.date || '').slice(0, 10); o.amount = +o.amount || 0; return o;
+  });
+}
+/* อ่านตัวอักษรจากรูป: อัปโหลดเป็น Google Doc (Drive OCR ภาษาไทย) → ดึงข้อความ → ลบไฟล์ชั่วคราว */
+function expOcr_(blob) {
+  var tok = ScriptApp.getOAuthToken(), id = '';
+  if (typeof Drive !== 'undefined' && Drive.Files && Drive.Files.create) {
+    id = Drive.Files.create({ name: 'ocr-tmp-' + Date.now(), mimeType: 'application/vnd.google-apps.document' }, blob, { ocrLanguage: 'th', fields: 'id' }).id;
+  } else {
+    var bd = 'xx' + Utilities.getUuid().replace(/-/g, ''), meta = JSON.stringify({ name: 'ocr-tmp-' + Date.now(), mimeType: 'application/vnd.google-apps.document' });
+    var head = '--' + bd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + meta + '\r\n--' + bd + '\r\nContent-Type: ' + blob.getContentType() + '\r\n\r\n';
+    var body = Utilities.newBlob(head).getBytes().concat(blob.getBytes()).concat(Utilities.newBlob('\r\n--' + bd + '--').getBytes());
+    var up = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&ocrLanguage=th&fields=id',
+      { method: 'post', contentType: 'multipart/related; boundary=' + bd, payload: body, headers: { Authorization: 'Bearer ' + tok }, muteHttpExceptions: true });
+    if (up.getResponseCode() >= 300) throw new Error('Drive OCR ' + up.getResponseCode() + ': ' + up.getContentText().slice(0, 160));
+    id = JSON.parse(up.getContentText()).id;
+  }
+  try {
+    var ex = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '/export?mimeType=text/plain', { headers: { Authorization: 'Bearer ' + tok }, muteHttpExceptions: true });
+    if (ex.getResponseCode() >= 300) throw new Error('export ' + ex.getResponseCode());
+    return ex.getContentText('UTF-8').replace(/^﻿/, '');
+  } finally { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {} }
+}
+function expRoute_(b) {
+  if (!(AUTH_CTX && AUTH_CTX.id === 'toy')) return authJson_({ ok: false, error: 'forbidden' });
+  try {
+    if (b.exp === 'list') return authJson_({ ok: true, rows: expList_() });
+    if (b.exp === 'ocr') {
+      var bytes = Utilities.base64Decode(String(b.b64 || ''));
+      if (!bytes.length || bytes.length > 8 * 1024 * 1024) return authJson_({ ok: false, error: 'รูปว่างหรือใหญ่เกินไป' });
+      var blob = Utilities.newBlob(bytes, 'image/jpeg', 'slip-' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd-HHmmss') + '.jpg');
+      var file = expFolder_().createFile(blob), text = '', ocrError = '';
+      try { text = expOcr_(blob); } catch (eo) { ocrError = String((eo && eo.message) || eo).slice(0, 200); }
+      return authJson_({ ok: true, fileId: file.getId(), url: file.getUrl(), text: text, ocrError: ocrError });
+    }
+    if (b.exp === 'save') {
+      var r = b.row || {}; if (!r.id || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.date || '')) || !(+r.amount > 0)) return authJson_({ ok: false, error: 'ข้อมูลไม่ครบ' });
+      var lock = LockService.getScriptLock(); lock.waitLock(30000);
+      try {
+        var sh = expSheet_(), ids = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (x) { return String(x[0]); }) : [];
+        var row = [String(r.id), String(r.date), +r.amount, String(r.payee || ''), String(r.category || ''), String(r.note || ''), String(r.ref || ''), String(r.fileId || ''), String(r.url || ''), String(r.createdAt || new Date().toISOString())].map(gaSafe_);
+        var i = ids.indexOf(String(r.id)), at = i < 0 ? sh.getLastRow() + 1 : i + 2;
+        sh.getRange(at, 2).setNumberFormat('@STRING@'); sh.getRange(at, 7).setNumberFormat('@STRING@');
+        sh.getRange(at, 1, 1, row.length).setValues([row]);
+      } finally { lock.releaseLock(); }
+      return authJson_({ ok: true });
+    }
+    if (b.exp === 'delete') {
+      var lk = LockService.getScriptLock(); lk.waitLock(30000);
+      try {
+        var sh2 = expSheet_(), ids2 = sh2.getLastRow() > 1 ? sh2.getRange(2, 1, sh2.getLastRow() - 1, 1).getValues().map(function (x) { return String(x[0]); }) : [];
+        var j = ids2.indexOf(String(b.id)); if (j < 0) return authJson_({ ok: false, error: 'ไม่พบรายการ' });
+        gaTrash_(sh2, j + 2); sh2.deleteRow(j + 2);   // รูปสลิปใน Drive เก็บไว้ (กู้รายการคืนได้จากชีต ถังขยะ)
+      } finally { lk.releaseLock(); }
+      return authJson_({ ok: true });
+    }
+    if (b.exp === 'discard') {   // สลิปที่อัปโหลดแล้วไม่บันทึก → ย้ายรูปลงถังขยะ Drive (เฉพาะไฟล์ในโฟลเดอร์สลิป)
+      try { var f = DriveApp.getFileById(String(b.fileId || '')), ps = f.getParents(), okp = false, fid = expFolder_().getId(); while (ps.hasNext()) if (ps.next().getId() === fid) okp = true; if (okp) f.setTrashed(true); } catch (ed) {}
+      return authJson_({ ok: true });
+    }
+  } catch (err) { return authJson_({ ok: false, error: String((err && err.message) || err).slice(0, 300) }); }
+  return authJson_({ ok: false, error: 'unknown' });
+}
+/* รันครั้งเดียวจากหน้า Apps Script: สร้างชีต/โฟลเดอร์ + ทดสอบว่าอ่านตัวอักษรจากรูปได้ (ถ้าระบบขอสิทธิ์ Drive ให้กดอนุญาต) */
+function expenseSetup() {
+  Logger.log('ชีต: ' + expSheet_().getName() + ' · โฟลเดอร์สลิป: ' + expFolder_().getUrl());
+  try {
+    var png = Utilities.base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+    expOcr_(Utilities.newBlob(png, 'image/png', 't.png')); Logger.log('อ่านตัวอักษรจากรูป (OCR): ใช้งานได้ ✅');
+  } catch (e) { Logger.log('OCR ยังใช้ไม่ได้ ❌ : ' + e.message); }
 }
