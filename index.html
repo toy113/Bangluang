@@ -2944,7 +2944,8 @@ const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐'
 const PROC_RENAME = {'X-Ray':'เอ็กซเรย์ฟัน','X-Ray BW':'เอ็กซเรย์ตรวจฟันผุ','x-ray':'เอ็กซเรย์ฟัน','TP':'ฟันปลอมถอดได้ฐานพลาสติก','RPD':'ฟันปลอมถอดได้โครงโลหะ','Valplast':'ฟันปลอมฐานนิ่ม','Splint':'เฝือกสบฟัน','recheck':'ตรวจติดตามอาการ','onlay':'ครอบฟันบางส่วน','MI':'นัดต่อเนื่องรักษารากฟัน','FRC':'อุดคลองรากฟัน','Bite Block':'บันทึกการสบฟัน','Biteblock':'บันทึกการสบฟัน','ใส่ฟัน':'ใส่ฟันปลอม','ลองโครง':'ลองโครงฟันปลอม','ลองฟัน':'ลองฟันปลอม'};
 const DENTURE_TYPES = ['ฟันปลอมถอดได้ฐานพลาสติก','ฟันปลอมถอดได้โครงโลหะ','ฟันปลอมฐานนิ่ม','ฟันปลอมทั้งปาก','ครอบฟัน','Onlay'];
 const CROWN_TYPES = ['ครอบฟัน','Onlay'];   // งานแลปชิ้นเดี่ยว: ใช้กล่องเดียวกับฟันปลอม แต่ขั้นตอนเป็นของตัวเอง
-const CROWN_STEPS = ['พิมพ์ปาก','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];
+const CROWN_STEPS = ['พิมพ์ปาก','บันทึกการสบฟัน','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];
+const CROWN_ONLY_STEPS = ['พิมพ์ปาก','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];   // ขั้นตอนที่ไม่แสดงในงานฟันปลอม
 const DENTURE_STEPS = ['พิมพ์แบบฟันปลอม','ลองโครงฟันปลอม','บันทึกการสบฟัน','ลองฟันปลอม','ใส่ฟันปลอม','ปรับแก้ฟันปลอม','พิมพ์ปาก','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];
 const PROC_GROUPS = [
   {name:'ตรวจ / วินิจฉัย', icon:'🔍', items:['ตรวจฟัน','เอ็กซเรย์ฟัน','เอ็กซเรย์ตรวจฟันผุ','ดูอาการ','ตรวจติดตามอาการ']},
@@ -10992,7 +10993,7 @@ function renderDentureBox_(selected){
   const chip=(v,on,dis,label,extra)=>`<button type="button" ${dis?'disabled':''} onclick="denTap_('${v}')" style="${extra||''}border:1.5px solid ${on?'var(--wine)':'var(--border)'};background:${on?'var(--wine)':'#fff'};color:${on?'#fff':(dis?'#b9a9b5':'var(--text-dark)')};border-radius:${extra?'12px':'20px'};padding:${extra?'10px 8px':'7px 12px'};font-size:13px;font-weight:700;cursor:${dis?'not-allowed':'pointer'};text-align:center;">${label}</button>`;
   document.getElementById('den-types').innerHTML=DENTURE_TYPES.map(t=>chip(t,t===type,false,(ICON[t]||'')+' '+_escHtml(t),'line-height:1.35;')).join('');
   const _crown=CROWN_TYPES.includes(type);
-  const steps=(_crown?CROWN_STEPS:DENTURE_STEPS.filter(x=>!CROWN_STEPS.includes(x))).filter(x=>x!=='ลองโครงฟันปลอม'||type==='ฟันปลอมถอดได้โครงโลหะ');
+  const steps=(_crown?CROWN_STEPS:DENTURE_STEPS.filter(x=>!CROWN_ONLY_STEPS.includes(x))).filter(x=>x!=='ลองโครงฟันปลอม'||type==='ฟันปลอมถอดได้โครงโลหะ');
   document.getElementById('den-steps').innerHTML=steps.map(x=>chip(x,selected.includes(x),!type,_escHtml(x))).join('')+(!type?'<div style="flex-basis:100%;font-size:12px;color:#C0392B;font-weight:700;">⚠️ เลือกชนิดงานก่อน แล้วค่อยเลือกขั้นตอน</div>':'');
   setDentureBilling_(dentureBilling_(), true);
   const hn=String((document.getElementById('treat-hn')||{}).value||'').trim(), hint=document.getElementById('treat-den-hint'), sug=document.getElementById('den-sug');
