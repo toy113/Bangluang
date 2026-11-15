@@ -11182,7 +11182,9 @@ function isXrayOnly(proc){
 }
 /* ข้อยกเว้นกฎ X-Ray รายหมอ: หมอในตารางนี้ได้ DF ค่า X-Ray ตาม % ที่กำหนด (แทน 0%) ตั้งแต่วันที่ระบุ
    ใช้ทั้ง X-Ray อย่างเดียว และ X-Ray ที่ลงรวมกับหัตถการอื่น (ส่วนราคา X-Ray) · คิดผ่าน itemDfParts() */
-const XRAY_DF_DOC = { 'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์': { rate:60, from:'2026-11-15' } };
+const XRAY_DF_DOC = { 'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์': { rate:60, from:'2026-11-01' } };
+// กลุ่ม X-Ray ทั้งหมดสำหรับข้อยกเว้นนี้: เอ็กซเรย์ฟัน, เอ็กซเรย์ตรวจฟันผุ (X-Ray, X-Ray BW) และที่พิมพ์เองในช่องอื่นๆ เช่น พาโนรามิก/ฟิล์ม/Ceph
+function isXrayGroup_(p){ const x=String(p||'').trim(); return _isXrayProc(x) || /x[\s-]?ray|เอ็กซ(?:เ|์)?รย์|เอกซเรย์|พาโน|panoram|\bpano\b|ฟิล์ม|ceph|เซฟ|\bopg\b|\bpa\b\s*film|periapical|bitewing/i.test(x); }
 function xrayDocRate_(t){
   const r = XRAY_DF_DOC[docAlias(t && t.docName)]; if(!r) return null;
   const d = String((t&&t.date)||'').slice(0,10);
@@ -11242,12 +11244,11 @@ function itemDfStart(){ return '2026-11-03'; }
 function itemDfParts(t){
   const out = { base:0, df:0, items:[] };
   const d = String((t&&t.date)||'').slice(0,10);
-  if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=itemDfStart())) return out;
   const parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
   const _xr = xrayDocRate_(t);
-  if(_xr!==null && parts.some(_isXrayProc)){   // X-Ray ของหมอที่ได้ DF ค่า X-Ray
+  if(_xr!==null && parts.some(isXrayGroup_)){   // X-Ray (ทั้งกลุ่ม) ของหมอที่ได้ DF ค่า X-Ray — วันเริ่มของกฎนี้ตรวจใน xrayDocRate_
     let _pp = {}; try{ _pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
-    const _xs = parts.filter(_isXrayProc), _only = _xs.length===parts.length;
+    const _xs = parts.filter(isXrayGroup_), _only = _xs.length===parts.length;
     _xs.forEach(x=>{
       const price = _pp[x]!==undefined ? (+_pp[x]||0) : (_only && _xs.length===1 ? totalPrice(t) : null);
       if(price===null) return;
@@ -11255,6 +11256,7 @@ function itemDfParts(t){
     });
     if(_only && !out.items.length){ const p = totalPrice(t); out.items.push({ name:_xs[0], price:p, rate:_xr }); out.base += p; out.df += p*_xr/100; }
   }
+  if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=itemDfStart())) return out;
   if(!parts.some(x=>ITEM_DF_RATES[x]!==undefined)) return out;
   // คนไข้จัดฟันที่ตั้ง "DF หมอ %" เฉพาะราย (snapshot ไว้ที่รายการรักษา: itemDfRate) → ใช้แทนอัตราพิเศษของรายการจัดฟัน
   const _ov = (t.itemDfRate!==undefined && t.itemDfRate!==null && t.itemDfRate!=='' && isFinite(+t.itemDfRate)) ? +t.itemDfRate : null;
