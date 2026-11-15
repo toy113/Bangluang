@@ -1777,6 +1777,13 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           </div>
         </div>
       </div>
+      <div class="card-box" style="margin-bottom:20px;">
+        <div class="card-box-hdr" style="padding:18px 24px;">
+          <div class="card-box-title" style="font-size:17px;">👨‍⚕️ ส่วนแบ่งรายได้ตามหมอ <span id="sharePeriodLbl" style="color:var(--wine);font-weight:800;"></span></div>
+          <div id="shareTotalBadge" style="font-size:13px;font-weight:700;color:var(--wine-mid);"></div>
+        </div>
+        <div style="padding:20px 24px;"><div class="share-grid" id="shareGrid"></div></div>
+      </div>
       <div class="stat-grid inc-kpis">
         <div class="stat-card purple"><div class="stat-icon">💰</div><div class="stat-label">รายได้รวม</div><div class="stat-value" id="i-total">0</div><div class="stat-sub">บาท</div></div>
         <div class="stat-card green"><div class="stat-icon">💵</div><div class="stat-label">เงินสด</div><div class="stat-value" id="i-cash">0</div><div class="stat-sub">บาท</div></div>
@@ -1784,13 +1791,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div class="stat-card rose"><div class="stat-icon">🏛️</div><div class="stat-label">ประกันสังคม</div><div class="stat-value" id="i-sso">0</div><div class="stat-sub">บาท</div></div>
         <div class="stat-card purple" id="i-clinic-card"><div class="stat-icon">🏥</div><div class="stat-label">ส่วนคลินิก</div><div class="stat-value" id="i-clinic">0</div><div class="stat-sub" id="i-clinic-sub">หลังหักส่วนแบ่งหมอ</div></div>
 
-      </div>
-      <div class="card-box" style="margin-bottom:20px;">
-        <div class="card-box-hdr" style="padding:18px 24px;">
-          <div class="card-box-title" style="font-size:17px;">👨‍⚕️ ส่วนแบ่งรายได้ตามหมอ <span id="sharePeriodLbl" style="color:var(--wine);font-weight:800;"></span></div>
-          <div id="shareTotalBadge" style="font-size:13px;font-weight:700;color:var(--wine-mid);"></div>
-        </div>
-        <div style="padding:20px 24px;"><div class="share-grid" id="shareGrid"></div></div>
       </div>
       <div class="card-box" style="margin-bottom:20px;" id="bankStatsCard">
         <div class="card-box-hdr" style="padding:16px 24px;flex-wrap:wrap;gap:8px;">
