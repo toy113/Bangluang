@@ -2190,7 +2190,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
       </div>
       <div class="form-group">
         <label>หมอ</label>
-        <select class="form-control" id="treat-doc" onchange="_treatDocTouched=true"></select>
+        <select class="form-control" id="treat-doc" onchange="_treatDocTouched=true;try{renderTreatSaveSummary()}catch(e){}"></select>
       </div>
       <div class="form-group" id="treat-share-wrap" style="display:none;">
         <label>ส่วนแบ่งหมอเฉพาะรายการนี้ (%) <span style="font-size:11px;color:var(--text-light);font-weight:400;">— ค่าเริ่มต้น = % ที่ตั้งไว้ของหมอคนนั้น แก้เฉพาะรายการนี้ได้</span></label>
@@ -4253,7 +4253,7 @@ function crmOrthoDfCopy(d){
       out.push((i+1)+'. '+(t.patName||'—')+(no?' · ครั้งที่ '+no:''));
       parts.forEach(x=>{
         const price=+pp[x]||0, hit=ip.items.find(it=>it.name===x);
-        const rate=(_isXrayProc(x)||drugRuleApplies(t))?0:(hit?hit.rate:pct);
+        const rate=hit?hit.rate:((_isXrayProc(x)||drugRuleApplies(t))?0:pct);
         noDfAdd_(nd, x, price, rate);
         out.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?'  → df '+rate+'% = '+baht(price*rate/100):(rate? '  (ฟรี)':'')));
       });
@@ -5354,7 +5354,7 @@ function homeDfLineSend(){
     out.push((i+1)+'. '+(code?code+' ':'')+(t.patName||'—'));
     parts.forEach(x=>{
       const price=pp[x]!==undefined?(+pp[x]||0):(parts.length===1?totalPrice(t):0), hit=ip.items.find(it=>it.name===x);
-      const rate=(_isXrayProc(x)||drugRuleApplies(t))?0:(hit?hit.rate:pct);
+      const rate=hit?hit.rate:((_isXrayProc(x)||drugRuleApplies(t))?0:pct);
       noDfAdd_(nd, x, price, rate);
       out.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?(rate===pct?'':'  → df '+rate+'% = '+baht(price*rate/100)):(rate?'  (ฟรี)':'')));   // df ปกติ (เท่า % ของหมอ) ไม่ต้องแสดง · แสดงเฉพาะรายการที่ df ต่างจากปกติ
     });
@@ -5737,7 +5737,7 @@ function syncXrayRuleToForm(){
   const docEl = document.getElementById('treat-doc');
   const shareEl = document.getElementById('treat-share');
   if(!docEl) return;
-  const applies = xrayRuleApplies({date:document.getElementById('treat-date')?.value, proc:getProcSelected()});
+  const applies = xrayRuleApplies({date:document.getElementById('treat-date')?.value, proc:getProcSelected(), docName:docEl.value});
   let hint = document.getElementById('treat-xray-hint');
   if(applies){
     docEl.disabled = false;   // X-Ray: ไม่บังคับหมอแล้ว เลือกหมอได้ — แค่ส่วนแบ่งหมอ (DF) = 0
@@ -11180,9 +11180,17 @@ function isXrayOnly(proc){
   const parts = String(proc||'').split(',').map(p=>p.trim()).filter(Boolean);
   return parts.length>0 && parts.every(_isXrayProc);
 }
+/* ข้อยกเว้นกฎ X-Ray รายหมอ: หมอในตารางนี้ได้ DF ค่า X-Ray ตาม % ที่กำหนด (แทน 0%) ตั้งแต่วันที่ระบุ
+   ใช้ทั้ง X-Ray อย่างเดียว และ X-Ray ที่ลงรวมกับหัตถการอื่น (ส่วนราคา X-Ray) · คิดผ่าน itemDfParts() */
+const XRAY_DF_DOC = { 'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์': { rate:60, from:'2026-11-15' } };
+function xrayDocRate_(t){
+  const r = XRAY_DF_DOC[docAlias(t && t.docName)]; if(!r) return null;
+  const d = String((t&&t.date)||'').slice(0,10);
+  return (/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=r.from) ? r.rate : null;
+}
 function xrayRuleApplies(t){
   const d = String((t&&t.date)||'').slice(0,10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=xrayRuleStart() && isXrayOnly(t.proc);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) && d>=xrayRuleStart() && isXrayOnly(t.proc) && xrayDocRate_(t)===null;
 }
 function xrayDoctorName(){
   const d = doctors.find(x=>x.id==='toy') || DOCTORS_DATA.find(x=>x.id==='toy');
@@ -11216,6 +11224,7 @@ function _isXrayProc(p){ return /^(?:x[\s-]?ray(?:[\s-]*bw)?|เอ็กซเ�
 function xrayMixedPrice(t){
   const d = String((t&&t.date)||'').slice(0,10);
   if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=xrayRuleStart())) return 0;
+  if(xrayDocRate_(t)!==null) return 0;   // หมอที่ได้ DF ค่า X-Ray → คิดใน itemDfParts แทน
   const parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
   if(!parts.some(_isXrayProc) || isXrayOnly(t.proc)) return 0;
   let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
@@ -11235,6 +11244,17 @@ function itemDfParts(t){
   const d = String((t&&t.date)||'').slice(0,10);
   if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=itemDfStart())) return out;
   const parts = String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const _xr = xrayDocRate_(t);
+  if(_xr!==null && parts.some(_isXrayProc)){   // X-Ray ของหมอที่ได้ DF ค่า X-Ray
+    let _pp = {}; try{ _pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
+    const _xs = parts.filter(_isXrayProc), _only = _xs.length===parts.length;
+    _xs.forEach(x=>{
+      const price = _pp[x]!==undefined ? (+_pp[x]||0) : (_only && _xs.length===1 ? totalPrice(t) : null);
+      if(price===null) return;
+      out.items.push({ name:x, price, rate:_xr }); out.base += price; out.df += price*_xr/100;
+    });
+    if(_only && !out.items.length){ const p = totalPrice(t); out.items.push({ name:_xs[0], price:p, rate:_xr }); out.base += p; out.df += p*_xr/100; }
+  }
   if(!parts.some(x=>ITEM_DF_RATES[x]!==undefined)) return out;
   // คนไข้จัดฟันที่ตั้ง "DF หมอ %" เฉพาะราย (snapshot ไว้ที่รายการรักษา: itemDfRate) → ใช้แทนอัตราพิเศษของรายการจัดฟัน
   const _ov = (t.itemDfRate!==undefined && t.itemDfRate!==null && t.itemDfRate!=='' && isFinite(+t.itemDfRate)) ? +t.itemDfRate : null;
@@ -12015,7 +12035,7 @@ function doSendIncome(periodLabel){
       text += `     ${procList.join(', ')}  ${baht(price)}  (ไม่คิด df)\n`;
     } else if(priced.length && (xrayMixedPrice(t)>0 || itemDfParts(t).items.length || priced.length===procList.length)){
       let used = 0;
-      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; text += `     ${x}  ${baht(+pp[x]||0)}${_isXrayProc(x)?'  (ไม่คิด df)':(itemDfParts(t).items.some(i=>i.name===x)?'  (df '+ITEM_DF_RATES[x]+'%)':'')}\n`; });
+      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; const _hit = itemDfParts(t).items.find(i=>i.name===x); text += `     ${x}  ${baht(+pp[x]||0)}${_hit?'  (df '+_hit.rate+'%)':(_isXrayProc(x)?'  (ไม่คิด df)':'')}\n`; });
       const rest = procList.filter(x=>pp[x]===undefined);
       if(rest.length) text += `     ${rest.join(', ')}  ${baht(Math.max(0,price-used))}\n`;
     } else {
