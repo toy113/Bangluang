@@ -2219,10 +2219,10 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div id="treat-teeth-list"></div>
       </div>
       <div class="form-group" id="treat-denture-wrap">
-        <button type="button" id="treat-den-open" class="btn btn-secondary" onclick="denOpen_()" style="width:100%;justify-content:center;">😁 ลงงานฟันปลอม (เลือกชนิด + ขั้นตอน)</button>
+        <button type="button" id="treat-den-open" class="btn btn-secondary" onclick="denOpen_()" style="width:100%;justify-content:center;">😁 ลงงานฟันปลอม / ครอบฟัน / Onlay (เลือกชนิด + ขั้นตอน)</button>
         <div id="treat-den-body" style="display:none;border:1.5px solid var(--border);border-radius:12px;padding:12px;background:#fff;">
-          <div style="display:flex;align-items:center;margin-bottom:8px;"><b style="font-size:14px;color:var(--wine-dark);">😁 งานฟันปลอม</b><button type="button" onclick="denClear_()" style="margin-left:auto;border:0;background:none;color:var(--text-light);font-size:12px;cursor:pointer;">ล้าง</button></div>
-          <div style="font-size:12px;font-weight:800;color:var(--wine-dark);margin-bottom:6px;">① ชนิดฟันปลอม</div>
+          <div style="display:flex;align-items:center;margin-bottom:8px;"><b style="font-size:14px;color:var(--wine-dark);">😁 งานฟันปลอม / ครอบฟัน / Onlay</b><button type="button" onclick="denClear_()" style="margin-left:auto;border:0;background:none;color:var(--text-light);font-size:12px;cursor:pointer;">ล้าง</button></div>
+          <div style="font-size:12px;font-weight:800;color:var(--wine-dark);margin-bottom:6px;">① ชนิดงาน</div>
           <div id="den-types" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"></div>
           <div id="den-sug"></div>
           <div style="font-size:12px;font-weight:800;color:var(--wine-dark);margin-bottom:6px;">② ขั้นตอนที่ทำวันนี้ <span style="font-weight:400;color:var(--text-light);">(เลือกได้หลายอัน)</span></div>
@@ -2942,16 +2942,18 @@ const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐'
 
 /* ===== รายการรักษา: ชื่อไทยตั้งแต่ต้นทาง · จัดเป็นหมวด ===== */
 const PROC_RENAME = {'X-Ray':'เอ็กซเรย์ฟัน','X-Ray BW':'เอ็กซเรย์ตรวจฟันผุ','x-ray':'เอ็กซเรย์ฟัน','TP':'ฟันปลอมถอดได้ฐานพลาสติก','RPD':'ฟันปลอมถอดได้โครงโลหะ','Valplast':'ฟันปลอมฐานนิ่ม','Splint':'เฝือกสบฟัน','recheck':'ตรวจติดตามอาการ','onlay':'ครอบฟันบางส่วน','MI':'นัดต่อเนื่องรักษารากฟัน','FRC':'อุดคลองรากฟัน','Bite Block':'บันทึกการสบฟัน','Biteblock':'บันทึกการสบฟัน','ใส่ฟัน':'ใส่ฟันปลอม','ลองโครง':'ลองโครงฟันปลอม','ลองฟัน':'ลองฟันปลอม'};
-const DENTURE_TYPES = ['ฟันปลอมถอดได้ฐานพลาสติก','ฟันปลอมถอดได้โครงโลหะ','ฟันปลอมฐานนิ่ม','ฟันปลอมทั้งปาก'];
-const DENTURE_STEPS = ['พิมพ์แบบฟันปลอม','ลองโครงฟันปลอม','บันทึกการสบฟัน','ลองฟันปลอม','ใส่ฟันปลอม','ปรับแก้ฟันปลอม'];
+const DENTURE_TYPES = ['ฟันปลอมถอดได้ฐานพลาสติก','ฟันปลอมถอดได้โครงโลหะ','ฟันปลอมฐานนิ่ม','ฟันปลอมทั้งปาก','ครอบฟัน','Onlay'];
+const CROWN_TYPES = ['ครอบฟัน','Onlay'];   // งานแลปชิ้นเดี่ยว: ใช้กล่องเดียวกับฟันปลอม แต่ขั้นตอนเป็นของตัวเอง
+const CROWN_STEPS = ['พิมพ์ปาก','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];
+const DENTURE_STEPS = ['พิมพ์แบบฟันปลอม','ลองโครงฟันปลอม','บันทึกการสบฟัน','ลองฟันปลอม','ใส่ฟันปลอม','ปรับแก้ฟันปลอม','พิมพ์ปาก','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];
 const PROC_GROUPS = [
   {name:'ตรวจ / วินิจฉัย', icon:'🔍', items:['ตรวจฟัน','เอ็กซเรย์ฟัน','เอ็กซเรย์ตรวจฟันผุ','ดูอาการ','ตรวจติดตามอาการ']},
   {name:'อุดฟัน / ซ่อมฟัน', icon:'🦷', items:['อุดฟัน','อุดชั่วคราว','เดือยฟัน','เสียวฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์']},
   {name:'ขูดหินปูน / เหงือก / ฟอกสี', icon:'✨', items:['ขูดหินปูน','เกลารากฟัน','ตัดเหงือก','ฟอกสีฟัน']},
   {name:'รักษารากฟัน', icon:'🩺', items:['รักษารากฟัน','นัดต่อเนื่องรักษารากฟัน','อุดคลองรากฟัน']},
   {name:'ถอนฟัน / ผ่าตัด', icon:'🔧', items:['ถอนฟัน','ถอนฟันน้ำนม','ถอนฟันคุด','ผ่าฟันคุด','ตัดไหม','รากฟันเทียม']},
-  {name:'ครอบฟัน', icon:'👑', items:['ครอบฟัน','ใส่ครอบฟัน','ครอบฟันบางส่วน']},
-  {name:'ฟันปลอม', icon:'😁', items:DENTURE_TYPES.concat(DENTURE_STEPS), denture:true},
+  {name:'ครอบฟัน', icon:'👑', items:['ใส่ครอบฟัน','ครอบฟันบางส่วน']},
+  {name:'ฟันปลอม / ครอบฟัน / Onlay', icon:'😁', items:DENTURE_TYPES.concat(DENTURE_STEPS), denture:true},
   {name:'จัดฟัน', icon:'😬', items:['จัดฟัน','ปรึกษาจัดฟัน','ติดเครื่องมือบน','ติดเครื่องมือล่าง','ปรับเครื่องมือ','ติดเหล็กหลุด','ปักหมุด','ถอดเครื่องมือจัดฟัน','พิมพ์รีเทนเนอร์','ทำรีเทนเนอร์','ใส่รีเทนเนอร์','เช็ครีเทนเนอร์']},
   {name:'อื่นๆ', icon:'📌', items:['เฝือกสบฟัน','จ่ายยา','อื่นๆ']}
 ];
@@ -3021,6 +3023,7 @@ const PROC_COLORS = {
   'อื่นๆ':        '#626567',
   'เอ็กซเรย์ฟัน':'#16A085','เอ็กซเรย์ตรวจฟันผุ':'#117864','ฟันปลอมถอดได้ฐานพลาสติก':'#D35400','ฟันปลอมถอดได้โครงโลหะ':'#E67E22','ฟันปลอมฐานนิ่ม':'#F39C12','ฟันปลอมทั้งปาก':'#CA6F1E',
   'เฝือกสบฟัน':'#5D6D7E','ตรวจติดตามอาการ':'#52BE80','ครอบฟันบางส่วน':'#D68910','นัดต่อเนื่องรักษารากฟัน':'#148F77','อุดคลองรากฟัน':'#0E6655',
+  'Onlay':'#D68910','พิมพ์ปาก':'#839192','ลองชิ้นงาน':'#A569BD','ใส่ชิ้นงาน':'#D4AC0D','ปรับแก้ชิ้นงาน':'#7F8C8D',
   'พิมพ์แบบฟันปลอม':'#839192','ลองโครงฟันปลอม':'#DC7633','บันทึกการสบฟัน':'#AF601A','ลองฟันปลอม':'#DC7633','ใส่ฟันปลอม':'#DC7633','ปรับแก้ฟันปลอม':'#BA4A00',
 };
 
@@ -6337,7 +6340,7 @@ function saveTreat(){
   if(!t.patName){ showToast('กรุณาใส่ชื่อผู้ป่วย','error'); return; }
   { const _ds=String(t.proc||'').split(',').map(x=>x.trim());
     if(_ds.some(x=>DENTURE_STEPS.includes(x)) && !_ds.some(x=>DENTURE_TYPES.includes(x))){
-      showToast('งานฟันปลอม: กรุณาเลือกชนิดฟันปลอมด้วย (เช่น ฟันปลอมฐานนิ่ม) ก่อนบันทึก','error');
+      showToast('งานฟันปลอม/ครอบฟัน: กรุณาเลือกชนิดงานด้วย (เช่น ฟันปลอมฐานนิ่ม, ครอบฟัน, Onlay) ก่อนบันทึก','error');
       try{ document.getElementById('treat-denture-wrap').scrollIntoView({block:'center'}); }catch(e){} return; } }
   if(!String(t.hn||'').trim()){ showToast('กรุณากรอก HN','error'); try{ document.getElementById('treat-hn').focus(); }catch(e){} return; }
   // X-Ray ลงรวมกับหัตถการอื่น: ต้องกรอกราคา X-Ray ในช่องราคาแต่ละรายการ (ส่วนนี้ DF = 0)
@@ -6596,7 +6599,7 @@ function printLangSel_(){
 var EN_MONTHS_ = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function fmtDateEn_(s){ const [y,m,d]=String(s||'').slice(0,10).split('-').map(Number); if(!y||!m||!d) return s||'—'; return d+' '+EN_MONTHS_[m-1]+' '+y; }
 // แปลชื่อหัตถการที่พบบ่อยเป็นอังกฤษ — คำที่ไม่อยู่ในรายการจะคงภาษาไทยไว้ (ตรวจก่อนยื่นเอกสารทุกครั้ง)
-var EN_PROC_ = [['ฟันปลอมถอดได้ฐานพลาสติก','Removable acrylic denture'],['ฟันปลอมถอดได้โครงโลหะ','Removable partial denture (metal framework)'],['ฟันปลอมฐานนิ่ม','Flexible (soft-base) denture'],['ฟันปลอมทั้งปาก','Complete denture'],['พิมพ์แบบฟันปลอม','impression'],['ลองโครงฟันปลอม','framework try-in'],['บันทึกการสบฟัน','bite registration'],['ลองฟันปลอม','try-in'],['ใส่ฟันปลอม','delivery'],['ปรับแก้ฟันปลอม','adjustment'],['ขั้นตอน:','stage:'],['นัดต่อเนื่องรักษารากฟัน','Root canal treatment (follow-up visit)'],['อุดคลองรากฟัน','Root canal filling'],['ครอบฟันบางส่วน','Onlay'],['ใส่ครอบฟัน','Crown cementation'],['เอ็กซเรย์ตรวจฟันผุ','Bitewing X-Ray'],['เอ็กซเรย์ฟัน','Dental X-Ray'],['เฝือกสบฟัน','Occlusal splint'],['ตรวจติดตามอาการ','Follow-up examination'],['ปรับเครื่องมือจัดฟัน','Orthodontic adjustment'],['ถอดเครื่องมือจัดฟัน','Orthodontic appliance removal'],['ติดเครื่องมือจัดฟัน','Orthodontic bonding'],['เครื่องมือจัดฟัน','Orthodontic appliance'],['จัดฟัน','Orthodontic treatment'],['ผ่าฟันคุด','Surgical removal of impacted tooth'],['ถอนฟันคุด','Removal of impacted tooth'],['ถอนฟัน','Tooth extraction'],['รักษารากฟัน','Root canal treatment'],['เกลารากฟัน','Root planing'],['รากฟันเทียม','Dental implant'],['ขูดหินปูน','Scaling'],['ขัดฟัน','Polishing'],['อุดฟัน','Dental filling'],['ครอบฟัน','Dental crown'],['สะพานฟัน','Dental bridge'],['ฟันปลอม','Denture'],['ฟอกสีฟัน','Teeth whitening'],['เคลือบหลุมร่องฟัน','Fissure sealant'],['เคลือบฟลูออไรด์','Fluoride application'],['ตรวจฟัน','Dental examination'],['ตรวจช่องปาก','Oral examination'],['รีเทนเนอร์','Retainer'],['เอ็กซเรย์','X-Ray'],['ค่าแลป','Laboratory fee'],['ฟันน้ำนม','primary tooth'],['ซี่','tooth']];
+var EN_PROC_ = [['Onlay','Onlay'],['พิมพ์ปาก','Dental impression'],['ลองชิ้นงาน','Try-in'],['ใส่ชิ้นงาน','Cementation'],['ปรับแก้ชิ้นงาน','Adjustment'],['ฟันปลอมถอดได้ฐานพลาสติก','Removable acrylic denture'],['ฟันปลอมถอดได้โครงโลหะ','Removable partial denture (metal framework)'],['ฟันปลอมฐานนิ่ม','Flexible (soft-base) denture'],['ฟันปลอมทั้งปาก','Complete denture'],['พิมพ์แบบฟันปลอม','impression'],['ลองโครงฟันปลอม','framework try-in'],['บันทึกการสบฟัน','bite registration'],['ลองฟันปลอม','try-in'],['ใส่ฟันปลอม','delivery'],['ปรับแก้ฟันปลอม','adjustment'],['ขั้นตอน:','stage:'],['นัดต่อเนื่องรักษารากฟัน','Root canal treatment (follow-up visit)'],['อุดคลองรากฟัน','Root canal filling'],['ครอบฟันบางส่วน','Onlay'],['ใส่ครอบฟัน','Crown cementation'],['เอ็กซเรย์ตรวจฟันผุ','Bitewing X-Ray'],['เอ็กซเรย์ฟัน','Dental X-Ray'],['เฝือกสบฟัน','Occlusal splint'],['ตรวจติดตามอาการ','Follow-up examination'],['ปรับเครื่องมือจัดฟัน','Orthodontic adjustment'],['ถอดเครื่องมือจัดฟัน','Orthodontic appliance removal'],['ติดเครื่องมือจัดฟัน','Orthodontic bonding'],['เครื่องมือจัดฟัน','Orthodontic appliance'],['จัดฟัน','Orthodontic treatment'],['ผ่าฟันคุด','Surgical removal of impacted tooth'],['ถอนฟันคุด','Removal of impacted tooth'],['ถอนฟัน','Tooth extraction'],['รักษารากฟัน','Root canal treatment'],['เกลารากฟัน','Root planing'],['รากฟันเทียม','Dental implant'],['ขูดหินปูน','Scaling'],['ขัดฟัน','Polishing'],['อุดฟัน','Dental filling'],['ครอบฟัน','Dental crown'],['สะพานฟัน','Dental bridge'],['ฟันปลอม','Denture'],['ฟอกสีฟัน','Teeth whitening'],['เคลือบหลุมร่องฟัน','Fissure sealant'],['เคลือบฟลูออไรด์','Fluoride application'],['ตรวจฟัน','Dental examination'],['ตรวจช่องปาก','Oral examination'],['รีเทนเนอร์','Retainer'],['เอ็กซเรย์','X-Ray'],['ค่าแลป','Laboratory fee'],['ฟันน้ำนม','primary tooth'],['ซี่','tooth']];
 function enProc_(t){ let x=String(t||''); EN_PROC_.forEach(([a,b])=>{ x=x.split(a).join(b); }); return x; }
 var EN_PURPOSE_ = {'ลาป่วยต่อนายจ้าง/สถานศึกษา':'Sick leave (employer / school)','ยื่นเบิกประกันสุขภาพ':'Health insurance claim','ยื่นเบิกต้นสังกัด':'Reimbursement claim to employing agency','ยื่นเบิกบริษัท':'Reimbursement claim to employer (company)'};
 function bahtTextEn_(n){
@@ -10985,11 +10988,12 @@ function renderDentureBox_(selected){
   if(!has && !_denOpen){ body.style.display='none'; open.style.display=''; return; }
   open.style.display='none'; body.style.display='';
   const type=DENTURE_TYPES.find(t=>selected.includes(t))||'';
-  const ICON={'ฟันปลอมถอดได้ฐานพลาสติก':'🟠','ฟันปลอมถอดได้โครงโลหะ':'⚙️','ฟันปลอมฐานนิ่ม':'🫧','ฟันปลอมทั้งปาก':'😁'};
+  const ICON={'ครอบฟัน':'👑','Onlay':'🧩','ฟันปลอมถอดได้ฐานพลาสติก':'🟠','ฟันปลอมถอดได้โครงโลหะ':'⚙️','ฟันปลอมฐานนิ่ม':'🫧','ฟันปลอมทั้งปาก':'😁'};
   const chip=(v,on,dis,label,extra)=>`<button type="button" ${dis?'disabled':''} onclick="denTap_('${v}')" style="${extra||''}border:1.5px solid ${on?'var(--wine)':'var(--border)'};background:${on?'var(--wine)':'#fff'};color:${on?'#fff':(dis?'#b9a9b5':'var(--text-dark)')};border-radius:${extra?'12px':'20px'};padding:${extra?'10px 8px':'7px 12px'};font-size:13px;font-weight:700;cursor:${dis?'not-allowed':'pointer'};text-align:center;">${label}</button>`;
   document.getElementById('den-types').innerHTML=DENTURE_TYPES.map(t=>chip(t,t===type,false,(ICON[t]||'')+' '+_escHtml(t),'line-height:1.35;')).join('');
-  const steps=DENTURE_STEPS.filter(x=>x!=='ลองโครงฟันปลอม'||type==='ฟันปลอมถอดได้โครงโลหะ');
-  document.getElementById('den-steps').innerHTML=steps.map(x=>chip(x,selected.includes(x),!type,_escHtml(x))).join('')+(!type?'<div style="flex-basis:100%;font-size:12px;color:#C0392B;font-weight:700;">⚠️ เลือกชนิดฟันปลอมก่อน แล้วค่อยเลือกขั้นตอน</div>':'');
+  const _crown=CROWN_TYPES.includes(type);
+  const steps=(_crown?CROWN_STEPS:DENTURE_STEPS.filter(x=>!CROWN_STEPS.includes(x))).filter(x=>x!=='ลองโครงฟันปลอม'||type==='ฟันปลอมถอดได้โครงโลหะ');
+  document.getElementById('den-steps').innerHTML=steps.map(x=>chip(x,selected.includes(x),!type,_escHtml(x))).join('')+(!type?'<div style="flex-basis:100%;font-size:12px;color:#C0392B;font-weight:700;">⚠️ เลือกชนิดงานก่อน แล้วค่อยเลือกขั้นตอน</div>':'');
   setDentureBilling_(dentureBilling_(), true);
   const hn=String((document.getElementById('treat-hn')||{}).value||'').trim(), hint=document.getElementById('treat-den-hint'), sug=document.getElementById('den-sug');
   const idEl=document.getElementById('treat-id'), curId=idEl?idEl.value:'';
@@ -11019,7 +11023,7 @@ function renderProcPrices(selected){
   const _den = dentureBilling_()==='รวม', _splitTypeOff = !_den && selected.some(x=>DENTURE_STEPS.includes(x));
   box.innerHTML = selected.map(p=>{ const col=PROC_COLORS[p]||'var(--wine)', mt=multiTeeth_(p);
     if(_splitTypeOff && DENTURE_TYPES.includes(p)) return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(p)}</span><span style="font-size:12px;color:var(--text-light);">ระบุชนิดงาน · ไม่คิดเงิน (คิดที่ขั้นตอนด้านล่าง)</span></div>`;
-    if(_den && DENTURE_STEPS.includes(p)) return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(p)}</span><span style="font-size:12px;color:var(--text-light);">รวมในราคาฟันปลอม</span></div>`;
+    if(_den && DENTURE_STEPS.includes(p)) return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="flex:1;font-size:13px;font-weight:700;color:${col};">${_escHtml(p)}</span><span style="font-size:12px;color:var(--text-light);">รวมในราคางาน</span></div>`;
     return mt.length ? mt.map(n=>_row(p+' ซี่ '+n,'data-tooth="'+_escHtml(p+'|'+n)+'"',(_tpVals[p+'|'+n]!==undefined?_tpVals[p+'|'+n]:(mt.length===1?_ppVals[p]:'')),col)).join('')
                      : _row(p,'data-proc="'+_escHtml(p)+'"',_ppVals[p],col); }).join('');
   calcProcPriceCheck();
@@ -11316,7 +11320,7 @@ function procColor(proc){
   return PROC_COLORS[first] || 'var(--text-mid)';
 }
 // ===== ระบุซี่ฟัน (ระบบ FDI 2 หลัก) — อุดฟัน/ถอนฟัน/รักษารากฟัน/ครอบฟัน ต้องระบุซี่ (บันทึกตั้งแต่ TOOTH_RULE_START) =====
-const TOOTH_PROCS = ['อุดฟัน','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','รักษารากฟัน','ครอบฟัน','ครอบฟันบางส่วน','ใส่ครอบฟัน','อุดคลองรากฟัน','นัดต่อเนื่องรักษารากฟัน','ถอนฟันน้ำนม','รากฟันเทียม','เดือยฟัน','อุดชั่วคราว'];   // เพิ่มรายการที่ต้องระบุซี่ได้ที่นี่
+const TOOTH_PROCS = ['อุดฟัน','ถอนฟัน','ถอนฟันคุด','ผ่าฟันคุด','รักษารากฟัน','ครอบฟัน','ครอบฟันบางส่วน','ใส่ครอบฟัน','อุดคลองรากฟัน','นัดต่อเนื่องรักษารากฟัน','ถอนฟันน้ำนม','รากฟันเทียม','เดือยฟัน','อุดชั่วคราว','Onlay'];   // เพิ่มรายการที่ต้องระบุซี่ได้ที่นี่
 const TOOTH_RULE_START = '2026-11-06';
 const FDI_PERM_UP=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28], FDI_PERM_LO=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
 const FDI_DEC_UP=[55,54,53,52,51,61,62,63,64,65], FDI_DEC_LO=[85,84,83,82,81,71,72,73,74,75];
