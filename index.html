@@ -1748,16 +1748,16 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div class="section-title"><span>📊</span>สรุปรายได้</div>
         <div class="inc-filter">
           <div class="period-tabs inc-tabs">
-            <button class="period-tab active" id="iperiod-day" onclick="setPeriod('day',this)">รายวัน</button>
-            <button class="period-tab" id="iperiod-month" onclick="setPeriod('month',this)">รายเดือน</button>
+            <button class="period-tab" id="iperiod-day" onclick="setPeriod('day',this)">รายวัน</button>
+            <button class="period-tab active" id="iperiod-month" onclick="setPeriod('month',this)">รายเดือน</button>
             <button class="period-tab" id="iperiod-year" onclick="setPeriod('year',this)">รายปี</button>
             <button class="period-tab" id="iperiod-range" onclick="setPeriod('range',this)">ช่วงวันที่</button>
           </div>
           <div class="inc-nav">
             <button type="button" class="date-nav-btn" onclick="shiftIncomePeriod(-1)" aria-label="ก่อนหน้า" title="ก่อนหน้า">‹</button>
             <div class="inc-inputs">
-              <input type="date" id="income-filter-day" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
-              <input type="month" id="income-filter-month" class="form-control" style="height:36px;width:150px;display:none;" onchange="renderIncome()">
+              <input type="date" id="income-filter-day" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;display:none;">
+              <input type="month" id="income-filter-month" class="form-control" style="height:36px;width:150px;" onchange="renderIncome()">
               <input type="number" id="income-filter-year" class="form-control" style="height:36px;width:100px;display:none;" placeholder="ปี พ.ศ." min="2560" max="2600" onchange="renderIncome()">
               <div id="income-filter-range" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
                 <input type="date" id="income-range-start" class="form-control" onchange="renderIncome()" style="height:36px;width:175px;">
@@ -1772,7 +1772,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
               <select id="income-doc-filter" class="form-control" onchange="renderIncome()" style="height:36px;flex:1;min-width:0;display:none;font-weight:700;" aria-label="เลือกหมอ"><option value="">👨‍⚕️ ทุกหมอ</option></select>
               <label id="incLabDeductWrap" style="display:none;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--wine-dark);white-space:nowrap;cursor:pointer;" title="หักค่าแลปส่วนของหมอ (ค่าแลป × % DF ปกติ) ของช่วงที่เลือก ออกจากส่วนแบ่งหมอ"><input type="checkbox" id="income-lab-deduct" onchange="incLabToggle()" style="width:18px;height:18px;"> 🧪 หักค่าแลป</label>
             </div>
-            <button type="button" class="date-nav-btn date-nav-today" id="incomeTodayBtn" onclick="incomeGoToday()">วันนี้</button>
+            <button type="button" class="date-nav-btn date-nav-today" id="incomeTodayBtn" onclick="incomeGoToday()">เดือนนี้</button>
             <button onclick="copyIncomeSummary()" class="btn btn-ghost" style="height:36px;white-space:nowrap;font-size:13px;border:1.5px solid var(--wine);color:var(--wine);">💰 Copy สรุปรายได้</button>
           </div>
         </div>
@@ -3115,7 +3115,7 @@ let currentPin = '';
 let barChartInst = null, pieChartInst = null, doctorChartInst = null;
 let statusTargetId = null;
 let editTreatId = null, editLabId = null;
-let currentPeriod = 'day';
+let currentPeriod = 'month';   // หน้าสรุปรายได้ เปิดมาเป็นรายเดือน
 let _treatGroupKeys = [];            // กลุ่มหมอในหน้ารักษา (ใช้กับปุ่มพับ/ขยาย)
 const _treatCollapsed = new Set(); // ชื่อหมอที่พับกลุ่มไว้
 
