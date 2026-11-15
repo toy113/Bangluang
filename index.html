@@ -2117,6 +2117,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <label>ช่องทางติดต่อ <span style="color:var(--text-light);font-weight:400;font-size:11px;">(ไม่บังคับ)</span></label>
         <div class="contact-chips" id="apt-contact-chips">
           <button type="button" class="contact-chip" data-v="line" onclick="toggleAptContact('line')">💬 LINE</button>
+          <button type="button" class="contact-chip" data-v="oldline" onclick="toggleAptContact('oldline')">🕰️ LINE เก่า</button>
           <button type="button" class="contact-chip" data-v="phone" onclick="toggleAptContact('phone')">📞 โทรศัพท์</button>
           <button type="button" class="contact-chip" data-v="fb" onclick="toggleAptContact('fb')">📘 Facebook</button>
         </div>
@@ -5819,7 +5820,7 @@ document.addEventListener('change', e=>{
 });
 
 // ช่องทางติดต่อของนัด (ไม่บังคับ): line / phone / fb — เก็บในคอลัมน์ contactChannel
-var CONTACT_CHANNELS = { line:'LINE', phone:'โทรศัพท์', fb:'Facebook' };
+var CONTACT_CHANNELS = { line:'LINE', oldline:'LINE เก่า', phone:'โทรศัพท์', fb:'Facebook' };
 function setAptContact(v){
   const el = document.getElementById('apt-contact'); if(el) el.value = CONTACT_CHANNELS[v] ? v : '';
   const cur = el ? el.value : '';
@@ -5831,7 +5832,7 @@ function toggleAptContact(v){
 }
 // ป้ายเล็กๆ บอกช่องทางติดต่อ (LINE / โทร / FB) — ว่างถ้าไม่ได้เลือก
 function contactBadge(v){
-  const m = { line:{t:'จองทาง LINE',c:'#06A94D'}, phone:{t:'จองทางโทร',c:'#8E4A86'}, fb:{t:'จองทาง FB',c:'#1877F2'} }[v];
+  const m = { line:{t:'จองทาง LINE',c:'#06A94D'}, oldline:{t:'LINE เก่า',c:'#5F7F3A'}, phone:{t:'จองทางโทร',c:'#8E4A86'}, fb:{t:'จองทาง FB',c:'#1877F2'} }[v];
   if(!m) return '';
   return `<span title="ช่องทางติดต่อ: ${CONTACT_CHANNELS[v]}" style="display:inline-block;white-space:nowrap;font-size:10px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:999px;background:${m.c}1F;border:1px solid ${m.c}55;color:${m.c};color:color-mix(in srgb,${m.c} 80%,#000);">${m.t}</span>`;
 }
@@ -7813,8 +7814,8 @@ function renderStatsPage(){
   let aptHtml = '';
   if(apts.length){
     const st = {}; apts.forEach(a=>{ const k=a.status||'—'; st[k]=(st[k]||0)+1; });
-    const cancel = st['ยกเลิก']||0, ch = {line:0,phone:0,fb:0,none:0}; apts.forEach(a=>{ ch[CONTACT_CHANNELS[a.contactChannel]?a.contactChannel:'none']++; });
-    const chItems = [{name:'LINE',val:ch.line,c:'#06A94D'},{name:'โทรศัพท์',val:ch.phone,c:'#8E4A86'},{name:'Facebook',val:ch.fb,c:'#1877F2'},{name:'ไม่ระบุ',val:ch.none,c:'#8A8A8A'}].filter(x=>x.val>0);
+    const cancel = st['ยกเลิก']||0, ch = {line:0,oldline:0,phone:0,fb:0,none:0}; apts.forEach(a=>{ ch[CONTACT_CHANNELS[a.contactChannel]?a.contactChannel:'none']++; });
+    const chItems = [{name:'LINE',val:ch.line,c:'#06A94D'},{name:'LINE เก่า',val:ch.oldline,c:'#5F7F3A'},{name:'โทรศัพท์',val:ch.phone,c:'#8E4A86'},{name:'Facebook',val:ch.fb,c:'#1877F2'},{name:'ไม่ระบุ',val:ch.none,c:'#8A8A8A'}].filter(x=>x.val>0);
     aptHtml = _statsCard('📆 การนัดหมาย',
       '<div style="margin-bottom:8px;"><b style="font-size:20px;color:var(--wine-dark);">'+apts.length+'</b> นัด · ยกเลิก '+cancel+' ('+Math.round(cancel/apts.length*100)+'%)</div>'
       + Object.entries(st).sort((a,b)=>b[1]-a[1]).map(([k,v])=>'<span class="st-chip">'+_escHtml(k)+' '+v+'</span>').join('')
