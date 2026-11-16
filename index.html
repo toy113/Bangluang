@@ -212,6 +212,9 @@ button, .btn, .nav-item, .top-tab, .period-tab, a, label, select, summary { touc
   /* การ์ดรายการที่อยู่นอกจอ: เบราว์เซอร์ไม่ต้องจัดวาง/วาดจนกว่าจะเลื่อนถึง */
   #treatListBody > tr, #treatPageBody > tr, #labPageBody > tr, .endo-card { content-visibility: auto; contain-intrinsic-size: auto 96px; }
 }
+@media (max-width: 768px){
+  .modal-overlay { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }   /* เบลอพื้นหลังกินแรงมือถือมาก — ใช้พื้นทึบแทน */
+}
 .omc{max-width:360px;margin:4px 0 12px;border:1px solid var(--border);border-radius:14px;padding:10px 10px 8px;background:#fff;}
 .omc-h{display:flex;align-items:center;justify-content:space-between;font-weight:800;color:var(--wine-dark);font-size:13.5px;margin-bottom:6px;}
 .omc-h button{border:0;background:var(--wine-pale);color:var(--wine);border-radius:8px;width:30px;height:28px;font-size:16px;cursor:pointer;}
@@ -5037,7 +5040,7 @@ function showPage(p){
   if(p==='ortho') renderOrthoPage();
   if(p==='patients'){
     renderPatients();
-    syncAll().then(()=>renderPatients()).catch(()=>renderPatients());
+    syncAll().catch(()=>{});   // ถ้าข้อมูลเปลี่ยน ตัวซิงค์จะวาดหน้านี้ใหม่เอง (ไม่วาดซ้ำเมื่อไม่มีอะไรเปลี่ยน)
   }
   if(p==='recall'){ _recallLimit = 60; renderRecall(); }
   if(p==='crm') renderCrmPage();
@@ -5048,7 +5051,7 @@ function showPage(p){
     // render จาก cache ก่อน แล้ว sync Sheet แล้ว render ใหม่
     renderScheduleDay();
     renderSchMiniCal();
-    syncAll().then(()=>{ renderScheduleDay(); renderSchMiniCal(); }).catch(()=>{});
+    syncAll().catch(()=>{});   // ถ้าข้อมูลเปลี่ยน ตัวซิงค์จะวาดหน้านี้ใหม่เอง (ไม่วาดซ้ำเมื่อไม่มีอะไรเปลี่ยน)
   }
   setMobileNav(p);
 }
@@ -7405,7 +7408,9 @@ function setStatsPeriod(p, btn){
 }
 function _ymd(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 function _addDays(ymd, n){ const [y,m,d]=ymd.split('-').map(Number); return _ymd(new Date(y, m-1, d+n, 12)); }
-function _daysBetween(a, b){ return Math.round((new Date(b+'T12:00') - new Date(a+'T12:00'))/86400000); }
+var _dayNumCache = new Map();
+function _dayNum_(s){ if(!_dayNumCache) _dayNumCache=new Map(); let v=_dayNumCache.get(s); if(v===undefined){ v=Math.round(new Date(s+'T12:00')/86400000); if(_dayNumCache.size>8000) _dayNumCache.clear(); _dayNumCache.set(s,v); } return v; }
+function _daysBetween(a, b){ return _dayNum_(b) - _dayNum_(a); }
 function _statsK(n){
   n = Math.round(n);
   if(Math.abs(n)>=1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
@@ -11474,7 +11479,8 @@ function procBadge(proc, t){
   const parts = proc.split(',').map(p=>p.trim()).filter(Boolean);
   return parts.map(p=>{ const _tx=t?toothText_(t,p):''; return `<span style="display:inline-block;background:${PROC_COLORS[p]||'#626567'}22;color:${PROC_COLORS[p]||'#626567'};border:1px solid ${PROC_COLORS[p]||'#626567'}44;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;margin:1px 2px;">${p}${_tx?' <span style="font-weight:800;">('+_escHtml(_tx)+')</span>':''}</span>`; }).join('');
 }
-function fmt(n){ return Math.round(n).toLocaleString('th-TH'); }
+var _fmtNF = new Intl.NumberFormat('th-TH');   // สร้างตัวจัดรูปแบบครั้งเดียว (เดิมสร้างใหม่ทุกครั้งที่เรียก — ถูกเรียกหลายพันครั้งต่อหน้า)
+function fmt(n){ return (_fmtNF||(_fmtNF=new Intl.NumberFormat('th-TH'))).format(Math.round(n)); }
 function fmtDate(s){
   if(!s) return '—';
   const [y,m,d] = String(s).split('-').map(Number);
@@ -11632,10 +11638,11 @@ function loadPatientsFromSheet(sheetData){
 }
 
 // ---- build display list (patients only — ไม่ดึงจาก treatments/appointments) ----
-const _hnCollator = new Intl.Collator(undefined, {numeric:true});
+var _hnCollator = new Intl.Collator(undefined, {numeric:true});
 function getPatientList(){
   // เร็วขึ้นมาก: คิดคีย์ครั้งเดียวต่อคน (HN ตัวเลขล้วน → เทียบเป็นตัวเลข) แทน localeCompare ทุกคู่
   const keyed = patients.map(p=>{ const k=String(p.hn||'').replace('-',''); return { p, k, n: /^\d+$/.test(k) ? +k : NaN }; });
+  if(!_hnCollator) _hnCollator=new Intl.Collator(undefined,{numeric:true});
   keyed.sort((a,b)=> (a.n===a.n && b.n===b.n) ? (b.n-a.n || _hnCollator.compare(b.k,a.k)) : _hnCollator.compare(b.k,a.k));
   return keyed.map(x=>x.p);
 }
@@ -11643,7 +11650,14 @@ function getPatientList(){
 // ---- visit counts ----
 // normalize HN สำหรับเปรียบเทียบ (ลบ dash และ space)
 function ssoAmt_(v){ const n=parseFloat(String(v==null?'':v).replace(/[,฿\s]/g,'')); return isNaN(n)?0:n; }   // ยอดประกันสังคม — รองรับ '1,500' / '฿500' / ข้อความ
-function normHN(hn){ return String(hn||'').replace(/[-\s]/g,'').trim().toLowerCase(); }
+var _normHNCache = new Map();
+function normHN(hn){
+  if(typeof hn!=='string') return String(hn||'').replace(/[-\s]/g,'').trim().toLowerCase();
+  if(!_normHNCache) _normHNCache=new Map();
+  let v=_normHNCache.get(hn);
+  if(v===undefined){ v=hn.replace(/[-\s]/g,'').trim().toLowerCase(); if(_normHNCache.size>20000) _normHNCache.clear(); _normHNCache.set(hn,v); }
+  return v;
+}
 
 // index การรักษาต่อ HN (สร้างครั้งเดียวต่อรุ่นข้อมูล) — เดิมกรองทั้งตารางทุกครั้งต่อคนไข้ 1 คน
 var _tIdx = null, _tIdxVer = -1, _tIdxSrc = null, _tIdxLen = -1;
