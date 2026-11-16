@@ -1960,6 +1960,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
         <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
           <div class="card-box-title">📈 สถิติคลินิก <span id="statsRangeLabel" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;"></span></div>
           <div class="filter-row" style="flex-wrap:wrap;gap:8px;">
+            <button type="button" onclick="openWeeklyWrap()" style="border:0;border-radius:20px;padding:7px 14px;font-weight:700;font-size:13px;cursor:pointer;color:#fff;background:linear-gradient(120deg,#a8357f,#4A1F40);">🎬 สรุปสัปดาห์</button>
             <div class="period-tabs" id="statsPeriodTabs" style="background:var(--wine-pale);">
               <button class="period-tab" onclick="setStatsPeriod('30d',this)">30 วัน</button>
               <button class="period-tab active" onclick="setStatsPeriod('month',this)">เดือนนี้</button>
@@ -13989,6 +13990,192 @@ function openPerfPanel(){
     }catch(e){} return r; };
   const t=document.getElementById('syncText'); if(t){ t.style.cursor='pointer'; t.title='ดูความเร็วของเครื่องนี้'; t.addEventListener('click', openPerfPanel); }
 })();
+
+/* ============ 🎬 สรุปสัปดาห์ (Smile Weekly) — story แบบ Wrapped จากข้อมูลจริง ============ */
+const WW_CSS=`
+#wwOv{--ww-gold:#ffcf5c;--ww-mint:#7ef0c4;--ww-ink:#fff7fb;--ww-dim:rgba(255,247,251,.74);position:fixed;inset:0;z-index:99998;background:rgba(14,4,10,.86);display:none;align-items:center;justify-content:center;padding:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));}
+#wwOv .ww-ph{position:relative;width:min(420px,100%);height:min(860px,100%);border-radius:24px;overflow:hidden;color:var(--ww-ink);font-family:'Sarabun','Prompt',sans-serif;user-select:none;-webkit-user-select:none;box-shadow:0 30px 80px rgba(0,0,0,.5);background:#2a0f24;}
+#wwOv .ww-bars{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:4px;z-index:6;}
+#wwOv .ww-bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.28);overflow:hidden;} #wwOv .ww-bar i{display:block;height:100%;width:0;background:#fff;}
+#wwOv .ww-top{position:absolute;top:22px;left:16px;right:10px;display:flex;justify-content:space-between;align-items:center;z-index:7;font-size:12px;font-weight:700;letter-spacing:.05em;}
+#wwOv .ww-x{background:rgba(255,255,255,.16);color:#fff;border:0;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;}
+#wwOv .ww-sl{position:absolute;inset:0;padding:72px 24px 30px;display:flex;flex-direction:column;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity .4s;}
+#wwOv .ww-sl.on{opacity:1;}
+#wwOv .ww-k{font-size:15px;font-weight:700;letter-spacing:.05em;color:var(--ww-dim);}
+#wwOv h1,#wwOv h2{font-family:'Prompt','Sarabun',sans-serif;margin:0;line-height:1.1;color:inherit;}
+#wwOv h1{font-size:46px;font-weight:800;} #wwOv h2{font-size:28px;font-weight:800;}
+#wwOv .ww-big{font-family:'Prompt',sans-serif;font-weight:800;font-size:clamp(60px,20vw,96px);line-height:.95;font-variant-numeric:tabular-nums;}
+#wwOv .ww-money{font-size:clamp(46px,14vw,72px);}
+#wwOv .ww-unit{font-family:'Prompt',sans-serif;font-size:21px;font-weight:700;}
+#wwOv p{margin:0;font-size:16px;line-height:1.6;color:var(--ww-dim);} #wwOv p b{color:var(--ww-ink);} #wwOv small{font-size:12px;opacity:.8;}
+#wwOv .ww-up{color:var(--ww-mint);font-weight:700;} #wwOv .ww-down{color:#ffb3a7;font-weight:700;} #wwOv .ww-flat{font-weight:700;}
+#wwOv .ww-r{transform:translateY(16px);opacity:0;transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .6s;}
+#wwOv .on .ww-r{transform:none;opacity:1;}
+#wwOv .on .d1{transition-delay:.1s}#wwOv .on .d2{transition-delay:.3s}#wwOv .on .d3{transition-delay:.5s}#wwOv .on .d4{transition-delay:.75s}#wwOv .on .d5{transition-delay:1s}
+#wwOv .ww-week{display:flex;align-items:center;gap:10px;font-size:17px;position:relative;z-index:7;}
+#wwOv .ww-wk{background:rgba(255,255,255,.16);color:#fff;border:0;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;}
+#wwOv .ww-rank{display:flex;flex-direction:column;gap:9px;}
+#wwOv .ww-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:10px;font-size:15px;font-weight:700;}
+#wwOv .ww-row .n{color:var(--ww-mint);font-family:'Prompt',sans-serif;}
+#wwOv .ww-row .t{position:relative;padding:8px 11px;border-radius:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+#wwOv .ww-row .t::before{content:"";position:absolute;inset:0;width:var(--w);background:rgba(126,240,196,.24);transform-origin:left;transform:scaleX(0);transition:transform 1s cubic-bezier(.2,.8,.2,1);}
+#wwOv .on .ww-row .t::before{transform:scaleX(1);} #wwOv .ww-row .t span{position:relative;}
+#wwOv .ww-row .v{font-family:'Prompt',sans-serif;font-variant-numeric:tabular-nums;}
+#wwOv .ww-docs{display:grid;gap:9px;}
+#wwOv .ww-doc{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center;background:rgba(255,255,255,.09);border-radius:14px;padding:10px 12px;}
+#wwOv .ww-doc .e{font-size:26px;text-align:center;} #wwOv .ww-doc .nm{font-family:'Prompt',sans-serif;font-weight:700;font-size:15px;}
+#wwOv .ww-doc .bd{font-size:13px;color:var(--ww-dim);line-height:1.4;} #wwOv .ww-doc .bd b{color:var(--ww-gold);}
+#wwOv .ww-hours{display:flex;align-items:flex-end;gap:4px;height:150px;}
+#wwOv .ww-hours div{flex:1;height:0;background:rgba(255,255,255,.2);border-radius:5px 5px 2px 2px;position:relative;transition:height 1s cubic-bezier(.2,.8,.2,1);}
+#wwOv .ww-hours div.hot{background:var(--ww-gold);}
+#wwOv .ww-hours em{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:10px;font-style:normal;color:var(--ww-dim);}
+#wwOv .ww-btns{display:flex;gap:10px;flex-wrap:wrap;position:relative;z-index:7;}
+#wwOv .ww-btn{font-family:'Prompt',sans-serif;font-weight:700;font-size:15px;border:0;border-radius:99px;padding:11px 18px;cursor:pointer;background:var(--ww-mint);color:#08241f;}
+#wwOv .ww-btn.alt{background:rgba(255,255,255,.16);color:#fff;}
+#wwOv button:focus-visible{outline:3px solid #fff;outline-offset:2px;}
+#wwOv .ww-nav{position:absolute;top:64px;bottom:0;z-index:5;cursor:pointer;} #wwOv .ww-nav.l{left:0;width:36%;} #wwOv .ww-nav.r{right:0;width:64%;}
+#wwOv .ww-s1{background:radial-gradient(120% 70% at 20% 10%,#a8357f 0%,transparent 60%),radial-gradient(100% 80% at 90% 100%,#1f6b5a 0%,transparent 60%),#2a0f24;}
+#wwOv .ww-s2{background:linear-gradient(160deg,#5b1c4a,#24091d);}
+#wwOv .ww-s3{background:linear-gradient(165deg,#ffcf5c,#ff8a5c);color:#2a0f24;} #wwOv .ww-s3 p,#wwOv .ww-s3 .ww-k{color:rgba(42,15,36,.78);} #wwOv .ww-s3 p b{color:#2a0f24;} #wwOv .ww-s3 .ww-up{color:#0d6b47;} #wwOv .ww-s3 .ww-down{color:#a3271c;}
+#wwOv .ww-s4{background:linear-gradient(170deg,#0f4d43,#08241f);}
+#wwOv .ww-s5{background:linear-gradient(170deg,#6b2453,#2a0f24);}
+#wwOv .ww-s6{background:linear-gradient(170deg,#3a1554,#140720);}
+#wwOv .ww-s7{background:linear-gradient(170deg,#4A1F40,#1d0a18);}
+#wwOv .ww-s8{background:radial-gradient(90% 60% at 50% 30%,#ff9fbf55,transparent 70%),linear-gradient(170deg,#6b2453,#2a0f24);}
+#wwOv .ww-s9{background:linear-gradient(165deg,#06c755,#04692e);} #wwOv .ww-s9 p,#wwOv .ww-s9 .ww-k{color:rgba(255,255,255,.9);}
+#wwOv .ww-s10{background:radial-gradient(120% 70% at 80% 0%,#a8357f 0%,transparent 60%),radial-gradient(100% 70% at 0% 100%,#7ef0c455 0%,transparent 60%),#2a0f24;}
+@media (max-height:640px){#wwOv h1{font-size:36px}#wwOv h2{font-size:23px}#wwOv .ww-big{font-size:58px}#wwOv p{font-size:14px}}
+@media (prefers-reduced-motion:reduce){#wwOv .ww-r,#wwOv .ww-sl,#wwOv .ww-hours div,#wwOv .ww-row .t::before{transition:none!important}}
+.ww-banner{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;cursor:pointer;margin:0 0 14px;padding:12px 16px;border-radius:16px;color:#fff;font-family:inherit;font-size:14px;background:radial-gradient(120% 120% at 0% 0%,#a8357f,transparent 60%),linear-gradient(120deg,#4A1F40,#2a0f24);box-shadow:0 6px 18px rgba(74,31,64,.25);}
+.ww-banner small{opacity:.8;} .ww-bn-ic{font-size:26px;} .ww-bn-go{margin-left:auto;font-size:24px;opacity:.8;}
+`;
+const WW_TM=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const WW_DOW=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+function wwShort_(ymd){ const [y,m,d]=ymd.split('-').map(Number); return d+' '+WW_TM[m-1]+' '+String((y+543)%100).padStart(2,'0'); }
+function wwMonday_(ymd){ const d=new Date(ymd+'T12:00'); const w=(d.getDay()+6)%7; return _addDays(ymd,-w); }
+function wwLastWeek_(){ return _addDays(wwMonday_(todayStr()),-7); }
+function wwDelta_(cur,prev,unit){
+  if(!prev) return cur>0?'<span class="ww-up">ใหม่ทั้งหมดในสัปดาห์นี้</span>':'';
+  const p=Math.round((cur-prev)/prev*100);
+  if(p===0) return '<span class="ww-flat">เท่ากับสัปดาห์ก่อน</span>';
+  return '<span class="'+(p>0?'ww-up':'ww-down')+'">'+(p>0?'▲ ':'▼ ')+Math.abs(p)+'% จากสัปดาห์ก่อน'+(unit?' ('+unit+')':'')+'</span>';
+}
+function wwData_(ws){
+  const we=_addDays(ws,6), ps=_addDays(ws,-7), pe=_addDays(ws,-1);
+  const firstSeen=new Map();
+  treatments.forEach(t=>{ const d=String(t.date||'').slice(0,10); if(!d) return; const k=endoPatientKey(t); const f=firstSeen.get(k); if(!f||d<f) firstSeen.set(k,d); });
+  const rows=statsRows(ws,we), prow=statsRows(ps,pe);
+  const cur=statsAgg(rows,firstSeen,ws), prev=statsAgg(prow,firstSeen,ps);
+  // อันดับรายได้ในรอบ 12 สัปดาห์
+  let rank=1; for(let k=1;k<=11;k++){ const s=_addDays(ws,-7*k); const r=statsRows(s,_addDays(s,6)).reduce((n,t)=>n+totalPrice(t),0); if(r>cur.rev) rank++; }
+  const procs=new Map(); rows.forEach(t=>String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(p=>procs.set(p,(procs.get(p)||0)+1)));
+  const topProcs=[...procs].sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const dayPts=new Map(); rows.forEach(t=>{ const d=String(t.date).slice(0,10); (dayPts.get(d)||dayPts.set(d,new Set()).get(d)).add(endoPatientKey(t)); });
+  let busy=null; dayPts.forEach((s,d)=>{ if(!busy||s.size>busy.n) busy={d,n:s.size}; });
+  const hours=new Map(); rows.forEach(t=>{ const h=parseInt(String(t.time||'').slice(0,2),10); if(!isNaN(h)&&h>=7&&h<=21) hours.set(h,(hours.get(h)||0)+1); });
+  const docs=new Map(); rows.forEach(t=>{ const n=docAlias(t.docName)||'ไม่ระบุหมอ'; const o=docs.get(n)||{n,rev:0,pts:new Set(),pr:new Map()}; o.rev+=totalPrice(t); o.pts.add(endoPatientKey(t)); String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(p=>o.pr.set(p,(o.pr.get(p)||0)+1)); docs.set(n,o); });
+  const docList=[...docs.values()].sort((a,b)=>b.rev-a.rev).slice(0,5).map(o=>({n:o.n,rev:o.rev,pts:o.pts.size,top:([...o.pr].sort((a,b)=>b[1]-a[1])[0]||['',0])}));
+  const isO=t=>isAimDoc_(docAlias(t.docName)) || String(t.proc||'').split(',').some(x=>(typeof ORTHO_DEFAULT_DOC_ITEMS!=='undefined'?ORTHO_DEFAULT_DOC_ITEMS:[]).includes(x.trim()));
+  const oRows=rows.filter(isO), oPts=new Set(oRows.map(endoPatientKey)).size;
+  const treatKey=new Set(rows.map(t=>String(t.date).slice(0,10)+'|'+normHN(t.hn)));
+  const apts=appointments.filter(a=>{ const d=String(a.date||'').slice(0,10); return d>=ws&&d<=we; });
+  const aptLive=apts.filter(a=>a.status!=='ยกเลิก'), aptCancel=apts.length-aptLive.length;
+  const aptCame=aptLive.filter(a=>a.status==='เสร็จสิ้น' || treatKey.has(String(a.date).slice(0,10)+'|'+normHN(a.hn))).length;
+  const ns=_addDays(ws,7), ne=_addDays(ws,13);
+  const next=appointments.filter(a=>{ const d=String(a.date||'').slice(0,10); return d>=ns&&d<=ne&&a.status!=='ยกเลิก'; });
+  const nDay=new Map(); next.forEach(a=>{ const d=String(a.date).slice(0,10); nDay.set(d,(nDay.get(d)||0)+1); });
+  let nBusy=null; nDay.forEach((n,d)=>{ if(!nBusy||n>nBusy.n) nBusy={d,n}; });
+  return {ws,we,rows,cur,prev,rank,topProcs,busy,hours,docList,oRows:oRows.length,oPts,apts:aptLive.length,aptCancel,aptCame,next:next.length,nBusy};
+}
+function wwSlides_(D){
+  const S=[], E=_escHtml;
+  S.push({c:'ww-s1',h:'<div class="ww-k ww-r d1">สรุปสัปดาห์ของคลินิก</div><h1 class="ww-r d2">Smile<br>Weekly</h1>'
+    +'<div class="ww-week ww-r d3"><button type="button" class="ww-wk" data-wk="-1" aria-label="สัปดาห์ก่อน">‹</button><b>'+wwShort_(D.ws)+' – '+wwShort_(D.we)+'</b><button type="button" class="ww-wk" data-wk="1" aria-label="สัปดาห์ถัดไป">›</button></div>'
+    +'<p class="ww-r d4">'+(D.rows.length?'แตะด้านขวาเพื่อดูต่อ →':'สัปดาห์นี้ยังไม่มีบันทึกการรักษา')+'</p>'});
+  if(!D.rows.length) return S;
+  S.push({c:'ww-s2',h:'<div class="ww-k ww-r d1">สัปดาห์นี้เราดูแลคนไข้</div><div class="ww-big ww-r d2" data-count="'+D.cur.patients+'">0</div><div class="ww-unit ww-r d3">คน · '+fmt(D.cur.cases)+' เคส</div>'
+    +'<p class="ww-r d4">'+wwDelta_(D.cur.patients,D.prev.patients)+'<br>คนไข้ใหม่ <b>'+fmt(D.cur.newP)+' คน</b> · คนไข้เก่ากลับมา <b>'+D.cur.retPct.toFixed(0)+'%</b></p>'});
+  S.push({c:'ww-s3',h:'<div class="ww-k ww-r d1">รายได้รวมสัปดาห์นี้</div><div class="ww-big ww-money ww-r d2" data-count="'+Math.round(D.cur.rev)+'" data-pre="฿">0</div>'
+    +'<p class="ww-r d3">'+wwDelta_(D.cur.rev,D.prev.rev)+'</p>'
+    +'<p class="ww-r d4">'+(D.rank===1?'🏆 <b>สูงสุดในรอบ 12 สัปดาห์</b>':'อันดับ <b>'+D.rank+'</b> จาก 12 สัปดาห์ล่าสุด')+' · เฉลี่ย <b>฿'+fmt(D.cur.avg)+'</b> ต่อเคส</p>'});
+  if(D.topProcs.length){ const mx=D.topProcs[0][1];
+    S.push({c:'ww-s4',h:'<div class="ww-k ww-r d1">งานที่ทำมากที่สุด</div><h2 class="ww-r d2">'+E(D.topProcs[0][0])+' นำมาเป็นที่ 1</h2><div class="ww-rank ww-r d3">'
+      +D.topProcs.map((p,i)=>'<div class="ww-row"><span class="n">'+(i+1)+'</span><div class="t" style="--w:'+Math.max(6,p[1]/mx*100).toFixed(0)+'%"><span>'+E(p[0])+'</span></div><span class="v">'+fmt(p[1])+'</span></div>').join('')+'</div>'}); }
+  if(D.busy){ const dw=WW_DOW[new Date(D.busy.d+'T12:00').getDay()];
+    S.push({c:'ww-s5',h:'<div class="ww-k ww-r d1">วันที่ยุ่งที่สุด</div><h2 class="ww-r d2">'+dw+' '+wwShort_(D.busy.d)+'</h2><div class="ww-big ww-r d3" data-count="'+D.busy.n+'">0</div><p class="ww-r d4"><b>คนไข้ในวันเดียว</b> ขอบคุณทีมที่รับมือได้ 💪</p>'}); }
+  if(D.hours.size>=3){ const hs=[...D.hours.keys()].sort((a,b)=>a-b), h0=hs[0], h1=hs[hs.length-1]; let pk=h0; D.hours.forEach((n,h)=>{ if(n>(D.hours.get(pk)||0)) pk=h; }); const mx=D.hours.get(pk);
+    let bars=''; for(let h=h0;h<=h1;h++){ const n=D.hours.get(h)||0; bars+='<div data-v="'+Math.max(3,n/mx*100).toFixed(0)+'"'+(h===pk?' class="hot"':'')+'><em>'+h+'</em></div>'; }
+    S.push({c:'ww-s6',h:'<div class="ww-k ww-r d1">ชั่วโมงทอง</div><h2 class="ww-r d2">คนไข้มามากสุดช่วง <span style="color:var(--ww-gold)">'+pk+':00 น.</span></h2><div class="ww-hours ww-r d3">'+bars+'</div><p class="ww-r d4" style="margin-top:26px">นับจากเวลาบันทึกการรักษา '+fmt(D.cur.cases)+' เคส</p>'}); }
+  if(D.docList.length){ const ic=['🥇','🥈','🥉','⭐','⭐'];
+    S.push({c:'ww-s7',h:'<div class="ww-k ww-r d1">ทีมหมอสัปดาห์นี้</div><div class="ww-docs">'+D.docList.map((d,i)=>'<div class="ww-doc ww-r d'+Math.min(5,i+2)+'"><div class="e">'+ic[i]+'</div><div style="min-width:0"><div class="nm">'+E(d.n)+'</div><div class="bd">'+fmt(d.pts)+' คนไข้ · <b>฿'+fmt(d.rev)+'</b>'+(d.top[0]?' · เด่น: '+E(d.top[0])+' '+d.top[1]+' ครั้ง':'')+'</div></div></div>').join('')+'</div>'}); }
+  if(D.oRows) S.push({c:'ww-s8',h:'<div class="ww-k ww-r d1">งานจัดฟัน</div><div class="ww-big ww-r d2" data-count="'+D.oPts+'">0</div><div class="ww-unit ww-r d3">คนไข้จัดฟันที่มาสัปดาห์นี้</div><p class="ww-r d4">รวม <b>'+fmt(D.oRows)+' รายการ</b> · ยิ้มสวยขึ้นทีละนิดทุกสัปดาห์ 😁</p>'});
+  if(D.apts) S.push({c:'ww-s9',h:'<div class="ww-k ww-r d1">นัดหมายสัปดาห์นี้</div><div class="ww-big ww-r d2" data-count="'+Math.round(D.aptCame/D.apts*100)+'" data-post="%">0</div><div class="ww-unit ww-r d3">มาตามนัด</div><p class="ww-r d4">นัดทั้งหมด <b>'+fmt(D.apts)+'</b> · มาจริง <b>'+fmt(D.aptCame)+'</b> · ยกเลิก <b>'+fmt(D.aptCancel)+'</b><br><small>นับว่ามาตามนัดเมื่อสถานะนัดเป็น "เสร็จสิ้น" หรือมีบันทึกการรักษา HN เดียวกันในวันนัด</small></p>'});
+  S.push({c:'ww-s10',h:'<div class="ww-k ww-r d1">สัปดาห์หน้า</div><div class="ww-big ww-r d2" data-count="'+D.next+'">0</div><div class="ww-unit ww-r d3">นัดที่รออยู่แล้ว</div>'
+    +'<p class="ww-r d4">'+(D.nBusy?'วันที่แน่นสุด: <b>'+WW_DOW[new Date(D.nBusy.d+'T12:00').getDay()]+' '+wwShort_(D.nBusy.d)+'</b> ('+D.nBusy.n+' นัด)':'ยังว่างอยู่ เติมนัดได้อีกเยอะ')+'</p>'
+    +'<div class="ww-btns ww-r d5"><button type="button" class="ww-btn" id="wwAgain">ดูอีกครั้ง</button><button type="button" class="ww-btn alt" data-wk="-1">สัปดาห์ก่อน</button></div>'});
+  return S;
+}
+let _ww=null;
+function openWeeklyWrap(ws){
+  if(!canSeeStats()) return;
+  ws=ws||wwLastWeek_();
+  try{ localStorage.setItem('bl_ww_seen', ws); }catch(e){}
+  let ov=document.getElementById('wwOv');
+  if(!ov){
+    wwCss_();
+    ov=document.createElement('div'); ov.id='wwOv'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','สรุปสัปดาห์');
+    ov.innerHTML='<div class="ww-ph" id="wwPh"><div class="ww-bars" id="wwBars"></div><div class="ww-top"><span>🦷 BANGLUANG</span><button type="button" class="ww-x" id="wwX" aria-label="ปิด">✕</button></div><div id="wwSlides"></div><div class="ww-nav l" id="wwL"></div><div class="ww-nav r" id="wwR"></div></div>';
+    document.body.appendChild(ov);
+    document.getElementById('wwX').onclick=closeWeeklyWrap;
+    document.getElementById('wwR').onclick=()=>wwShow_(_ww.i+1);
+    document.getElementById('wwL').onclick=()=>wwShow_(_ww.i-1);
+    const ph=document.getElementById('wwPh');
+    ph.addEventListener('pointerdown',()=>{ if(_ww) _ww.paused=true; });
+    ['pointerup','pointercancel','pointerleave'].forEach(e=>ph.addEventListener(e,()=>{ if(_ww) _ww.paused=false; }));
+    ph.addEventListener('click',e=>{ const b=e.target.closest('[data-wk]'); if(b){ e.stopPropagation(); openWeeklyWrap(_addDays(_ww.ws,7*(+b.dataset.wk))); return; }
+      if(e.target.id==='wwAgain'){ e.stopPropagation(); _ww.auto=true; wwShow_(0); } });
+    document.addEventListener('keydown',e=>{ if(!_ww||document.getElementById('wwOv').style.display==='none') return; if(e.key==='ArrowRight') wwShow_(_ww.i+1); if(e.key==='ArrowLeft') wwShow_(_ww.i-1); if(e.key==='Escape') closeWeeklyWrap(); });
+  }
+  if(ws>wwMonday_(todayStr())) ws=wwMonday_(todayStr());
+  const S=wwSlides_(wwData_(ws));
+  document.getElementById('wwSlides').innerHTML=S.map(s=>'<section class="ww-sl '+s.c+'">'+s.h+'</section>').join('');
+  document.getElementById('wwBars').innerHTML=S.map(()=>'<div class="ww-bar"><i></i></div>').join('');
+  if(_ww&&_ww.raf) cancelAnimationFrame(_ww.raf);
+  _ww={ws,i:0,el:0,t0:performance.now(),auto:true,paused:false,raf:0,n:S.length};
+  ov.style.display='flex';
+  wwShow_(0);
+  const tick=n=>{ if(!_ww) return; if(!_ww.paused&&_ww.auto) _ww.el+=n-_ww.t0; _ww.t0=n; const p=Math.min(1,_ww.el/6000); const f=document.querySelectorAll('#wwBars i')[_ww.i]; if(f) f.style.width=(p*100)+'%';
+    if(p>=1&&_ww.auto){ if(_ww.i<_ww.n-1) wwShow_(_ww.i+1); else _ww.auto=false; } _ww.raf=requestAnimationFrame(tick); };
+  _ww.raf=requestAnimationFrame(n=>{ _ww.t0=n; tick(n); });
+}
+function wwShow_(n){
+  if(!_ww) return; const sl=[...document.querySelectorAll('#wwSlides .ww-sl')];
+  _ww.i=Math.max(0,Math.min(sl.length-1,n)); _ww.el=0; _ww.t0=performance.now();
+  sl.forEach((s,k)=>s.classList.toggle('on',k===_ww.i));
+  document.querySelectorAll('#wwBars i').forEach((f,k)=>f.style.width=k<_ww.i?'100%':'0');
+  const cur=sl[_ww.i]; if(!cur) return;
+  const red=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  cur.querySelectorAll('[data-count]').forEach(el=>{ const to=+el.dataset.count, pre=el.dataset.pre||'', post=el.dataset.post||'', st=performance.now(), d=red?0:1200;
+    (function f(t){ const p=d?Math.min(1,(t-st)/d):1, e=1-Math.pow(1-p,3); el.textContent=pre+fmt(to*e)+post; if(p<1) requestAnimationFrame(f); })(st); });
+  document.querySelectorAll('#wwSlides .ww-hours div').forEach(d=>d.style.height=cur.contains(d)?d.dataset.v+'%':'0');
+}
+function wwCss_(){ if(document.getElementById('wwCss')) return; const st=document.createElement('style'); st.id='wwCss'; st.textContent=WW_CSS; document.head.appendChild(st); }
+function closeWeeklyWrap(){ const ov=document.getElementById('wwOv'); if(ov) ov.style.display='none'; if(_ww&&_ww.raf) cancelAnimationFrame(_ww.raf); _ww=null; }
+/* วันจันทร์: แจ้งในหน้าหลักว่าสรุปสัปดาห์ที่แล้วพร้อมดู (Toy เท่านั้น · กดดูแล้วหายจนถึงสัปดาห์ถัดไป) */
+function wwHomeBanner_(){
+  try{
+    if(!canSeeStats()) return;
+    const home=document.getElementById('page-home'); if(!home) return;
+    let b=document.getElementById('wwBanner'); const ws=wwLastWeek_(); let seen=''; try{ seen=localStorage.getItem('bl_ww_seen')||''; }catch(e){}
+    if(seen===ws){ if(b) b.remove(); return; }
+    wwCss_();
+    if(!b){ b=document.createElement('button'); b.type='button'; b.id='wwBanner'; b.className='ww-banner'; home.insertBefore(b, home.firstChild); }
+    b.innerHTML='<span class="ww-bn-ic">🎬</span><span><b>สรุปสัปดาห์ที่แล้วพร้อมแล้ว</b><br><small>'+wwShort_(ws)+' – '+wwShort_(_addDays(ws,6))+' · แตะเพื่อดู</small></span><span class="ww-bn-go">›</span>';
+    b.onclick=()=>{ openWeeklyWrap(ws); b.remove(); };
+  }catch(e){}
+}
+(function(){ const _rh=window.renderHome; if(typeof _rh==='function') window.renderHome=function(){ const r=_rh.apply(this,arguments); wwHomeBanner_(); return r; }; })();
+
 try{ __BLP.mark('scriptsDone'); }catch(e){}
 </script>
 
