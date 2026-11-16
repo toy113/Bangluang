@@ -207,6 +207,11 @@ html, body { height: 100%; font-family: 'Sarabun', sans-serif; background: var(-
 .exp-cat b{text-align:right;color:var(--wine-dark);}
 @media (max-width:600px){ .exp-draft{flex-direction:column;} .exp-thumb{flex-basis:auto;justify-content:flex-start;} .exp-grid{grid-template-columns:1fr;} .exp-cat{grid-template-columns:96px 1fr 76px;} .exp-total{font-size:24px;} }
 table:has(#treatListBody) thead th:nth-child(5), #treatListBody > tr > td:nth-child(5){display:none;}   /* หน้าหลัก: ชื่อหมออยู่ที่หัวกลุ่มแล้ว */
+button, .btn, .nav-item, .top-tab, .period-tab, a, label, select, summary { touch-action: manipulation; }   /* แตะแล้วตอบสนองทันที ไม่รอเช็กดับเบิลแท็ป */
+@media (max-width: 768px){
+  /* การ์ดรายการที่อยู่นอกจอ: เบราว์เซอร์ไม่ต้องจัดวาง/วาดจนกว่าจะเลื่อนถึง */
+  #treatListBody > tr, #treatPageBody > tr, #labPageBody > tr, .endo-card { content-visibility: auto; contain-intrinsic-size: auto 96px; }
+}
 .omc{max-width:360px;margin:4px 0 12px;border:1px solid var(--border);border-radius:14px;padding:10px 10px 8px;background:#fff;}
 .omc-h{display:flex;align-items:center;justify-content:space-between;font-weight:800;color:var(--wine-dark);font-size:13.5px;margin-bottom:6px;}
 .omc-h button{border:0;background:var(--wine-pale);color:var(--wine);border-radius:8px;width:30px;height:28px;font-size:16px;cursor:pointer;}
@@ -5477,7 +5482,8 @@ function renderAptList(today){
   // ปุ่ม "บันทึกการรักษา" ทุกแถว → เปิดฟอร์มรายการรักษาพร้อมข้อมูลจากนัดนี้
   window._aptTreatMap = window._aptTreatMap || {};
   // มีรายการรักษาของคนไข้คนนี้ (หมอเดียวกัน) ในวันของนัดแล้ว?
-  const treatedApt_=a=>treatments.some(t=>t.date===a.date && t.status!=='ยกเลิก'
+  const _tOnCache={}, _tOn=d=>_tOnCache[d]||(_tOnCache[d]=treatments.filter(t=>t.date===d && t.status!=='ยกเลิก'));   // ดัชนีตามวัน: ไม่ต้องไล่รายการรักษาทั้งหมดทุกนัด
+  const treatedApt_=a=>_tOn(a.date).some(t=>true
     && ((a.hn && t.hn && normHN(a.hn)===normHN(t.hn)) || ((!a.hn || !t.hn) && a.patName && t.patName && String(a.patName).trim()===String(t.patName).trim()))
     && (!a.docName || !t.docName || docAlias(a.docName)===docAlias(t.docName)));
   const homeTreatBtn_=a=>{
@@ -7970,6 +7976,23 @@ function setTreatMode(mode, btn){
   renderTreatPage();
 }
 
+/* ใส่แถวจำนวนมากแบบแบ่งชุด: ชุดแรกขึ้นทันที ที่เหลือเติมตอนเครื่องว่าง — หน้าจอ/ปุ่มไม่ค้างระหว่างวาดรายการยาวๆ
+   เรียกซ้ำกับ element เดิม = ยกเลิกชุดเก่าที่ยังเติมไม่หมด */
+function setRowsChunked_(el, parts, first, chunk){
+  first = first||80; chunk = chunk||200;
+  const tok = (el._chunkTok = (el._chunkTok||0)+1);
+  el.innerHTML = parts.slice(0, first).join('');
+  if(parts.length <= first) return;
+  let i = first;
+  const idle = window.requestIdleCallback ? (f=>requestIdleCallback(f,{timeout:120})) : (f=>setTimeout(f,16));
+  const step = ()=>{
+    if(el._chunkTok !== tok || !el.isConnected) return;
+    el.insertAdjacentHTML('beforeend', parts.slice(i, i+chunk).join(''));
+    i += chunk;
+    if(i < parts.length) idle(step);
+  };
+  idle(step);
+}
 function renderTreatPage(){
   refreshEndoSet();
   const filterDate = document.getElementById('treatFilterDate')?.value||'';
@@ -8034,7 +8057,8 @@ function renderTreatPage(){
   const order=n=>{ const i=doctors.findIndex(d=>d.name===n); return i<0?999:i; };
   _treatGroupKeys=Object.keys(groups).sort((a,b)=>order(a)-order(b)||a.localeCompare(b));
   const ncol=isManager?11:10;
-  tbody.innerHTML=_treatGroupKeys.map((k,gi)=>{
+  const _parts=[];
+  _treatGroupKeys.forEach((k,gi)=>{
     const list=groups[k];
     const doc=doctors.find(d=>d.name===k)||DOCTORS_DATA.find(d=>d.name===k);
     const col=/^#[0-9a-f]{6}$/i.test(doc?.color||'')?doc.color:'#7A6A78';
@@ -8045,8 +8069,9 @@ function renderTreatPage(){
     const hdr=`<tr class="treat-grp-hdr" onclick="toggleTreatGroup(${gi})"><td colspan="${ncol}" style="background:${col}26;color:${col};color:color-mix(in srgb,${col} 70%,#000);box-shadow:inset 6px 0 0 ${col};">
       <div class="tg-wrap"><span class="tg-name">${collapsed?'▸':'▾'} ${doc?.emoji||''} ${_escHtml(k)}</span>
       <span class="tg-meta">${list.length} ราย</span><span class="tg-meta">รายได้ ${fmt(tot)}${xr>0?` (X-Ray ${fmt(xr)})`:''}</span><span class="tg-meta">ส่วนแบ่งหมอ ${fmt(shr)}</span></div></td></tr>`;
-    return hdr+(collapsed?'':list.map(rowHtml).join(''));
-  }).join('');
+    _parts.push(hdr); if(!collapsed) list.forEach(t=>_parts.push(rowHtml(t)));
+  });
+  setRowsChunked_(tbody, _parts);
 }
 function toggleTreatGroup(i){
   const k=_treatGroupKeys[i]; if(k===undefined) return;
@@ -9080,6 +9105,35 @@ function syncAll(opts){
   _syncP = syncAllInner_(opts).finally(()=>{ _syncP = null; });
   return _syncP;
 }
+/* หน้าไหนใช้ข้อมูลตารางไหน — ซิงค์แล้วตารางที่หน้านั้นไม่ได้ใช้เปลี่ยน ก็ไม่ต้องวาดหน้าใหม่ */
+const SYNC_PAGE_DEPS = {
+  home:['appointments','treatments','labs','patients','day_notes','sch_slots','settings'],
+  treatment:['treatments','patients','settings'], lab:['labs','settings'], endo:['treatments'],
+  stats:['appointments','treatments','patients','labs'], followup:['treatments','appointments','patients'],
+  ortho:['appointments','treatments','patients'], income:['treatments','labs','settings'],
+  schedule:['appointments','day_notes','sch_slots','settings','treatments','patients'],
+  patients:['patients','treatments','appointments'], recall:['patients','treatments','recall','appointments'],
+  crm:['appointments','patients','treatments'], expense:[], settings:['settings']
+};
+/* วาดหน้าใหม่หลังซิงค์ "ตอนผู้ใช้ไม่ได้แตะจอ" — กันปุ่มหาย/กดไม่ติดเพราะรายการถูกวาดทับกลางนิ้ว (รอได้สูงสุด 4 วิ) */
+let _ptrDown = false, _lastTouchAt = 0, _calmFn = null, _calmT = null, _calmSince = 0;
+try{
+  document.addEventListener('pointerdown', ()=>{ _ptrDown = true; _lastTouchAt = Date.now(); }, {capture:true, passive:true});
+  ['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev, ()=>{ _ptrDown = false; _lastTouchAt = Date.now(); }, {capture:true, passive:true}));
+  document.addEventListener('scroll', ()=>{ _lastTouchAt = Date.now(); }, {capture:true, passive:true});
+}catch(e){}
+function renderWhenCalm_(fn){
+  _calmFn = fn; if(!_calmSince) _calmSince = Date.now();
+  if(_calmT) return;
+  const tick = ()=>{
+    _calmT = null;
+    const busy = _ptrDown || (Date.now()-_lastTouchAt < 450);
+    if(busy && Date.now()-_calmSince < 4000){ _calmT = setTimeout(tick, 200); return; }
+    const f = _calmFn; _calmFn = null; _calmSince = 0;
+    try{ f && f(); }catch(e){ console.warn('render after sync', e); }
+  };
+  tick();
+}
 async function syncAllInner_(opts){
   if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) return;
   const dot=document.getElementById('syncDot');
@@ -9106,6 +9160,8 @@ async function syncAllInner_(opts){
       if(dot) dot.style.background='var(--green)';
       return;
     }
+    const _prevH = _gaH || {};
+    const _sameAsBefore = !!(d && d._h && !hq && Object.keys(d._h).length && Object.keys(d._h).every(k=>_prevH[k] && _prevH[k]===d._h[k] && !gaPending_(k)));
     if(d && d._h) _gaH = Object.assign({}, d._h);
     const _changedLocal = ['appointments','treatments','labs'].filter(k=>Array.isArray(d[k]));
     // ---- Sheet is source of truth: full replace ----
@@ -9285,37 +9341,43 @@ async function syncAllInner_(opts){
       });
     }
     // cache-first: เก็บข้อมูลล่าสุดลง localStorage เพื่อให้เปิดครั้งหน้าขึ้นทันที (เฉพาะตารางที่เปลี่ยน)
-    saveLocal(_changedLocal);
-    // re-render current page
+    if(!_sameAsBefore) saveLocal(_changedLocal);
+    // re-render current page — เฉพาะเมื่อข้อมูลที่หน้านั้นใช้เปลี่ยนจริง · และรอให้ผู้ใช้ปล่อยนิ้วก่อน (ไม่วาดทับตอนกำลังกดปุ่ม)
     const p=document.querySelector('.page.active')?.id?.replace('page-','');
+    const _got = Object.keys(d).filter(k=>Array.isArray(d[k]));
+    const _deps = SYNC_PAGE_DEPS[p];
+    const _skipRender = _sameAsBefore || (_deps && !_got.some(k=>_deps.includes(k)));
+    if(!_skipRender) renderWhenCalm_(()=>{
+      const p=document.querySelector('.page.active')?.id?.replace('page-','');
     if(p==='home') renderHome();
-    else if(p==='treatment') renderTreatPage();
-    else if(p==='lab') renderLabPage();
-    else if(p==='endo') renderEndoPage();
-    else if(p==='stats') renderStatsPage();
-    else if(p==='followup') renderFollowup();
-    else if(p==='ortho') renderOrthoPage();
-    else if(p==='income') renderIncome();
-    else if(p==='schedule'){
-      renderScheduleDay();
-      // ไม่ re-render mini cal ถ้ากำลังพิมพ์โน้ตอยู่
-      const activeEl = document.activeElement;
-      const isTypingNote = activeEl && activeEl.classList.contains('cal-note-input');
-      if(!isTypingNote) renderSchMiniCal();
-    }
-    else if(p==='patients'){
-      // ไม่ re-render ถ้ากำลังพิมพ์ค้นหาอยู่
-      const searchEl = document.getElementById('patientSearch');
-      const isTyping = searchEl && document.activeElement === searchEl;
-      if(!isTyping) renderPatients();
-    }
-    else if(p==='recall') renderRecall();
-    else if(p==='crm'){
-      // ไม่ re-render ระหว่างกรอกฟอร์มตั้งค่า / พิมพ์ / เปิดหน้าต่าง CRM อยู่ (กันข้อมูลที่ยังไม่บันทึกหาย)
-      const body = document.getElementById('crmBody'), modal = document.getElementById('crmModal');
-      const busy = CRM.sub==='settings' || (modal && modal.classList.contains('open')) || (body && body.contains(document.activeElement));
-      if(!busy) crmRender();
-    }
+      else if(p==='treatment') renderTreatPage();
+      else if(p==='lab') renderLabPage();
+      else if(p==='endo') renderEndoPage();
+      else if(p==='stats') renderStatsPage();
+      else if(p==='followup') renderFollowup();
+      else if(p==='ortho') renderOrthoPage();
+      else if(p==='income') renderIncome();
+      else if(p==='schedule'){
+        renderScheduleDay();
+        // ไม่ re-render mini cal ถ้ากำลังพิมพ์โน้ตอยู่
+        const activeEl = document.activeElement;
+        const isTypingNote = activeEl && activeEl.classList.contains('cal-note-input');
+        if(!isTypingNote) renderSchMiniCal();
+      }
+      else if(p==='patients'){
+        // ไม่ re-render ถ้ากำลังพิมพ์ค้นหาอยู่
+        const searchEl = document.getElementById('patientSearch');
+        const isTyping = searchEl && document.activeElement === searchEl;
+        if(!isTyping) renderPatients();
+      }
+      else if(p==='recall') renderRecall();
+      else if(p==='crm'){
+        // ไม่ re-render ระหว่างกรอกฟอร์มตั้งค่า / พิมพ์ / เปิดหน้าต่าง CRM อยู่ (กันข้อมูลที่ยังไม่บันทึกหาย)
+        const body = document.getElementById('crmBody'), modal = document.getElementById('crmModal');
+        const busy = CRM.sub==='settings' || (modal && modal.classList.contains('open')) || (body && body.contains(document.activeElement));
+        if(!busy) crmRender();
+      }
+    });
     const t=new Date().toLocaleTimeString('th-TH');
     if(txt) txt.textContent='ซิงค์แล้ว '+t;
     if(dot) dot.style.background='var(--green)';
@@ -11570,12 +11632,12 @@ function loadPatientsFromSheet(sheetData){
 }
 
 // ---- build display list (patients only — ไม่ดึงจาก treatments/appointments) ----
+const _hnCollator = new Intl.Collator(undefined, {numeric:true});
 function getPatientList(){
-  return [...patients].sort((a,b)=>{
-    const na = String(a.hn||'').replace('-','');
-    const nb = String(b.hn||'').replace('-','');
-    return nb.localeCompare(na, undefined, {numeric:true});
-  });
+  // เร็วขึ้นมาก: คิดคีย์ครั้งเดียวต่อคน (HN ตัวเลขล้วน → เทียบเป็นตัวเลข) แทน localeCompare ทุกคู่
+  const keyed = patients.map(p=>{ const k=String(p.hn||'').replace('-',''); return { p, k, n: /^\d+$/.test(k) ? +k : NaN }; });
+  keyed.sort((a,b)=> (a.n===a.n && b.n===b.n) ? (b.n-a.n || _hnCollator.compare(b.k,a.k)) : _hnCollator.compare(b.k,a.k));
+  return keyed.map(x=>x.p);
 }
 
 // ---- visit counts ----
