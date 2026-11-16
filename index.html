@@ -4934,12 +4934,12 @@ function crmViewSettings(){
     ${crmStaffNotifyCard_(s, fol)}
     <div class="crm-card"><h4>⏰ ช่วงเวลาและการเตือน</h4><div class="crm-form">
       ${inp('sendStart','เริ่มส่งได้ตั้งแต่','time')}${inp('sendEnd','หยุดส่งหลัง','time')}
-      ${inp('remindHour','เวลาส่งเตือนนัด','time')}${inp('followupHour','เวลาถามอาการวันถัดไป','time')}
+      ${inp('remindHour','เวลาส่งเตือนนัด','time')}${inp('remind2Hour','เวลาเตือนซ้ำ (ก่อนนัด 1 วัน)','time')}${inp('followupHour','เวลาถามอาการวันถัดไป','time')}
       ${inp('orthoDays','งานจัดฟัน เตือนก่อน (วัน)','number')}${inp('otherDays','งานอื่น เตือนก่อน (วัน)','number')}
       <div class="full">${inp('orthoKeywords','คำที่ถือว่าเป็นนัดจัดฟัน (นอกเหนือจากคนไข้จัดฟันในระบบ)')}</div>
       ${inp('receiptWaitMin','ถ้ายังไม่มียอดเงิน รอก่อนส่งสรุปการรักษา (นาที) — เผื่อพนักงานกรอกยอดทีหลัง · 0 = ไม่รอ','number')}
       ${inp('aftercareDelayMin','หน่วงส่ง Aftercare (นาที) — เผื่อเวลาเพิ่มคำแนะนำพิเศษ','number')}
-    </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('birthdayOn','ส่งคำอวยพรวันเกิด (เช้าวันเกิด)')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
+    </div><div style="margin-top:8px;">${sw('confirmOn','ส่งยืนยันนัดเมื่อมีนัดใหม่/เปลี่ยนนัด')}${sw('remindOn','เตือนก่อนนัด')}${sw('remind2On','เตือนซ้ำก่อนนัด 1 วัน ถ้ายังไม่กดยืนยัน (ครั้งเดียว)')}${sw('receiptOn','ส่งสรุปการรักษา+ค่าใช้จ่าย+ขอบคุณ หลังบันทึกการรักษา')}${sw('aftercareOn','ส่งคำแนะนำหลังรักษา')}${sw('birthdayOn','ส่งคำอวยพรวันเกิด (เช้าวันเกิด)')}${sw('followupOn','ถามอาการวันถัดไป')}</div></div>
     <div class="crm-card"><h4>🏥 ข้อมูลคลินิกและข้อความ</h4><div class="crm-form">
       ${inp('clinicName','ชื่อคลินิก')}${inp('clinicPhone','เบอร์ติดต่อ (ปุ่มติดต่อคลินิก)')}
       <div class="full"><label>การผูกบัญชีของคนไข้</label><div class="crm-muted" style="padding:8px 0;">✅ ผูกอัตโนมัติเมื่อ <b>HN + เบอร์โทร</b> ตรงกับทะเบียนคนไข้ · ถ้าไม่ตรง จะเข้าคิวให้พนักงานอนุมัติ</div></div>
@@ -4962,7 +4962,7 @@ function crmViewSettings(){
       <div>${d.richMenu?'✅':'⬜'} rich menu ${crmEsc(d.richMenu||'(ยังไม่สร้าง — รัน crmSetupRichMenu())')}</div><div>🔗 LIFF: ${crmEsc(d.liffUrl||'')}</div></div></div>`;
 }
 function crmSaveSettings(){
-  const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','followupHour','receiptWaitMin','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
+  const keys=['enabled','testMode','testUserId','sendStart','sendEnd','remindHour','remind2Hour','remind2On','followupHour','receiptWaitMin','orthoDays','otherDays','orthoKeywords','aftercareDelayMin','quotaGuard',
     'confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','reviewUrl','clinicName','clinicPhone','linkApproval','emergencyText','emergencyKeywords','rescheduleText','confirmThanksText','birthdayText','oaChatBase','reviewDocRules'];
   const s={};
   keys.forEach(k=>{ const el=document.getElementById('crmS_'+k); if(!el) return; s[k]= el.type==='checkbox' ? el.checked : (el.type==='number' ? +el.value : el.value); });

@@ -54,6 +54,7 @@ var CRM_DEFAULT_SETTINGS = {
   sendStart: '08:00', sendEnd: '20:00',
   confirmOn: true,
   remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 2,
+  remind2On: true, remind2Hour: '09:00',   // เตือนซ้ำก่อนนัด 1 วัน เฉพาะคนที่ได้รับเตือนแล้วยังไม่กดยืนยัน/ขอเลื่อน (ครั้งเดียว)
   orthoKeywords: 'จัดฟัน,ปรับเครื่องมือ,รีเทนเนอร์,ถอดเครื่องมือจัดฟัน',
   receiptWaitMin: 30,        // ยังไม่มียอดเงิน → รอกี่นาทีก่อนส่งสรุป (เผื่อพนักงานกรอกยอดทีหลังหมอ) · 0 = ไม่รอ
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
@@ -634,11 +635,13 @@ function crmMoveInfo_(s, state, a, curIds) {
   return best;
 }
 function crmAptMessage_(s, apt, kind, mv) {
+  var again = kind === 'remind2'; if (again) kind = 'remind';   // เตือนซ้ำ = การ์ดเตือนนัดเดิม แต่หัวข้อ/ข้อความต่างกัน
   // mv = { date, time } นัดเดิมที่ถูกเลื่อน (kind 'move') — บอกคนไข้ชัดเจนว่าเลื่อนจากวันไหนเป็นวันไหน และนัดเดิมถูกยกเลิกแล้ว
   var sameDay = !!(mv && mv.date === apt.date);
   var title = kind === 'remind' ? '🔔 เตือนนัดหมาย' : (kind === 'move' ? (sameDay ? '🔄 เปลี่ยนเวลานัดหมาย' : '🔄 เลื่อนนัดหมายแล้ว') : (kind === 'change' ? '🔄 นัดหมายมีการเปลี่ยนแปลง' : '📌 ใบนัด'));
   // ชื่อ ตามด้วย HN — คนไข้จัดฟันที่มีรหัสจัดฟัน (A-###) ใส่รหัสแทน HN (ทุกข้อความถึงคนไข้ใช้ crmWho_)
-  var sub = 'คุณ' + crmWho_(apt.patName, apt.hn) + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : (kind === 'move' ? ' คลินิกได้' + (sameDay ? 'เปลี่ยนเวลา' : 'เลื่อน') + 'นัดหมายของคุณให้แล้วค่ะ' : (kind === 'change' ? ' คลินิกได้ปรับรายละเอียดนัดหมายของคุณ กรุณาตรวจสอบวัน-เวลาใหม่ด้านล่างค่ะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ')));
+  if (again) title = '⏰ พรุ่งนี้มีนัดนะคะ';
+  var sub = again ? 'คุณ' + crmWho_(apt.patName, apt.hn) + ' ยังไม่ได้ยืนยันนัดพรุ่งนี้ รบกวนกดยืนยัน หรือขอเลื่อนนัดได้เลยค่ะ' : 'คุณ' + crmWho_(apt.patName, apt.hn) + (kind === 'remind' ? ' อย่าลืมนัดหมายของคุณนะคะ' : (kind === 'move' ? ' คลินิกได้' + (sameDay ? 'เปลี่ยนเวลา' : 'เลื่อน') + 'นัดหมายของคุณให้แล้วค่ะ' : (kind === 'change' ? ' คลินิกได้ปรับรายละเอียดนัดหมายของคุณ กรุณาตรวจสอบวัน-เวลาใหม่ด้านล่างค่ะ' : ' คลินิกได้บันทึกนัดหมายของคุณแล้วค่ะ')));
   var rows = [];
   if (kind === 'move' && mv) rows.push(crmRow_('นัดเดิม', (sameDay ? '' : crmThaiDate_(mv.date) + ' ') + (mv.time ? mv.time + ' น. ' : '') + '(ยกเลิกแล้ว)'));
   rows.push(crmRow_(kind === 'move' ? 'นัดใหม่' : (kind === 'change' ? 'วัน (ใหม่)' : 'วัน'), crmThaiDate_(apt.date)), crmRow_(kind === 'change' ? 'เวลา (ใหม่)' : 'เวลา', (apt.time || '-') + ' น.'));
@@ -1026,6 +1029,32 @@ function crmTickInner_() {
     });
     if (crmAllDone_(state, gkey, tg)) list.forEach(function (a) { crmMark_(state, crmKey_(s, 'remind:' + a.id + ':' + a.date), 'remind', { hn: a.hn, patName: a.patName, refId: a.id }, 'done', ''); });
   });
+
+  // 2b) เตือนซ้ำก่อนนัด 1 วัน — เฉพาะนัดที่ "เตือนรอบแรกไปแล้ว" แต่คนไข้ยังไม่กดยืนยัน/ขอเลื่อน และพนักงานยังไม่ได้ยืนยันแทน · ส่งครั้งเดียว
+  if (s.remindOn && s.remind2On !== false && hm >= (s.remind2Hour || '09:00')) {
+    var tmr = crmAddDays_(today, 1), answered = {}, g2 = {};
+    crmRead_('apt').forEach(function (r) { if (r.confirmedAt || r.rescheduleAt) answered[String(r.aptId)] = true; });
+    apts.forEach(function (a) {
+      if (!a.id || a.date !== tmr || closed.indexOf(a.status) !== -1 || a.status === 'คอนเฟิร์ม' || answered[String(a.id)]) return;
+      // ต้องเคยได้ข้อความเรื่องนัดนี้แล้ว: การ์ดเตือนรอบแรก หรือการ์ดแจ้งนัด (นัดที่ลงไว้ไม่ถึง 2 วันจะไม่มีรอบเตือน) ที่ส่งไปเกิน 12 ชม.
+      var ck2 = crmKey_(s, 'confirm:' + a.id + ':' + a.date + ':' + (a.time || ''));
+      if (!crmIsDone_(state, crmKey_(s, 'remind:' + a.id + ':' + a.date)) && !(crmIsDone_(state, ck2) && !crmSentWithinHours_(state, ck2, 12))) return;
+      var tg2 = targets(a.hn); if (!tg2.length) return;
+      var k2 = crmHN_(a.hn); (g2[k2] = g2[k2] || { tg: tg2, list: [] }).list.push(a);
+    });
+    Object.keys(g2).forEach(function (k2) {
+      var g = g2[k2], list = g.list.sort(function (x, y) { return String(x.time || '').localeCompare(String(y.time || '')); });
+      var key2 = crmKey_(s, 'remind2:' + list[0].id + ':' + list[0].date);
+      if (crmIsDone_(state, key2)) return;
+      var ids2 = list.map(function (a) { return a.id; }).join(',');
+      g.tg.forEach(function (t) {
+        if (crmSend_(s, state, { key: key2 + '>' + t.lineUserId, type: 'remind', hn: list[0].hn, patName: list[0].patName, lineUserId: t.lineUserId, refId: ids2,
+          detail: list[0].date + ' ' + list.map(function (a) { return a.time || ''; }).join(' / ') + ' (เตือนซ้ำ ยังไม่ยืนยัน)' },
+          [list.length > 1 ? crmAptGroupMessage_(s, list) : crmAptMessage_(s, list[0], 'remind2')])) summary.remind++;
+      });
+      if (crmAllDone_(state, key2, g.tg)) crmMark_(state, key2, 'remind', { hn: list[0].hn, patName: list[0].patName, refId: ids2 }, 'done', 'เตือนซ้ำก่อนนัด 1 วัน');
+    });
+  }
 
   // 3) คำแนะนำหลังรักษา (วันนี้)
   var templates = crmRead_('templates');
@@ -2375,7 +2404,7 @@ function crmStaffAction_(b) {
     if (act === 'saveSettings') {
       var old = crmSettings_(), inc = b.settings || {}, s = {};
       for (var k in old) s[k] = old[k];
-      var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','orthoDays','otherDays','orthoKeywords',
+      var allowed = ['enabled','testMode','testUserId','sendStart','sendEnd','confirmOn','remindOn','remindHour','remind2On','remind2Hour','orthoDays','otherDays','orthoKeywords',
         'orthoPromoOn','orthoPromoDays','faqOn','receiptOn','receiptWaitMin','aftercareOn','aftercareDelayMin','birthdayOn','birthdayText','followupOn','followupHour','ratingOn','reviewOnOk','reviewDocRules','oaChatBase','ratingTpls','reviewUrl','clinicName','clinicPhone','linkApproval','quotaGuard','emergencyKeywords','emergencyText','rescheduleText','confirmThanksText','staffNotifyOn','staffNotifyIds','staffNotifyTypes'];
       allowed.forEach(function (k2) { if (inc[k2] !== undefined) s[k2] = inc[k2]; });
       ['enabled','testMode','orthoPromoOn','faqOn','confirmOn','remindOn','receiptOn','aftercareOn','birthdayOn','followupOn','ratingOn','reviewOnOk','staffNotifyOn'].forEach(function (k3) { s[k3] = (s[k3] === true || s[k3] === 'true' || s[k3] === 'TRUE'); });
