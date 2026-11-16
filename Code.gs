@@ -358,7 +358,7 @@ function gaWarm_() {
   GA_KEYS.forEach(function(k){ want.push('ga2g:' + k, 'ga2m:' + k); });
   try { got = cache.getAll(want); } catch (e) { return 0; }
   for (var t = 0; t < GA_KEYS.length; t++) {
-    var k = GA_KEYS[t]; if (k === 'settings') continue;
+    var k = GA_KEYS[t];
     var gen = got['ga2g:' + k], meta = null;
     try { meta = got['ga2m:' + k] ? JSON.parse(got['ga2m:' + k]) : null; } catch (e) {}
     if (gen && meta && meta.g === gen && gaChunksGet_(cache, k, meta.n) !== null) continue;
@@ -403,7 +403,7 @@ function gaFastGetAll_(p) {
     if (!gen) { gen = String(Date.now()) + '-' + Math.random(); try { cache.put('ga2g:' + k, gen, 21600); } catch (e) {} }
     var meta = null;
     try { meta = got['ga2m:' + k] ? JSON.parse(got['ga2m:' + k]) : null; } catch (e) {}
-    if (force || (meta && meta.g !== gen) || k === 'settings') meta = null;   // settings อ่านสดเสมอ (ชีตเล็ก · กัน cache เก่าที่ยังมี PIN)
+    if (force || (meta && meta.g !== gen)) meta = null;   // settings ใช้ cache ได้แล้ว (แก้ผ่านแอป → gaOk_ · แก้มือ → onEdit · สคริปต์ลบบัญชี → gaTouch_)   // settings อ่านสดเสมอ (ชีตเล็ก · กัน cache เก่าที่ยังมี PIN)
     if (meta && client[k] && client[k] === meta.h) { hashes[k] = meta.h; same.push(k); timing[k] = [Date.now() - tk0, '=']; continue; }
     var json = meta ? gaChunksGet_(cache, k, meta.n) : null;
     var h = meta ? meta.h : '', fromSheet = false;
@@ -588,7 +588,7 @@ function authRemoveUnusedAccounts() {
       if (String(sh.getRange(q, 2).getValue()) === nm && pins.getProperty('AUTH_PIN_' + oid)) { dup = true; break; }
     }
     if (ref > 0 && !dup) { Logger.log('ข้าม [' + id + '] ' + nm + ': ยังถูกอ้างในนัด/รักษา ' + ref + ' รายการ (ไม่ลบ ปล่อยให้ authLegacyOff ล็อกเข้าไม่ได้แทน)'); continue; }
-    gaTrash_(sh, r); sh.deleteRow(r); done++; Logger.log('ลบแล้ว [' + id + '] ' + nm);
+    gaTrash_(sh, r); sh.deleteRow(r); done++; gaTouch_('settings'); Logger.log('ลบแล้ว [' + id + '] ' + nm);
   }
   Logger.log('เสร็จ: ลบ ' + done + ' แถว');
 }
@@ -1072,7 +1072,7 @@ function authRemovePart() {
   if (!sh || sh.getLastRow() < 2) { Logger.log('ไม่มีชีต settings'); return; }
   for (var r = sh.getLastRow(); r >= 2; r--) {
     if (String(sh.getRange(r, 1).getValue()).trim() !== 'part') continue;
-    gaTrash_(sh, r); sh.deleteRow(r); done++; Logger.log('ลบแล้ว: แถว part (' + sh.getRange(1, 1).getValue() + ') สำเนาอยู่ในชีต ถังขยะ');
+    gaTrash_(sh, r); sh.deleteRow(r); done++; gaTouch_('settings'); Logger.log('ลบแล้ว: แถว part (' + sh.getRange(1, 1).getValue() + ') สำเนาอยู่ในชีต ถังขยะ');
   }
   PropertiesService.getScriptProperties().deleteProperty('AUTH_PIN_part');
   Logger.log('เสร็จ: ลบ ' + done + ' แถว');
