@@ -300,18 +300,17 @@ function callClaudeForInsight_(prompt) {
 // ============================================================
 var GA_TABS = ['ตารางนัด','บันทึกการรักษา','แลป','settings','คนไข้','day_notes','sch_slots','recall'];
 var GA_KEYS = ['appointments','treatments','labs','settings','patients','day_notes','sch_slots','recall'];
-var GA_TTL = 120;
+var GA_TTL = 21600;   // 6 ชม. (สูงสุดของ CacheService) — ข้อมูลไม่ค้าง เพราะทุกการเขียนผ่านแอป/LINE เรียก gaTouch_ และแก้มือในชีต → onEdit เรียก gaTouch_
 var GA_CHUNK = 25000; // ตัวอักษรต่อ 1 ช่อง cache (ไทย 3 ไบต์/ตัว → < 100KB)
 
 function gaReadTab_(ss, tab) {
   var sh = ss.getSheetByName(tab);
   if (!sh) return [];
-  var lastRow = sh.getLastRow(), lastCol = sh.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) return [];
-  var hdr = sh.getRange(1,1,1,lastCol).getValues()[0];
-  var raw = sh.getRange(2,1,lastRow-1,lastCol).getValues();
+  var raw = sh.getDataRange().getValues();   // อ่านครั้งเดียว (เดิม 4 คำสั่ง: lastRow/lastCol/หัว/ข้อมูล)
+  if (raw.length < 2) return [];
+  var hdr = raw[0];
   var result = [];
-  for (var i = 0; i < raw.length; i++) {
+  for (var i = 1; i < raw.length; i++) {
     var row = raw[i], hasData = false;
     for (var c = 0; c < row.length; c++) { if (row[c] !== '' && row[c] !== null) { hasData = true; break; } }
     if (!hasData) continue;
@@ -345,6 +344,30 @@ function gaChunksPut_(cache, key, json, h, gen) {
 // เรียกหลังเขียนชีตสำเร็จ — ทำให้ cache ของชีตนั้นหมดสภาพทันที (ทุกเครื่องจะได้ข้อมูลใหม่รอบถัดไป)
 function gaTouch_(key) {
   try { CacheService.getScriptCache().put('ga2g:' + key, String(Date.now()) + '-' + Math.random(), 21600); } catch (e) {}
+}
+/* แก้ข้อมูลด้วยมือใน Google Sheets → ล้าง cache ของชีตนั้นทันที (simple trigger ทำงานเอง ไม่ต้องติดตั้ง) */
+function onEdit(e) {
+  try {
+    var name = e && e.range ? e.range.getSheet().getName() : '';
+    var i = GA_TABS.indexOf(name); if (i !== -1) gaTouch_(GA_KEYS[i]);
+  } catch (err) {}
+}
+/* อุ่น cache ล่วงหน้า (เรียกจาก trigger crmTick ทุก 10 นาที) — เครื่องที่เปิดเว็บจะได้ข้อมูลจาก cache ไม่ต้องรออ่านชีตสด */
+function gaWarm_() {
+  var cache = CacheService.getScriptCache(), want = [], got = {}, ss = null, n = 0;
+  GA_KEYS.forEach(function(k){ want.push('ga2g:' + k, 'ga2m:' + k); });
+  try { got = cache.getAll(want); } catch (e) { return 0; }
+  for (var t = 0; t < GA_KEYS.length; t++) {
+    var k = GA_KEYS[t]; if (k === 'settings') continue;
+    var gen = got['ga2g:' + k], meta = null;
+    try { meta = got['ga2m:' + k] ? JSON.parse(got['ga2m:' + k]) : null; } catch (e) {}
+    if (gen && meta && meta.g === gen && gaChunksGet_(cache, k, meta.n) !== null) continue;
+    if (!gen) { gen = String(Date.now()) + '-' + Math.random(); try { cache.put('ga2g:' + k, gen, 21600); } catch (e) {} }
+    if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+    var json = JSON.stringify(gaReadTab_(ss, GA_TABS[t]));
+    gaChunksPut_(cache, k, json, gaHash_(json), gen); n++;
+  }
+  return n;
 }
 function gaOk_(key) { gaTouch_(key); return ContentService.createTextOutput('ok'); }
 /* กันสูตรแฝง: ข้อความที่ขึ้นต้นด้วย = + @ จะถูกชีตตีความเป็นสูตร → ใส่ ' นำหน้าให้เป็นข้อความธรรมดา (อ่านกลับมาได้ค่าเดิม) */

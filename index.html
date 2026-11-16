@@ -3268,7 +3268,7 @@ function verifyLogin(){
 //  START APP
 // ============================================================
 function startApp(){
-  try{ __BLP.mark('appShown'); }catch(e){}
+  try{ __BLP.mark('appShown'); requestAnimationFrame(function(){ requestAnimationFrame(function(){ __BLP.mark('localPaint'); }); }); }catch(e){}
   loadLocal();
   setTimeout(()=>{ try{ loadLineHns(true); }catch(e){} }, 600);
   // Save session so refresh doesn't log out
@@ -13926,7 +13926,8 @@ function perfHtml_(){
   const paint = m.firstPaint!=null ? m.firstPaint : null;
   let h='';
   if(paint==null){ h+='<p class="perf-note">หน้าแรกยังวาดไม่เสร็จ — เปิดใหม่อีกครั้งหลังข้อมูลโหลดแล้ว</p>'; }
-  else h+=perfRow_('เปิดหน้าเว็บจนวาดหน้าแรก', paint, 0);
+  else h+=perfRow_('เปิดหน้าเว็บจนได้ข้อมูลล่าสุดจากชีต', paint, 0);
+  if(m.localPaint!=null) h+=perfRow_('เห็นหน้าจอก่อน (ข้อมูลที่เก็บในเครื่อง · รวมล็อกอิน)', m.localPaint, 1);
   if(htmlEnd!=null) h+=perfRow_('1. โหลดหน้าเว็บจนเริ่มอ่านโค้ด', htmlEnd, 1);
   if(htmlEnd!=null && scripts!=null) h+=perfRow_('2. อ่านโค้ดที่เหลือจนครบ', scripts-htmlEnd, 1);
   if(scripts!=null && paint!=null){

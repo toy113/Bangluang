@@ -820,7 +820,8 @@ function crmNextAptText_(hn, apts, fromDate) {
 }
 
 /* ============================ MAIN TICK (trigger ทุก 10 นาที) ============================ */
-function crmTick() {
+function crmTick(e) {
+  if (e && e.triggerUid) { try { gaWarm_(); } catch (eW) {} }   // อุ่น cache ข้อมูลหน้าเว็บ — เฉพาะรอบ trigger (ไม่ถ่วงปุ่มส่งทันที) และทำก่อนถือ lock
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return { ok: false, error: 'busy' };
   try {
@@ -1591,7 +1592,7 @@ function crmSetAptConfirmed_(x) {
   var cur = String(sh.getRange(x._row, cs + 1).getValue() || '').trim();
   if (cur !== '' && cur !== 'ไม่คอนเฟิร์ม') return false;
   sh.getRange(x._row, cs + 1).setValue('คอนเฟิร์ม');
-  crmTouch_();
+  crmTouch_(); try { gaTouch_('appointments'); } catch (eG) {}   // ให้หน้าเว็บเห็นสถานะคอนเฟิร์มทันที (cache getAll อยู่นาน 6 ชม.)
   return true;
 }
 function crmHandlePostback_(s, ev, uid) {
