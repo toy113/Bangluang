@@ -3490,6 +3490,14 @@ function crmIsOrtho(a){
   const kws=String(s.orthoKeywords||'').split(',').map(x=>x.trim()).filter(Boolean);
   return kws.some(k=>String(a.proc||'').includes(k));
 }
+/* นัดที่ได้ LINE เตือนซ้ำก่อนนัด 1 วันแล้ว (รวม 2 ครั้ง) แต่คนไข้ยังไม่กดยืนยัน/ขอเลื่อน และยังไม่คอนเฟิร์ม → หลังเที่ยงขึ้นในรายการต้องโทร */
+function crmLineNoReply_(a){
+  if(!a || !a.id || ['คอนเฟิร์ม','เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status)) return false;
+  const ap=(CRM.data&&CRM.data.apt||[]).find(x=>String(x.aptId)===String(a.id));
+  if(ap && (ap.confirmedAt || ap.rescheduleAt)) return false;
+  const sent=((CRM.data&&CRM.data.log)||[]).some(r=>/(^|:)remind2:/.test(String(r.key||'')) && r.status!=='failed' && String(r.refId||'').split(',').includes(String(a.id)));
+  return sent && new Date().getHours()>=12;
+}
 function crmLogFor(type, refId){ return ((CRM.data&&CRM.data.log)||[]).filter(r=>r.type===type && String(r.refId).split(',').includes(String(refId))); }
 // นัดจัดฟัน (การ์ดจัดฟัน คอลัมน์ นัดถัดไป) → id เสมือนแบบเดียวกับฝั่งเซิร์ฟเวอร์ ORTHO-<HN>-<วันที่>
 function crmOrthoAptId(hn, date){ return 'ORTHO-'+crmHN(hn)+'-'+String(date||'').slice(0,10); }
@@ -3779,13 +3787,13 @@ function crmViewToday(){
   const resch=tType('reschedule');
   const callb=openT.filter(t=>!['emergency','reschedule','message'].includes(t.type) && t.priority!=='urgent');
   const msgs=tType('message');
-  const callTmr=aM.filter(a=>!crmHasLine(a.hn) && a.status!=='คอนเฟิร์ม');
+  const callTmr=aM.filter(a=>(!crmHasLine(a.hn) && a.status!=='คอนเฟิร์ม') || crmLineNoReply_(a));
   const names=arr=>arr.slice(0,3).map(t=>crmEsc(t.patName||'ไม่ทราบชื่อ')).join(', ')+(arr.length>3?' และอีก '+(arr.length-3):'');
   const todo=[
     [emerg.length,'r','🚨 ฉุกเฉิน / ด่วน', names(emerg), "CRM.taskType='urgent';crmSetSub('tasks')"],
     [c.fuAlert,'r','🩺 อาการต้องดูแล (2 วันล่าสุด)','รุนแรง / ฉุกเฉิน / ขอให้โทรกลับ', "CRM.fuFilter='care';crmSetSub('followup')"],
     [resch.length,'o','📅 คนไข้ขอเลื่อนนัด', names(resch), "CRM.taskType='reschedule';crmSetSub('tasks')"],
-    [callTmr.length,'o','☎️ นัดพรุ่งนี้ที่ต้องโทรยืนยันเอง','ไม่มี LINE และยังไม่คอนเฟิร์ม', "CRM.aptRange='tomorrow';CRM.aptOnlyCall=true;crmSetSub('apts')"],
+    [callTmr.length,'o','☎️ นัดพรุ่งนี้ที่ต้องโทรยืนยันเอง','ไม่มี LINE หรือส่ง LINE 2 ครั้งแล้วไม่ตอบ', "CRM.aptRange='tomorrow';CRM.aptOnlyCall=true;crmSetSub('apts')"],
     [callb.length,'','📞 งานโทรกลับอื่นๆ', names(callb), "CRM.taskType='callback';crmSetSub('tasks')"],
     [msgs.length,'','💬 ข้อความจากคนไข้รอตอบ', names(msgs), "CRM.taskType='message';crmSetSub('tasks')"],
     [c.linksPending,'','🔗 คนไข้รออนุมัติผูก LINE','', "crmSetSub('links')"],
@@ -3799,7 +3807,7 @@ function crmViewToday(){
   ${todoBox}
   <div class="crm-kpis">
     ${kpi('', "CRM.aptRange='today';CRM.aptOnlyCall=false;crmSetSub('apts')", 'นัดวันนี้', aT.length, 'ยืนยันทาง LINE '+aT.filter(a=>confirmed.has(String(a.id))).length)}
-    ${kpi(callTmr.length?'warn':'', "CRM.aptRange='tomorrow';CRM.aptOnlyCall=false;crmSetSub('apts')", 'นัดพรุ่งนี้', aM.length, 'มี LINE '+aM.filter(a=>crmHasLine(a.hn)).length+' · ต้องโทรเอง '+aM.filter(a=>!crmHasLine(a.hn)).length)}
+    ${kpi(callTmr.length?'warn':'', "CRM.aptRange='tomorrow';CRM.aptOnlyCall=false;crmSetSub('apts')", 'นัดพรุ่งนี้', aM.length, 'มี LINE '+aM.filter(a=>crmHasLine(a.hn)).length+' · ต้องโทรเอง '+callTmr.length)}
     ${kpi(c.urgent?'alert':(c.tasks?'warn':''), "CRM.taskType='all';crmSetSub('tasks')", 'งานโทรกลับค้าง', c.tasks, 'ด่วน '+c.urgent)}
     ${kpi(c.fuAlert?'alert':'', "CRM.fuFilter='all';crmSetSub('followup')", 'ถามอาการวันนี้', fuToday.length, 'ตอบแล้ว '+fuToday.filter(f=>f.answeredAt).length+(c.fuAlert?' · ต้องดูแล '+c.fuAlert:''))}
     ${kpi('', "crmSetSub('report')", 'ข้อความที่ส่งวันนี้', sentToday.reduce((n,r)=>n+(+r.pushCount||0),0), Object.keys(byType).map(k=>(CRM_LOG_TYPE[k]||k)+' '+byType[k]).join(' · ')||'—')}
@@ -3870,7 +3878,7 @@ function crmViewApts(){
   }
   list.sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   const confirmed=new Set((CRM.data.apt||[]).filter(x=>x.confirmedAt).map(x=>String(x.aptId)));
-  const needCall=a=>!crmHasLine(a.hn) && !['คอนเฟิร์ม','เสร็จสิ้น','เสร็จ'].includes(a.status) && !a._ortho;
+  const needCall=a=>(!crmHasLine(a.hn) && !['คอนเฟิร์ม','เสร็จสิ้น','เสร็จ'].includes(a.status) && !a._ortho) || crmLineNoReply_(a);
   const nCall=list.filter(needCall).length, allN=list.length;
   if(CRM.aptOnlyCall) { const keep=list.filter(needCall); list.length=0; keep.forEach(x=>list.push(x)); }
   return `<div class="crm-card"><h4>📅 นัดหมายและสถานะ LINE<span class="sp"></span>
@@ -3880,7 +3888,7 @@ function crmViewApts(){
     <div class="crm-list">${list.map(a=>`<div class="crm-item"><div class="main">
         <div class="nm">${lineDot_(a)}${crmEsc(a.time||'')} · ${ocTag_(a.hn,a.patName,a.orthoCode)}${crmEsc(a.patName||'')}${orthoPayBadge({hn:a.hn})} ${hnShow_(a.hn,a.patName,a.orthoCode)?'<span class="crm-muted">HN '+crmEsc(a.hn)+'</span>':''}</div>
         <div class="meta">${CRM.aptRange==='week'?crmEsc(crmThaiShort(a.date))+' · ':''}${crmEsc(a.proc||'-')} · ${crmEsc(String(a.docName||'').split(/\s+/)[0])} <span class="crm-chip ${({'คอนเฟิร์ม':'g','เสร็จสิ้น':'g','เสร็จ':'g','ไม่คอนเฟิร์ม':'o','รอทำ':'x','นัดจัดฟัน':'b'})[a.status]||'x'}">${crmEsc(a.status||'-')}</span>${crmIsOrthoVisit(a)&&a.status!=='นัดจัดฟัน'?'<span class="crm-chip b">จัดฟัน</span>':''}</div>
-        <div>${crmAptLineChips(a)}</div></div>
+        <div>${crmAptLineChips(a)}${crmLineNoReply_(a)?' <span class="crm-chip r">📵 LINE 2 ครั้ง ไม่ตอบ</span>':''}</div></div>
       <div class="acts">${!a._ortho && confirmed.has(String(a.id)) && a.status!=='คอนเฟิร์ม' ? `<button class="crm-btn g" onclick="crmMarkConfirmed('${crmEsc(a.id)}')">ตั้งเป็นคอนเฟิร์ม</button>`:''}
         ${crmPhoneOf(a.hn,a.phone)?`<a class="crm-btn" href="${crmTel(crmPhoneOf(a.hn,a.phone))}">📞</a>`:''}
         ${a._ortho?`<button class="crm-btn" onclick="openOrthoHistory('${crmEsc(a.hn)}')">การ์ดจัดฟัน</button>`:`<button class="crm-btn" onclick="openEditApt('${crmEsc(a.id)}')">เปิดนัด</button>`}</div></div>`).join('') || '<div class="crm-empty">ไม่มีนัดในช่วงนี้</div>'}</div></div>`;

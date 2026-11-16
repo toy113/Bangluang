@@ -54,7 +54,7 @@ var CRM_DEFAULT_SETTINGS = {
   sendStart: '08:00', sendEnd: '20:00',
   confirmOn: true,
   remindOn: true, remindHour: '10:00', orthoDays: 2, otherDays: 2,
-  remind2On: true, remind2Hour: '09:00',   // เตือนซ้ำก่อนนัด 1 วัน เฉพาะคนที่ได้รับเตือนแล้วยังไม่กดยืนยัน/ขอเลื่อน (ครั้งเดียว)
+  remind2On: true, remind2Hour: '10:00',   // เตือนซ้ำก่อนนัด 1 วัน เฉพาะคนที่ได้รับเตือนแล้วยังไม่กดยืนยัน/ขอเลื่อน (ครั้งเดียว)
   orthoKeywords: 'จัดฟัน,ปรับเครื่องมือ,รีเทนเนอร์,ถอดเครื่องมือจัดฟัน',
   receiptWaitMin: 30,        // ยังไม่มียอดเงิน → รอกี่นาทีก่อนส่งสรุป (เผื่อพนักงานกรอกยอดทีหลังหมอ) · 0 = ไม่รอ
   receiptOn: true,           // ส่งสรุปการรักษา + ค่าใช้จ่าย + ขอบคุณ ทันทีหลังบันทึกการรักษา
@@ -87,6 +87,12 @@ function crmSettings_() {
   // ย้ายค่าครั้งเดียว: เตือนนัดล่วงหน้า 2 วันทุกประเภท (ค่าเดิมที่เคยบันทึกไว้เป็น 1 วัน) — หลังจากนี้ปรับเองในตั้งค่าได้ตามปกติ
   if (raw && s.remind2dMigrated !== true) {
     s.orthoDays = 2; s.otherDays = 2; s.remind2dMigrated = true;
+    try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
+  }
+  // ย้ายค่าครั้งเดียว: เวลาเตือนซ้ำก่อนนัด 1 วัน 09:00 → 10:00 (16 พ.ย. 69 ตามที่คลินิกสั่ง)
+  if (raw && s.remind2At10Migrated !== true) {
+    if (!s.remind2Hour || s.remind2Hour === '09:00') s.remind2Hour = '10:00';
+    s.remind2At10Migrated = true;
     try { PropertiesService.getScriptProperties().setProperty('CRM_SETTINGS', JSON.stringify(s)); } catch (e) {}
   }
   // ย้ายค่าครั้งเดียว: ปิดการถามคะแนนบริการ (6 พ.ย. 69 ตามที่คลินิกสั่ง) — หลังจากนี้เปิดเองได้ในตั้งค่า "ให้คะแนนบริการ"
@@ -1031,7 +1037,7 @@ function crmTickInner_() {
   });
 
   // 2b) เตือนซ้ำก่อนนัด 1 วัน — เฉพาะนัดที่ "เตือนรอบแรกไปแล้ว" แต่คนไข้ยังไม่กดยืนยัน/ขอเลื่อน และพนักงานยังไม่ได้ยืนยันแทน · ส่งครั้งเดียว
-  if (s.remindOn && s.remind2On !== false && hm >= (s.remind2Hour || '09:00')) {
+  if (s.remindOn && s.remind2On !== false && hm >= (s.remind2Hour || '10:00')) {
     var tmr = crmAddDays_(today, 1), answered = {}, g2 = {};
     crmRead_('apt').forEach(function (r) { if (r.confirmedAt || r.rescheduleAt) answered[String(r.aptId)] = true; });
     apts.forEach(function (a) {
