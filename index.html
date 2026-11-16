@@ -12,6 +12,10 @@
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
+// วัดความเร็วเครื่องนี้ (แสดงในตั้งค่า → ⏱ ความเร็วของเครื่องนี้)
+window.__BLP={ m:{}, pages:{}, fetches:[], mark:function(n){ if(this.m[n]==null) this.m[n]=performance.now(); } };
+</script>
+<script>
 // Chart.js (~200KB) โหลดเมื่อจำเป็นเท่านั้น (กราฟหน้ารายได้) — ไม่บล็อกการเปิดแอปอีกต่อไป
 window.loadChartJs = function(){
   if (window.Chart) return Promise.resolve();
@@ -3264,6 +3268,7 @@ function verifyLogin(){
 //  START APP
 // ============================================================
 function startApp(){
+  try{ __BLP.mark('appShown'); }catch(e){}
   loadLocal();
   setTimeout(()=>{ try{ loadLineHns(true); }catch(e){} }, 600);
   // Save session so refresh doesn't log out
@@ -9157,6 +9162,8 @@ async function syncAllInner_(opts){
     const _t1=performance.now();
     const d=await res.json();
     // วัดความเร็วการโหลดเต็ม (ไม่มี hash = ดึงทุกตาราง) เก็บไว้ดูในหน้าตั้งค่า — ใช้หาสาเหตุเวลาเปิดช้า
+    try{ const _t2b=performance.now(); __BLP.fetches.push({ at:Math.round(_t0), full:!hq, waitMs:Math.round(_t1-_t0), readMs:Math.round(_t2b-_t1), kb:(hq?null:Math.round(JSON.stringify(d).length/1024)), srv:d&&d._t||null, same:(d&&d._same)||[] }); if(__BLP.fetches.length>12) __BLP.fetches.shift();
+      if(__BLP.m.firstPaint==null) setTimeout(function(){ requestAnimationFrame(function(){ requestAnimationFrame(function(){ __BLP.mark('firstPaint'); }); }); },0); }catch(e){}
     if(!hq){ try{ const _t2=performance.now(); localStorage.setItem('bl_sync_stat', JSON.stringify({ at:new Date().toISOString(), waitMs:Math.round(_t1-_t0), readMs:Math.round(_t2-_t1),
       kb:Math.round(JSON.stringify(d).length/1024), n:{ apt:(d.appointments||[]).length, treat:(d.treatments||[]).length, pat:(d.patients||[]).length, lab:(d.labs||[]).length } })); }catch(e){} }
     if(d && d._v===2 && full) _gaLastFull = Date.now();
@@ -13898,6 +13905,90 @@ buildDoctorGrid();
     showPage(_lastPage);
   } catch(e){ console.warn('Session restore error:',e); }
 })();
+
+/* ============ ⏱ ความเร็วของเครื่องนี้ ============ */
+(function(){
+  const _sp=window.showPage;
+  window.showPage=function(p){ const t=performance.now(); const r=_sp.apply(this,arguments);
+    try{ requestAnimationFrame(function(){ requestAnimationFrame(function(){ __BLP.pages[p]={ ms:Math.round(performance.now()-t), at:Date.now() }; }); }); }catch(e){}   // นับจนเบราว์เซอร์วาดหน้าเสร็จจริง
+    return r; };
+})();
+function perfFmt_(ms){ if(ms==null||isNaN(ms)) return '–'; return (ms/1000).toFixed(1)+' วิ'; }
+function perfCls_(ms){ return ms>=5000?'perf-r':(ms>=1500?'perf-o':''); }
+function perfRow_(label, ms, lv, note){
+  return '<div class="perf-row perf-l'+lv+'"><span class="pl">'+label+(note?' <small>'+note+'</small>':'')+'</span><span class="pv '+perfCls_(ms)+'">'+perfFmt_(ms)+'</span></div>';
+}
+function perfHtml_(){
+  const P=window.__BLP||{m:{},pages:{},fetches:[]}, m=P.m||{};
+  let nav=null; try{ nav=performance.getEntriesByType('navigation')[0]; }catch(e){}
+  const htmlEnd = nav ? nav.responseEnd : null;
+  const scripts = m.scriptsDone!=null ? m.scriptsDone : null;
+  const paint = m.firstPaint!=null ? m.firstPaint : null;
+  let h='';
+  if(paint==null){ h+='<p class="perf-note">หน้าแรกยังวาดไม่เสร็จ — เปิดใหม่อีกครั้งหลังข้อมูลโหลดแล้ว</p>'; }
+  else h+=perfRow_('เปิดหน้าเว็บจนวาดหน้าแรก', paint, 0);
+  if(htmlEnd!=null) h+=perfRow_('1. โหลดหน้าเว็บจนเริ่มอ่านโค้ด', htmlEnd, 1);
+  if(htmlEnd!=null && scripts!=null) h+=perfRow_('2. อ่านโค้ดที่เหลือจนครบ', scripts-htmlEnd, 1);
+  if(scripts!=null && paint!=null){
+    h+=perfRow_('3. รอข้อมูลจากชีต (รวมล็อกอิน) จนวาดหน้าแรก', paint-scripts, 1);
+    const f=(P.fetches||[]).find(x=>x.full) || (P.fetches||[])[0];
+    if(f){
+      h+=perfRow_('ดึงข้อมูลชีต (รอเซิร์ฟเวอร์ตอบ)', f.waitMs, 2);
+      h+=perfRow_('รับข้อมูลมา'+(f.kb!=null?' '+f.kb+' KB':''), f.readMs, 2);
+      if(f.srv){
+        const names={appointments:'ตารางนัด',treatments:'บันทึกการรักษา',labs:'แลป',settings:'settings',patients:'คนไข้',day_notes:'บันทึกประจำวัน',sch_slots:'ช่องเวลา',recall:'recall'};
+        const src={c:'จากแคช',s:'อ่านชีตสด','=':'ไม่เปลี่ยน'};
+        h+='<div class="perf-sub">เวลาที่เซิร์ฟเวอร์ใช้ต่อตาราง (รวมกันคือเวลารอ)</div>';
+        Object.keys(f.srv).map(k=>({k,ms:f.srv[k][0],s:f.srv[k][1]})).sort((a,b)=>b.ms-a.ms).forEach(x=>{
+          h+=perfRow_(names[x.k]||x.k, x.ms, 3, src[x.s]||'');
+        });
+      }else h+='<p class="perf-note">ยังไม่มีเวลาแยกต่อตารางจากเซิร์ฟเวอร์ (รอระบบหลังบ้านอัปเดต แล้วเปิดใหม่)</p>';
+    }
+  }
+  const pg=Object.keys(P.pages||{});
+  if(pg.length){
+    h+='<div class="perf-sub" style="margin-top:14px;">เวลาวาดแต่ละหน้า (ครั้งล่าสุดที่เปิดในเครื่องนี้)</div>';
+    pg.map(k=>({k,ms:P.pages[k].ms})).sort((a,b)=>b.ms-a.ms).forEach(x=>{
+      const el=document.getElementById('nav-'+x.k); const nm=el?el.textContent.replace(/\s+/g,' ').trim():x.k;
+      h+=perfRow_(nm, x.ms, 1);
+    });
+  }
+  const dev=[ (navigator.hardwareConcurrency||'?')+' คอร์', (navigator.deviceMemory?navigator.deviceMemory+' GB':''), (navigator.connection&&navigator.connection.effectiveType)||'' ].filter(Boolean).join(' · ');
+  h+='<p class="perf-note" style="margin-top:12px;">เครื่องนี้: '+dev+'</p>';
+  return h;
+}
+function openPerfPanel(){
+  let el=document.getElementById('perfModal');
+  if(!el){
+    const st=document.createElement('style');
+    st.textContent='#perfModal{position:fixed;inset:0;z-index:99999;background:rgba(40,20,36,.45);display:flex;align-items:center;justify-content:center;padding:14px;}'
+    +'#perfModal .pbox{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:18px 20px 20px;box-shadow:0 12px 40px rgba(0,0,0,.25);}'
+    +'#perfModal h3{margin:0;font-size:19px;color:var(--wine-dark,#4A1F40);}'
+    +'#perfModal .phd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}'
+    +'#perfModal .px{border:1px solid var(--border,#e5d9e1);background:#fff;border-radius:10px;width:36px;height:36px;font-size:18px;cursor:pointer;}'
+    +'.perf-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:14px;color:#4A1F40;}'
+    +'.perf-row .pv{font-weight:700;white-space:nowrap;color:#8a7a86;}'
+    +'.perf-l0{font-size:16px;font-weight:600;} .perf-l1{padding-left:14px;} .perf-l2{padding-left:30px;font-size:13px;} .perf-l3{padding-left:46px;font-size:12.5px;color:#7a6676;}'
+    +'.perf-row small{color:#a89aa5;font-weight:400;margin-left:4px;}'
+    +'.perf-o{color:#c77a00 !important;} .perf-r{color:#b3392f !important;}'
+    +'.perf-sub{font-size:12px;color:#a89aa5;margin:8px 0 2px 30px;} .perf-note{font-size:12px;color:#a89aa5;margin:8px 0;}';
+    document.head.appendChild(st);
+    el=document.createElement('div'); el.id='perfModal';
+    el.onclick=function(e){ if(e.target===el) el.style.display='none'; };
+    document.body.appendChild(el);
+  }
+  el.innerHTML='<div class="pbox"><div class="phd"><h3>⏱ ความเร็วของเครื่องนี้</h3><button class="px" onclick="document.getElementById(\'perfModal\').style.display=\'none\'">✕</button></div>'+perfHtml_()+'</div>';
+  el.style.display='flex';
+}
+(function(){   // ปุ่มเปิดในหน้าตั้งค่า + แตะข้อความซิงค์ด้านล่างซ้าย
+  const _b=window.buildSettingsPage;
+  window.buildSettingsPage=function(){ const r=_b.apply(this,arguments);
+    try{ const grid=document.getElementById('settingsGrid');
+      if(grid && !document.getElementById('perfBtn')){ const b=document.createElement('button'); b.id='perfBtn'; b.className='btn btn-secondary'; b.style.cssText='margin:10px 2px 0;'; b.textContent='⏱ ความเร็วของเครื่องนี้'; b.onclick=openPerfPanel; grid.parentNode.insertBefore(b, grid); }
+    }catch(e){} return r; };
+  const t=document.getElementById('syncText'); if(t){ t.style.cursor='pointer'; t.title='ดูความเร็วของเครื่องนี้'; t.addEventListener('click', openPerfPanel); }
+})();
+try{ __BLP.mark('scriptsDone'); }catch(e){}
 </script>
 
 <!-- ======== GOOGLE APPS SCRIPT TEMPLATE ======== -->

@@ -373,28 +373,29 @@ function gaFastGetAll_(p) {
   GA_KEYS.forEach(function(k){ want.push('ga2g:' + k, 'ga2m:' + k); });
   var got = {};
   try { got = cache.getAll(want); } catch (e) {}
-  var ss = null, parts = [], hashes = {}, same = [];
+  var ss = null, parts = [], hashes = {}, same = [], timing = {};
   for (var t = 0; t < GA_KEYS.length; t++) {
-    var k = GA_KEYS[t];
+    var k = GA_KEYS[t], tk0 = Date.now();
     var gen = got['ga2g:' + k];
     if (!gen) { gen = String(Date.now()) + '-' + Math.random(); try { cache.put('ga2g:' + k, gen, 21600); } catch (e) {} }
     var meta = null;
     try { meta = got['ga2m:' + k] ? JSON.parse(got['ga2m:' + k]) : null; } catch (e) {}
     if (force || (meta && meta.g !== gen) || k === 'settings') meta = null;   // settings อ่านสดเสมอ (ชีตเล็ก · กัน cache เก่าที่ยังมี PIN)
-    if (meta && client[k] && client[k] === meta.h) { hashes[k] = meta.h; same.push(k); continue; }
+    if (meta && client[k] && client[k] === meta.h) { hashes[k] = meta.h; same.push(k); timing[k] = [Date.now() - tk0, '=']; continue; }
     var json = meta ? gaChunksGet_(cache, k, meta.n) : null;
-    var h = meta ? meta.h : '';
+    var h = meta ? meta.h : '', fromSheet = false;
     if (json === null) {
       if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+      fromSheet = true;
       json = JSON.stringify(gaReadTab_(ss, GA_TABS[t]));
       h = gaHash_(json);
       gaChunksPut_(cache, k, json, h, gen);
     }
-    hashes[k] = h;
+    hashes[k] = h; timing[k] = [Date.now() - tk0, fromSheet ? 's' : 'c'];
     if (client[k] && client[k] === h) { same.push(k); continue; }
     parts.push(JSON.stringify(k) + ':' + json);
   }
-  var head = '"_v":2,"_h":' + JSON.stringify(hashes) + ',"_same":' + JSON.stringify(same) + (parts.length ? '' : ',"_unchanged":true');
+  var head = '"_v":2,"_h":' + JSON.stringify(hashes) + ',"_same":' + JSON.stringify(same) + ',"_t":' + JSON.stringify(timing) + (parts.length ? '' : ',"_unchanged":true');
   return ContentService.createTextOutput('{' + head + (parts.length ? ',' + parts.join(',') : '') + '}')
     .setMimeType(ContentService.MimeType.JSON);
 }
