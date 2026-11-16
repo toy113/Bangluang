@@ -35,12 +35,16 @@
     document.getElementById('m').className='small'; go.textContent='⭐ รีวิวให้คลินิก';
   }
   function fallback(msg, url){ if(url) go.href=url; go.style.display='inline-block'; document.getElementById('m').textContent=msg; }
-  var done=false, timer=setTimeout(function(){ if(!done) fallback('กดปุ่มด้านล่างเพื่อไปหน้ารีวิวได้เลยค่ะ'); }, 6000);
+  var t0=Date.now(), done=false, timer=setTimeout(function(){ if(!done) fallback('กดปุ่มด้านล่างเพื่อไปหน้ารีวิวได้เลยค่ะ'); }, 6000);
   fetch(API+'?action=crmRateOpen&fu='+encodeURIComponent(q.get('fu')||'')+'&k='+encodeURIComponent(q.get('k')||'')+(isOk?'&kind=ok':''),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(d){
       done=true; clearTimeout(timer);
-      if(d && d.ok && d.url){ location.replace(d.url); setTimeout(function(){ fallback('ถ้าหน้ารีวิวไม่เปิดเอง กดปุ่มด้านล่างค่ะ', d.url); }, 2500); }
+      if(d && d.ok && d.url){
+        go.href=d.url; go.style.display='inline-block';   // มีปุ่มให้กดเองระหว่างรอ
+        var wait=isOk ? Math.max(0, 3000-(Date.now()-t0)) : 0;   // ปกติดี: ให้คนไข้อ่านข้อความ ~3 วิ ก่อนเด้ง
+        setTimeout(function(){ location.replace(d.url); setTimeout(function(){ fallback('ถ้าหน้ารีวิวไม่เปิดเอง กดปุ่มด้านล่างค่ะ', d.url); }, 2500); }, wait);
+      }
       else fallback('กดปุ่มด้านล่างเพื่อไปหน้ารีวิวได้เลยค่ะ');
     })
     .catch(function(){ done=true; clearTimeout(timer); fallback('กดปุ่มด้านล่างเพื่อไปหน้ารีวิวได้เลยค่ะ'); });
