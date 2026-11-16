@@ -1961,6 +1961,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
           <div class="card-box-title">📈 สถิติคลินิก <span id="statsRangeLabel" style="margin-left:8px;background:var(--wine-pale);color:var(--wine);padding:2px 12px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;"></span></div>
           <div class="filter-row" style="flex-wrap:wrap;gap:8px;">
             <button type="button" onclick="openWeeklyWrap()" style="border:0;border-radius:20px;padding:7px 14px;font-weight:700;font-size:13px;cursor:pointer;color:#fff;background:linear-gradient(120deg,#a8357f,#4A1F40);">🎬 สรุปสัปดาห์</button>
+            <button type="button" onclick="openVideoMaker()" style="border:1.5px solid #a8357f;border-radius:20px;padding:6px 14px;font-weight:700;font-size:13px;cursor:pointer;color:#a8357f;background:#fff;">🎥 ทำวิดีโอ</button>
             <div class="period-tabs" id="statsPeriodTabs" style="background:var(--wine-pale);">
               <button class="period-tab" onclick="setStatsPeriod('30d',this)">30 วัน</button>
               <button class="period-tab active" onclick="setStatsPeriod('month',this)">เดือนนี้</button>
@@ -14073,8 +14074,8 @@ function wwData_(ws){
   const dayPts=new Map(); rows.forEach(t=>{ const d=String(t.date).slice(0,10); (dayPts.get(d)||dayPts.set(d,new Set()).get(d)).add(endoPatientKey(t)); });
   let busy=null; dayPts.forEach((s,d)=>{ if(!busy||s.size>busy.n) busy={d,n:s.size}; });
   const hours=new Map(); rows.forEach(t=>{ const h=parseInt(String(t.time||'').slice(0,2),10); if(!isNaN(h)&&h>=7&&h<=21) hours.set(h,(hours.get(h)||0)+1); });
-  const docs=new Map(); rows.forEach(t=>{ const n=docAlias(t.docName)||'ไม่ระบุหมอ'; const o=docs.get(n)||{n,rev:0,pts:new Set(),pr:new Map()}; o.rev+=totalPrice(t); o.pts.add(endoPatientKey(t)); String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(p=>o.pr.set(p,(o.pr.get(p)||0)+1)); docs.set(n,o); });
-  const docList=[...docs.values()].sort((a,b)=>b.rev-a.rev).slice(0,5).map(o=>({n:o.n,rev:o.rev,pts:o.pts.size,top:([...o.pr].sort((a,b)=>b[1]-a[1])[0]||['',0])}));
+  const docs=new Map(); rows.forEach(t=>{ const n=docAlias(t.docName)||'ไม่ระบุหมอ'; const o=docs.get(n)||{n,rev:0,cases:0,pts:new Set(),pr:new Map()}; o.rev+=totalPrice(t); o.cases++; o.pts.add(endoPatientKey(t)); String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(p=>o.pr.set(p,(o.pr.get(p)||0)+1)); docs.set(n,o); });
+  const docList=[...docs.values()].sort((a,b)=>b.rev-a.rev).slice(0,5).map(o=>({n:o.n,rev:o.rev,cases:o.cases,pts:o.pts.size,top:([...o.pr].sort((a,b)=>b[1]-a[1])[0]||['',0])}));
   const isO=t=>isAimDoc_(docAlias(t.docName)) || String(t.proc||'').split(',').some(x=>(typeof ORTHO_DEFAULT_DOC_ITEMS!=='undefined'?ORTHO_DEFAULT_DOC_ITEMS:[]).includes(x.trim()));
   const oRows=rows.filter(isO), oPts=new Set(oRows.map(endoPatientKey)).size;
   const treatKey=new Set(rows.map(t=>String(t.date).slice(0,10)+'|'+normHN(t.hn)));
@@ -14112,7 +14113,7 @@ function wwSlides_(D){
   if(D.apts) S.push({c:'ww-s9',h:'<div class="ww-k ww-r d1">นัดหมายสัปดาห์นี้</div><div class="ww-big ww-r d2" data-count="'+Math.round(D.aptCame/D.apts*100)+'" data-post="%">0</div><div class="ww-unit ww-r d3">มาตามนัด</div><p class="ww-r d4">นัดทั้งหมด <b>'+fmt(D.apts)+'</b> · มาจริง <b>'+fmt(D.aptCame)+'</b> · ยกเลิก <b>'+fmt(D.aptCancel)+'</b><br><small>นับว่ามาตามนัดเมื่อสถานะนัดเป็น "เสร็จสิ้น" หรือมีบันทึกการรักษา HN เดียวกันในวันนัด</small></p>'});
   S.push({c:'ww-s10',h:'<div class="ww-k ww-r d1">สัปดาห์หน้า</div><div class="ww-big ww-r d2" data-count="'+D.next+'">0</div><div class="ww-unit ww-r d3">นัดที่รออยู่แล้ว</div>'
     +'<p class="ww-r d4">'+(D.nBusy?'วันที่แน่นสุด: <b>'+WW_DOW[new Date(D.nBusy.d+'T12:00').getDay()]+' '+wwShort_(D.nBusy.d)+'</b> ('+D.nBusy.n+' นัด)':'ยังว่างอยู่ เติมนัดได้อีกเยอะ')+'</p>'
-    +'<div class="ww-btns ww-r d5"><button type="button" class="ww-btn" id="wwAgain">ดูอีกครั้ง</button><button type="button" class="ww-btn alt" data-wk="-1">สัปดาห์ก่อน</button></div>'});
+    +'<div class="ww-btns ww-r d5"><button type="button" class="ww-btn" id="wwVideo">🎥 ทำเป็นวิดีโอ</button><button type="button" class="ww-btn alt" id="wwAgain">ดูอีกครั้ง</button><button type="button" class="ww-btn alt" data-wk="-1">สัปดาห์ก่อน</button></div>'});
   return S;
 }
 let _ww=null;
@@ -14133,7 +14134,8 @@ function openWeeklyWrap(ws){
     ph.addEventListener('pointerdown',()=>{ if(_ww) _ww.paused=true; });
     ['pointerup','pointercancel','pointerleave'].forEach(e=>ph.addEventListener(e,()=>{ if(_ww) _ww.paused=false; }));
     ph.addEventListener('click',e=>{ const b=e.target.closest('[data-wk]'); if(b){ e.stopPropagation(); openWeeklyWrap(_addDays(_ww.ws,7*(+b.dataset.wk))); return; }
-      if(e.target.id==='wwAgain'){ e.stopPropagation(); _ww.auto=true; wwShow_(0); } });
+      if(e.target.id==='wwAgain'){ e.stopPropagation(); _ww.auto=true; wwShow_(0); }
+      if(e.target.id==='wwVideo'){ e.stopPropagation(); const ws=_ww.ws; closeWeeklyWrap(); vidRecord_('week',{ws}); } });
     document.addEventListener('keydown',e=>{ if(!_ww||document.getElementById('wwOv').style.display==='none') return; if(e.key==='ArrowRight') wwShow_(_ww.i+1); if(e.key==='ArrowLeft') wwShow_(_ww.i-1); if(e.key==='Escape') closeWeeklyWrap(); });
   }
   if(ws>wwMonday_(todayStr())) ws=wwMonday_(todayStr());
@@ -14176,6 +14178,239 @@ function wwHomeBanner_(){
 }
 (function(){ const _rh=window.renderHome; if(typeof _rh==='function') window.renderHome=function(){ const r=_rh.apply(this,arguments); wwHomeBanner_(); return r; }; })();
 
+
+/* ============ 🎥 ทำวิดีโอจากข้อมูลจริง (สรุปสัปดาห์ · สรุปทั้งปี · เมืองแห่งข้อมูล) ============
+   วาดบน canvas แล้วอัดด้วย MediaRecorder ในเครื่อง → ได้ไฟล์ MP4/WebM แชร์เข้า LINE ได้
+   วิดีโอไม่มีตัวเลขเงินทุกชนิด (ตั้งใจให้ส่งต่อได้) · ไม่มีชื่อคนไข้ · เฉพาะบัญชี Toy */
+const VID_W=1080, VID_H=1920;
+const VID_BG={wine:['#5b1c4a','#24091d'],teal:['#0f4d43','#08241f'],gold:['#ffcf5c','#ff8a5c'],plum:['#3a1554','#140720'],rose:['#6b2453','#2a0f24'],line:['#06c755','#04692e'],deep:['#4A1F40','#1d0a18'],night:['#1b1340','#0b0820']};
+const VID_PAL=['#ff9fbf','#7ef0c4','#ffcf5c','#8fb8ff','#c9a0ff','#ff8a5c','#5ce1e6','#b8f27c'];
+const vCl=x=>Math.max(0,Math.min(1,x)), vEo=x=>1-Math.pow(1-vCl(x),3), vIn=(p,a,d=.5)=>vEo((p-a)/d);
+const VF={P:"'Prompt','Sarabun','Noto Color Emoji',sans-serif",S:"'Sarabun','Prompt','Noto Color Emoji',sans-serif"};
+function vFont_(c,size,w,f){ c.font=(w||700)+' '+size+'px '+VF[f||'P']; }
+function vText_(c,txt,x,y,o){ o=o||{}; let size=o.size||48; vFont_(c,size,o.w,o.f);
+  if(o.maxW){ while(size>18 && c.measureText(txt).width>o.maxW){ size-=2; vFont_(c,size,o.w,o.f); } }
+  c.globalAlpha=(o.a==null?1:o.a); c.fillStyle=o.color||'#fff'; c.textAlign=o.align||'left'; c.textBaseline=o.base||'alphabetic';
+  c.fillText(txt,x,y+(o.dy||0)); c.globalAlpha=1; return size; }
+function vBg_(c,key){ const g=c.createLinearGradient(0,0,VID_W*.35,VID_H); const s=VID_BG[key]||VID_BG.wine; g.addColorStop(0,s[0]); g.addColorStop(1,s[1]); c.fillStyle=g; c.fillRect(0,0,VID_W,VID_H);
+  const r=c.createRadialGradient(VID_W*.15,VID_H*.08,0,VID_W*.15,VID_H*.08,VID_W*.9); r.addColorStop(0,'rgba(255,255,255,.10)'); r.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle=r; c.fillRect(0,0,VID_W,VID_H); }
+function vRound_(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function vNum_(v,p,at){ return fmt(Math.round(v*vIn(p,at,1.2))); }
+function vDateTH_(ymd){ const [y,m,d]=ymd.split('-').map(Number); return d+' '+WW_TM[m-1]+' '+(y+543); }
+/* ---------- ข้อมูล ---------- */
+function vidWeekData_(ws){ const D=wwData_(ws); D.kind='week'; D.docList=D.docList.slice().sort((x,y)=>y.cases-x.cases); D.label=wwShort_(D.ws)+' – '+wwShort_(D.we); return D; }
+function vidRangeData_(start,end){
+  const rows=statsRows(start,end), firstSeen=new Map();
+  treatments.forEach(t=>{ const d=String(t.date||'').slice(0,10); if(!d) return; const k=endoPatientKey(t); const f=firstSeen.get(k); if(!f||d<f) firstSeen.set(k,d); });
+  const cur=statsAgg(rows,firstSeen,start);
+  const procs=new Map(); rows.forEach(t=>String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(p=>procs.set(p,(procs.get(p)||0)+1)));
+  const dayPts=new Map(); rows.forEach(t=>{ const d=String(t.date).slice(0,10); (dayPts.get(d)||dayPts.set(d,new Set()).get(d)).add(endoPatientKey(t)); });
+  let busy=null; dayPts.forEach((s,d)=>{ if(!busy||s.size>busy.n) busy={d,n:s.size}; });
+  const hours=new Map(); rows.forEach(t=>{ const h=parseInt(String(t.time||'').slice(0,2),10); if(!isNaN(h)&&h>=7&&h<=21) hours.set(h,(hours.get(h)||0)+1); });
+  const months=Array(12).fill(0); rows.forEach(t=>{ const m=+String(t.date).slice(5,7); if(m) months[m-1]++; });
+  const docs=new Map(); rows.forEach(t=>{ const n=docAlias(t.docName)||'ไม่ระบุหมอ'; const o=docs.get(n)||{n,cases:0,pts:new Set(),pr:new Map()}; o.cases++; o.pts.add(endoPatientKey(t)); String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(p=>o.pr.set(p,(o.pr.get(p)||0)+1)); docs.set(n,o); });
+  const docList=[...docs.values()].sort((a,b)=>b.cases-a.cases).slice(0,5).map(o=>({n:o.n,cases:o.cases,pts:o.pts.size,top:([...o.pr].sort((a,b)=>b[1]-a[1])[0]||['',0])}));
+  const isO=t=>isAimDoc_(docAlias(t.docName)) || String(t.proc||'').split(',').some(x=>(typeof ORTHO_DEFAULT_DOC_ITEMS!=='undefined'?ORTHO_DEFAULT_DOC_ITEMS:[]).includes(x.trim()));
+  const oPts=new Set(rows.filter(isO).map(endoPatientKey)).size;
+  const treatKey=new Set(rows.map(t=>String(t.date).slice(0,10)+'|'+normHN(t.hn)));
+  const apts=appointments.filter(a=>{ const d=String(a.date||'').slice(0,10); return d>=start&&d<=end&&d<=todayStr(); });
+  const live=apts.filter(a=>a.status!=='ยกเลิก'), came=live.filter(a=>a.status==='เสร็จสิ้น'||treatKey.has(String(a.date).slice(0,10)+'|'+normHN(a.hn))).length;
+  return {start,end,rows,cur,topProcs:[...procs].sort((a,b)=>b[1]-a[1]).slice(0,5),busy,hours,months,docList,oPts,apts:live.length,aptCame:came};
+}
+function vidYearData_(y){ const today=todayStr(); const D=vidRangeData_(y+'-01-01', (y+'-12-31')<today?(y+'-12-31'):today); D.kind='year'; D.year=y; D.label='ปี '+(y+543); return D; }
+function vidCityData_(){
+  const end=todayStr(), start=_addDays(end,-364);
+  const rows=statsRows(start,end), dn=new Map(), pts=new Set();
+  rows.forEach(t=>{ const n=docAlias(t.docName)||'ไม่ระบุหมอ'; dn.set(n,(dn.get(n)||0)+1); pts.add(endoPatientKey(t)); });
+  const docs=[...dn].sort((a,b)=>b[1]-a[1]).map(([n,c],i)=>{ let col=docColor(n); if(!/^#/.test(col)) col=VID_PAL[i%VID_PAL.length]; return {n,c,col}; });
+  const di=new Map(docs.map((d,i)=>[d.n,i]));
+  const hash=s=>{ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0)/4294967296; };
+  const parts=rows.map(t=>{ const d=String(t.date).slice(0,10); const tm=String(t.time||'12:00'); const hh=(+tm.slice(0,2)||12)+(+tm.slice(3,5)||0)/60;
+    return { day:_daysBetween(start,d)+(hh-8)/14, ang:hash(normHN(t.hn)||t.id)*Math.PI*2, j:hash(String(t.id))-.5, doc:di.get(docAlias(t.docName)||'ไม่ระบุหมอ')||0 }; }).sort((a,b)=>a.day-b.day);
+  return {kind:'city',start,end,parts,docs,total:rows.length,pts:pts.size,label:vDateTH_(start)+' – '+vDateTH_(end)};
+}
+/* ---------- สไลด์ (สัปดาห์/ปี) ---------- */
+function vidSlides_(D){
+  const S=[], wk=D.kind==='week', cur=D.cur;
+  const K=(c,txt,p,y)=>vText_(c,txt,90,y,{size:44,w:500,color:'rgba(255,255,255,.75)',a:vIn(p,.1)});
+  S.push({bg:'wine',dur:3.4,draw:(c,p)=>{ K(c,wk?'สรุปสัปดาห์ของคลินิก':'หนึ่งปีของคลินิกเรา',p,760);
+    vText_(c,wk?'Smile Weekly':'Smile Wrapped',90,900,{size:120,w:700,a:vIn(p,.35),maxW:900});
+    vText_(c,D.label,90,1000,{size:56,w:700,color:'#7ef0c4',a:vIn(p,.7),maxW:900}); }});
+  if(!D.rows.length){ S.push({bg:'deep',dur:3,draw:(c,p)=>vText_(c,'ช่วงนี้ยังไม่มีบันทึกการรักษา',90,960,{size:56,a:vIn(p,.2),maxW:900})}); return S; }
+  S.push({bg:'wine',dur:3.6,draw:(c,p)=>{ K(c,wk?'สัปดาห์นี้เราดูแลคนไข้':'ปีนี้เราดูแลคนไข้',p,700);
+    vText_(c,vNum_(cur.patients,p,.3),90,930,{size:230,w:700,a:vIn(p,.3),maxW:900});
+    vText_(c,'คน · '+fmt(cur.cases)+' ครั้งที่มาหาเรา',90,1030,{size:54,w:700,a:vIn(p,.6),maxW:900});
+    vText_(c,'คนไข้ใหม่ '+fmt(cur.newP)+' คน · คนไข้เก่ากลับมา '+cur.retPct.toFixed(0)+'%',90,1120,{size:42,w:500,f:'S',color:'rgba(255,255,255,.8)',a:vIn(p,.9),maxW:900});
+    if(wk&&D.prev&&D.prev.patients){ const d=Math.round((cur.patients-D.prev.patients)/D.prev.patients*100); vText_(c,(d>=0?'▲ ':'▼ ')+Math.abs(d)+'% จากสัปดาห์ก่อน',90,1200,{size:42,w:700,color:d>=0?'#7ef0c4':'#ffb3a7',a:vIn(p,1.1)}); } }});
+  if(D.topProcs.length){ const mx=D.topProcs[0][1];
+    S.push({bg:'teal',dur:4,draw:(c,p)=>{ K(c,'งานที่ทำมากที่สุด',p,600); vText_(c,D.topProcs[0][0]+' มาเป็นที่ 1',90,700,{size:66,w:700,a:vIn(p,.3),maxW:900});
+      D.topProcs.forEach(([n,v],i)=>{ const y=800+i*130, a=vIn(p,.5+i*.15), w=Math.max(.06,v/mx)*640*vIn(p,.6+i*.15,.9);
+        c.globalAlpha=a; c.fillStyle='rgba(126,240,196,.25)'; vRound_(c,150,y,w,96,22); c.fill(); c.globalAlpha=1;
+        vText_(c,String(i+1),90,y+64,{size:48,color:'#7ef0c4',a}); vText_(c,n,176,y+64,{size:42,w:700,a,maxW:560}); vText_(c,fmt(v),990,y+64,{size:44,w:700,align:'right',a}); }); }}); }
+  if(!wk && D.months.some(Boolean)){ const mx=Math.max(...D.months); let pk=D.months.indexOf(mx);
+    S.push({bg:'plum',dur:4,draw:(c,p)=>{ K(c,'ทั้งปีในหนึ่งภาพ',p,560); vText_(c,'เดือนที่คึกคักที่สุด: '+THAI_MONTHS[pk],90,660,{size:58,w:700,a:vIn(p,.3),maxW:900});
+      const bw=62, gap=11, x0=(VID_W-(12*bw+11*gap))/2, base=1360;
+      D.months.forEach((v,i)=>{ const h=Math.max(6,v/mx*560)*vIn(p,.5+i*.05,.9); c.fillStyle=i===pk?'#ffcf5c':'rgba(255,255,255,.28)'; vRound_(c,x0+i*(bw+gap),base-h,bw,h,10); c.fill();
+        vText_(c,WW_TM[i].replace('.',''),x0+i*(bw+gap)+bw/2,base+50,{size:24,w:500,f:'S',align:'center',color:'rgba(255,255,255,.7)'}); }); }}); }
+  if(D.busy){ const dw=WW_DOW[new Date(D.busy.d+'T12:00').getDay()];
+    S.push({bg:'gold',dur:3.6,draw:(c,p)=>{ vText_(c,'วันที่ยุ่งที่สุด',90,700,{size:44,w:500,color:'rgba(42,15,36,.75)',a:vIn(p,.1)});
+      vText_(c,dw+' '+vDateTH_(D.busy.d),90,800,{size:66,w:700,color:'#2a0f24',a:vIn(p,.3),maxW:900});
+      vText_(c,vNum_(D.busy.n,p,.5),90,1040,{size:230,w:700,color:'#2a0f24',a:vIn(p,.5)});
+      vText_(c,'คนไข้ในวันเดียว ขอบคุณทีมที่รับมือได้ 💪',90,1140,{size:44,w:700,color:'#2a0f24',a:vIn(p,.8),maxW:900}); }}); }
+  if(D.hours.size>=3){ const hs=[...D.hours.keys()].sort((a,b)=>a-b), h0=hs[0], h1=hs[hs.length-1]; let pk=h0; D.hours.forEach((n,h)=>{ if(n>(D.hours.get(pk)||0)) pk=h; }); const mx=D.hours.get(pk), n=h1-h0+1;
+    S.push({bg:'night',dur:3.6,draw:(c,p)=>{ K(c,'ชั่วโมงทอง',p,600); vText_(c,'คนไข้มามากสุดช่วง '+pk+':00 น.',90,700,{size:62,w:700,a:vIn(p,.3),maxW:900});
+      const gap=10, bw=(900-(n-1)*gap)/n, base=1300;
+      for(let h=h0;h<=h1;h++){ const i=h-h0, v=D.hours.get(h)||0, ht=Math.max(6,v/mx*480)*vIn(p,.5+i*.04,.9); c.fillStyle=h===pk?'#ffcf5c':'rgba(255,255,255,.22)'; vRound_(c,90+i*(bw+gap),base-ht,bw,ht,10); c.fill();
+        vText_(c,String(h),90+i*(bw+gap)+bw/2,base+44,{size:26,w:500,f:'S',align:'center',color:'rgba(255,255,255,.7)'}); } }}); }
+  if(D.docList.length){ const ic=['🥇','🥈','🥉','⭐','⭐'];
+    S.push({bg:'deep',dur:4.2,draw:(c,p)=>{ K(c,wk?'ทีมหมอสัปดาห์นี้':'ทีมหมอของเราปีนี้',p,520);
+      D.docList.forEach((d,i)=>{ const y=600+i*190, a=vIn(p,.3+i*.18); c.globalAlpha=a; c.fillStyle='rgba(255,255,255,.09)'; vRound_(c,90,y,900,160,30); c.fill(); c.globalAlpha=1;
+        vText_(c,ic[i],130,y+100,{size:56,a}); vText_(c,d.n,220,y+70,{size:44,w:700,a,maxW:740});
+        vText_(c,fmt(d.pts)+' คนไข้ · '+fmt(d.cases)+' ครั้ง'+(d.top[0]?' · เด่น: '+d.top[0]:''),220,y+124,{size:32,w:500,f:'S',color:'rgba(255,255,255,.78)',a,maxW:740}); }); }}); }
+  if(D.oPts) S.push({bg:'rose',dur:3.4,draw:(c,p)=>{ K(c,'งานจัดฟัน',p,760); vText_(c,vNum_(D.oPts,p,.3),90,990,{size:230,w:700,a:vIn(p,.3)});
+    vText_(c,'คนไข้จัดฟันที่มาหาเรา'+(wk?'สัปดาห์นี้':'ปีนี้'),90,1090,{size:52,w:700,a:vIn(p,.6),maxW:900}); vText_(c,'ยิ้มสวยขึ้นทีละนิด 😁',90,1170,{size:42,w:500,f:'S',color:'rgba(255,255,255,.8)',a:vIn(p,.9)}); }});
+  if(D.apts){ const pc=Math.round(D.aptCame/D.apts*100);
+    S.push({bg:'line',dur:3.4,draw:(c,p)=>{ K(c,'มาตามนัด',p,760); vText_(c,vNum_(pc,p,.3)+'%',90,990,{size:230,w:700,a:vIn(p,.3)});
+      vText_(c,'นัดทั้งหมด '+fmt(D.apts)+' · มาจริง '+fmt(D.aptCame),90,1090,{size:50,w:700,a:vIn(p,.6),maxW:900}); }}); }
+  if(wk) S.push({bg:'wine',dur:3.4,draw:(c,p)=>{ K(c,'สัปดาห์หน้า',p,760); vText_(c,vNum_(D.next,p,.3),90,990,{size:230,w:700,a:vIn(p,.3)});
+    vText_(c,'นัดที่รออยู่แล้ว',90,1090,{size:54,w:700,a:vIn(p,.6)});
+    if(D.nBusy) vText_(c,'วันที่แน่นสุด: '+WW_DOW[new Date(D.nBusy.d+'T12:00').getDay()]+' '+wwShort_(D.nBusy.d)+' ('+D.nBusy.n+' นัด)',90,1170,{size:42,w:500,f:'S',color:'rgba(255,255,255,.85)',a:vIn(p,.9),maxW:900}); }});
+  S.push({bg:'wine',dur:3.6,draw:(c,p)=>{ vText_(c,'ขอบคุณทุกรอยยิ้ม 💚',VID_W/2,860,{size:72,w:700,align:'center',a:vIn(p,.2),maxW:900});
+    vText_(c,wk?'สู้ต่อสัปดาห์หน้านะทีม':'เจอกันปีหน้านะคะ',VID_W/2,960,{size:52,w:500,align:'center',color:'#7ef0c4',a:vIn(p,.5),maxW:900});
+    vText_(c,'คลินิกทันตกรรมบางหลวง',VID_W/2,1120,{size:44,w:700,align:'center',a:vIn(p,.8)});
+    vText_(c,'LINE @bangluangsmile',VID_W/2,1190,{size:38,w:500,f:'S',align:'center',color:'rgba(255,255,255,.8)',a:vIn(p,1)}); }});
+  return S;
+}
+function vidPlan_(D){
+  if(D.kind==='city') return {dur:30, draw:(c,t)=>vidCity_(c,t,D)};
+  const S=vidSlides_(D); let acc=0; S.forEach(s=>{ s.a=acc; acc+=s.dur; });
+  return {dur:acc, draw:(c,t)=>{
+    let i=S.findIndex(s=>t<s.a+s.dur); if(i<0) i=S.length-1; const s=S[i], p=t-s.a;
+    vBg_(c,s.bg); s.draw(c,p);
+    const nx=S[i+1]; if(nx && p>s.dur-.35){ c.globalAlpha=vCl((p-(s.dur-.35))/.35); vBg_(c,nx.bg); c.globalAlpha=1; }   // ค่อยๆ เปลี่ยนเป็นพื้นของสไลด์ถัดไป
+    // แถบความคืบหน้า + หัว/ท้าย
+    const gap=8, bw=(VID_W-120-(S.length-1)*gap)/S.length;
+    S.forEach((x,k)=>{ c.fillStyle='rgba(255,255,255,.28)'; vRound_(c,60+k*(bw+gap),48,bw,8,4); c.fill(); const f=k<i?1:(k===i?vCl(p/x.dur):0); if(f>0){ c.fillStyle='#fff'; vRound_(c,60+k*(bw+gap),48,bw*f,8,4); c.fill(); } });
+    const dark=s.bg==='gold';
+    vText_(c,'🦷 BANGLUANG DENTAL CLINIC',60,120,{size:30,w:700,color:dark?'#2a0f24':'#fff'});
+    vText_(c,'คลินิกทันตกรรมบางหลวง · LINE @bangluangsmile',VID_W/2,VID_H-70,{size:28,w:500,f:'S',align:'center',color:dark?'rgba(42,15,36,.6)':'rgba(255,255,255,.55)'});
+    if(D.sample) vText_(c,'ข้อมูลตัวอย่าง',VID_W-60,120,{size:28,w:700,align:'right',color:dark?'#2a0f24':'#ffcf5c'});
+  }};
+}
+/* ---------- เมืองแห่งข้อมูล: ทุกครั้งที่คนไข้มา = แสง 1 ดวงวิ่งเข้าคลินิก (สีตามหมอ) ---------- */
+function vidCity_(c,t,D){
+  const CX=VID_W/2, CY=880, R0=1150, LIFE=1.25, T0=1.2, T1=26, SPAN=T1-T0, days=365;
+  c.fillStyle='#120612'; c.fillRect(0,0,VID_W,VID_H);
+  const g=c.createRadialGradient(CX,CY,0,CX,CY,900); g.addColorStop(0,'rgba(168,53,127,.35)'); g.addColorStop(1,'rgba(18,6,18,0)'); c.fillStyle=g; c.fillRect(0,0,VID_W,VID_H);
+  const dayAt=tt=>(tt-T0)/SPAN*days;
+  const now=Math.min(days,Math.max(0,dayAt(t)));
+  // วงแหวนเดือน
+  c.strokeStyle='rgba(255,255,255,.06)'; c.lineWidth=2; [300,520,740].forEach(r=>{ c.beginPath(); c.arc(CX,CY,r,0,Math.PI*2); c.stroke(); });
+  // อนุภาค
+  c.globalCompositeOperation='lighter';
+  let arrived=0; const pulse=[0];
+  for(let i=0;i<D.parts.length;i++){ const q=D.parts[i]; const st=T0+q.day/days*SPAN; if(st>t){ break; } const age=t-st;
+    if(age>=LIFE){ arrived++; continue; }
+    const k=vEo(age/LIFE), k0=vEo(Math.max(0,age-.16)/LIFE), col=D.docs[q.doc]?D.docs[q.doc].col:'#fff';
+    const ang=q.ang+q.j*.5*(1-k), r=R0*(1-k), r0=R0*(1-k0), a0=q.ang+q.j*.5*(1-k0);
+    const x=CX+Math.cos(ang)*r, y=CY+Math.sin(ang)*r*.92, x0=CX+Math.cos(a0)*r0, y0=CY+Math.sin(a0)*r0*.92;
+    c.strokeStyle=col; c.globalAlpha=.55; c.lineWidth=4; c.beginPath(); c.moveTo(x0,y0); c.lineTo(x,y); c.stroke();
+    c.globalAlpha=.9; c.fillStyle=col; c.beginPath(); c.arc(x,y,5,0,Math.PI*2); c.fill(); }
+  c.globalAlpha=1; c.globalCompositeOperation='source-over';
+  // แกนกลาง = คลินิก
+  const recent=D.parts.filter(q=>{ const st=T0+q.day/days*SPAN+LIFE; return st<=t && st>t-.25; }).length;
+  const glow=60+Math.min(60,recent*1.5); const cg=c.createRadialGradient(CX,CY,0,CX,CY,glow*2.2); cg.addColorStop(0,'rgba(255,240,250,.95)'); cg.addColorStop(.35,'rgba(255,159,191,.55)'); cg.addColorStop(1,'rgba(255,159,191,0)');
+  c.fillStyle=cg; c.beginPath(); c.arc(CX,CY,glow*2.2,0,Math.PI*2); c.fill();
+  vText_(c,'🦷',CX,CY+30,{size:84,align:'center'});
+  // หัวเรื่อง + เวลา
+  const ti=vIn(t,.1,.6)*(1-vIn(t,T1+.3,.6));
+  vText_(c,'เมืองแห่งรอยยิ้ม',90,170,{size:62,w:700,a:Math.max(ti,.0)});
+  vText_(c,'ทุกจุดแสง = คนไข้ 1 ครั้งที่มาหาเรา · สีตามหมอ',90,232,{size:32,w:500,f:'S',color:'rgba(255,255,255,.7)',a:ti,maxW:900});
+  const dShow=_addDays(D.start,Math.min(days-1,Math.floor(now)));
+  vText_(c,vDateTH_(dShow),90,1650,{size:54,w:700,a:ti});
+  vText_(c,fmt(Math.min(arrived,D.total))+' ครั้ง',990,1650,{size:54,w:700,align:'right',color:'#7ef0c4',a:ti});
+  // คำอธิบายสีหมอ
+  const L=D.docs.slice(0,6); L.forEach((d,i)=>{ const col=i%2, row=Math.floor(i/2), x=90+col*460, y=1730+row*58;
+    c.globalAlpha=ti; c.fillStyle=d.col; c.beginPath(); c.arc(x+12,y-12,12,0,Math.PI*2); c.fill(); c.globalAlpha=1;
+    vText_(c,d.n,x+36,y,{size:28,w:500,f:'S',color:'rgba(255,255,255,.85)',a:ti,maxW:400}); });
+  // ตอนจบ
+  if(t>T1){ const e=vIn(t,T1+.4,.8); c.fillStyle='rgba(18,6,18,'+(.72*e)+')'; c.fillRect(0,0,VID_W,VID_H);
+    vText_(c,'1 ปีที่ผ่านมา',VID_W/2,760,{size:52,w:500,align:'center',color:'rgba(255,255,255,.8)',a:e});
+    vText_(c,fmt(D.total)+' ครั้ง',VID_W/2,920,{size:150,w:700,align:'center',a:e,maxW:980});
+    vText_(c,'ที่คนไข้ '+fmt(D.pts)+' คน ไว้ใจมาหาเรา',VID_W/2,1010,{size:52,w:700,align:'center',color:'#7ef0c4',a:vIn(t,T1+.8,.8),maxW:980});
+    vText_(c,'ขอบคุณที่ไว้ใจบางหลวง 💚',VID_W/2,1160,{size:48,w:700,align:'center',a:vIn(t,T1+1.3,.8)});
+    vText_(c,'LINE @bangluangsmile',VID_W/2,1230,{size:38,w:500,f:'S',align:'center',color:'rgba(255,255,255,.75)',a:vIn(t,T1+1.6,.8)}); }
+  if(D.sample) vText_(c,'ข้อมูลตัวอย่าง',VID_W-60,120,{size:28,w:700,align:'right',color:'#ffcf5c'});
+}
+/* ---------- อัดวิดีโอในเครื่อง ---------- */
+async function vidFonts_(){ try{ await Promise.all(['500 40px Prompt','700 40px Prompt','400 40px Sarabun','500 40px Sarabun','700 40px Sarabun'].map(f=>document.fonts.load(f,'กขค 123'))); }catch(e){} }
+function vidMime_(){ const c=['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  if(typeof MediaRecorder==='undefined') return ''; return c.find(m=>{ try{ return MediaRecorder.isTypeSupported(m); }catch(e){ return false; } })||''; }
+let _vid=null;
+function vidUi_(){
+  let ov=document.getElementById('vidOv'); if(ov) return ov;
+  const st=document.createElement('style'); st.textContent=`#vidOv{position:fixed;inset:0;z-index:99999;background:rgba(14,4,10,.9);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;color:#fff;font-family:inherit}
+#vidOv canvas,#vidOv video{height:min(64vh,720px);aspect-ratio:9/16;border-radius:18px;background:#000;box-shadow:0 20px 60px rgba(0,0,0,.5);max-width:92vw}
+#vidOv .vb{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}#vidOv button,#vidOv a.vbtn{border:0;border-radius:99px;padding:11px 18px;font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;background:#7ef0c4;color:#08241f;text-decoration:none}
+#vidOv .alt{background:rgba(255,255,255,.16)!important;color:#fff!important}#vidOv .msg{font-size:14px;opacity:.85;text-align:center;max-width:420px;line-height:1.5}
+#vidOv .bar{width:min(420px,90vw);height:6px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden}#vidOv .bar i{display:block;height:100%;width:0;background:#7ef0c4}
+#vidPick{position:fixed;inset:0;z-index:99998;background:rgba(14,4,10,.6);display:none;align-items:center;justify-content:center;padding:16px}
+#vidPick .box{background:#fff;color:#4A1F40;border-radius:20px;padding:18px;width:min(440px,100%);display:grid;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#vidPick .opt{display:grid;gap:4px;text-align:left;border:1.5px solid #ead9e4;border-radius:14px;padding:12px 14px;background:#fff;cursor:pointer;font:inherit;color:inherit}#vidPick .opt:hover,#vidPick .opt:focus-visible{border-color:#a8357f;outline:none;background:#fdf6fa}
+#vidPick .opt b{font-size:15px}#vidPick .opt span{font-size:12.5px;color:#7a6676}#vidPick .row{display:flex;align-items:center;gap:8px;justify-content:space-between}
+#vidPick .nav{display:flex;align-items:center;gap:6px}#vidPick .nav button{border:1px solid #ead9e4;background:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer}`;
+  document.head.appendChild(st);
+  ov=document.createElement('div'); ov.id='vidOv'; document.body.appendChild(ov); return ov;
+}
+function openVideoMaker(){
+  if(!canSeeStats()) return; vidUi_();
+  let pk=document.getElementById('vidPick');
+  if(!pk){ pk=document.createElement('div'); pk.id='vidPick'; document.body.appendChild(pk); pk.addEventListener('click',e=>{ if(e.target===pk) pk.style.display='none'; }); }
+  const st={ws:wwLastWeek_(), y:+todayStr().slice(0,4)};
+  const draw=()=>{ pk.innerHTML=`<div class="box"><div class="row"><b style="font-size:17px">🎥 ทำวิดีโอจากข้อมูลจริง</b><button class="alt" style="border:0;background:none;font-size:20px;cursor:pointer" onclick="document.getElementById('vidPick').style.display='none'">✕</button></div>
+    <div style="font-size:12.5px;color:#7a6676;line-height:1.5">อัดในเครื่องนี้ ใช้เวลาเท่าความยาวคลิป (~30–40 วิ) · <b>ไม่มีตัวเลขเงิน ไม่มีชื่อคนไข้</b> ส่งต่อได้ · ระหว่างอัดอย่าสลับแอป</div>
+    <div class="opt" role="button" tabindex="0" data-m="week"><div class="row"><b>📅 สรุปสัปดาห์ (ส่งกลุ่มทีม)</b><span class="nav"><button data-wk="-1">‹</button><span>${wwShort_(st.ws)}–${wwShort_(_addDays(st.ws,6))}</span><button data-wk="1">›</button></span></div><span>คนไข้ งานเด่น วันยุ่งสุด ชั่วโมงทอง ทีมหมอ นัดสัปดาห์หน้า</span></div>
+    <div class="opt" role="button" tabindex="0" data-m="year"><div class="row"><b>🎉 สรุปทั้งปี (โพสต์ได้)</b><span class="nav"><button data-y="-1">‹</button><span>ปี ${st.y+543}</span><button data-y="1">›</button></span></div><span>คนไข้ทั้งปี งานเด่น เดือนที่คึกคัก ทีมหมอ จัดฟัน</span></div>
+    <div class="opt" role="button" tabindex="0" data-m="city"><b>✨ เมืองแห่งรอยยิ้ม</b><span>1 ปีย้อนหลังใน 30 วินาที ทุกครั้งที่คนไข้มา = แสง 1 ดวงวิ่งเข้าคลินิก สีตามหมอ</span></div></div>`; };
+  pk.onclick=e=>{ if(e.target===pk){ pk.style.display='none'; return; } const nb=e.target.closest('[data-wk],[data-y]');
+    if(nb){ e.stopPropagation(); if(nb.dataset.wk){ const n=_addDays(st.ws,7*(+nb.dataset.wk)); if(n<=wwLastWeek_()) st.ws=n; } else { const y=st.y+(+nb.dataset.y); if(y<=+todayStr().slice(0,4)) st.y=y; } draw(); return; }
+    const o=e.target.closest('.opt'); if(!o) return; pk.style.display='none';
+    vidRecord_(o.dataset.m, o.dataset.m==='week'?{ws:st.ws}:(o.dataset.m==='year'?{year:st.y}:{})); };
+  pk.onkeydown=e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('opt')){ e.preventDefault(); e.target.click(); } };
+  draw(); pk.style.display='flex';
+}
+async function vidRecord_(mode,opt){
+  if(!canSeeStats()) return;
+  const ov=vidUi_(); const mime=vidMime_();
+  if(!mime){ ov.innerHTML='<div class="msg">เบราว์เซอร์นี้อัดวิดีโอไม่ได้ ลองเปิดเว็บด้วย Chrome หรือ Safari รุ่นใหม่</div><div class="vb"><button class="alt" onclick="this.closest(\'#vidOv\').style.display=\'none\'">ปิด</button></div>'; ov.style.display='flex'; return; }
+  const D=mode==='week'?vidWeekData_(opt.ws||wwLastWeek_()):(mode==='year'?vidYearData_(opt.year||+todayStr().slice(0,4)):vidCityData_());
+  const plan=vidPlan_(D);
+  ov.innerHTML='<canvas width="720" height="1280"></canvas><div class="bar"><i></i></div><div class="msg">⏺ กำลังอัดวิดีโอ… อย่าสลับแอปหรือปิดจอ</div><div class="vb"><button class="alt" id="vidCancel">ยกเลิก</button></div>';
+  ov.style.display='flex';
+  const cv=ov.querySelector('canvas'), c=cv.getContext('2d'), bar=ov.querySelector('.bar i');
+  await vidFonts_();
+  let lock=null; try{ lock=await navigator.wakeLock.request('screen'); }catch(e){}
+  const stream=cv.captureStream(30); let rec;
+  try{ rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6000000}); }catch(e){ rec=new MediaRecorder(stream); }
+  const chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+  let cancelled=false; document.getElementById('vidCancel').onclick=()=>{ cancelled=true; try{ rec.stop(); }catch(e){} };
+  const done=new Promise(r=>rec.onstop=r);
+  rec.start(500); const t0=performance.now();
+  _vid={raf:0};
+  const frame=()=>{ const t=(performance.now()-t0)/1000; c.setTransform(720/VID_W,0,0,1280/VID_H,0,0); plan.draw(c,Math.min(t,plan.dur)); bar.style.width=Math.min(100,t/plan.dur*100)+'%';
+    if(t>=plan.dur+.25||cancelled){ if(rec.state!=='inactive') rec.stop(); return; } _vid.raf=requestAnimationFrame(frame); };
+  _vid.raf=requestAnimationFrame(frame);
+  await done; try{ lock&&lock.release(); }catch(e){}
+  if(cancelled){ ov.style.display='none'; return; }
+  const type=(rec.mimeType||mime).split(';')[0], ext=type.includes('mp4')?'mp4':'webm';
+  const blob=new Blob(chunks,{type}), name='bangluang-'+(mode==='week'?'weekly-'+(opt.ws||''):(mode==='year'?'year-'+(D.year+543):'smile-city'))+'.'+ext;
+  const url=URL.createObjectURL(blob), file=new File([blob],name,{type});
+  const canShare=!!(navigator.canShare&&navigator.canShare({files:[file]}));
+  ov.innerHTML=`<video src="${url}" controls playsinline loop></video><div class="msg">✅ ได้วิดีโอแล้ว (${(blob.size/1048576).toFixed(1)} MB · ${ext.toUpperCase()})${ext==='webm'?'<br>ไฟล์ WebM อาจเล่นใน LINE บน iPhone ไม่ได้ ถ้าส่งไม่ขึ้นให้ทำใหม่บน Safari':''}</div>
+    <div class="vb">${canShare?'<button id="vidShare">📤 แชร์ (เลือก LINE)</button>':''}<a class="vbtn ${canShare?'alt':''}" href="${url}" download="${name}">💾 บันทึกไฟล์</a><button class="alt" id="vidClose">ปิด</button></div>`;
+  document.getElementById('vidClose').onclick=()=>{ ov.style.display='none'; URL.revokeObjectURL(url); };
+  const sb=document.getElementById('vidShare'); if(sb) sb.onclick=async()=>{ try{ await navigator.share({files:[file],title:'คลินิกทันตกรรมบางหลวง'}); }catch(e){} };
+}
 try{ __BLP.mark('scriptsDone'); }catch(e){}
 </script>
 
