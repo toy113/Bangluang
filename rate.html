@@ -7,6 +7,7 @@
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FBF7FA;font-family:-apple-system,"Sarabun","Noto Sans Thai",sans-serif;color:#4A1F40;text-align:center;padding:24px;box-sizing:border-box;}
   .box{max-width:340px;}
+  #m.small{font-size:12px;color:#a89aa5;}
   .star{font-size:46px;line-height:1;}
   h1{font-size:19px;margin:12px 0 6px;}
   p{font-size:14px;color:#7a6676;margin:0 0 16px;}
@@ -18,6 +19,7 @@
   <div class="star">⭐⭐⭐⭐⭐</div>
   <h1 id="t">ขอบคุณมากค่ะ 💚</h1>
   <p id="m">กำลังพาไปหน้ารีวิว...</p>
+  <p id="ok" style="display:none;color:#4A1F40;line-height:1.7;"></p>
   <a class="btn" id="go" href="https://g.page/r/CXrZfNExDQq4EBM/review" style="display:none;">⭐ รีวิวให้เรา</a>
 </div>
 <script>
@@ -25,7 +27,13 @@
   var API='https://script.google.com/macros/s/AKfycbwOtmnWrY3vh9KFz2eoLuZgZuRRTduL-b3po4LSc6u4pjiH33unIN54Uhkc3yx8sT9k/exec';
   var q=new URLSearchParams(location.search), go=document.getElementById('go');
   var isOk=q.get('kind')==='ok';
-  if(isOk){ document.querySelector('.star').textContent='💚'; document.title='ขอบคุณค่ะ'; document.getElementById('t').textContent='ดีใจที่อาการปกติดีค่ะ 💚'; }
+  if(isOk){
+    document.querySelector('.star').textContent='🌿'; document.title='ขอบคุณค่ะ';
+    document.getElementById('t').textContent='ดีใจที่มีอาการปกติดีแล้วนะคะ 🌿';
+    var ok=document.getElementById('ok'); ok.style.display='block';
+    ok.innerHTML='ถ้าสะดวกช่วยรีวิวเป็นกำลังใจให้คลินิกด้วยนะคะ 🙏<br>รีวิวของคุณช่วยให้คนที่กำลังลังเล กล้าตัดสินใจมาดูแลฟันมากขึ้นค่ะ';
+    document.getElementById('m').className='small'; go.textContent='⭐ รีวิวให้คลินิก';
+  }
   function fallback(msg, url){ if(url) go.href=url; go.style.display='inline-block'; document.getElementById('m').textContent=msg; }
   var done=false, timer=setTimeout(function(){ if(!done) fallback('กดปุ่มด้านล่างเพื่อไปหน้ารีวิวได้เลยค่ะ'); }, 6000);
   fetch(API+'?action=crmRateOpen&fu='+encodeURIComponent(q.get('fu')||'')+'&k='+encodeURIComponent(q.get('k')||'')+(isOk?'&kind=ok':''),{cache:'no-store'})
