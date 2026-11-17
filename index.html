@@ -4366,6 +4366,10 @@ function crmViewOrthoApts(){
     const o=crmOrthoRec(a.hn); if(!o) return '';
     return `<button class="crm-btn" style="flex:0 0 auto;" onclick="openReschedule('${crmEsc(o.hn)}')" title="ลงนัดจัดฟันครั้งถัดไป">📅 นัดถัดไป</button>`;
   };
+  const editBtn=a=>{
+    if(isViewOnlyUser() || a.date<today) return '';
+    return `<button class="crm-btn" style="flex:0 0 auto;" onclick="openOrthoAptEdit('${crmEsc(String(a.id))}','${crmEsc(a.hn||'')}','${a.date}')" title="เปลี่ยนวัน/เวลา/หมายเหตุของนัดนี้">✏️ แก้ไขนัด</button>`;
+  };
   const body=dates.map(d=>{
     const arr=days[d], cnt={yes:0,move:0,wait:0,noline:0}; arr.forEach(a=>cnt[crmOrthoState(a)]++);
     const pend=arr.filter(a=>['wait','noline'].includes(crmOrthoState(a)));
@@ -4379,7 +4383,7 @@ function crmViewOrthoApts(){
           ${a.note?`<div style="font-size:12px;margin-top:2px;color:#7A5600;">📝 ${crmEsc(a.note)}</div>`:''}
           ${nextLine(a)}
           <div style="margin-top:3px;">${(x[2]&&!isViewOnlyUser())?`<span class="crm-chip" role="button" title="แตะเพื่อตั้งเป็นยืนยันแล้ว (แอดมินคอนเฟิร์มเอง)" style="${SKIN[x[2]]}cursor:pointer;" onclick="crmOrthoConfirm('${crmEsc(a.id)}')">${x[0]} ✓</span>`:`<span class="crm-chip ${x[1]}">${x[0]}</span>`} ${a._hnFromCode?'<span class="crm-chip o" title="นัดในตารางนัดยังไม่มี HN จึงยังไม่ส่งไลน์ — ใส่ HN ในนัดนี้เพื่อให้ส่งไลน์ยืนยัน/เตือนได้">จับคู่จากรหัส · นัดไม่มี HN</span>':(crmHasLine(a.hn)?'<span class="crm-chip g">🟢 ผูกไลน์แล้ว</span>':'<span class="crm-chip x">ยังไม่ผูกไลน์</span>')}</div>
-          <div class="crm-oc-acts">${came(a)}${nextBtn(a)}</div>
+          <div class="crm-oc-acts">${came(a)}${editBtn(a)}${nextBtn(a)}</div>
 </td></tr>`; }).join('');
     return head+rows;
   }).join('');
@@ -11524,6 +11528,7 @@ function closeModal(id){
   if(id==='modalTreat') _treatSaving=false;
   if(id==='modalApt') _aptSaving=false;
   if(id==='modalOrtho') _orthoSaving=false;
+  if(id==='modalReschedule') _reschedAptId=null;
   if(id==='modalOrthoLog') _ologSaving=false;
 }
 function showToast(msg,type='success'){
@@ -13402,8 +13407,29 @@ function reschedQuickSync(){
   const parts=document.getElementById('resched-note').value.split(/\s*·\s*/).map(x=>x.trim());
   document.querySelectorAll('.resched-q').forEach(b=>{ const on=parts.includes(b.dataset.q); b.classList.toggle('btn-primary',on); b.classList.toggle('btn-ghost',!on); });
 }
+/* ✏️ แก้ไขนัดจัดฟันจากการ์ดนัดจัดฟัน — ใช้ฟอร์มเดียวกับ "นัดถัดไป"
+   · นัดที่มาจากการ์ด (ช่องนัดถัดไป) → แก้ที่การ์ด (ตารางนัดย้ายตามเอง)
+   · นัดในตารางนัด → ย้ายแถวนัดนั้น และถ้าตรงกับ "นัดถัดไป" ในการ์ด แก้การ์ดตามด้วย → ทุกหน้าเห็นตรงกัน */
+let _reschedAptId=null;
+function openOrthoAptEdit(id, hn, date){
+  if(viewOnlyBlock_()) return;
+  const real=appointments.find(x=>String(x.id)===String(id));
+  const o=hn?crmOrthoRec(hn):null;
+  if(!o){ if(real){ openEditApt(real.id); } else showToast('ไม่พบการ์ดจัดฟันของคนไข้นี้ (HN ไม่ตรง)','error'); return; }
+  openReschedule(o.hn);
+  _reschedAptId=real?String(real.id):null;
+  const t=document.getElementById('reschedModalTitle'); t.textContent='แก้ไขนัด — '+(o['ชื่อ']||real&&real.patName||hn); t.insertAdjacentHTML('beforeend', orthoPayBadge({hn:o.hn}));
+  if(real){
+    document.getElementById('resched-date').value=real.date||'';
+    document.getElementById('resched-time').value=String(real.time||'').slice(0,5);
+    const cardSame=String(o['นัดถัดไป']||'').slice(0,10)===real.date;
+    if(!cardSame) document.getElementById('resched-note').value=real.note||'';
+    reschedQuickSync();
+  }
+}
 function openReschedule(hn){
   if(viewOnlyBlock_()) return;
+  _reschedAptId=null;
   const r = orthoData.find(x=> String(x.hn)===String(hn));
   document.getElementById('reschedModalTitle').textContent = 'ลงนัด — '+(r?.['ชื่อ']||hn);
   document.getElementById('reschedModalTitle').insertAdjacentHTML('beforeend', orthoPayBadge({hn}));
@@ -13466,6 +13492,7 @@ async function saveReschedule(){
   const hn = document.getElementById('resched-hn').value;
   if(!hn) return;
   _reschedSaving = true;
+  if(_reschedAptId){ try{ await saveOrthoAptEdit_(hn); } finally { _reschedSaving=false; } return; }
   const idx = orthoData.findIndex(x=> String(x.hn)===String(hn));
   const row = Object.assign({}, idx>=0?orthoData[idx]:{hn}, {
     'นัดถัดไป': document.getElementById('resched-date').value,
@@ -13486,6 +13513,34 @@ async function saveReschedule(){
   renderOrthoPage();
   try{ if(typeof CRM!=='undefined' && CRM.sub==='orthoapt' && CRM.data) crmRender(); }catch(e){}
   _reschedSaving = false;
+}
+
+async function saveOrthoAptEdit_(hn){
+  const a=appointments.find(x=>String(x.id)===String(_reschedAptId)); if(!a){ _reschedAptId=null; return; }
+  const nd=document.getElementById('resched-date').value, nt=document.getElementById('resched-time').value;
+  if(!nd){ showToast('กรุณาเลือกวันนัด','error'); return; }
+  const items=Array.from(document.querySelectorAll('.resched-do-chk:checked')).map(c=>c.value).join(', ');
+  const note=document.getElementById('resched-note').value.trim();
+  const oldD=a.date, oldT=String(a.time||'').slice(0,5), moved=(nd!==oldD || (nt||oldT)!==oldT);
+  // การ์ดจัดฟัน: ถ้า "นัดถัดไป" คือนัดนี้ → แก้การ์ดตาม
+  const idx=orthoData.findIndex(x=>crmHN(x.hn)===crmHN(hn)), card=idx>=0?orthoData[idx]:null;
+  const cardSame=card && String(card['นัดถัดไป']||'').slice(0,10)===oldD;
+  if(cardSame){
+    const row=Object.assign({}, card, {'นัดถัดไป':nd, 'นัดถัดไปเวลา':nt, 'รายการนัดถัดไป':items, 'หมายเหตุนัดถัดไป':note});
+    const res=await orthoPost({action:'orthoSave', row}); if(res && res.ok===false) return;
+    orthoData[idx]=row;
+  }
+  a.date=nd; if(nt) a.time=nt; a.note=note;
+  if(moved){ a.status='ไม่คอนเฟิร์ม'; a.movedAt=crmLocalTs_(); }
+  saveLocal(); markPendingSync('appointments', a);
+  syncToSheet('appointments', a).catch(()=>showToast('sync นัดไม่สำเร็จ','error'));
+  _reschedAptId=null;
+  closeModal('modalReschedule');
+  showToast(moved?('ย้ายนัดไป '+crmThaiShort(nd)+(nt?' '+nt:'')+' แล้ว'+(cardSame?' (แก้การ์ดจัดฟันตามแล้ว)':'')):'บันทึกนัดแล้ว');
+  if(moved){ crmCloseReschedTasks_(hn, nd, nt, 'ปุ่มแก้ไขนัด'); crmKickReport_(hn); }
+  try{ const p=document.querySelector('.page.active')?.id?.replace('page-',''); if(p==='home') renderHome(); else if(p==='schedule'){ renderScheduleDay(); renderSchMiniCal(); } }catch(e){}
+  try{ renderOrthoPage(); }catch(e){}
+  try{ if(typeof CRM!=='undefined' && CRM.data) crmRender(); }catch(e){}
 }
 
 function openRetainer(hn){
