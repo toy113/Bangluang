@@ -9880,6 +9880,12 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     let u=false; try{ u = orthoPayOf_(a.hn)===ORTHO_PAY_UNTIL_DONE; }catch(e){}
     return u ? '<span title="ชำระจนเสร็จ" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--wine);flex-shrink:0;"></span>' : '';
   }
+  // ✏️ แก้ไขนัดจัดฟันที่มาจากการ์ด = เปิดฟอร์ม "นัดถัดไป" ของการ์ดนั้น (ตารางนัด/การ์ด/LINE เปลี่ยนตามกัน)
+  function orthoEditBtn_(a){
+    if(isViewOnlyUser() || String(a.date||'')<todayStr()) return '';
+    const hnE=String(a.hn||'').replace(/'/g,"\\'");
+    return `<button onclick="event.stopPropagation();openReschedule('${hnE}')" aria-label="แก้ไขนัด" title="แก้ไขนัด (เหมือนปุ่มนัดถัดไป)" style="background:rgba(107,45,94,0.1);border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:12px;flex-shrink:0;margin-left:auto;">✏️</button>`;
+  }
   function aptCardCompact(a){
     const procX = String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x && x!=='ปรับเครื่องมือ' && x!=='นัดจัดฟัน' && x!=='จัดฟัน').join(', ');
     const procHtml = procX ? `<span style="background:#fff;border:1px solid #C9DAF7;color:#1E4FA0;border-radius:8px;padding:0 6px;font-size:10.5px;font-weight:700;">${_escHtml(procX)}</span>` : '';
@@ -9891,7 +9897,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       return `<div onclick="event.stopPropagation();openOrthoHistory('${hnE}')" title="แตะเพื่อเปิดการ์ดจัดฟัน" style="background:${_dn?'#E3F7EA':'#EEF4FF'};border-left:3px solid ${_dn?'#2E9E5B':'#1E6FD9'};border-radius:5px;padding:1px 6px;margin-bottom:2px;cursor:pointer;display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12.5px;line-height:1.55;">
         <span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${lineDot_(a).replace('margin-right:5px','margin-right:0')}${schPayDot_(a)}</span>${oc?`<b style="color:var(--wine);font-size:11px;">${_escHtml(oc)}</b>`:'<span>🦷</span>'}
         <span style="font-weight:800;color:#17407F;">${_escHtml(a.patName||'—')}</span>
-        ${procHtml}${noteHtml}${aptConfirmChip_(a, true)}${schOrthoConfirmBtn_(a)}
+        ${procHtml}${noteHtml}${aptConfirmChip_(a, true)}${schOrthoConfirmBtn_(a)}${orthoEditBtn_(a)}
       </div>`;
     }
     const sc = STATUS_COLOR[a.status]||'#999';
@@ -9922,6 +9928,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
           <span style="font-weight:800;color:#17407F;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escHtml(a.patName||'—')}</span>
           ${orthoPayBadge(a)}
           ${hs?`<span style="font-size:11px;color:var(--text-light);flex-shrink:0;">${_escHtml(hs)}</span>`:''}
+          ${orthoEditBtn_(a)}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:11px;">
           <span style="background:#fff;border:1px solid #C9DAF7;color:#1E4FA0;border-radius:10px;padding:0 8px;font-weight:700;">${_escHtml(a.proc||'นัดจัดฟัน')}</span>
