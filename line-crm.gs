@@ -343,9 +343,22 @@ function crmApi_(method, path, payload, host) {
   var data = null; try { data = txt ? JSON.parse(txt) : null; } catch (e) {}
   return { code: code, data: data, text: txt };
 }
+/* ข้อความตอบกลับ (reply) = ฟรี ไม่นับโควตา LINE · นับจำนวนไว้แสดงในรายงาน แยกตามสาเหตุ (CRM_RCTX ตั้งจาก webhook) */
+var CRM_RCTX = '';
 function crmReply_(replyToken, messages) {
   if (!replyToken || !messages || !messages.length) return;
-  crmApi_('post', '/v2/bot/message/reply', { replyToken: replyToken, messages: messages.slice(0, 5) });
+  var r = crmApi_('post', '/v2/bot/message/reply', { replyToken: replyToken, messages: messages.slice(0, 5) });
+  if (r && r.code === 200) { try { crmReplyCount_(CRM_RCTX || 'other'); } catch (e) {} }
+}
+function crmReplyCount_(ctx) {
+  var lock = LockService.getScriptLock(); try { lock.waitLock(3000); } catch (e) { return; }
+  try {
+    var mo = crmToday_().slice(0, 7), st = {};
+    try { st = JSON.parse(crmProp_('CRM_REPLY_STATS', '{}')) || {}; } catch (e) { st = {}; }
+    st[mo] = st[mo] || {}; st[mo][ctx] = (st[mo][ctx] || 0) + 1;
+    var ks = Object.keys(st).sort(); while (ks.length > 13) delete st[ks.shift()];
+    PropertiesService.getScriptProperties().setProperty('CRM_REPLY_STATS', JSON.stringify(st));
+  } finally { lock.releaseLock(); }
 }
 function crmText_(t) { return { type: 'text', text: String(t).slice(0, 4900) }; }
 function crmQuota_(force) {
@@ -1333,6 +1346,7 @@ function crmHandleWebhook_(events, destination) {
       // รับเฉพาะแชท 1:1 (ไม่ตอบในกลุ่ม/ห้อง)
       if (ev.source && ev.source.type && ev.source.type !== 'user') return;
       var uid = ev.source && ev.source.userId;
+      CRM_RCTX = ev.type === 'follow' ? 'welcome' : (ev.type === 'postback' ? 'pb_' + String((ev.postback && ev.postback.data) || '').split('|')[0] : (ev.type === 'message' ? 'chat' : 'other'));
       if (ev.type === 'follow') {
         crmUpsertFollower_(uid, 'follow');
         crmReply_(ev.replyToken, [crmWelcome_(s)]);
@@ -2406,7 +2420,7 @@ function crmDashboard_() {
     followups: recentRated('followups', 'sentAt', since, crmAddDays_(crmToday_(), -400)),
     links: strip(links.slice()), followers: strip(followersAll.slice()), apt: strip(crmRead_('apt')),
     casenotes: recent('casenotes', 'createdAt', since),
-    campaigns: strip(crmRead_('campaigns')), log: log, stats: stats, quota: quota, lastTick: lastTick,
+    campaigns: strip(crmRead_('campaigns')), log: log, stats: stats, quota: quota, lastTick: lastTick, replyStats: (function () { try { return JSON.parse(crmProp_('CRM_REPLY_STATS', '{}')) || {}; } catch (e) { return {}; } })(),
     linked: crmLinkMap_(links, orthoAll, followersAll), orthoActive: orthoAll.filter(function (o) { return !o['สถานะ'] || o['สถานะ'] === 'กำลังจัด'; }).map(function (o) { return crmHN_(o.hn); }),
     tickInstalled: triggers.indexOf('crmTick') !== -1, liffUrl: crmLiffUrl_(''), richMenu: crmProp_('CRM_RICHMENU_ID', ''),
     tokenSet: !!crmToken_(), now: crmNow_() };
@@ -2605,7 +2619,7 @@ function crmSendTest_(b) {
       crmReceiptMessage_(s, { date: crmToday_(), docName: 'ทพ.สรวิศ สุภาพ', proc: 'ขูดหินปูน, อุดฟัน', cash: 800, transfer: 700, sso: 0, patName: 'ทดสอบ ระบบ' })];
   }
   var res = crmApi_('post', '/v2/bot/message/push', { to: to, messages: msgs.slice(0, 5) });
-  crmAppend_('log', { key: 'test:' + Date.now(), type: 'test', lineUserId: to, status: res.code === 200 ? 'test' : 'failed', detail: res.code === 200 ? (b.kind || 'apt') : ('HTTP ' + res.code + ' ' + String(res.text).slice(0, 150)), createdAt: crmNow_(), pushCount: res.code === 200 ? 1 : 0 });
+  crmAppend_('log', { key: 'test:' + Date.now(), type: 'test', lineUserId: to, pushCount: res.code === 200 ? 1 : 0, status: res.code === 200 ? 'test' : 'failed', detail: res.code === 200 ? (b.kind || 'apt') : ('HTTP ' + res.code + ' ' + String(res.text).slice(0, 150)), createdAt: crmNow_(), pushCount: res.code === 200 ? 1 : 0 });
   return { ok: res.code === 200, error: res.code === 200 ? '' : ('LINE ตอบกลับ ' + res.code + ': ' + String(res.text).slice(0, 200)) };
 }
 
