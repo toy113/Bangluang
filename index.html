@@ -5453,7 +5453,17 @@ function dfBtn_(n){
   if(!pend) return ` <button data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" title="เคสสุดท้ายเสร็จแล้ว — คัดลอก DF ประจำวันไปวางในไลน์" style="${base}background:#06C755;color:#fff;cursor:pointer;">📋 คัดลอก DF</button>`;
   return ` <span style="margin-left:6px;font-size:11px;color:var(--text-light);font-weight:600;">⏳ เหลืออีก ${pend} เคส</span> <a href="javascript:void(0)" data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" style="font-size:11px;color:var(--text-light);text-decoration:underline;">คัดลอกเลย</a>`;
 }
+// กดยอดส่วนแบ่งหมอในตารางหน้าหลัก → เปิดตารางรายเคส (ใช้หน้าต่างเดียวกับหน้าสรุปรายได้) เฉพาะวันนี้
+let _dbkLabel=null;
+function homeOpenDocBreakdown(n){
+  const doc=doctors.find(d=>d.name===n)||doctors.find(d=>docAlias(d.name)===n); if(!doc) return;
+  const rows=(window._homeDocTreats||[]).filter(t=>(docAlias(t.docName)||'ไม่ระบุหมอ')===n).map(t=>t.docName===doc.name?t:Object.assign({},t,{docName:doc.name}));
+  const sR=_shareRows, sL=_shareDocList, sP=currentPeriod;
+  _shareRows=rows; _shareDocList=[doc]; currentPeriod='day'; _dbkLabel='วันนี้ '+fmtDateThai(todayStr());
+  try{ openDoctorBreakdown(0); } finally { _shareRows=sR; _shareDocList=sL; currentPeriod=sP; _dbkLabel=null; }
+}
 function renderDocBreakdown_(treats){
+  window._homeDocTreats=treats;
   const box=document.getElementById('docBreakdownBox'), tbl=document.getElementById('docBreakdownTbl');
   if(!box||!tbl) return;
   if(!isManager){ box.style.display='none'; return; }
@@ -5472,7 +5482,7 @@ function renderDocBreakdown_(treats){
   if(!names.length){ tbl.innerHTML='<tr><td style="padding:16px;text-align:center;color:var(--text-light);">ยังไม่มีรายการรักษาวันนี้</td></tr>'; return; }
   const sum={n:0,total:0,cash:0,transfer:0,sso:0,share:0};
   const rows=names.map(n=>{ const g=by[n]; Object.keys(sum).forEach(k=>sum[k]+=g[k]);
-    return `<tr><td style="${td}text-align:left;font-weight:700;color:${docColor(n)};">${_escHtml(n)}${n!=='ไม่ระบุหมอ'?dfBtn_(n):''}</td><td style="${td}">${g.n}</td><td style="${td}font-weight:700;">${fmt(g.total)}</td><td style="${td}">${fmt(g.cash)}</td><td style="${td}">${fmt(g.transfer)}</td><td style="${td}">${fmt(g.sso)}</td><td style="${td}color:#B7791F;font-weight:700;">${fmt(g.share)}</td></tr>`; }).join('');
+    return `<tr><td style="${td}text-align:left;font-weight:700;color:${docColor(n)};">${_escHtml(n)}${n!=='ไม่ระบุหมอ'?dfBtn_(n):''}</td><td style="${td}">${g.n}</td><td style="${td}font-weight:700;">${fmt(g.total)}</td><td style="${td}">${fmt(g.cash)}</td><td style="${td}">${fmt(g.transfer)}</td><td style="${td}">${fmt(g.sso)}</td><td style="${td}color:#B7791F;font-weight:700;">${n==='ไม่ระบุหมอ'?fmt(g.share):`<a href="javascript:void(0)" data-doc="${String(n).replace(/"/g,'&quot;')}" onclick="homeOpenDocBreakdown(this.dataset.doc)" title="ดูว่าคิดจากเคสไหน กี่ %" style="color:inherit;text-decoration:underline dotted;text-underline-offset:3px;">${fmt(g.share)} 🔍</a>`}</td></tr>`; }).join('');
   tbl.innerHTML=`<tr><th style="${th}text-align:left;">หมอ</th><th style="${th}">ราย</th><th style="${th}">รายได้</th><th style="${th}">เงินสด</th><th style="${th}">โอน</th><th style="${th}">ประกันสังคม</th><th style="${th}">ส่วนแบ่งหมอ</th></tr>${rows}
   <tr style="background:var(--wine-pale);font-weight:800;"><td style="${td}text-align:left;">รวม</td><td style="${td}">${sum.n}</td><td style="${td}">${fmt(sum.total)}</td><td style="${td}">${fmt(sum.cash)}</td><td style="${td}">${fmt(sum.transfer)}</td><td style="${td}">${fmt(sum.sso)}</td><td style="${td}">${fmt(sum.share)}</td></tr>`;
 }
@@ -8415,7 +8425,7 @@ function openDoctorBreakdown(idx){
   const cases=[...dr].sort((a,b)=>((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||'')));
   const showDate = currentPeriod!=='day';
 
-  document.getElementById('dbk-title').textContent=`${doc.emoji||'🦷'} ${doc.name} · ${incomePeriodLabel()}`;
+  document.getElementById('dbk-title').textContent=`${doc.emoji||'🦷'} ${doc.name} · ${_dbkLabel||incomePeriodLabel()}`;
   let html=`<div class="dbk-stats">
     <div class="dbk-stat"><div class="dbk-stat-label">จำนวนราย</div><div class="dbk-stat-value">${dr.length}</div></div>
     <div class="dbk-stat"><div class="dbk-stat-label">รายได้รวม</div><div class="dbk-stat-value">${fmt(tot)}</div></div>
