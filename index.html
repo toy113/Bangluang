@@ -2955,14 +2955,14 @@ const DOCTORS_DATA = [
 const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
 /* ===== รายการรักษา: ชื่อไทยตั้งแต่ต้นทาง · จัดเป็นหมวด ===== */
-const PROC_RENAME = {'เอ็กซเรย์ Pano':'เอ็กซเรย์ฟันทั้งปาก','เอ็กซเรย์ Ceph':'เอ็กซเรย์กะโหลกด้านข้าง','X-Ray':'เอ็กซเรย์ฟัน','X-Ray BW':'เอ็กซเรย์ตรวจฟันผุ','x-ray':'เอ็กซเรย์ฟัน','TP':'ฟันปลอมถอดได้ฐานพลาสติก','RPD':'ฟันปลอมถอดได้โครงโลหะ','Valplast':'ฟันปลอมฐานนิ่ม','Splint':'เฝือกสบฟัน','recheck':'ตรวจติดตามอาการ','onlay':'ครอบฟันบางส่วน','MI':'นัดต่อเนื่องรักษารากฟัน','FRC':'อุดคลองรากฟัน','Bite Block':'บันทึกการสบฟัน','Biteblock':'บันทึกการสบฟัน','ใส่ฟัน':'ใส่ฟันปลอม','ลองโครง':'ลองโครงฟันปลอม','ลองฟัน':'ลองฟันปลอม'};
+const PROC_RENAME = {'เอ็กซเรย์ Pano':'X-Ray Panoramic','เอ็กซเรย์ Ceph':'X-Ray Lateral cephalometric','เอ็กซเรย์ฟันทั้งปาก':'X-Ray Panoramic','เอ็กซเรย์กะโหลกด้านข้าง':'X-Ray Lateral cephalometric','X-Ray':'เอ็กซเรย์ฟัน','X-Ray BW':'เอ็กซเรย์ตรวจฟันผุ','x-ray':'เอ็กซเรย์ฟัน','TP':'ฟันปลอมถอดได้ฐานพลาสติก','RPD':'ฟันปลอมถอดได้โครงโลหะ','Valplast':'ฟันปลอมฐานนิ่ม','Splint':'เฝือกสบฟัน','recheck':'ตรวจติดตามอาการ','onlay':'ครอบฟันบางส่วน','MI':'นัดต่อเนื่องรักษารากฟัน','FRC':'อุดคลองรากฟัน','Bite Block':'บันทึกการสบฟัน','Biteblock':'บันทึกการสบฟัน','ใส่ฟัน':'ใส่ฟันปลอม','ลองโครง':'ลองโครงฟันปลอม','ลองฟัน':'ลองฟันปลอม'};
 const DENTURE_TYPES = ['ฟันปลอมถอดได้ฐานพลาสติก','ฟันปลอมถอดได้โครงโลหะ','ฟันปลอมฐานนิ่ม','ฟันปลอมทั้งปาก','ครอบฟัน','Onlay'];
 const CROWN_TYPES = ['ครอบฟัน','Onlay'];   // งานแลปชิ้นเดี่ยว: ใช้กล่องเดียวกับฟันปลอม แต่ขั้นตอนเป็นของตัวเอง
 const CROWN_STEPS = ['พิมพ์ปาก','บันทึกการสบฟัน','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];
 const CROWN_ONLY_STEPS = ['พิมพ์ปาก','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];   // ขั้นตอนที่ไม่แสดงในงานฟันปลอม
 const DENTURE_STEPS = ['พิมพ์แบบฟันปลอม','ลองโครงฟันปลอม','บันทึกการสบฟัน','ลองฟันปลอม','ใส่ฟันปลอม','ปรับแก้ฟันปลอม','พิมพ์ปาก','ลองชิ้นงาน','ใส่ชิ้นงาน','ปรับแก้ชิ้นงาน'];
 const PROC_GROUPS = [
-  {name:'ตรวจ / วินิจฉัย', icon:'🔍', items:['ตรวจฟัน','เอ็กซเรย์ฟัน','เอ็กซเรย์ตรวจฟันผุ','เอ็กซเรย์ฟันทั้งปาก','เอ็กซเรย์กะโหลกด้านข้าง','ดูอาการ','ตรวจติดตามอาการ']},
+  {name:'ตรวจ / วินิจฉัย', icon:'🔍', items:['ตรวจฟัน','เอ็กซเรย์ฟัน','เอ็กซเรย์ตรวจฟันผุ','X-Ray Panoramic','X-Ray Lateral cephalometric','ดูอาการ','ตรวจติดตามอาการ']},
   {name:'อุดฟัน / ซ่อมฟัน', icon:'🦷', items:['อุดฟัน','อุดชั่วคราว','เดือยฟัน','เสียวฟัน','เคลือบหลุมร่องฟัน','เคลือบฟลูออไรด์']},
   {name:'ขูดหินปูน / เหงือก / ฟอกสี', icon:'✨', items:['ขูดหินปูน','เกลารากฟัน','ตัดเหงือก','ฟอกสีฟัน']},
   {name:'รักษารากฟัน', icon:'🩺', items:['รักษารากฟัน','นัดต่อเนื่องรักษารากฟัน','อุดคลองรากฟัน']},
@@ -3003,8 +3003,8 @@ const PROC_COLORS = {
   'ตรวจฟัน':      '#8E44AD',
   'X-Ray':        '#16A085',
   'X-Ray BW':     '#117864',
-  'เอ็กซเรย์ฟันทั้งปาก':'#0E6655',
-  'เอ็กซเรย์กะโหลกด้านข้าง':'#148F77',
+  'X-Ray Panoramic':'#0E6655',
+  'X-Ray Lateral cephalometric':'#148F77',
   'พิมพ์ปากวางแผนจัดฟัน':'#7D3C98',
   'TP':           '#D35400',
   'RPD':          '#E67E22',
@@ -6663,7 +6663,7 @@ function printLangSel_(){
 var EN_MONTHS_ = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function fmtDateEn_(s){ const [y,m,d]=String(s||'').slice(0,10).split('-').map(Number); if(!y||!m||!d) return s||'—'; return d+' '+EN_MONTHS_[m-1]+' '+y; }
 // แปลชื่อหัตถการที่พบบ่อยเป็นอังกฤษ — คำที่ไม่อยู่ในรายการจะคงภาษาไทยไว้ (ตรวจก่อนยื่นเอกสารทุกครั้ง)
-var EN_PROC_ = [['พิมพ์ปากวางแผนจัดฟัน','Orthodontic study model impression'],['เอ็กซเรย์ฟันทั้งปาก','Panoramic radiograph'],['เอ็กซเรย์กะโหลกด้านข้าง','Lateral cephalometric radiograph'],['Onlay','Onlay'],['พิมพ์ปาก','Dental impression'],['ลองชิ้นงาน','Try-in'],['ใส่ชิ้นงาน','Cementation'],['ปรับแก้ชิ้นงาน','Adjustment'],['ฟันปลอมถอดได้ฐานพลาสติก','Removable acrylic denture'],['ฟันปลอมถอดได้โครงโลหะ','Removable partial denture (metal framework)'],['ฟันปลอมฐานนิ่ม','Flexible (soft-base) denture'],['ฟันปลอมทั้งปาก','Complete denture'],['พิมพ์แบบฟันปลอม','impression'],['ลองโครงฟันปลอม','framework try-in'],['บันทึกการสบฟัน','bite registration'],['ลองฟันปลอม','try-in'],['ใส่ฟันปลอม','delivery'],['ปรับแก้ฟันปลอม','adjustment'],['ขั้นตอน:','stage:'],['นัดต่อเนื่องรักษารากฟัน','Root canal treatment (follow-up visit)'],['อุดคลองรากฟัน','Root canal filling'],['ครอบฟันบางส่วน','Onlay'],['ใส่ครอบฟัน','Crown cementation'],['เอ็กซเรย์ตรวจฟันผุ','Bitewing X-Ray'],['เอ็กซเรย์ฟัน','Dental X-Ray'],['เฝือกสบฟัน','Occlusal splint'],['ตรวจติดตามอาการ','Follow-up examination'],['ปรับเครื่องมือจัดฟัน','Orthodontic adjustment'],['ถอดเครื่องมือจัดฟัน','Orthodontic appliance removal'],['ติดเครื่องมือจัดฟัน','Orthodontic bonding'],['เครื่องมือจัดฟัน','Orthodontic appliance'],['จัดฟัน','Orthodontic treatment'],['ผ่าฟันคุด','Surgical removal of impacted tooth'],['ถอนฟันคุด','Removal of impacted tooth'],['ถอนฟัน','Tooth extraction'],['รักษารากฟัน','Root canal treatment'],['เกลารากฟัน','Root planing'],['รากฟันเทียม','Dental implant'],['ขูดหินปูน','Scaling'],['ขัดฟัน','Polishing'],['อุดฟัน','Dental filling'],['ครอบฟัน','Dental crown'],['สะพานฟัน','Dental bridge'],['ฟันปลอม','Denture'],['ฟอกสีฟัน','Teeth whitening'],['เคลือบหลุมร่องฟัน','Fissure sealant'],['เคลือบฟลูออไรด์','Fluoride application'],['ตรวจฟัน','Dental examination'],['ตรวจช่องปาก','Oral examination'],['รีเทนเนอร์','Retainer'],['เอ็กซเรย์','X-Ray'],['ค่าแลป','Laboratory fee'],['ฟันน้ำนม','primary tooth'],['ซี่','tooth']];
+var EN_PROC_ = [['พิมพ์ปากวางแผนจัดฟัน','Orthodontic study model impression'],['X-Ray Panoramic','Panoramic radiograph'],['X-Ray Lateral cephalometric','Lateral cephalometric radiograph'],['Onlay','Onlay'],['พิมพ์ปาก','Dental impression'],['ลองชิ้นงาน','Try-in'],['ใส่ชิ้นงาน','Cementation'],['ปรับแก้ชิ้นงาน','Adjustment'],['ฟันปลอมถอดได้ฐานพลาสติก','Removable acrylic denture'],['ฟันปลอมถอดได้โครงโลหะ','Removable partial denture (metal framework)'],['ฟันปลอมฐานนิ่ม','Flexible (soft-base) denture'],['ฟันปลอมทั้งปาก','Complete denture'],['พิมพ์แบบฟันปลอม','impression'],['ลองโครงฟันปลอม','framework try-in'],['บันทึกการสบฟัน','bite registration'],['ลองฟันปลอม','try-in'],['ใส่ฟันปลอม','delivery'],['ปรับแก้ฟันปลอม','adjustment'],['ขั้นตอน:','stage:'],['นัดต่อเนื่องรักษารากฟัน','Root canal treatment (follow-up visit)'],['อุดคลองรากฟัน','Root canal filling'],['ครอบฟันบางส่วน','Onlay'],['ใส่ครอบฟัน','Crown cementation'],['เอ็กซเรย์ตรวจฟันผุ','Bitewing X-Ray'],['เอ็กซเรย์ฟัน','Dental X-Ray'],['เฝือกสบฟัน','Occlusal splint'],['ตรวจติดตามอาการ','Follow-up examination'],['ปรับเครื่องมือจัดฟัน','Orthodontic adjustment'],['ถอดเครื่องมือจัดฟัน','Orthodontic appliance removal'],['ติดเครื่องมือจัดฟัน','Orthodontic bonding'],['เครื่องมือจัดฟัน','Orthodontic appliance'],['จัดฟัน','Orthodontic treatment'],['ผ่าฟันคุด','Surgical removal of impacted tooth'],['ถอนฟันคุด','Removal of impacted tooth'],['ถอนฟัน','Tooth extraction'],['รักษารากฟัน','Root canal treatment'],['เกลารากฟัน','Root planing'],['รากฟันเทียม','Dental implant'],['ขูดหินปูน','Scaling'],['ขัดฟัน','Polishing'],['อุดฟัน','Dental filling'],['ครอบฟัน','Dental crown'],['สะพานฟัน','Dental bridge'],['ฟันปลอม','Denture'],['ฟอกสีฟัน','Teeth whitening'],['เคลือบหลุมร่องฟัน','Fissure sealant'],['เคลือบฟลูออไรด์','Fluoride application'],['ตรวจฟัน','Dental examination'],['ตรวจช่องปาก','Oral examination'],['รีเทนเนอร์','Retainer'],['เอ็กซเรย์','X-Ray'],['ค่าแลป','Laboratory fee'],['ฟันน้ำนม','primary tooth'],['ซี่','tooth']];
 function enProc_(t){ let x=String(t||''); EN_PROC_.forEach(([a,b])=>{ x=x.split(a).join(b); }); return x; }
 var EN_PURPOSE_ = {'ลาป่วยต่อนายจ้าง/สถานศึกษา':'Sick leave (employer / school)','ยื่นเบิกประกันสุขภาพ':'Health insurance claim','ยื่นเบิกต้นสังกัด':'Reimbursement claim to employing agency','ยื่นเบิกบริษัท':'Reimbursement claim to employer (company)'};
 function bahtTextEn_(n){
@@ -11358,7 +11358,7 @@ function noDfLines_(acc){
   if(acc.drug>0) out.push('💊 ค่ายา  ฿'+fmt(acc.drug)+'  (ไม่คิด df)');
   return out;
 }
-function _isXrayProc(p){ return /^(?:x[\s-]?ray(?:[\s-]*(?:bw|pano|ceph))?|เอ็กซเรย์(?:ฟัน|ตรวจฟันผุ|ฟันทั้งปาก|กะโหลกด้านข้าง|\s*pano|\s*ceph)?)$/i.test(String(p||'').trim()); }   // รวมเอ็กซเรย์ฟันทั้งปาก (Pano) / กะโหลกด้านข้าง (Ceph)
+function _isXrayProc(p){ return /^(?:x[\s-]?ray(?:[\s-]*(?:bw|pano(?:ramic)?|(?:lateral[\s-]*)?ceph(?:alometric)?))?|เอ็กซเรย์(?:ฟัน|ตรวจฟันผุ|ฟันทั้งปาก|กะโหลกด้านข้าง|\s*pano|\s*ceph)?)$/i.test(String(p||'').trim()); }   // รวม X-Ray Panoramic / X-Ray Lateral cephalometric
 function xrayMixedPrice(t){
   const d = String((t&&t.date)||'').slice(0,10);
   if(!(/^\d{4}-\d{2}-\d{2}$/.test(d) && d>=xrayRuleStart())) return 0;
