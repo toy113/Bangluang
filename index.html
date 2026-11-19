@@ -12192,7 +12192,8 @@ function doSendIncome(periodLabel){
       text += `     ${procList.join(', ')}  ${baht(price)}  (ไม่คิด df)\n`;
     } else if(priced.length && (xrayMixedPrice(t)>0 || itemDfParts(t).items.length || priced.length===procList.length)){
       let used = 0;
-      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; const _hit = itemDfParts(t).items.find(i=>i.name===x); text += `     ${x}  ${baht(+pp[x]||0)}${_hit?'  (df '+_hit.rate+'%)':(_isXrayProc(x)?'  (ไม่คิด df)':'')}\n`; });
+      procList.filter(x=>pp[x]!==undefined).forEach(x=>{ used += +pp[x]||0; const _hit = itemDfParts(t).items.find(i=>i.name===x); const _hide80 = _hit && +_hit.rate===80 && isAimDoc_(docAlias(t.docName));   // ทพญ.วัจน์กร: df 80% เป็นค่าปกติ ไม่ต้องเขียน
+      text += `     ${x}  ${baht(+pp[x]||0)}${(_hit&&!_hide80)?'  (df '+_hit.rate+'%)':(_isXrayProc(x)?'  (ไม่คิด df)':'')}\n`; });
       const rest = procList.filter(x=>pp[x]===undefined);
       if(rest.length) text += `     ${rest.join(', ')}  ${baht(Math.max(0,price-used))}\n`;
     } else {
