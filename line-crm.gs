@@ -1609,10 +1609,21 @@ function crmSetAptConfirmed_(x) {
   crmTouch_(); try { gaTouch_('appointments'); } catch (eG) {}   // ให้หน้าเว็บเห็นสถานะคอนเฟิร์มทันที (cache getAll อยู่นาน 6 ชม.)
   return true;
 }
+function crmPostbackDup_(uid, data) {
+  if (!uid || !data) return false;
+  var lock = LockService.getScriptLock(); try { lock.waitLock(8000); } catch (e) { return false; }
+  try {
+    var c = CacheService.getScriptCache(), k = 'crm_pb_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, uid + '|' + data));
+    if (c.get(k)) return true;
+    c.put(k, '1', 120); return false;
+  } finally { lock.releaseLock(); }
+}
 function crmHandlePostback_(s, ev, uid) {
   var data = String((ev.postback && ev.postback.data) || ''), parts = data.split('|');
   var hns = crmUserHns_(uid);
   var isTester = s.testMode && s.testUserId && uid === s.testUserId; // โหมดทดสอบ: บัญชีทดสอบกดปุ่มแทนคนไข้ได้
+  // กดปุ่มเดิมซ้ำ (แตะ 2 ครั้ง / เน็ตช้าแล้วกดอีก) ภายใน 2 นาที → ทำครั้งเดียว ไม่ตอบซ้ำ
+  if (crmPostbackDup_(uid, data)) return;
   if (parts[0] === 'apt') {
     var allApts = crmAptsWithOrtho_(crmReadByName_('ตารางนัด'), crmReadByName_('ortho'));
     var found = String(parts[2] || '').split(',').filter(Boolean).map(function (id) { return crmFind_(allApts, 'id', id) || crmOrthoIdFallback_(allApts, id); })
@@ -1628,6 +1639,9 @@ function crmHandlePostback_(s, ev, uid) {
       else { var o = { aptId: x.id, hn: x.hn }; for (var f in fields) o[f] = fields[f]; crmAppend_('apt', o); }
     };
     if (parts[1] === 'confirm') {
+      // ยืนยันไว้แล้วก่อนหน้า (กดซ้ำทีหลัง) → ตอบสั้นๆ ไม่ส่งข้อความยืนยันเต็มซ้ำ
+      var already = found.every(function (x) { var ar = crmFind_(aptRows, 'aptId', x.id); return ar && ar.confirmedAt && ar.lastAction === 'confirm'; });
+      if (already) { crmReply_(ev.replyToken, [crmText_('ยืนยันนัดไว้เรียบร้อยแล้วค่ะ ✅')]); return; }
       found.forEach(function (x) { recAct(x, { confirmedAt: now, lastAction: 'confirm', updatedAt: now }); });
       found.forEach(function (x) { try { crmSetAptConfirmed_(x); } catch (eC) { Logger.log('crmSetAptConfirmed_ ' + eC); } });   // อัปเดตสถานะในตารางนัด (ดูนัด) เป็น "คอนเฟิร์ม" อัตโนมัติ
       crmReply_(ev.replyToken, [crmText_(s.confirmThanksText + found.map(function (x) { return '\n\n📅 ' + crmThaiDate_(crmDateOnly_(x.date)) + ' เวลา ' + (x.time || '-') + ' น.' + (found.length > 1 && x.proc ? ' (' + x.proc + ')' : ''); }).join(''))]);
