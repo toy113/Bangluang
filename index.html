@@ -1845,7 +1845,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     <div class="page" id="page-ortho">
       <div class="card-box">
         <div class="card-box-hdr" style="flex-wrap:wrap;gap:10px;">
-          <div class="card-box-title">😬 คนไข้จัดฟัน <span id="orthoCount" style="color:var(--text-light);font-weight:600;font-size:13px;"></span> <span id="orthoNoApptN" style="display:none;background:linear-gradient(135deg,#1E88FF,#0A4FD6);color:#fff;border-radius:20px;padding:3px 12px;font-size:13px;font-weight:800;box-shadow:0 2px 8px rgba(10,79,214,.45);margin-left:6px;vertical-align:middle;"></span></div>
+          <div class="card-box-title">😬 คนไข้จัดฟัน <span id="orthoCount" style="color:var(--text-light);font-weight:600;font-size:13px;"></span> <span id="orthoNoApptN" role="button" tabindex="0" onclick="toggleOrthoNoApptFilter()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleOrthoNoApptFilter();}" title="แตะเพื่อดูรายชื่อ" style="display:none;cursor:pointer;background:linear-gradient(135deg,#1E88FF,#0A4FD6);color:#fff;border-radius:20px;padding:3px 12px;font-size:13px;font-weight:800;box-shadow:0 2px 8px rgba(10,79,214,.45);margin-left:6px;vertical-align:middle;"></span></div>
           <div class="filter-row">
             <input class="form-control" id="orthoSearch" placeholder="ค้นหา HN / ชื่อ" oninput="renderOrthoPage()" style="height:36px;width:160px;">
             <select class="form-control" id="orthoStatusFilter" onchange="renderOrthoPage()" style="height:36px;width:140px;">
@@ -12761,7 +12761,10 @@ async function loadOrthoData(force){
   return _orthoLoadP;
 }
 let _orthoErr = '';
-function orthoNoApptCount_(){ return orthoData.filter(x=> orthoEffStatus_(x)==='กำลังจัด' && orthoOverdue_(x) && !orthoHasUpcomingAppt_(x)).length; }
+function orthoIsNoAppt_(x){ return orthoEffStatus_(x)==='กำลังจัด' && orthoOverdue_(x) && !orthoHasUpcomingAppt_(x); }
+function orthoNoApptCount_(){ return orthoData.filter(orthoIsNoAppt_).length; }
+var orthoNoApptOnly = false;
+function toggleOrthoNoApptFilter(){ orthoNoApptOnly = !orthoNoApptOnly; renderOrthoPage(); try{ document.getElementById('orthoList')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
 function orthoUpdateNavBadge_(){
   try{
     const n = orthoNoApptCount_();
@@ -12965,24 +12968,28 @@ async function renderOrthoPage(){
   try{ const cb=document.getElementById('orthoCalendarBox'); if(cb && cb.style.display!=='none') renderOrthoCalendar(); }catch(e){}
   orthoBuildPsk_(); // แผนที่ ปกส / ขูดหินปูน / ใช้สิทธิปีนี้ สร้างใหม่ทุกครั้งที่วาดรายการ
   let rows = orthoData.slice();
-  if(statusFilter) rows = rows.filter(r=> orthoEffStatus_(r) === statusFilter);
-  if(overdueOnly) rows = rows.filter(orthoOverdue_);
+  if(orthoNoApptOnly && !orthoNoApptCount_()) orthoNoApptOnly = false;
+  if(orthoNoApptOnly) rows = rows.filter(orthoIsNoAppt_);   // กดปุ่มฟ้า "ยังไม่มีนัด" → แสดงเฉพาะกลุ่มนี้ (ไม่สนตัวกรองสถานะ/เกินวัน)
+  if(statusFilter && !orthoNoApptOnly) rows = rows.filter(r=> orthoEffStatus_(r) === statusFilter);
+  if(overdueOnly && !orthoNoApptOnly) rows = rows.filter(orthoOverdue_);
   const payF = document.getElementById('orthoPayFilter')?.value || '';
-  if(payF) rows = rows.filter(r=> payF==='__none' ? !orthoPayOf_(r.hn) : orthoPayOf_(r.hn)===payF);
+  if(payF && !orthoNoApptOnly) rows = rows.filter(r=> payF==='__none' ? !orthoPayOf_(r.hn) : orthoPayOf_(r.hn)===payF);
   if(q) rows = rows.filter(r=> String(r.hn||'').toLowerCase().includes(q) || String(r['ชื่อ']||'').toLowerCase().includes(q));
   orthoSyncSortSel_();
   // ชิป "ปกส ปีนี้ยังไม่ใช้สิทธิ": นับจากรายการที่ผ่านตัวกรองอื่นแล้ว และกรองเมื่อเปิดชิป
   const pendingN = rows.filter(orthoPskPending_).length;
   const chip = document.getElementById('orthoPskChip');
   if(chip){ chip.classList.toggle('active', !!orthoPskOnly); chip.setAttribute('aria-pressed', orthoPskOnly?'true':'false'); const nEl=document.getElementById('orthoPskChipN'); if(nEl) nEl.textContent = pendingN; }
-  if(orthoPskOnly) rows = rows.filter(orthoPskPending_);
+  if(orthoPskOnly && !orthoNoApptOnly) rows = rows.filter(orthoPskPending_);
   rows.sort(orthoSortFn_(orthoSortKey));
   const countEl = document.getElementById('orthoCount');
   if(countEl) countEl.textContent = '('+rows.length+' คน)';
   const noApptEl = document.getElementById('orthoNoApptN');
   if(noApptEl){
     const nNo = orthoNoApptCount_(); orthoUpdateNavBadge_();
-    noApptEl.textContent = '📵 ยังไม่มีนัด '+nNo+' คน'; noApptEl.style.display = nNo ? 'inline-block' : 'none';
+    noApptEl.textContent = (orthoNoApptOnly?'✕ ':'📵 ')+'ยังไม่มีนัด '+nNo+' คน'+(orthoNoApptOnly?' (กำลังแสดง)':''); noApptEl.style.display = nNo ? 'inline-block' : 'none';
+    noApptEl.style.outline = orthoNoApptOnly ? '3px solid #FFD54F' : ''; noApptEl.setAttribute('aria-pressed', orthoNoApptOnly?'true':'false');
+    noApptEl.title = orthoNoApptOnly ? 'แตะอีกครั้งเพื่อแสดงทั้งหมด' : 'แตะเพื่อดูรายชื่อ';
   }
   if(!rows.length && _orthoErr){
     box.innerHTML = '<div style="padding:24px;text-align:center;color:#C0392B;">⚠️ โหลดข้อมูลจัดฟันไม่สำเร็จ<br><small>'+escapeHtml(_orthoErr)+'</small><br><button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="loadOrthoData(true).then(renderOrthoPage)">ลองใหม่</button></div>';
