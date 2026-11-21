@@ -756,7 +756,7 @@ async function doBind(){
   try{
     const d = await api({ action:'crmBind', hn, phone, bday, consent: '1' });
     if(d && d.ok){ if(d.portal && d.portal.ok){ DATA = d.portal; cacheSave(DATA); const ph = DATA.clinicPhone || CLINIC_PHONE_FALLBACK, tl = 'tel:'+ph.replace(/[^0-9+]/g,''); ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tl; }); $('bindPhone').textContent = ph; render(); } else { await load(); } }
-    else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
+    else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : d && d.error==='too_many' ? 'กรอกข้อมูลไม่ตรงหลายครั้งแล้ว กรุณาโทรหาคลินิก หรือลองใหม่ภายหลังค่ะ' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
   }catch(e){ console.error(e); err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }
   $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';
 }

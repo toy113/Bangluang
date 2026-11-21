@@ -2231,6 +2231,9 @@ function crmBindCore_(p) {
   var hnIn = crmHN_(p.hn);                       // ผูกด้วย HN (6-7 หลัก เช่น 65-9385 หรือ 65-12345) + เบอร์โทร
   if (phone.length < 9 || !hnIn) return { ok: false, error: 'missing_field' };   // บังคับ HN + เบอร์เสมอ (ไม่รับผูกด้วยชื่อ)
   if (hnIn && !/^\d{6,7}$/.test(hnIn)) return { ok: false, error: 'hn_format' };
+  // กันสุ่มเดา HN+เบอร์: บัญชี LINE เดียวลองไม่ตรงได้ไม่เกิน 5 ครั้ง/6 ชม.
+  var _bc = CacheService.getScriptCache(), _bk = 'crm_bindfail_' + u.userId, _bn = +(_bc.get(_bk) || 0);
+  if (_bn >= 5) return { ok: false, error: 'too_many' };
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var s = crmSettings_(), now = crmNow_();
@@ -2264,6 +2267,7 @@ function crmBindCore_(p) {
     var anyActive = auto;
     var created = [];
     if (!matches.length) {
+      try { _bc.put(_bk, String(_bn + 1), 21600); } catch (eF) {}
       if (!existing.some(function (l) { return l.status === 'pending' && crmPhone_(l.inputPhone) === phone; })) {
         crmAppend_('links', { id: crmId_('LK'), lineUserId: u.userId, hn: '', patName: '', status: 'pending', source: 'self', consent: 'TRUE',
           displayName: u.name, inputName: hnIn ? ('HN ' + p.hn) : p.name, inputPhone: p.phone, createdAt: now, note: 'ไม่พบเบอร์+ชื่อที่ตรงกันในรายชื่อคนไข้' });
