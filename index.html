@@ -7955,7 +7955,104 @@ function renderStatsPage(){
     + '<div class="st-grid2">'+payCard+(patCard||'')+'</div>'
     + '<div class="st-grid2">'+aptHtml+endoHtml+'</div>'
     + (labHtml?'<div class="st-grid2">'+labHtml+'</div>':'')
+    + (()=>{ try{ return statsProfit(rows, R); }catch(e){ console.warn('stats profit error', e); return ''; } })()
     + deep;
+}
+
+/* ===== 💰 กำไรต่อหัตถการ + จำลองปรับราคา + ผลงานหมอต่อวัน (ผู้จัดการเท่านั้น) =====
+   รายได้รายหัตถการ: ใช้ราคาที่บันทึกแยกไว้ (toothPrices/procPrices) ถ้ารวมไม่ตรงยอดจ่าย → แบ่งเท่าๆ กัน
+   DF: dfAmt ของรายการ กระจายตามสัดส่วนราคา (รายการราคา 0 ที่มี DF พิเศษ ได้ส่วนตามน้ำหนักของมัน)
+   แลป: จับคู่ "ชนิดงาน/ชื่องาน" ของแลปกับชื่อหัตถการ ถ้าไม่ตรงอยู่แถว "แลปที่จับคู่ไม่ได้" */
+let PF_SIM = { proc:'', pct:10 };
+function pfItems_(t){
+  const tot=totalPrice(t); let pp={}, tp={};
+  try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
+  try{ tp=typeof t.toothPrices==='string'?JSON.parse(t.toothPrices||'{}'):(t.toothPrices||{}); }catch(e){}
+  const names=(Array.isArray(t.proc)?t.proc:String(t.proc||'').split(',')).map(x=>procNorm_(String(x).trim())).filter(Boolean);
+  if(!names.length) return [{name:'ไม่ระบุ', price:tot, units:1}];
+  const it=names.map(n=>{ const per=tp&&tp[n]&&typeof tp[n]==='object'?tp[n]:null; const ks=per?Object.keys(per).filter(k=>+per[k]>0):[];
+    return { name:n, price: ks.length ? ks.reduce((s,k)=>s+(+per[k]),0) : (+pp[n]||0), units: ks.length||1 }; });
+  const sum=it.reduce((s,x)=>s+x.price,0);
+  if(Math.abs(sum-tot)>0.5){ const share=tot/names.length; it.forEach(x=>x.price=share); }
+  return it;
+}
+function pfMedian_(a){ if(!a.length) return 0; const s=a.slice().sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function pfQ_(a,q){ if(!a.length) return 0; const s=a.slice().sort((x,y)=>x-y); return s[Math.min(s.length-1,Math.max(0,Math.floor(q*(s.length-1))))]; }
+function statsProfit(rows, R){
+  if(!isManager || !rows.length) return '';
+  const E=_escHtml, agg={}, docA={};
+  const docOf=n=>doctors.find(d=>d.name===n)||null;
+  rows.forEach(t=>{
+    const its=pfItems_(t), tot=its.reduce((s,x)=>s+x.price,0);
+    let df=0; try{ df=dfAmt(t, docOf(t.docName))||0; }catch(e){}
+    let xEx=0; try{ xEx=xrayMixedPrice(t)||0; }catch(e){}   // ราคา X-Ray ที่ไม่ถูกนำไปคิด DF → ไม่ต้องรับ DF
+    const w=x=> (xEx>0 && _isXrayProc(x.name)) ? 0 : x.price, wTot=its.reduce((s,x)=>s+w(x),0);
+    its.forEach(x=>{
+      const o=agg[x.name]||(agg[x.name]={rev:0,df:0,lab:0,cnt:0,units:0,prices:[]});
+      o.rev+=x.price; o.cnt++; o.units+=x.units; o.df+= wTot>0 ? df*w(x)/wTot : df/its.length;
+      if(x.price>0) o.prices.push(x.price/x.units);
+    });
+    const d=String(t.docName||'ไม่ระบุ'), dd=docA[d]||(docA[d]={rev:0,df:0,lab:0,days:new Set(),cases:0});
+    dd.rev+=tot; dd.df+=df; dd.days.add(String(t.date).slice(0,10)); dd.cases++;
+  });
+  // แลปในช่วงเดียวกัน → จับคู่กับหัตถการด้วยชื่องาน
+  const lbs=labs.filter(l=>{ const d=String(l.date||'').slice(0,10); return d>=R.start && d<=R.end && statsCanSee(l.docName); });
+  const names=Object.keys(agg).sort((a,b)=>b.length-a.length);
+  let labUn=0;
+  lbs.forEach(l=>{
+    const c=+l.price||0, txt=String((l.work||'')+' '+(l.name||'')+' '+(l.note||''));
+    const wk=String(l.work||'').trim();
+    const hit=names.find(n=>n!=='ไม่ระบุ' && txt.includes(n)) || (wk.length>=3 && names.find(n=>n.includes(wk))) || names.find(n=>{ const k=n.replace(/ฟัน$/,''); return k.length>=3 && txt.includes(k); });
+    if(hit) agg[hit].lab+=c; else labUn+=c;
+    const dd=docA[String(l.docName||'ไม่ระบุ')]; if(dd) dd.lab+=c;
+  });
+  const list=Object.entries(agg).map(([n,o])=>({n, ...o, net:o.rev-o.df-o.lab})).filter(x=>x.rev>0||x.df>0).sort((a,b)=>b.net-a.net);
+  if(!list.length) return '';
+  const T={rev:0,df:0,lab:labUn}; list.forEach(x=>{T.rev+=x.rev;T.df+=x.df;T.lab+=x.lab;}); T.net=T.rev-T.df-T.lab;
+  const pct=(a,b)=>b>0?Math.round(a/b*100):0;
+  const mCol=m=>m>=50?'#1d7a43':m>=30?'#8A6D00':'#B3261E';
+  const tr=x=>{ const m=pct(x.net,x.rev), med=pfMedian_(x.prices), lo=pfQ_(x.prices,.1), hi=pfQ_(x.prices,.9);
+    return `<tr><td style="text-align:left;">${procBadge(x.n)}</td><td>${x.units}</td><td>${fmt(Math.round(x.rev))}</td><td>${fmt(Math.round(x.df))}</td><td>${x.lab?fmt(Math.round(x.lab)):'–'}</td>
+      <td style="font-weight:800;">${fmt(Math.round(x.net))}</td><td style="font-weight:800;color:${mCol(m)};">${x.rev>0?m+'%':'–'}</td>
+      <td style="font-size:11px;color:var(--text-mid);white-space:nowrap;">${x.prices.length>=3?fmt(Math.round(lo))+'–<b>'+fmt(Math.round(med))+'</b>–'+fmt(Math.round(hi)):(med?fmt(Math.round(med)):'–')}</td></tr>`; };
+  const tbl=`<div style="overflow-x:auto;"><table class="st-pf"><thead><tr><th style="text-align:left;">หัตถการ</th><th>ครั้ง/ซี่</th><th>รายได้</th><th>DF หมอ</th><th>แลป</th><th>เหลือคลินิก</th><th>มาร์จิ้น</th><th>ราคาต่อหน่วย<br><span style="font-weight:400;">ต่ำ–<b>กลาง</b>–สูง</span></th></tr></thead>
+    <tbody>${list.map(tr).join('')}${labUn?`<tr><td style="text-align:left;color:var(--text-mid);">แลปที่จับคู่หัตถการไม่ได้</td><td></td><td></td><td></td><td>${fmt(Math.round(labUn))}</td><td>-${fmt(Math.round(labUn))}</td><td></td><td></td></tr>`:''}
+    <tr style="background:#F6F1F4;font-weight:800;"><td style="text-align:left;">รวม</td><td></td><td>${fmt(Math.round(T.rev))}</td><td>${fmt(Math.round(T.df))}</td><td>${fmt(Math.round(T.lab))}</td><td>${fmt(Math.round(T.net))}</td><td style="color:${mCol(pct(T.net,T.rev))};">${pct(T.net,T.rev)}%</td><td></td></tr></tbody></table></div>`;
+  // ข้อสังเกต
+  const tips=[];
+  const big=list.filter(x=>x.rev>=T.rev*0.03);
+  const low=big.filter(x=>pct(x.net,x.rev)<30).sort((a,b)=>b.rev-a.rev)[0];
+  if(low) tips.push(`<b>${E(low.n)}</b> ทำรายได้ ${fmt(Math.round(low.rev))} แต่เหลือเข้าคลินิกแค่ <b>${pct(low.net,low.rev)}%</b> — ตรวจราคา ค่าแลป หรือ % DF ของรายการนี้`);
+  const best=big.filter(x=>!_isXrayProc(x.n)).sort((a,b)=>pct(b.net,b.rev)-pct(a.net,a.rev))[0];
+  if(best && best!==low) tips.push(`<b>${E(best.n)}</b> มาร์จิ้นดีที่สุดในกลุ่มหลัก (<b>${pct(best.net,best.rev)}%</b>) — ควรดันให้คนไข้รู้จักมากขึ้น`);
+  const spread=list.filter(x=>x.prices.length>=8).map(x=>({x,med:pfMedian_(x.prices),lo:pfQ_(x.prices,.1)})).filter(o=>o.med>0 && o.lo<o.med*0.7).sort((a,b)=>(b.med-b.lo)*b.x.prices.length-(a.med-a.lo)*a.x.prices.length)[0];
+  if(spread){ const under=spread.x.prices.filter(p=>p<spread.med*0.8), gap=under.reduce((s,p)=>s+(spread.med-p),0);
+    tips.push(`<b>${E(spread.x.n)}</b> ราคาต่อหน่วยกระจายมาก (บางครั้ง ${fmt(Math.round(spread.lo))} ขณะที่ราคากลาง ${fmt(Math.round(spread.med))}) — ${under.length} ครั้งที่คิดต่ำกว่าราคากลางเกิน 20% รวมส่วนต่าง ≈ <b>${fmt(Math.round(gap))}</b> บาทในช่วงนี้ (อาจเป็นส่วนลด/เคสง่าย ตรวจว่าตั้งใจหรือไม่)`); }
+  if(T.rev>0 && labUn>T.lab*0.3 && labUn>0) tips.push(`ค่าแลป ${fmt(Math.round(labUn))} บาทจับคู่หัตถการไม่ได้ — ใส่ "ชนิดงาน" ในแลปให้ตรงชื่อหัตถการ ตัวเลขมาร์จิ้นจะแม่นขึ้น`);
+  // จำลองปรับราคา
+  const simOpts=list.filter(x=>x.rev>0).slice().sort((a,b)=>b.rev-a.rev);
+  if(!PF_SIM.proc || !agg[PF_SIM.proc]) PF_SIM.proc=(simOpts[0]||{}).n||'';
+  const sp=agg[PF_SIM.proc], days=Math.max(1,_daysBetween(R.start,R.end)+1);
+  let simHtml='';
+  if(sp){
+    const dfRate=sp.rev>0?sp.df/sp.rev:0, add=sp.rev*PF_SIM.pct/100, addNet=add*(1-dfRate), perM=addNet/days*30;
+    simHtml=`<div style="margin-top:12px;padding:10px 12px;background:#FFF8E1;border-radius:10px;font-size:13px;line-height:1.7;">
+      <b>💹 จำลองปรับราคา</b> ถ้าขึ้นราคา
+      <select onchange="PF_SIM.proc=this.value;renderStatsPage()" style="font:inherit;border:1px solid #d9c9d3;border-radius:6px;padding:1px 4px;max-width:180px;">${simOpts.map(x=>`<option ${x.n===PF_SIM.proc?'selected':''} value="${E(x.n)}">${E(x.n)}</option>`).join('')}</select>
+      <select onchange="PF_SIM.pct=+this.value;renderStatsPage()" style="font:inherit;border:1px solid #d9c9d3;border-radius:6px;padding:1px 4px;">${[5,10,15,20].map(v=>`<option ${v===PF_SIM.pct?'selected':''} value="${v}">${v}%</option>`).join('')}</select>
+      โดยคนไข้เท่าเดิม → คลินิกได้เพิ่ม ≈ <b>${fmt(Math.round(addNet))}</b> บาทในช่วงนี้ (หลังหัก DF ${Math.round(dfRate*100)}%) หรือ ≈ <b>${fmt(Math.round(perM))}</b> บาท/เดือน
+      <div style="font-size:11px;color:var(--text-light);">สมมติจำนวนคนไข้ไม่ลดลง · ค่าแลปคงที่</div></div>`;
+  }
+  // ผลงานหมอต่อวันทำงาน
+  const dl=Object.entries(docA).map(([n,o])=>({n,days:o.days.size,cases:o.cases,rev:o.rev,net:o.rev-o.df-o.lab})).filter(x=>x.days).sort((a,b)=>b.net/b.days-a.net/a.days);
+  const docTbl=`<div style="overflow-x:auto;"><table class="st-pf"><thead><tr><th style="text-align:left;">หมอ</th><th>วันที่มีเคส</th><th>เคส/วัน</th><th>รายได้/วัน</th><th>เหลือคลินิก/วัน</th><th>มาร์จิ้น</th></tr></thead><tbody>
+    ${dl.map(x=>`<tr><td style="text-align:left;">${docBadge(x.n,true)}</td><td>${x.days}</td><td>${(x.cases/x.days).toFixed(1)}</td><td>${fmt(Math.round(x.rev/x.days))}</td><td style="font-weight:800;">${fmt(Math.round(x.net/x.days))}</td><td style="color:${mCol(pct(x.net,x.rev))};font-weight:700;">${pct(x.net,x.rev)}%</td></tr>`).join('')}</tbody></table></div>
+    <div style="font-size:11px;color:var(--text-light);margin-top:6px;">"วันที่มีเคส" = วันที่หมอมีรายการรักษาอย่างน้อย 1 รายการ · เหลือคลินิก = รายได้ − DF − แลป (ยังไม่หักค่าใช้จ่ายคงที่ของคลินิก)</div>`;
+  return '<div class="st-section">💰 กำไรต่อหัตถการ</div>'
+    + _statsCard('💰 รายได้ − DF − แลป แยกหัตถการ', `<style>.st-pf{width:100%;border-collapse:collapse;font-size:12.5px}.st-pf th{background:#EFE6EC;font-size:11px;color:#6b5a66;padding:6px;text-align:right;white-space:nowrap}.st-pf td{padding:5px 6px;border-top:1px solid #f0e8ed;text-align:right;white-space:nowrap}</style>`
+      + tbl + (tips.length?'<div style="margin-top:10px;">'+tips.map(x=>'<div class="st-insight"><span class="st-insight-ico">💡</span><div>'+x+'</div></div>').join('')+'</div>':'') + simHtml
+      + '<div style="font-size:11px;color:var(--text-light);margin-top:6px;">ราคาแยกหัตถการใช้ราคาที่บันทึกไว้ในฟอร์ม (ถ้าไม่ได้แยกราคา ระบบแบ่งเท่าๆ กัน) · DF กระจายตามสัดส่วนราคา · แลปจับคู่จากชื่องาน</div>', R.label)
+    + _statsCard('👩‍⚕️ ผลงานหมอต่อวันทำงาน', docTbl, R.label);
 }
 
 // เลื่อนค่าวันที่ 'YYYY-MM-DD' (kind='day') หรือเดือน 'YYYY-MM' (kind='month') ไปข้างหน้า/ถอยหลัง n หน่วย
