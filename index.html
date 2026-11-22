@@ -4289,7 +4289,7 @@ function crmOrthoDfCopy(d){
       });
       tot+=totalPrice(t); df+=dfAmt(t,doc);
     });
-    out.push(LINE, '🧾 ยอดรวม  '+baht(tot), '✨ df รวม  '+baht(Math.round(df))+'  ('+list.length+' ราย)', ...noDfLines_(nd));
+    out.push(LINE, '🧾 ยอดรวม  '+baht(tot), ...dfBucketLines_(list, doc, LINE), '💰 df รวม  '+baht(Math.round(df))+'  ('+list.length+' ราย)');
     const pc=paid[dn]||0; if(pc>0) out.push(LINE, '💵 จ่ายเงินสดให้'+dn+'แล้ว  '+baht(pc), '📌 df คงเหลือ  '+baht(Math.round(df)-pc));
     out.push('Bangluang Dental 🦷');
   });
@@ -5427,7 +5427,7 @@ function homeDfLineSend(){
     tot+=totalPrice(t); df+=dfAmt(t,doc);
   });
   const n=new Date(), hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
-  out.push(LINE,'🧾 ยอดรวม  '+baht(tot),'✨ df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)', ...noDfLines_(nd));
+  out.push(LINE,'🧾 ยอดรวม  '+baht(tot), ...dfBucketLines_(rows, doc, LINE),'💰 df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)');
   if(paid>0) out.push(LINE,'💵 จ่ายเงินสดให้'+docName+'แล้ว  '+baht(paid),'📌 df คงเหลือ  '+baht(Math.round(df)-paid));
   out.push(LINE,'🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(d)+' เวลา '+hm+' น.','Bangluang Dental 🦷');
   const text=out.join('\n');
@@ -12343,6 +12343,17 @@ function copyIncomeSummary(){
 }
 
 // แยกรายการรักษาตามอัตรา df: [{rate, amt, df, names:[[ชื่อ,จำนวนครั้ง],...]}] เรียง % มาก→น้อย (0% ท้ายสุด)
+function dfBucketLines_(treats, doc, LINE){
+  const bk=dfBuckets_(treats, doc); if(!bk.length) return [];
+  const baht=n=>'฿'+fmt(Math.round(n)), out=[LINE];
+  bk.forEach(b=>{
+    const nm=b.names.map(([n,c])=>n+(c>1?' ×'+c:'')).join(', ');
+    if(b.rate===0) out.push('🩻 ไม่คิด df  '+baht(b.amt), '     '+nm);
+    else out.push('✨ df '+b.rate+'%  ฐาน '+baht(b.amt)+'  =  '+baht(b.df), '     '+nm);
+  });
+  out.push(LINE);
+  return out;
+}
 function dfBuckets_(treats, doc){
   const B = new Map();
   const add = (rate, amt, name) => { if(!(amt>0)) return; rate = Math.round((+rate||0)*10)/10; const o = B.get(rate) || {rate, amt:0, df:0, names:new Map()}; o.amt += amt; o.df += amt*rate/100; o.names.set(name, (o.names.get(name)||0)+1); B.set(rate, o); };
@@ -12413,16 +12424,7 @@ function doSendIncome(periodLabel){
   text += LINE + '\n';
   text += `🧾 ยอดรวม  ${baht(total)}\n`;
   // แยกตาม % df (ไม่ใช้ค่าเฉลี่ย): แต่ละอัตรามีรายการอะไรบ้าง ยอดฐาน และ df
-  const _bk = dfBuckets_(treats, doc);
-  if(_bk.length){
-    text += LINE + '\n';
-    _bk.forEach(b=>{
-      const nm = b.names.map(([n,c])=>n+(c>1?' ×'+c:'')).join(', ');
-      if(b.rate===0) text += `🩻 ไม่คิด df  ${baht(b.amt)}\n     ${nm}\n`;
-      else text += `✨ df ${b.rate}%  ฐาน ${baht(b.amt)}  =  ${baht(Math.round(b.df))}\n     ${nm}\n`;
-    });
-    text += LINE + '\n';
-  }
+  dfBucketLines_(treats, doc, LINE).forEach(l=>{ text += l + '\n'; });
   text += `💰 df รวม  ${baht(df)}\n`;
   if(paidCash>0){
     text += LINE + '\n';
