@@ -1435,6 +1435,7 @@ var CRM_ORTHO_CARE_ = [
   'มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น',
   'กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์เปลี่ยนเป็นชำระ 1,500 บาทจนกว่าจะเสร็จค่ะ'
 ];
+var CRM_ELASTIC_IMG = 'https://toy113.github.io/Bangluang/assets/elastic-colors.jpg?v=1';
 // สรุปการมาจัดฟัน: รายการ + ราคา (0 บาท = ฟรี) + ยอดรวม (+ ข้อควรปฏิบัติ)
 function crmOrthoVisitMessage_(s, v) {
   var rows = [crmRow_('วัน', crmThaiDate_(v.date))];
@@ -1455,6 +1456,11 @@ function crmOrthoVisitMessage_(s, v) {
     rows.push({ type: 'separator', margin: 'md' });
     rows.push({ type: 'text', text: '📝 ข้อควรปฏิบัติ', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
     CRM_ORTHO_CARE_.forEach(function (t, i) { rows.push({ type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17', margin: 'sm' }); });
+    // ตารางสียางจัดฟัน (รูปอยู่บน GitHub Pages) · แตะรูปเปิดภาพใหญ่
+    rows.push({ type: 'separator', margin: 'md' });
+    rows.push({ type: 'text', text: '🎨 สียางจัดฟัน', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
+    rows.push({ type: 'text', text: 'เลือกเบอร์สีที่ชอบ แล้วแจ้งเจ้าหน้าที่ในครั้งถัดไปได้เลยค่ะ (แตะรูปเพื่อดูภาพใหญ่)', wrap: true, size: 'xs', color: '#7A6B78', margin: 'xs' });
+    rows.push({ type: 'image', url: CRM_ELASTIC_IMG, size: 'full', aspectRatio: '1200:965', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูสียาง', uri: CRM_ELASTIC_IMG } });
   }
   return { type: 'flex', altText: 'สรุปการมาจัดฟันวันนี้ ' + (total > 0 ? crmMoney_(total) : 'ไม่มีค่าใช้จ่าย'),
     contents: crmBubble_(s, '🦷 สรุปการมาจัดฟันวันนี้', 'ขอบคุณที่มาตามนัดค่ะ คุณ' + crmWho_(v.patName, v.hn), rows, [crmInquiryNote_(s)]) };
