@@ -7442,25 +7442,33 @@ function bankStatsAgg(list){
 }
 // แตะช่องธนาคาร → รายการโอนเข้าธนาคารนั้น (ช่วงเวลาเดียวกับที่ดูอยู่)
 function openBankList(k){
-  const rows=(window._bankRows||[]).filter(t=>(+t.transfer||0)>0 && (TRANSFER_BANKS.some(b=>b.k===t.transferBank)?t.transferBank:'ไม่ระบุ')===k)
+  const raw=(window._bankRows||[]).filter(t=>(+t.transfer||0)>0 && (TRANSFER_BANKS.some(b=>b.k===t.transferBank)?t.transferBank:'ไม่ระบุ')===k)
     .sort((a,b)=>(String(a.date||'')+String(a.time||'')).localeCompare(String(b.date||'')+String(b.time||'')));
-  const E=_escHtml, multiDay=new Set(rows.map(t=>String(t.date||'').slice(0,10))).size>1;
-  const ppl=new Set(rows.map(t=>String(t.date||'').slice(0,10)+'|'+(normHN(t.hn||'')||String(t.patName||'').replace(/\s+/g,'')||t.id))).size;
-  const sum=rows.reduce((s,t)=>s+(+t.transfer||0),0);
+  // รวมเป็นยอดต่อคนไข้ (คนเดียวกัน วันเดียวกัน = 1 แถว ไม่แยกหมอ)
+  const map=new Map();
+  raw.forEach(t=>{
+    const d=String(t.date||'').slice(0,10), key=d+'|'+(normHN(t.hn||'')||String(t.patName||'').replace(/\s+/g,'')||t.id);
+    const o=map.get(key)||{date:d, hn:t.hn||'', name:t.patName||'—', amt:0, n:0, procs:[]};
+    o.amt+=(+t.transfer||0); o.n++;
+    String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{ if(!o.procs.includes(x)) o.procs.push(x); });
+    map.set(key,o);
+  });
+  const rows=[...map.values()];
+  const E=_escHtml, multiDay=new Set(rows.map(r=>r.date)).size>1;
+  const sum=rows.reduce((s,r)=>s+r.amt,0);
   const ex=document.getElementById('bankListModal'); if(ex) ex.remove();
   const m=document.createElement('div'); m.id='bankListModal';
   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px;';
   m.onclick=e=>{ if(e.target===m) m.remove(); };
-  m.innerHTML='<div style="background:#fff;border-radius:14px;width:520px;max-width:96vw;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;">'
+  m.innerHTML='<div style="background:#fff;border-radius:14px;width:480px;max-width:96vw;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;">'
     +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);"><div style="font-weight:800;font-size:16px;color:var(--wine-dark);"><span class="bank-dot" style="background:'+bankColor(k)+'"></span>'+E(k)+' · '+E(incomePeriodLabel())+'</div>'
-    +'<div style="font-size:13px;color:var(--text-mid);margin-top:2px;">โอนรวม <b>'+fmt(sum)+'</b> · '+ppl+' คน · '+rows.length+' รายการ</div></div>'
+    +'<div style="font-size:13px;color:var(--text-mid);margin-top:2px;">โอนรวม <b>'+fmt(sum)+'</b> · '+rows.length+' คน</div></div>'
     +'<div style="overflow:auto;padding:4px 16px;"><table style="width:100%;border-collapse:collapse;font-size:13px;">'
-    +'<thead><tr style="color:var(--text-light);font-size:11.5px;"><th style="text-align:left;padding:6px 4px;">'+(multiDay?'วันที่':'#')+'</th><th style="text-align:left;padding:6px 4px;">คนไข้</th><th style="text-align:left;padding:6px 4px;">หมอ</th><th style="text-align:right;padding:6px 4px;">ยอดโอน</th></tr></thead><tbody>'
-    +rows.map((t,i)=>'<tr style="border-top:1px solid #f0e8ed;"><td style="padding:6px 4px;white-space:nowrap;color:var(--text-light);">'+(multiDay?E(fmtDate(String(t.date||'').slice(0,10))):(i+1))+'</td>'
-      +'<td style="padding:6px 4px;"><b>'+E(t.patName||'—')+'</b>'+(t.hn?' <span style="color:var(--text-light);font-size:11.5px;">HN '+E(t.hn)+'</span>':'')+'<div style="font-size:11.5px;color:var(--text-light);">'+E(String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).join(', '))+'</div></td>'
-      +'<td style="padding:6px 4px;font-size:12px;white-space:nowrap;">'+E(String(t.docName||'').split(/\s+/)[0])+'</td>'
-      +'<td style="padding:6px 4px;text-align:right;font-weight:800;white-space:nowrap;">'+fmt(+t.transfer||0)+'</td></tr>').join('')
-    +'</tbody><tfoot><tr style="border-top:1.5px solid var(--border);font-weight:800;color:var(--wine-dark);"><td colspan="3" style="padding:8px 4px;">รวม</td><td style="padding:8px 4px;text-align:right;">'+fmt(sum)+'</td></tr></tfoot></table></div>'
+    +'<thead><tr style="color:var(--text-light);font-size:11.5px;"><th style="text-align:left;padding:6px 4px;">'+(multiDay?'วันที่':'#')+'</th><th style="text-align:left;padding:6px 4px;">คนไข้</th><th style="text-align:right;padding:6px 4px;">ยอดโอน</th></tr></thead><tbody>'
+    +rows.map((r,i)=>'<tr style="border-top:1px solid #f0e8ed;"><td style="padding:6px 4px;white-space:nowrap;color:var(--text-light);">'+(multiDay?E(fmtDate(r.date)):(i+1))+'</td>'
+      +'<td style="padding:6px 4px;"><b>'+E(r.name)+'</b>'+(r.hn?' <span style="color:var(--text-light);font-size:11.5px;">HN '+E(r.hn)+'</span>':'')+'<div style="font-size:11.5px;color:var(--text-light);">'+E(r.procs.join(', '))+'</div></td>'
+      +'<td style="padding:6px 4px;text-align:right;font-weight:800;white-space:nowrap;">'+fmt(r.amt)+'</td></tr>').join('')
+    +'</tbody><tfoot><tr style="border-top:1.5px solid var(--border);font-weight:800;color:var(--wine-dark);"><td colspan="2" style="padding:8px 4px;">รวม '+rows.length+' คน</td><td style="padding:8px 4px;text-align:right;">'+fmt(sum)+'</td></tr></tfoot></table></div>'
     +'<div style="padding:10px 16px;border-top:1px solid var(--border);"><button class="btn btn-secondary" style="width:100%;" onclick="document.getElementById(\'bankListModal\').remove()">ปิด</button></div></div>';
   document.body.appendChild(m);
 }
