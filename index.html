@@ -8535,7 +8535,11 @@ function itemDfRate_(r, name, doc){
 }
 function dfRatesTxt_(g){
   const ks=Object.keys(g.rates||{}); if(!ks.length) return dfPctTxt_(g.share,g.total);
-  const r=k=>[...g.rates[k]].sort((a,b)=>a-b).map(v=>(Math.round(v*10)/10)+'%').join(' / ');
+  // หลายอัตราในหัตถการเดียว: อัตราที่ใช้มากสุด = ปกติ · อัตราอื่นวงเล็บบอกว่าเคสไหน
+  const r=k=>{ const m=g.rates[k], ent=[...m.entries()].sort((a,b)=>a[0]-b[0]);
+    if(ent.length===1) return (Math.round(ent[0][0]*10)/10)+'%';
+    const main=ent.reduce((x,y)=>y[1].length>x[1].length?y:x);
+    return ent.map(([v,L])=>(Math.round(v*10)/10)+'%'+(main[0]===v?'':' <span style="font-weight:500;font-size:11.5px;color:#B45309;">('+_escHtml(L.join(', '))+')</span>')).join(' / '); };
   if(ks.length===1) return r(ks[0]);
   return ks.map(k=>'<div style="font-size:12px;"><span style="font-weight:500;color:var(--text-light);">'+_escHtml(k)+'</span> '+r(k)+'</div>').join('');
 }
@@ -8557,7 +8561,8 @@ function openDoctorBreakdown(idx){
     const key=(r.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ')||'ไม่ระบุรายการ';
     const g=groups[key]||(groups[key]={key,count:0,total:0,share:0,rates:{}});
     g.count++; g.total+=totalPrice(r); g.share+=dfAmt(r,doc);
-    key.split(', ').forEach(nm=>{ if(nm==='ไม่ระบุรายการ') return; (g.rates[nm]=g.rates[nm]||new Set()).add(itemDfRate_(r,nm,doc)); });
+    key.split(', ').forEach(nm=>{ if(nm==='ไม่ระบุรายการ') return; const rt=itemDfRate_(r,nm,doc), m=(g.rates[nm]=g.rates[nm]||new Map()); if(!m.has(rt)) m.set(rt,[]);
+      const code=(()=>{ try{ return orthoCodeOf_(r.hn,r.patName)||''; }catch(e){ return ''; } })(); m.get(rt).push((code?code+' ':'')+String(r.patName||'').trim().split(/\s+/)[0]); });
   });
   const gl=Object.values(groups).sort((a,b)=>b.total-a.total);
   const hasCombo=gl.some(g=>g.key.includes(','));
@@ -8581,7 +8586,7 @@ function openDoctorBreakdown(idx){
     html+=`<div class="dbk-h">แยกตามรายการรักษา</div>
     <div style="overflow-x:auto;"><table class="dbk-table">
       <thead><tr><th>รายการ</th><th>ราย</th><th>รายได้</th><th>ส่วนแบ่งหมอ</th><th>%df</th></tr></thead>
-      <tbody>${gl.map(g=>`<tr><td>${procBadge(g.key==='ไม่ระบุรายการ'?'':g.key)}${g.key==='ไม่ระบุรายการ'?'<span style="color:var(--text-light)">ไม่ระบุรายการ</span>':''}</td><td>${g.count}</td><td style="font-weight:700;">${fmt(g.total)}</td><td style="color:var(--gold);font-weight:700;">${fmt(g.share)}</td><td style="color:var(--text-mid);font-weight:700;white-space:nowrap;">${dfRatesTxt_(g)}</td></tr>`).join('')}</tbody>
+      <tbody>${gl.map(g=>`<tr><td>${procBadge(g.key==='ไม่ระบุรายการ'?'':g.key)}${g.key==='ไม่ระบุรายการ'?'<span style="color:var(--text-light)">ไม่ระบุรายการ</span>':''}</td><td>${g.count}</td><td style="font-weight:700;">${fmt(g.total)}</td><td style="color:var(--gold);font-weight:700;">${fmt(g.share)}</td><td style="color:var(--text-mid);font-weight:700;">${dfRatesTxt_(g)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td>รวม</td><td>${dr.length}</td><td>${fmt(tot)}</td><td style="color:var(--gold);">${fmt(share)}</td><td></td></tr></tfoot>
     </table></div>`;
     // โน้ตใต้บรรทัดรวม: รายที่ df ไม่ปกติ (อัตราต่อรายการต่างจากตาราง หรือ % ส่วนแบ่งต่างจากค่าปกติของหมอ)
