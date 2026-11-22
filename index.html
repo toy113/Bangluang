@@ -12342,6 +12342,23 @@ function copyIncomeSummary(){
   document.body.appendChild(modal);
 }
 
+// แยกรายการรักษาตามอัตรา df: [{rate, amt, df, names:[[ชื่อ,จำนวนครั้ง],...]}] เรียง % มาก→น้อย (0% ท้ายสุด)
+function dfBuckets_(treats, doc){
+  const B = new Map();
+  const add = (rate, amt, name) => { if(!(amt>0)) return; rate = Math.round((+rate||0)*10)/10; const o = B.get(rate) || {rate, amt:0, df:0, names:new Map()}; o.amt += amt; o.df += amt*rate/100; o.names.set(name, (o.names.get(name)||0)+1); B.set(rate, o); };
+  treats.forEach(t=>{
+    const procs = (Array.isArray(t.proc)?t.proc:String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
+    const price = totalPrice(t);
+    if(!procs.length){ add(docSharePct(t,doc), price, 'ไม่ระบุรายการ'); return; }
+    if(xrayRuleApplies(t) || drugRuleApplies(t)){ procs.forEach(x=>add(0, price/procs.length, x)); return; }
+    if(procs.length===1){ add(itemDfRate_(t, procs[0], doc), price, procs[0]); return; }
+    let pp = {}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
+    let used = 0; const rest = [];
+    procs.forEach(x=>{ if(pp[x]!==undefined){ const v=+pp[x]||0; used+=v; add(itemDfRate_(t,x,doc), v, x); } else rest.push(x); });
+    if(rest.length){ const amt = Math.max(0, price-used); rest.forEach(x=>add(docSharePct(t,doc), amt/rest.length, x)); }
+  });
+  return [...B.values()].map(o=>Object.assign(o,{names:[...o.names.entries()]})).sort((a,b)=>(b.rate||-1)-(a.rate||-1));
+}
 function doSendIncome(periodLabel){
   const selected = document.querySelector('input[name="incomeDoc"]:checked')?.value;
   const paidCash = Math.max(0, Math.round(+document.getElementById('incomePaidCash')?.value || 0));
@@ -12395,11 +12412,18 @@ function doSendIncome(periodLabel){
 
   text += LINE + '\n';
   text += `🧾 ยอดรวม  ${baht(total)}\n`;
-  if(xrayTotal>0){
-    text += `🩻 X-Ray  ${baht(xrayTotal)}\n`;
-    text += `📊 ฐานคิด df  ${baht(base)}\n`;
+  // แยกตาม % df (ไม่ใช้ค่าเฉลี่ย): แต่ละอัตรามีรายการอะไรบ้าง ยอดฐาน และ df
+  const _bk = dfBuckets_(treats, doc);
+  if(_bk.length){
+    text += LINE + '\n';
+    _bk.forEach(b=>{
+      const nm = b.names.map(([n,c])=>n+(c>1?' ×'+c:'')).join(', ');
+      if(b.rate===0) text += `🩻 ไม่คิด df  ${baht(b.amt)}\n     ${nm}\n`;
+      else text += `✨ df ${b.rate}%  ฐาน ${baht(b.amt)}  =  ${baht(Math.round(b.df))}\n     ${nm}\n`;
+    });
+    text += LINE + '\n';
   }
-  text += `✨ df เฉลี่ย ${share}%  =  ${baht(df)}\n`;
+  text += `💰 df รวม  ${baht(df)}\n`;
   if(paidCash>0){
     text += LINE + '\n';
     text += `💵 จ่ายเงินสดให้${selected}แล้ว  ${baht(paidCash)}\n`;
