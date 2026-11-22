@@ -4276,22 +4276,23 @@ function crmOrthoDfCopy(d){
     let tot=0, df=0; const nd={xray:0,drug:0};
     if(gi) out.push('', '');
     out.push('🦷 สรุปงานจัดฟัน', dn+' · '+crmThaiShort(d), LINE);
+    const cases=[];
     list.forEach((t,i)=>{
       let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
       const parts=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean), ip=itemDfParts(t), pct=docSharePct(t,doc);
       const no=(String(t.note||'').match(/ครั้งที่\s*(\d+)/)||[])[1];
-      out.push((i+1)+'. '+(t.patName||'—')+(no?' · ครั้งที่ '+no:''));
+      cases.push((i+1)+'. '+(t.patName||'—')+(no?' · ครั้งที่ '+no:''));
       parts.forEach(x=>{
         const price=+pp[x]||0, hit=ip.items.find(it=>it.name===x);
         const rate=hit?hit.rate:((_isXrayProc(x)||drugRuleApplies(t))?0:pct);
         noDfAdd_(nd, x, price, rate);
-        out.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?'  → df '+rate+'% = '+baht(price*rate/100):(rate? '  (ฟรี)':'')));
+        cases.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?'  → df '+rate+'% = '+baht(price*rate/100):(rate? '  (ฟรี)':'')));
       });
       tot+=totalPrice(t); df+=dfAmt(t,doc);
     });
-    out.push(LINE, '🧾 ยอดรวม  '+baht(tot), ...dfBucketLines_(list, doc, LINE), '💰 df รวม  '+baht(Math.round(df))+'  ('+list.length+' ราย)');
-    const pc=paid[dn]||0; if(pc>0) out.push(LINE, '💵 จ่ายเงินสดให้'+dn+'แล้ว  '+baht(pc), '📌 df คงเหลือ  '+baht(Math.round(df)-pc));
-    out.push('Bangluang Dental 🦷');
+    out.push('🧾 ยอดรวม  '+baht(tot), ...dfBucketLines_(list, doc, LINE), '💰 df รวม  '+baht(Math.round(df))+'  ('+list.length+' ราย)');
+    const pc=paid[dn]||0; if(pc>0) out.push('💵 จ่ายเงินสดให้'+dn+'แล้ว  '+baht(pc), '📌 df คงเหลือ  '+baht(Math.round(df)-pc));
+    out.push(LINE, '📋 รายการรักษา', ...cases, LINE, 'Bangluang Dental 🦷');
   });
   crmCopy(out);
 }
@@ -5412,23 +5413,25 @@ function homeDfLineSend(){
   if(!rows.length){ showToast('ยังไม่มีรายการรักษาของหมอคนนี้วันนี้','error'); return; }
   const doc=doctors.find(x=>x.name===docName)||DOCTORS_DATA.find(x=>x.name===docName);
   const out=['💰 สรุปรายการรักษา + DF', docName+' · '+crmThaiShort(d), LINE];
-  let tot=0, df=0; const nd={xray:0,drug:0};
+  let tot=0, df=0; const nd={xray:0,drug:0}, cases=[];
   rows.forEach((t,i)=>{
     let pp={}; try{ pp=typeof t.procPrices==='string'?JSON.parse(t.procPrices||'{}'):(t.procPrices||{}); }catch(e){}
     const parts=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean), ip=itemDfParts(t), pct=docSharePct(t,doc);
     const code=orthoCodeOf_(t.hn,t.patName);
-    out.push((i+1)+'. '+(code?code+' ':'')+(t.patName||'—'));
+    cases.push((i+1)+'. '+(code?code+' ':'')+(t.patName||'—'));
     parts.forEach(x=>{
       const price=pp[x]!==undefined?(+pp[x]||0):(parts.length===1?totalPrice(t):0), hit=ip.items.find(it=>it.name===x);
       const rate=hit?hit.rate:((_isXrayProc(x)||drugRuleApplies(t))?0:pct);
       noDfAdd_(nd, x, price, rate);
-      out.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?(rate===pct?'':'  → df '+rate+'% = '+baht(price*rate/100)):(rate?'  (ฟรี)':'')));   // df ปกติ (เท่า % ของหมอ) ไม่ต้องแสดง · แสดงเฉพาะรายการที่ df ต่างจากปกติ
+      cases.push('     '+x+(toothText_(t,x)?' ('+toothText_(t,x)+')':'')+'  '+baht(price)+(price>0?(rate===pct?'':'  → df '+rate+'% = '+baht(price*rate/100)):(rate?'  (ฟรี)':'')));   // df ปกติ (เท่า % ของหมอ) ไม่ต้องแสดง · แสดงเฉพาะรายการที่ df ต่างจากปกติ
     });
     tot+=totalPrice(t); df+=dfAmt(t,doc);
   });
   const n=new Date(), hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
-  out.push(LINE,'🧾 ยอดรวม  '+baht(tot), ...dfBucketLines_(rows, doc, LINE),'💰 df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)');
-  if(paid>0) out.push(LINE,'💵 จ่ายเงินสดให้'+docName+'แล้ว  '+baht(paid),'📌 df คงเหลือ  '+baht(Math.round(df)-paid));
+  // ส่วน df อยู่บน · รายการรักษาอยู่ล่าง
+  out.push('🧾 ยอดรวม  '+baht(tot), ...dfBucketLines_(rows, doc, LINE),'💰 df รวม  '+baht(Math.round(df))+'  ('+rows.length+' ราย)');
+  if(paid>0) out.push('💵 จ่ายเงินสดให้'+docName+'แล้ว  '+baht(paid),'📌 df คงเหลือ  '+baht(Math.round(df)-paid));
+  out.push(LINE,'📋 รายการรักษา',...cases);
   out.push(LINE,'🕒 บันทึกข้อมูลเมื่อ '+fmtDateThai(d)+' เวลา '+hm+' น.','Bangluang Dental 🦷');
   const text=out.join('\n');
   crmCopy(out);   // คัดลอกอย่างเดียว — ไปวางในไลน์เอง
@@ -12396,6 +12399,7 @@ function doSendIncome(periodLabel){
   text += `${periodLabel}\n`;
   text += `${selected} ${DOT} ${treats.length} ราย\n`;
   text += LINE + '\n';
+  const _head = text; text = '';
 
   treats.forEach((t,i)=>{
     const procList = (Array.isArray(t.proc) ? t.proc : String(t.proc||'').split(',')).map(x=>String(x).trim()).filter(Boolean);
@@ -12421,16 +12425,17 @@ function doSendIncome(periodLabel){
     }
   });
 
-  text += LINE + '\n';
+  const _cases = text; text = _head;
+  // ส่วน df อยู่บน · รายการรักษาอยู่ล่าง
   text += `🧾 ยอดรวม  ${baht(total)}\n`;
   // แยกตาม % df (ไม่ใช้ค่าเฉลี่ย): แต่ละอัตรามีรายการอะไรบ้าง ยอดฐาน และ df
   dfBucketLines_(treats, doc, LINE).forEach(l=>{ text += l + '\n'; });
   text += `💰 df รวม  ${baht(df)}\n`;
   if(paidCash>0){
-    text += LINE + '\n';
     text += `💵 จ่ายเงินสดให้${selected}แล้ว  ${baht(paidCash)}\n`;
     text += `📌 df คงเหลือ  ${baht(df-paidCash)}\n`;
   }
+  text += LINE + '\n📋 รายการรักษา\n' + _cases + LINE + '\n';
   text += 'Bangluang Dental 🦷';
 
   navigator.clipboard.writeText(text)
