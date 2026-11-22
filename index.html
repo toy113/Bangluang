@@ -5435,22 +5435,50 @@ function homeDfLineSend(){
 }
 // ตารางสรุปวันนี้แยกตามหมอ — เฉพาะผู้จัดการ
 // ปุ่มส่งไลน์ DF: โผล่เมื่อเคสสุดท้ายของหมอในวันนี้เสร็จแล้ว (ไม่เหลือนัดค้าง) · ถ้ายังเหลือ → แสดง "เหลือ N เคส" + ลิงก์ "ส่งเลย" เผื่อมีคนไม่มา
-function docPendingToday_(docName){
+function docPendingList_(docName){
+  // นัดวันนี้ของหมอคนนี้ที่ "ยังไม่ได้ทำ" — นับไม่ซ้ำคน · ถือว่าเสร็จถ้า: สถานะเสร็จ/ยกเลิก/walk-in
+  // หรือ มีบันทึกการรักษาวันนี้ของคนไข้คนนั้นแล้ว หรือ (จัดฟัน) กด "มาตามนัด" วันนี้แล้ว
   const today=todayStr(), n=docAlias(docName);
-  let pend=appointments.filter(a=>a.date===today && docAlias(a.docName)===n && !['เสร็จสิ้น','เสร็จ','ยกเลิก'].includes(a.status)).length;
+  const nm=x=>String(x||'').replace(/^\s*\d{2,}\s*/,'').replace(/\s+/g,'').slice(0,12);
+  const tr=treatments.filter(t=>String(t.date||'').slice(0,10)===today && t.status!=='ยกเลิก');
+  const treatedHn=new Set(tr.map(t=>normHN(t.hn||'')).filter(Boolean)), treatedNm=new Set(tr.map(t=>nm(t.patName)).filter(Boolean));
+  let hnFix={}; try{ crmOrthoAptList(today,today).forEach(a=>{ if(a._hnFromCode && a.id) hnFix[a.id]=a.hn; }); }catch(e){}
+  const cameOrtho=hn=>{ try{ const o=hn?crmOrthoRec(hn):null; return !!(o && String(o['ปรับล่าสุด']||'').slice(0,10)===today); }catch(e){ return false; } };
+  const out=[], seen=new Set();
+  const add=(a,hn)=>{ const k=hn?('h'+normHN(hn)):('n'+nm(a.patName)); if(seen.has(k)) return; seen.add(k); out.push({time:String(a.time||'').slice(0,5), name:String(a.patName||'').trim()||'(ไม่มีชื่อ)', hn:hn||''}); };
+  appointments.filter(a=>a.date===today && docAlias(a.docName)===n && !['เสร็จสิ้น','เสร็จ','ยกเลิก','walk-in'].includes(a.status)).forEach(a=>{
+    const hn=a.hn||hnFix[a.id]||'';
+    if(!hn && !String(a.patName||'').trim()) return;   // ช่องว่าง/โน้ต ไม่ใช่คนไข้
+    if((hn && treatedHn.has(normHN(hn))) || treatedNm.has(nm(a.patName)) || cameOrtho(hn)) return;
+    add(a,hn);
+  });
   try{
     orthoVirtualApts_(today,today).filter(a=>docAlias(a.docName)===n).forEach(a=>{
-      const o=a.hn?crmOrthoRec(a.hn):null;
-      if(!(o && String(o['ปรับล่าสุด']||'').slice(0,10)===today)) pend++;
+      if(cameOrtho(a.hn) || (a.hn && treatedHn.has(normHN(a.hn)))) return;
+      add(a,a.hn);
     });
   }catch(e){}
-  return pend;
+  return out.sort((x,y)=>String(x.time).localeCompare(String(y.time)));
+}
+function docPendingToday_(docName){ return docPendingList_(docName).length; }
+function showDocPending_(docName){
+  const L=docPendingList_(docName);
+  const ex=document.getElementById('pendModal'); if(ex) ex.remove();
+  const m=document.createElement('div'); m.id='pendModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  m.onclick=e=>{ if(e.target===m) m.remove(); };
+  m.innerHTML='<div style="background:#fff;border-radius:14px;padding:16px 18px;width:360px;max-width:92vw;max-height:80vh;overflow:auto;">'
+    +'<div style="font-weight:800;color:var(--wine-dark);margin-bottom:6px;">⏳ ยังไม่ได้ทำวันนี้ · '+_escHtml(docName)+' ('+L.length+')</div>'
+    +'<div style="font-size:11.5px;color:var(--text-light);margin-bottom:8px;">นับเฉพาะนัดที่ยังไม่ "เสร็จสิ้น" และยังไม่มีบันทึกการรักษา/ยังไม่กดมาตามนัดวันนี้</div>'
+    +(L.length?L.map(x=>'<div style="padding:5px 0;border-top:1px solid #f0e8ed;font-size:13.5px;"><b style="color:var(--wine);">'+_escHtml(x.time||'--:--')+'</b> '+_escHtml(x.name)+(x.hn?' <span style="color:var(--text-light);font-size:11.5px;">HN '+_escHtml(x.hn)+'</span>':'')+'</div>').join(''):'<div style="padding:8px 0;">ไม่มีเคสค้าง 🎉</div>')
+    +'<button class="btn btn-secondary" style="width:100%;margin-top:10px;" onclick="document.getElementById(\'pendModal\').remove()">ปิด</button></div>';
+  document.body.appendChild(m);
 }
 function dfBtn_(n){
   const doc=String(n).replace(/"/g,'&quot;'), pend=docPendingToday_(n);
   const base='margin-left:6px;border:none;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;white-space:nowrap;';
   if(!pend) return ` <button data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" title="เคสสุดท้ายเสร็จแล้ว — คัดลอก DF ประจำวันไปวางในไลน์" style="${base}background:#06C755;color:#fff;cursor:pointer;">📋 คัดลอก DF</button>`;
-  return ` <span style="margin-left:6px;font-size:11px;color:var(--text-light);font-weight:600;">⏳ เหลืออีก ${pend} เคส</span> <a href="javascript:void(0)" data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" style="font-size:11px;color:var(--text-light);text-decoration:underline;">คัดลอกเลย</a>`;
+  return ` <a href="javascript:void(0)" data-doc="${doc}" onclick="showDocPending_(this.dataset.doc)" title="แตะเพื่อดูว่าเหลือใครบ้าง" style="margin-left:6px;font-size:11px;color:var(--text-light);font-weight:600;text-decoration:none;">⏳ เหลืออีก <u>${pend} เคส</u></a> <a href="javascript:void(0)" data-doc="${doc}" onclick="homeDfLine(this.dataset.doc)" style="font-size:11px;color:var(--text-light);text-decoration:underline;">คัดลอกเลย</a>`;
 }
 // กดยอดส่วนแบ่งหมอในตารางหน้าหลัก → เปิดตารางรายเคส (ใช้หน้าต่างเดียวกับหน้าสรุปรายได้) เฉพาะวันนี้
 let _dbkLabel=null;
