@@ -7427,12 +7427,17 @@ function bankTag(t){
   return (t && +t.transfer>0 && t.transferBank) ? '<div class="bank-tag">'+_escHtml(t.transferBank)+'</div>' : '';
 }
 function bankStatsAgg(list){
-  const agg = {}; TRANSFER_BANKS.forEach(b=>agg[b.k]={amt:0,n:0}); agg['ไม่ระบุ']={amt:0,n:0};
+  // n = จำนวน "คน" (คนเดียวกันวันเดียวกันโอนหลายรายการ นับ 1 · คนละวันนับแยก) · rows = จำนวนรายการ
+  const agg = {}, sets = {}; TRANSFER_BANKS.forEach(b=>{ agg[b.k]={amt:0,n:0,rows:0}; sets[b.k]=new Set(); }); agg['ไม่ระบุ']={amt:0,n:0,rows:0}; sets['ไม่ระบุ']=new Set();
+  const all = new Set();
   list.forEach(t=>{
     const a = +t.transfer||0; if(a<=0) return;
     const k = TRANSFER_BANKS.some(b=>b.k===t.transferBank) ? t.transferBank : 'ไม่ระบุ';
-    agg[k].amt += a; agg[k].n++;
+    const who = String(t.date||'').slice(0,10)+'|'+(normHN(t.hn||'') || String(t.patName||'').replace(/\s+/g,'') || t.id);
+    agg[k].amt += a; agg[k].rows++; sets[k].add(who); all.add(who);
   });
+  Object.keys(agg).forEach(k=>agg[k].n=sets[k].size);
+  agg._people = all.size;
   return agg;
 }
 function buildBankStats(rows, period, selYrBE){
@@ -7440,9 +7445,9 @@ function buildBankStats(rows, period, selYrBE){
   const agg = bankStatsAgg(rows);
   const keys = TRANSFER_BANKS.map(b=>b.k).concat(agg['ไม่ระบุ'].n ? ['ไม่ระบุ'] : []);
   const total = keys.reduce((s,k)=>s+agg[k].amt,0);
-  const cnt = keys.reduce((s,k)=>s+agg[k].n,0);
+  const cnt = agg._people;
   const badge = document.getElementById('bankStatsBadge');
-  if(badge) badge.textContent = incomePeriodLabel()+' · โอนรวม '+fmt(total)+' ('+cnt+' รายการ)';
+  if(badge) badge.textContent = incomePeriodLabel()+' · โอนรวม '+fmt(total)+' ('+cnt+' คน)';
   const _bc=document.getElementById('bankStatsCard'); if(_bc) _bc.classList.toggle('empty', !total);
   if(!total){ if(badge) badge.textContent = incomePeriodLabel()+' · ไม่มียอดโอนในช่วงนี้'; body.innerHTML = '<div class="endo-empty">ไม่มียอดโอนในช่วงนี้</div>'; return; }
 
@@ -7450,10 +7455,10 @@ function buildBankStats(rows, period, selYrBE){
     const pct = total ? agg[k].amt/total*100 : 0;
     return '<div class="bank-cell"><div class="bank-cell-name"><span class="bank-dot" style="background:'+bankColor(k)+'"></span>'+k+'</div>'
       +'<div class="bank-cell-amt">'+fmt(agg[k].amt)+'</div>'
-      +'<div class="bank-cell-sub">'+agg[k].n+' รายการ · '+pct.toFixed(0)+'%</div>'
+      +'<div class="bank-cell-sub"><b style="color:var(--wine-dark);font-size:14px;">'+agg[k].n+' คน</b> · '+pct.toFixed(0)+'%</div>'
       +'<div class="bank-bar"><div style="width:'+pct+'%;background:'+bankColor(k)+'"></div></div></div>';
   }).join('')+'</div>';
-  if(agg['ไม่ระบุ'].n) html += '<div class="bank-warn">มี <b>'+agg['ไม่ระบุ'].n+' รายการ</b> ที่โอนแต่ยังไม่ได้ระบุธนาคาร ('+fmt(agg['ไม่ระบุ'].amt)+' บาท) · เปิดแก้ไขรายการในหน้ารักษาแล้วเลือกธนาคารได้</div>';
+  if(agg['ไม่ระบุ'].n) html += '<div class="bank-warn">มี <b>'+agg['ไม่ระบุ'].rows+' รายการ</b> ที่โอนแต่ยังไม่ได้ระบุธนาคาร ('+fmt(agg['ไม่ระบุ'].amt)+' บาท) · เปิดแก้ไขรายการในหน้ารักษาแล้วเลือกธนาคารได้</div>';
 
   // ดูรายปี: ตารางแยกรายเดือน × ธนาคาร
   if(period==='year'){
