@@ -8525,6 +8525,7 @@ function toggleDfPaid(idx, date, checked){
   _endoSyncRecs(recs); // ซิงก์ทีละรายการขึ้นชีต
 }
 // กดการ์ดหมอในหน้าสรุปรายได้ → ดูว่าทำรายการอะไร กี่ราย ได้เท่าไร (ใช้ข้อมูลช่วงวันที่เดียวกับที่กรองอยู่)
+function dfPctTxt_(df,rev){ if(!(rev>0)) return '–'; const p=df/rev*100; return (Math.abs(p-Math.round(p))<0.05?Math.round(p):p.toFixed(1))+'%'; }
 function openDoctorBreakdown(idx){
   const doc=_shareDocList[idx]; if(!doc) return;
   const dr=_shareRows.filter(r=>r.docName===doc.name);
@@ -8564,9 +8565,9 @@ function openDoctorBreakdown(idx){
   } else {
     html+=`<div class="dbk-h">แยกตามรายการรักษา</div>
     <div style="overflow-x:auto;"><table class="dbk-table">
-      <thead><tr><th>รายการ</th><th>ราย</th><th>รายได้</th><th>ส่วนแบ่งหมอ</th></tr></thead>
-      <tbody>${gl.map(g=>`<tr><td>${procBadge(g.key==='ไม่ระบุรายการ'?'':g.key)}${g.key==='ไม่ระบุรายการ'?'<span style="color:var(--text-light)">ไม่ระบุรายการ</span>':''}</td><td>${g.count}</td><td style="font-weight:700;">${fmt(g.total)}</td><td style="color:var(--gold);font-weight:700;">${fmt(g.share)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td>รวม</td><td>${dr.length}</td><td>${fmt(tot)}</td><td style="color:var(--gold);">${fmt(share)}</td></tr></tfoot>
+      <thead><tr><th>รายการ</th><th>ราย</th><th>รายได้</th><th>ส่วนแบ่งหมอ</th><th>%df</th></tr></thead>
+      <tbody>${gl.map(g=>`<tr><td>${procBadge(g.key==='ไม่ระบุรายการ'?'':g.key)}${g.key==='ไม่ระบุรายการ'?'<span style="color:var(--text-light)">ไม่ระบุรายการ</span>':''}</td><td>${g.count}</td><td style="font-weight:700;">${fmt(g.total)}</td><td style="color:var(--gold);font-weight:700;">${fmt(g.share)}</td><td style="color:var(--text-mid);font-weight:700;">${dfPctTxt_(g.share,g.total)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>รวม</td><td>${dr.length}</td><td>${fmt(tot)}</td><td style="color:var(--gold);">${fmt(share)}</td><td>${dfPctTxt_(share,tot)}</td></tr></tfoot>
     </table></div>`;
     // โน้ตใต้บรรทัดรวม: รายที่ df ไม่ปกติ (อัตราต่อรายการต่างจากตาราง หรือ % ส่วนแบ่งต่างจากค่าปกติของหมอ)
     try{
