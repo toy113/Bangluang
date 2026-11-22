@@ -8525,6 +8525,20 @@ function toggleDfPaid(idx, date, checked){
   _endoSyncRecs(recs); // ซิงก์ทีละรายการขึ้นชีต
 }
 // กดการ์ดหมอในหน้าสรุปรายได้ → ดูว่าทำรายการอะไร กี่ราย ได้เท่าไร (ใช้ข้อมูลช่วงวันที่เดียวกับที่กรองอยู่)
+// %df แยกตามหัตถการในแถวรักษา (ไม่เฉลี่ย): ตารางพิเศษ (itemDfParts) → X-Ray/จ่ายยาที่ไม่คิด DF → % ส่วนแบ่งของรายการนั้น
+function itemDfRate_(r, name, doc){
+  try{ const it=itemDfParts(r).items.find(x=>x.name===name); if(it) return +it.rate; }catch(e){}
+  const d=String(r.date||'').slice(0,10);
+  try{ if(_isXrayProc(name) && d>=xrayRuleStart() && xrayDocRate_(r)===null) return 0; }catch(e){}
+  try{ if(drugRuleApplies(r)) return 0; }catch(e){}
+  return docSharePct(r, doc);
+}
+function dfRatesTxt_(g){
+  const ks=Object.keys(g.rates||{}); if(!ks.length) return dfPctTxt_(g.share,g.total);
+  const r=k=>[...g.rates[k]].sort((a,b)=>a-b).map(v=>(Math.round(v*10)/10)+'%').join(' / ');
+  if(ks.length===1) return r(ks[0]);
+  return ks.map(k=>'<div style="font-size:12px;"><span style="font-weight:500;color:var(--text-light);">'+_escHtml(k)+'</span> '+r(k)+'</div>').join('');
+}
 function dfPctTxt_(df,rev){ if(!(rev>0)) return '–'; const p=df/rev*100; return (Math.abs(p-Math.round(p))<0.05?Math.round(p):p.toFixed(1))+'%'; }
 function openDoctorBreakdown(idx){
   const doc=_shareDocList[idx]; if(!doc) return;
@@ -8541,8 +8555,9 @@ function openDoctorBreakdown(idx){
   const groups={};
   dr.forEach(r=>{
     const key=(r.proc||'').split(',').map(p=>p.trim()).filter(Boolean).join(', ')||'ไม่ระบุรายการ';
-    const g=groups[key]||(groups[key]={key,count:0,total:0,share:0});
+    const g=groups[key]||(groups[key]={key,count:0,total:0,share:0,rates:{}});
     g.count++; g.total+=totalPrice(r); g.share+=dfAmt(r,doc);
+    key.split(', ').forEach(nm=>{ if(nm==='ไม่ระบุรายการ') return; (g.rates[nm]=g.rates[nm]||new Set()).add(itemDfRate_(r,nm,doc)); });
   });
   const gl=Object.values(groups).sort((a,b)=>b.total-a.total);
   const hasCombo=gl.some(g=>g.key.includes(','));
@@ -8566,8 +8581,8 @@ function openDoctorBreakdown(idx){
     html+=`<div class="dbk-h">แยกตามรายการรักษา</div>
     <div style="overflow-x:auto;"><table class="dbk-table">
       <thead><tr><th>รายการ</th><th>ราย</th><th>รายได้</th><th>ส่วนแบ่งหมอ</th><th>%df</th></tr></thead>
-      <tbody>${gl.map(g=>`<tr><td>${procBadge(g.key==='ไม่ระบุรายการ'?'':g.key)}${g.key==='ไม่ระบุรายการ'?'<span style="color:var(--text-light)">ไม่ระบุรายการ</span>':''}</td><td>${g.count}</td><td style="font-weight:700;">${fmt(g.total)}</td><td style="color:var(--gold);font-weight:700;">${fmt(g.share)}</td><td style="color:var(--text-mid);font-weight:700;">${dfPctTxt_(g.share,g.total)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td>รวม</td><td>${dr.length}</td><td>${fmt(tot)}</td><td style="color:var(--gold);">${fmt(share)}</td><td>${dfPctTxt_(share,tot)}</td></tr></tfoot>
+      <tbody>${gl.map(g=>`<tr><td>${procBadge(g.key==='ไม่ระบุรายการ'?'':g.key)}${g.key==='ไม่ระบุรายการ'?'<span style="color:var(--text-light)">ไม่ระบุรายการ</span>':''}</td><td>${g.count}</td><td style="font-weight:700;">${fmt(g.total)}</td><td style="color:var(--gold);font-weight:700;">${fmt(g.share)}</td><td style="color:var(--text-mid);font-weight:700;white-space:nowrap;">${dfRatesTxt_(g)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>รวม</td><td>${dr.length}</td><td>${fmt(tot)}</td><td style="color:var(--gold);">${fmt(share)}</td><td></td></tr></tfoot>
     </table></div>`;
     // โน้ตใต้บรรทัดรวม: รายที่ df ไม่ปกติ (อัตราต่อรายการต่างจากตาราง หรือ % ส่วนแบ่งต่างจากค่าปกติของหมอ)
     try{
