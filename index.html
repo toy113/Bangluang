@@ -7440,6 +7440,30 @@ function bankStatsAgg(list){
   agg._people = all.size;
   return agg;
 }
+// แตะช่องธนาคาร → รายการโอนเข้าธนาคารนั้น (ช่วงเวลาเดียวกับที่ดูอยู่)
+function openBankList(k){
+  const rows=(window._bankRows||[]).filter(t=>(+t.transfer||0)>0 && (TRANSFER_BANKS.some(b=>b.k===t.transferBank)?t.transferBank:'ไม่ระบุ')===k)
+    .sort((a,b)=>(String(a.date||'')+String(a.time||'')).localeCompare(String(b.date||'')+String(b.time||'')));
+  const E=_escHtml, multiDay=new Set(rows.map(t=>String(t.date||'').slice(0,10))).size>1;
+  const ppl=new Set(rows.map(t=>String(t.date||'').slice(0,10)+'|'+(normHN(t.hn||'')||String(t.patName||'').replace(/\s+/g,'')||t.id))).size;
+  const sum=rows.reduce((s,t)=>s+(+t.transfer||0),0);
+  const ex=document.getElementById('bankListModal'); if(ex) ex.remove();
+  const m=document.createElement('div'); m.id='bankListModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px;';
+  m.onclick=e=>{ if(e.target===m) m.remove(); };
+  m.innerHTML='<div style="background:#fff;border-radius:14px;width:520px;max-width:96vw;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);"><div style="font-weight:800;font-size:16px;color:var(--wine-dark);"><span class="bank-dot" style="background:'+bankColor(k)+'"></span>'+E(k)+' · '+E(incomePeriodLabel())+'</div>'
+    +'<div style="font-size:13px;color:var(--text-mid);margin-top:2px;">โอนรวม <b>'+fmt(sum)+'</b> · '+ppl+' คน · '+rows.length+' รายการ</div></div>'
+    +'<div style="overflow:auto;padding:4px 16px;"><table style="width:100%;border-collapse:collapse;font-size:13px;">'
+    +'<thead><tr style="color:var(--text-light);font-size:11.5px;"><th style="text-align:left;padding:6px 4px;">'+(multiDay?'วันที่':'#')+'</th><th style="text-align:left;padding:6px 4px;">คนไข้</th><th style="text-align:left;padding:6px 4px;">หมอ</th><th style="text-align:right;padding:6px 4px;">ยอดโอน</th></tr></thead><tbody>'
+    +rows.map((t,i)=>'<tr style="border-top:1px solid #f0e8ed;"><td style="padding:6px 4px;white-space:nowrap;color:var(--text-light);">'+(multiDay?E(fmtDate(String(t.date||'').slice(0,10))):(i+1))+'</td>'
+      +'<td style="padding:6px 4px;"><b>'+E(t.patName||'—')+'</b>'+(t.hn?' <span style="color:var(--text-light);font-size:11.5px;">HN '+E(t.hn)+'</span>':'')+'<div style="font-size:11.5px;color:var(--text-light);">'+E(String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean).join(', '))+'</div></td>'
+      +'<td style="padding:6px 4px;font-size:12px;white-space:nowrap;">'+E(String(t.docName||'').split(/\s+/)[0])+'</td>'
+      +'<td style="padding:6px 4px;text-align:right;font-weight:800;white-space:nowrap;">'+fmt(+t.transfer||0)+'</td></tr>').join('')
+    +'</tbody><tfoot><tr style="border-top:1.5px solid var(--border);font-weight:800;color:var(--wine-dark);"><td colspan="3" style="padding:8px 4px;">รวม</td><td style="padding:8px 4px;text-align:right;">'+fmt(sum)+'</td></tr></tfoot></table></div>'
+    +'<div style="padding:10px 16px;border-top:1px solid var(--border);"><button class="btn btn-secondary" style="width:100%;" onclick="document.getElementById(\'bankListModal\').remove()">ปิด</button></div></div>';
+  document.body.appendChild(m);
+}
 function buildBankStats(rows, period, selYrBE){
   const body = document.getElementById('bankStatsBody'); if(!body) return;
   const agg = bankStatsAgg(rows);
@@ -7451,9 +7475,11 @@ function buildBankStats(rows, period, selYrBE){
   const _bc=document.getElementById('bankStatsCard'); if(_bc) _bc.classList.toggle('empty', !total);
   if(!total){ if(badge) badge.textContent = incomePeriodLabel()+' · ไม่มียอดโอนในช่วงนี้'; body.innerHTML = '<div class="endo-empty">ไม่มียอดโอนในช่วงนี้</div>'; return; }
 
+  window._bankRows = rows;
   let html = '<div class="bank-grid">'+keys.map(k=>{
     const pct = total ? agg[k].amt/total*100 : 0;
-    return '<div class="bank-cell"><div class="bank-cell-name"><span class="bank-dot" style="background:'+bankColor(k)+'"></span>'+k+'</div>'
+    const click = agg[k].rows ? ' role="button" tabindex="0" style="cursor:pointer;" title="แตะเพื่อดูรายการ" onclick="openBankList(\''+k+'\')" onkeydown="if(event.key===\'Enter\')openBankList(\''+k+'\')"' : '';
+    return '<div class="bank-cell"'+click+'><div class="bank-cell-name"><span class="bank-dot" style="background:'+bankColor(k)+'"></span>'+k+'</div>'
       +'<div class="bank-cell-amt">'+fmt(agg[k].amt)+'</div>'
       +'<div class="bank-cell-sub"><b style="color:var(--wine-dark);font-size:14px;">'+agg[k].n+' คน</b> · '+pct.toFixed(0)+'%</div>'
       +'<div class="bank-bar"><div style="width:'+pct+'%;background:'+bankColor(k)+'"></div></div></div>';
