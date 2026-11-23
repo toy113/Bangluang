@@ -1803,8 +1803,10 @@ function crmIsGreeting_(text) {
   return t.length <= 20 && /^(สวัสดี|หวัดดี|ดี|เฮลโล|hello|hi|hey|ขอบคุณ|ขอบใจ|โอเค|ok|okay)(ครับ|ค่ะ|คะ|คับ|จ้า|จ้ะ|นะครับ|นะคะ|มากครับ|มากค่ะ|มากๆ)*[!.]*$/i.test(t);
 }
 function crmConvMark_(uid, text) { if (!crmIsGreeting_(text)) CacheService.getScriptCache().put('crm_conv_' + uid, '1', 1800); }
+// คำที่คนไข้ใช้แทน "จัดฟัน" (ดัดฟัน / พิมพ์ผิด / เหล็กดัดฟัน / braces) → ถือเป็นจัดฟัน
+function crmOrthoWord_(t) { return String(t || '').replace(/ดัดฟัน|จัดฟน|จัดพัน|จัดฟัณ|เหล็กดัด(?!ฟัน)|ฟันเหล็ก|ใส่เหล็ก|braces?/gi, 'จัดฟัน'); }
 function crmOrthoPromoHandle_(s, ev, uid, text, chatting) {
-  var tm = String(text || '').replace(/\s+/g, ' ').trim();
+  var tm = crmOrthoWord_(String(text || '').replace(/\s+/g, ' ').trim());
   var who = null; var whoOf = function () { return who || (who = crmNameOfUid_(uid)); };
   // ปุ่ม "นัดปรึกษาฟรี" → งานโทรกลับ (แจ้งแอดมินผ่าน crmCreateTask_)
   if (tm === CRM_PROMO_BOOK_TXT) {
@@ -1930,6 +1932,7 @@ var CRM_PRICE_GROUPS = [   // ราคาตามที่แอดมิน�
   { re: /รากฟันเทียม|รากเทียม|implant/i, pick: 'รากฟันเทียม', title: '🦷 รากฟันเทียม', rows: [['รากฟันเทียม', '39,000–46,000', 'ประเมินหลังตรวจ · แจ้งราคาก่อนเริ่มรักษา']] }
 ];
 function crmFaqTopic_(t) {
+  t = crmOrthoWord_(t);
   if (/ประกันสังคม|ปกส|ป\.ก\.ส|ใช้สิทธิ|สิทธิ์?ทำฟัน|สิทธิ์?ทันต|สิทธิ์?เหลือ/.test(t)) return 'sso';
   if (!/นัด/.test(t) && /เปิดกี่โมง|ปิดกี่โมง|เปิดกี่|ปิดกี่|เปิดถึง|ปิดถึง|ถึงกี่โมง|เวลาเปิด|เวลาทำการ|เปิดไหม|เปิดมั้ย|เปิดมั๊ย|เปิดหรือเปล่า|เปิดวัน|ปิดวัน|หยุดวัน|วันหยุด|เปิดทุกวัน|อยู่ตรงไหน|อยู่ที่ไหน|อยู่แถวไหน|อยู่ไหน|แถวไหน|ที่อยู่|แผนที่|ไปยังไง|ไปทางไหน|เดินทาง|จอดรถ|โลเคชั่น|location|พิกัด/i.test(t)) return 'hours';
   var priceQ = /ราคา|รารา|ราา|ราค|เท่าไ[หร]|เท่าไร|กี่บาท|กี่บ\.|ค่าทำ|ค่ารักษา|ค่าใช้จ่าย/.test(t);   // รวมคำพิมพ์ผิดที่เจอจริง (รารา / ราค / ราา)
