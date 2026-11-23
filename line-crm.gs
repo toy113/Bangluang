@@ -1827,7 +1827,7 @@ function crmOrthoPromoHandle_(s, ev, uid, text, chatting) {
   if (/ปวด|หลุด|เจ็บ|บวม|แตก|หัก|ขาด|ทิ่ม|แผล|เลือด|ลวด|ยาง|ถอด|เลื่อน|ยกเลิก|กี่โมง|พรุ่งนี้/.test(tm)) return false;   // เรื่องอาการ/นัด → คนตอบ
   if (s.testMode && uid !== s.testUserId) return false;   // โหมดทดสอบ: ตอบเฉพาะบัญชีทดสอบ
   if (crmSplitList_(s.staffNotifyIds).indexOf(uid) !== -1 && uid !== s.testUserId) return false;   // แอดมินพิมพ์เอง
-  if (chatting) return false;
+  if (chatting && !/ราคา|เท่าไ[หร]|เท่าไร|กี่บาท|ค่าใช้จ่าย|ค่าทำ|ค่ารักษา/.test(tm)) return false;   // ถามราคาจัดฟัน → ตอบเสมอ แม้แอดมินคุยอยู่
   if (crmIsOrthoPatientUid_(uid)) return false;
   var props = PropertiesService.getScriptProperties(), pk = 'promo_' + uid, last = +(props.getProperty(pk) || 0);
   var days = Math.max(0, +s.orthoPromoDays || 7);
@@ -1974,7 +1974,7 @@ function crmFaqHandle_(s, ev, uid, text, chatting) {
   if (/ปวด|เจ็บ|บวม|แตก|หัก|ทิ่ม|แผล|เลือด|หลุด|อักเสบ|ฉุกเฉิน/.test(tm)) return false;   // อาการ → คนตอบ
   if (s.testMode && uid !== s.testUserId) return false;
   if (crmSplitList_(s.staffNotifyIds).indexOf(uid) !== -1 && uid !== s.testUserId) return false;
-  if (chatting) return false;
+  if (chatting && topic !== 'price' && topic !== 'pricemenu') return false;   // ถามราคา → ตอบการ์ดเสมอ แม้แอดมินคุยอยู่ (Toy 23 พ.ย. 69)
   var cache = CacheService.getScriptCache(), ck = 'crm_faq_' + topic + '_' + uid;
   if (topic === 'price') {   // ถามราคาคนละหมวด (อุดฟัน แล้วต่อด้วยถอนฟัน) ตอบได้เลย — กันซ้ำเฉพาะหมวดเดิมใน 6 ชม.
     var sig = CRM_PRICE_GROUPS.filter(function (g) { return g.re.test(tm); }).map(function (g) { return g.pick || g.title; }).join('+') || 'default';
