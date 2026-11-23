@@ -2109,6 +2109,28 @@ function crmFaqPriceMessage_(s, t, forced) {
 /* เมนูเลือกหัวข้อราคา: ปุ่ม 2 คอลัมน์ → กดแล้วส่ง "ราคา<หัวข้อ>" กลับมา = ได้การ์ดราคากลุ่มนั้น */
 var CRM_PRICE_MENU_TXT = 'ดูราคาเรื่องอื่น';
 var CRM_PRICE_PICK_PREFIX = 'ราคา';
+/* การ์ดที่แอดมินเลือกส่งเองได้ (ปุ่ม 📤 ส่งการ์ด ใน LINE CRM) */
+function crmManualCardName_(card) {
+  if (card === 'ortho') return 'รายละเอียดจัดฟัน'; if (card === 'pricemenu') return 'เมนูราคา'; if (card === 'sso') return 'ประกันสังคม';
+  if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง';
+  if (card.indexOf('price:') === 0) return 'ราคา' + card.slice(6); return card;
+}
+function crmManualCard_(s, card, uid) {
+  if (card === 'ortho') return crmOrthoPromoMessage_(s);
+  if (card === 'pricemenu') return crmFaqPriceMenu_();
+  if (card === 'sso') return crmFaqSsoMessage_(s, uid);
+  if (card === 'hours') return crmWelcome_(s);
+  if (card === 'care') {
+    var rows = CRM_ORTHO_CARE_.map(function (t, i) { return { type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17' }; });
+    rows.push({ type: 'separator', margin: 'md' });
+    rows.push({ type: 'text', text: '🎨 สียางจัดฟัน', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
+    rows.push({ type: 'text', text: 'เลือกเบอร์สีที่ชอบ แล้วแจ้งเจ้าหน้าที่ในครั้งถัดไปได้เลยค่ะ (แตะรูปเพื่อดูภาพใหญ่)', wrap: true, size: 'xs', color: '#7A6B78' });
+    rows.push({ type: 'image', url: CRM_ELASTIC_IMG, size: 'full', aspectRatio: '1200:965', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูสียาง', uri: CRM_ELASTIC_IMG } });
+    return { type: 'flex', altText: 'ข้อควรปฏิบัติระหว่างจัดฟัน', contents: crmBubble_(s, '📝 ข้อควรปฏิบัติระหว่างจัดฟัน', '', rows, [crmInquiryNote_(s)]) };
+  }
+  if (card.indexOf('price:') === 0) { var pk = card.slice(6), g = CRM_PRICE_GROUPS.filter(function (x) { return x.pick === pk; })[0]; return g ? crmFaqPriceMessage_(s, '', [g]) : null; }
+  return null;
+}
 function crmFaqPriceMenu_() {
   var items = [['🪥', 'ขูดหินปูน'], ['🦷', 'อุดฟัน'], ['🦷', 'ถอนฟัน/ฟันคุด'], ['🦷', 'รักษารากฟัน'], ['👑', 'ครอบฟัน'], ['😁', 'ฟันปลอม'], ['😬', 'จัดฟัน'], ['🦷', 'รากฟันเทียม'], ['🛡️', 'เคลือบฟลูออไรด์'], ['🩻', 'เอ็กซเรย์']];
   var btn = function (it) {
@@ -2510,6 +2532,19 @@ function crmStaffAction_(b) {
       crmSheet_('followups');
       var rf = crmFind_(crmRead_('followups'), 'id', b.id); if (!rf) return { ok: false, error: 'not_found' };
       crmUpdate_('followups', rf._row, { calledAt: now, calledBy: by, callNote: String(b.note || '').slice(0, 300) }); return { ok: true };
+    }
+    if (act === 'sendCard') {   // แอดมินกดส่งการ์ดเอง (push · นับ 1 ข้อความ)
+      var sK = crmSettings_(), msgK = crmManualCard_(sK, String(b.card || ''), String(b.uid || ''));
+      if (!msgK) return { ok: false, error: 'ไม่รู้จักการ์ดนี้' };
+      var toK = [];
+      if (b.uid) toK = [{ lineUserId: String(b.uid), hn: String(b.hn || ''), patName: String(b.patName || '') }];
+      else if (b.hn) toK = (crmLinkMap_()[crmHN_(b.hn)] || []).filter(function (x) { return x.consent; }).map(function (x) { return { lineUserId: x.lineUserId, hn: b.hn, patName: b.patName || '' }; });
+      if (!toK.length) return { ok: false, error: 'ไม่พบบัญชี LINE ของคนนี้' };
+      var stK = { done: {}, fails: {} }, nK = 0;
+      toK.forEach(function (t) { if (crmSend_(sK, stK, { key: 'manual:' + b.card + ':' + t.lineUserId + ':' + Date.now(), type: 'manual', hn: t.hn, patName: t.patName, lineUserId: t.lineUserId, refId: String(b.card), detail: 'แอดมินส่งการ์ด: ' + crmManualCardName_(String(b.card)) + (by ? ' · โดย ' + by : '') }, [msgK])) nK++; });
+      if (!nK) return { ok: false, error: 'ส่งไม่สำเร็จ (LINE ปฏิเสธ หรือคนไข้บล็อก OA)' };
+      if (b.taskId) { var tkK = crmFind_(crmRead_('tasks'), 'id', b.taskId); if (tkK && tkK.status === 'open') crmUpdate_('tasks', tkK._row, { status: 'done', resultNote: 'ส่งการ์ด ' + crmManualCardName_(String(b.card)) + ' แล้ว', doneBy: by, updatedAt: now }); }
+      return { ok: true, sent: nK, test: !!sK.testMode };
     }
     if (act === 'amtResend') {   // ส่งการ์ดแก้ไขยอดให้คนไข้ (จากงาน "แก้ยอดหลังส่งสรุป")
       var tkA = crmFind_(crmRead_('tasks'), 'id', b.id); if (!tkA || tkA.type !== 'amtchange') return { ok: false, error: 'not_found' };
