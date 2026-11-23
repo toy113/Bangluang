@@ -1974,7 +1974,7 @@ function crmFaqHandle_(s, ev, uid, text, chatting) {
   if (/ปวด|เจ็บ|บวม|แตก|หัก|ทิ่ม|แผล|เลือด|หลุด|อักเสบ|ฉุกเฉิน/.test(tm)) return false;   // อาการ → คนตอบ
   if (s.testMode && uid !== s.testUserId) return false;
   if (crmSplitList_(s.staffNotifyIds).indexOf(uid) !== -1 && uid !== s.testUserId) return false;
-  if (chatting && topic !== 'price' && topic !== 'pricemenu') return false;   // ถามราคา → ตอบการ์ดเสมอ แม้แอดมินคุยอยู่ (Toy 23 พ.ย. 69)
+  // ถามราคา / ประกันสังคม / เวลาทำการ → ตอบการ์ดเสมอ แม้แอดมินคุยอยู่ (Toy 23 พ.ย. 69)
   var cache = CacheService.getScriptCache(), ck = 'crm_faq_' + topic + '_' + uid;
   if (topic === 'price') {   // ถามราคาคนละหมวด (อุดฟัน แล้วต่อด้วยถอนฟัน) ตอบได้เลย — กันซ้ำเฉพาะหมวดเดิมใน 6 ชม.
     var sig = CRM_PRICE_GROUPS.filter(function (g) { return g.re.test(tm); }).map(function (g) { return g.pick || g.title; }).join('+') || 'default';
