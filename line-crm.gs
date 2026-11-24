@@ -1823,16 +1823,17 @@ function crmOrthoPromoHandle_(s, ev, uid, text, chatting) {
     return true;
   }
   if (!(s.orthoPromoOn === true || s.orthoPromoOn === 'true' || s.orthoPromoOn === 'TRUE')) return false;
-  if (tm.indexOf('จัดฟัน') === -1) return false;
+  var isTransfer = /รื้อเครื่องมือ|รื้อเหล็ก|ย้ายเคส|ย้ายคลินิก|ย้ายมาจัด|ย้ายมารักษา|ต่อเคส|รับเคสต่อ|จัด(ฟัน)?ค้าง|จัด(ฟัน)?มาจาก(ที่|คลินิก)อื่น|จัด(ฟัน)?(อยู่)?ที่อื่น|มีเครื่องมืออยู่แล้ว|ติดเครื่องมือมาแล้ว|ใส่เหล็กมาแล้ว/.test(tm);
+  if (tm.indexOf('จัดฟัน') === -1 && !isTransfer) return false;
   if (/ปวด|หลุด|เจ็บ|บวม|แตก|หัก|ขาด|ทิ่ม|แผล|เลือด|ลวด|ยาง|ถอด|เลื่อน|ยกเลิก|กี่โมง|พรุ่งนี้/.test(tm)) return false;   // เรื่องอาการ/นัด → คนตอบ
   if (s.testMode && uid !== s.testUserId) return false;   // โหมดทดสอบ: ตอบเฉพาะบัญชีทดสอบ
   if (crmSplitList_(s.staffNotifyIds).indexOf(uid) !== -1 && uid !== s.testUserId) return false;   // แอดมินพิมพ์เอง
   if (chatting && !/ราคา|เท่าไ[หร]|เท่าไร|กี่บาท|ค่าใช้จ่าย|ค่าทำ|ค่ารักษา/.test(tm)) return false;   // ถามราคาจัดฟัน → ตอบเสมอ แม้แอดมินคุยอยู่
   if (crmIsOrthoPatientUid_(uid)) return false;
-  var props = PropertiesService.getScriptProperties(), pk = 'promo_' + uid, last = +(props.getProperty(pk) || 0);
+  var props = PropertiesService.getScriptProperties(), pk = (isTransfer ? 'promoT_' : 'promo_') + uid, last = +(props.getProperty(pk) || 0);
   var days = Math.max(0, +s.orthoPromoDays || 7);
   if (last && Date.now() - last < days * 86400000) return false;
-  var msgs = [crmOrthoPromoMessage_(s)];
+  var msgs = [crmOrthoPromoMessage_(s, isTransfer)];
   if (!crmPromoInHours_(s)) msgs.push(crmText_('ขณะนี้อยู่นอกเวลาทำการค่ะ 🌙 แอดมินจะติดต่อกลับ ' + crmPromoBackText_(s) + ' ค่ะ'));
   var res = crmApi_('post', '/v2/bot/message/reply', { replyToken: ev.replyToken, messages: msgs });
   if (!res || res.code !== 200) {   // การ์ดถูก LINE ปฏิเสธ → บันทึกสาเหตุ แล้วตอบเป็นข้อความธรรมดาแทน
@@ -1841,7 +1842,7 @@ function crmOrthoPromoHandle_(s, ev, uid, text, chatting) {
   }
   props.setProperty(pk, String(Date.now()));
   var w3 = whoOf();
-  try { crmAppend_('log', { key: 'promo:' + uid + ':' + Date.now(), type: 'promo', hn: w3.hn || '', patName: w3.name || '', lineUserId: uid, refId: '', status: 'sent', detail: 'การ์ดราคาจัดฟัน · ' + tm.slice(0, 150), createdAt: crmNow_(), pushCount: 0 }); } catch (eL) {}
+  try { crmAppend_('log', { key: 'promo:' + uid + ':' + Date.now(), type: 'promo', hn: w3.hn || '', patName: w3.name || '', lineUserId: uid, refId: '', status: 'sent', detail: (isTransfer ? 'การ์ดย้ายเคสจัดฟัน · ' : 'การ์ดราคาจัดฟัน · ') + tm.slice(0, 150), createdAt: crmNow_(), pushCount: 0 }); } catch (eL) {}
   try { crmNotifyStaff_(s, { id: 'MSG-' + Date.now(), type: 'message', priority: 'normal', hn: w3.hn, patName: w3.name, lineUserId: uid, detail: '🦷 สนใจจัดฟัน (ส่งการ์ดราคาอัตโนมัติแล้ว): ' + tm.slice(0, 150) }); } catch (eN) { Logger.log('promo notify ' + eN); }
   return true;
 }
@@ -1862,7 +1863,7 @@ function crmPromoBackText_(s) {
   var tmr = CRM_CLINIC_HOURS[(crmDow_() + 1) % 7];
   return 'พรุ่งนี้ ' + tmr[0] + ' น.';
 }
-function crmOrthoPromoMessage_(s) {
+function crmOrthoPromoMessage_(s, transfer) {
   var W = '#6B2D5E', D = '#2b1026', G = '#999999';
   var step = function (n, title, sub, price, last) {
     var left = [{ type: 'text', text: title, weight: 'bold', size: 'sm', color: D, wrap: true }];
@@ -1875,15 +1876,29 @@ function crmOrthoPromoMessage_(s) {
     ] };
   };
   var sep = { type: 'separator', color: '#eeeeee' };
-  return { type: 'flex', altText: '🦷 ขั้นตอนและค่าใช้จ่ายจัดฟัน — ตรวจ + วางแผนการรักษา ฟรี', contents: {
+  var steps = [step(1, 'พิมพ์ปาก + เอ็กซเรย์', 'เก็บข้อมูลวางแผน', '2,200'), sep,
+      step(2, 'เคลียร์ช่องปาก', 'อุด/ถอน/ขูดหินปูน 700–1,200 ต่อรายการ\nผ่าฟันคุด 3,500–4,500', 'ตามจริง'), sep,
+      step(3, 'วันติดเครื่องมือ', '', '3,000'), sep,
+      step(4, 'ปรับเครื่องมือ', transfer ? '' : 'ชำระ 28 ครั้ง\nมาต่อเนื่อง ไม่ขาดการรักษาเกิน 60 วัน', '1,500/ด.'), sep,
+      step(5, 'ใส่รีเทนเนอร์', 'หลังถอดเครื่องมือ', '4,000')];
+  var top = { type: 'box', layout: 'vertical', backgroundColor: '#E7F6EC', cornerRadius: '10px', paddingAll: '9px',
+        contents: [{ type: 'text', text: '🎁 ตรวจ + วางแผนการรักษา ฟรี', size: 'sm', weight: 'bold', color: '#1d7a43', align: 'center' }] };
+  if (transfer) {   // ย้ายเคสจัดฟันจากคลินิกอื่น: รื้อเริ่มใหม่ + ค่ารื้อ 2,000 แล้วต่อด้วยขั้นตอนปกติ
+    steps = [step(1, 'รื้อเครื่องมือเดิม', 'ถอดเครื่องมือจากคลินิกเดิม', '2,000'), sep].concat(steps.map(function (x) {
+      if (x.type === 'box' && x.contents && x.contents[0] && x.contents[0].contents) { var t = x.contents[0].contents[0]; t.text = String(+t.text + 1); } return x; }));
+    top = { type: 'box', layout: 'vertical', backgroundColor: '#FFF4D6', cornerRadius: '10px', paddingAll: '10px', contents: [
+      { type: 'text', text: '🔁 ย้ายเคสจัดฟันมาที่คลินิก', size: 'sm', weight: 'bold', color: '#7A4B00' },
+      { type: 'text', text: 'ที่คลินิกจะรื้อเครื่องมือเดิม แล้วเริ่มวางแผนจัดฟันใหม่ค่ะ มีค่ารื้อ 2,000 บาท', size: 'xs', color: '#5c4400', wrap: true, margin: 'xs' }] };
+  }
+  return { type: 'flex', altText: transfer ? '🔁 ย้ายเคสจัดฟันจากคลินิกอื่น — รื้อเริ่มใหม่ ค่ารื้อ 2,000 บาท' : '🦷 ขั้นตอนและค่าใช้จ่ายจัดฟัน — ตรวจ + วางแผนการรักษา ฟรี', contents: {
     type: 'bubble', size: 'mega',
     header: { type: 'box', layout: 'vertical', paddingAll: '18px',
       background: { type: 'linearGradient', angle: '135deg', startColor: '#4A1A40', endColor: '#8E4A7C' },
       contents: [
         { type: 'box', layout: 'horizontal', contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#F2C46D', cornerRadius: '20px', paddingStart: '10px', paddingEnd: '10px', paddingTop: '3px', paddingBottom: '3px', flex: 0,
           contents: [{ type: 'text', text: '✨ ORTHO 2026', size: 'xxs', weight: 'bold', color: '#4A1A40' }] }] },
-        { type: 'text', text: 'จัดฟันกับ\nทันตแพทย์เฉพาะทาง', weight: 'bold', size: 'xl', color: '#ffffff', wrap: true, margin: 'md' },
-        { type: 'text', text: 'ตรวจและวางแผนการรักษา ฟรี', size: 'sm', color: '#ffffffdd', margin: 'sm' },
+        { type: 'text', text: transfer ? 'ย้ายเคสจัดฟัน\nจากคลินิกอื่น' : 'จัดฟันกับ\nทันตแพทย์เฉพาะทาง', weight: 'bold', size: 'xl', color: '#ffffff', wrap: true, margin: 'md' },
+        { type: 'text', text: transfer ? 'รื้อเริ่มใหม่ · ตรวจและวางแผนการรักษา ฟรี' : 'ตรวจและวางแผนการรักษา ฟรี', size: 'sm', color: '#ffffffdd', margin: 'sm', wrap: true },
         { type: 'box', layout: 'horizontal', spacing: 'md', margin: 'lg', paddingAll: '10px', cornerRadius: '12px', backgroundColor: '#ffffff22', alignItems: 'center', contents: [
           { type: 'box', layout: 'vertical', width: '40px', height: '40px', cornerRadius: '20px', backgroundColor: '#F2C46D', justifyContent: 'center', alignItems: 'center', flex: 0,
             contents: [{ type: 'text', text: '🦷', size: 'lg', align: 'center' }] },
@@ -1892,15 +1907,7 @@ function crmOrthoPromoMessage_(s) {
             { type: 'text', text: 'ทันตแพทย์เฉพาะทางจัดฟัน', size: 'xxs', color: '#ffffffcc' }] }
         ] }
       ] },
-    body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: [
-      { type: 'box', layout: 'vertical', backgroundColor: '#E7F6EC', cornerRadius: '10px', paddingAll: '9px',
-        contents: [{ type: 'text', text: '🎁 ตรวจ + วางแผนการรักษา ฟรี', size: 'sm', weight: 'bold', color: '#1d7a43', align: 'center' }] },
-      step(1, 'พิมพ์ปาก + เอ็กซเรย์', 'เก็บข้อมูลวางแผน', '2,200'), sep,
-      step(2, 'เคลียร์ช่องปาก', 'อุด/ถอน/ขูดหินปูน 700–1,200 ต่อรายการ\nผ่าฟันคุด 3,500–4,500', 'ตามจริง'), sep,
-      step(3, 'วันติดเครื่องมือ', '', '3,000'), sep,
-      step(4, 'ปรับเครื่องมือ', 'ชำระ 28 ครั้ง\nมาต่อเนื่อง ไม่ขาดการรักษาเกิน 60 วัน', '1,500/ด.'), sep,
-      step(5, 'ใส่รีเทนเนอร์', 'หลังถอดเครื่องมือ', '4,000')
-    ] },
+    body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: [top].concat(steps) },
     footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', contents: [
       { type: 'button', style: 'primary', color: W, height: 'md', action: { type: 'message', label: '📌 นัดปรึกษาฟรี', text: CRM_PROMO_BOOK_TXT } },
       { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🔎 ตรวจสอบหมอจัดฟัน', uri: CRM_PROMO_VERIFY_URL } },
@@ -2111,12 +2118,13 @@ var CRM_PRICE_MENU_TXT = 'ดูราคาเรื่องอื่น';
 var CRM_PRICE_PICK_PREFIX = 'ราคา';
 /* การ์ดที่แอดมินเลือกส่งเองได้ (ปุ่ม 📤 ส่งการ์ด ใน LINE CRM) */
 function crmManualCardName_(card) {
-  if (card === 'ortho') return 'รายละเอียดจัดฟัน'; if (card === 'pricemenu') return 'เมนูราคา'; if (card === 'sso') return 'ประกันสังคม';
+  if (card === 'ortho') return 'รายละเอียดจัดฟัน'; if (card === 'orthomove') return 'ย้ายเคสจัดฟัน'; if (card === 'pricemenu') return 'เมนูราคา'; if (card === 'sso') return 'ประกันสังคม';
   if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง';
   if (card.indexOf('price:') === 0) return 'ราคา' + card.slice(6); return card;
 }
 function crmManualCard_(s, card, uid) {
   if (card === 'ortho') return crmOrthoPromoMessage_(s);
+  if (card === 'orthomove') return crmOrthoPromoMessage_(s, true);
   if (card === 'pricemenu') return crmFaqPriceMenu_();
   if (card === 'sso') return crmFaqSsoMessage_(s, uid);
   if (card === 'hours') return crmWelcome_(s);
