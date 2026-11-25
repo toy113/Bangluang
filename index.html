@@ -6958,7 +6958,7 @@ ${items.map((it,i)=>`<tr><td>${i+1}</td><td>${E(itemName(it))}</td><td class="n"
 <div class="words">(${en?bahtTextEn_(paid):bahtText(paid)})</div>
 <div style="margin-top:6px;">${T.payby}: ${pay}</div>
 ${r.doctors?`<div>${T.doc}: ${E(r.doctors)}</div>`:''}${r.note?`<div>${T.note}: ${E(r.note)}</div>`:''}
-<div class="sg"><div><div class="ln"></div>${T.rcv}${r.issuedBy?'<br>('+E((()=>{ const v=String(r.issuedBy).replace(/\s*\[[^\]]*\]$/,''); return v==='ผู้จัดการ' ? (en?'Manager':'ผู้จัดการ')+' (สุนิสา ภูวาดสาย)' : (en?v.replace('ผู้จัดการ','Manager'):v); })())+')':''}</div><div><div class="ln"></div>${T.payer}</div></div>
+<div class="sg"><div><div class="ln"></div>${T.rcv}${r.issuedBy?(()=>{ const v=String(r.issuedBy).replace(/\s*\[[^\]]*\]$/,''); return v==='ผู้จัดการ' ? '<br>(สุนิสา ภูวาดสาย)<br>'+(en?'Manager':'ผู้จัดการ') : '<br>('+E(en?v.replace('ผู้จัดการ','Manager'):v)+')'; })():''}</div><div><div class="ln"></div>${T.payer}</div></div>
 <div class="ft">${E(T.ft)}</div>
 <script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
 }
