@@ -1564,7 +1564,8 @@ function crmRateSecret_() {
   return v;
 }
 function crmRateToken_(fuId) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature('rate|' + fuId, crmRateSecret_())).replace(/=+$/, '').slice(0, 22); }
-function crmRateUrl_(fuId) { return 'https://toy113.github.io/Bangluang/rate.html?fu=' + encodeURIComponent(fuId) + '&k=' + crmRateToken_(fuId); }
+// openExternalBrowser=1 → LINE เปิดในเบราว์เซอร์/แอปหลักของเครื่อง (ล็อกอิน Google อยู่แล้ว) แทนเบราว์เซอร์ใน LINE ที่ต้องใส่รหัส Google ก่อนรีวิว
+function crmRateUrl_(fuId) { return 'https://toy113.github.io/Bangluang/rate.html?fu=' + encodeURIComponent(fuId) + '&k=' + crmRateToken_(fuId) + '&openExternalBrowser=1'; }
 function crmRateOpen_(p) {
   var s = crmSettings_(), id = String(p.fu || ''), k = String(p.k || '');
   if (!id || k !== crmRateToken_(id)) return { ok: false, error: 'bad_token' };
