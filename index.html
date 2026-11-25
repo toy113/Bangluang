@@ -15030,5 +15030,93 @@ try{ __BLP.mark('scriptsDone'); }catch(e){}
 // ============================================================
 -->
 </div><!-- /#appShell -->
+<!-- ===== ✨ FX layer: เอฟเฟกต์ตกแต่ง (เปิด/ปิดได้ที่ปุ่ม ✨ ในเมนูซ้าย · ปิดเองถ้าเครื่องตั้งลดการเคลื่อนไหว) ===== -->
+<style id="fxCss">
+html.fx .main-content{position:relative;isolation:isolate}
+html.fx .main-content::before,html.fx .main-content::after{content:'';position:fixed;z-index:-1;pointer-events:none;border-radius:50%;opacity:.55;will-change:transform}
+html.fx .main-content::before{width:620px;height:620px;right:-140px;top:-160px;background:radial-gradient(circle closest-side,rgba(192,107,168,.40),rgba(192,107,168,.12) 55%,rgba(192,107,168,0) 100%);animation:fxDriftA 26s ease-in-out infinite alternate}
+html.fx .main-content::after{width:560px;height:560px;left:calc(var(--sidebar-w) + 40px);bottom:-200px;background:radial-gradient(circle closest-side,rgba(240,201,107,.36),rgba(240,201,107,.10) 55%,rgba(240,201,107,0) 100%);animation:fxDriftB 32s ease-in-out infinite alternate}
+@keyframes fxDriftA{to{transform:translate(-160px,140px) scale(1.15)}}
+@keyframes fxDriftB{to{transform:translate(220px,-120px) scale(1.2)}}
+html.fx .main-content{background-image:radial-gradient(rgba(107,45,94,.07) 1px,transparent 1.2px);background-size:22px 22px}
+html.fx .main-content::before,html.fx .main-content::after{opacity:.9!important}
+html.fx .sidebar{background-image:linear-gradient(180deg,#3a1234 0%,#5a2350 40%,#2b0d27 100%)!important}
+html.fx .stat-value{background:linear-gradient(90deg,var(--wine-dark),var(--wine-mid));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+html.fx .stat-card::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);background-size:250% 100%;background-position:150% 0;transition:background-position .9s}
+html.fx .stat-card:hover::after{background-position:-50% 0}
+html.fx .topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.72)!important;-webkit-backdrop-filter:blur(14px) saturate(1.5);backdrop-filter:blur(14px) saturate(1.5);border-bottom:1px solid rgba(107,45,94,.10)}
+html.fx .page.fx-enter{animation:fxPageIn .42s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fxPageIn{from{opacity:0;transform:translateY(10px) scale(.995)}to{opacity:1;transform:none}}
+html.fx .card-box,html.fx .stat-card,html.fx .crm-card,html.fx .chart-card,html.fx .settings-card,html.fx .crm-kpi,html.fx .st-kpi{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s,border-color .25s;background-image:radial-gradient(420px circle at var(--mx,-999px) var(--my,-999px),rgba(212,168,71,.10),transparent 45%)}
+html.fx .stat-card:hover,html.fx .crm-kpi:hover,html.fx .st-kpi:hover,html.fx .chart-card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(107,45,94,.18),0 0 0 1px rgba(212,168,71,.35)}
+html.fx .card-box:hover,html.fx .crm-card:hover,html.fx .settings-card:hover{box-shadow:0 12px 30px rgba(107,45,94,.14),0 0 0 1px rgba(212,168,71,.28)}
+html.fx .fx-row{animation:fxRow .38s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fxRow{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+html.fx .nav-item{transition:background .2s,color .2s,padding-left .2s}
+html.fx .nav-item:hover{padding-left:22px}
+html.fx .nav-item.active{position:relative;box-shadow:inset 0 0 22px rgba(212,168,71,.12)}
+html.fx .nav-item.active::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.14) 50%,transparent 70%);background-size:250% 100%;animation:fxSheen 4.5s ease-in-out infinite}
+@keyframes fxSheen{0%,60%{background-position:150% 0}100%{background-position:-60% 0}}
+html.fx .btn,html.fx .crm-btn{position:relative;overflow:hidden}
+html.fx .fx-rip{position:absolute;border-radius:50%;pointer-events:none;transform:scale(0);background:rgba(255,255,255,.45);animation:fxRip .55s ease-out forwards}
+html.fx .btn-secondary .fx-rip,html.fx .crm-btn .fx-rip{background:rgba(107,45,94,.18)}
+@keyframes fxRip{to{transform:scale(2.6);opacity:0}}
+html.fx .btn-primary{background-size:180% 100%;background-image:linear-gradient(120deg,var(--wine) 0%,var(--wine-mid) 45%,#a2508f 55%,var(--wine) 100%);transition:background-position .6s,box-shadow .25s,transform .2s}
+html.fx .btn-primary:hover{background-position:100% 0}
+html.fx .fx-pop{animation:fxPop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes fxPop{0%{transform:scale(.92);opacity:.4}100%{transform:none;opacity:1}}
+.fx-toggle{width:100%;margin-bottom:6px;font-size:12px}
+@media (max-width:900px){html.fx .main-content::after{left:-120px}}
+@media (prefers-reduced-motion:reduce){html.fx *{animation:none!important;transition:none!important}}
+</style>
+<script>
+(function(){
+  var K='bl_fx', root=document.documentElement, reduce=false;
+  try{ reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  function on(){ var v=null; try{ v=localStorage.getItem(K); }catch(e){} return v===null ? !reduce : v==='1'; }
+  function apply(){ root.classList.toggle('fx', on()); var b=document.getElementById('fxToggle'); if(b) b.textContent=on()?'✨ เอฟเฟกต์: เปิด':'✨ เอฟเฟกต์: ปิด'; }
+  window.fxToggle=function(){ try{ localStorage.setItem(K, on()?'0':'1'); }catch(e){} apply(); };
+  apply();
+  // ปุ่มเปิด/ปิดในเมนูซ้าย (เหนือปุ่มเปลี่ยน PIN)
+  document.addEventListener('DOMContentLoaded', function(){
+    var pin=[].slice.call(document.querySelectorAll('.logout-btn')).find(function(b){ return /เปลี่ยน PIN/.test(b.textContent); });
+    if(pin && !document.getElementById('fxToggle')){ var b=document.createElement('button'); b.id='fxToggle'; b.className='logout-btn fx-toggle'; b.type='button'; b.onclick=window.fxToggle; pin.parentNode.insertBefore(b,pin); apply(); }
+  });
+  // เปลี่ยนหน้า → เฟดเข้า + เปิดหน้าต่างเวลาสั้นๆ ให้แถว/ตัวเลขเล่นแอนิเมชัน (ไม่เล่นซ้ำตอนซิงค์อัตโนมัติ)
+  var animUntil=0;
+  function wrapShow(){
+    if(typeof window.showPage!=='function' || window.showPage._fx) return;
+    var orig=window.showPage;
+    window.showPage=function(p){ animUntil=Date.now()+900; var r=orig.apply(this, arguments);
+      if(root.classList.contains('fx')){ var pg=document.querySelector('.page.active'); if(pg){ pg.classList.remove('fx-enter'); void pg.offsetWidth; pg.classList.add('fx-enter'); } setTimeout(sweep,60); setTimeout(sweep,450); }
+      return r; };
+    window.showPage._fx=1;
+  }
+  document.addEventListener('DOMContentLoaded', wrapShow); setTimeout(wrapShow, 0);
+  function sweep(){
+    if(!root.classList.contains('fx') || Date.now()>animUntil) return;
+    var pg=document.querySelector('.page.active'); if(!pg) return;
+    pg.querySelectorAll('tbody').forEach(function(tb){ var i=0; [].forEach.call(tb.children,function(tr){ if(i<24 && !tr._fx){ tr._fx=1; tr.style.animationDelay=(i*22)+'ms'; tr.classList.add('fx-row'); } i++; }); });
+    pg.querySelectorAll('.stat-value,.st-kpi-val,.dbk-stat-value').forEach(countUp);
+  }
+  // ตัวเลขวิ่งขึ้น (เก็บรูปแบบเดิม เช่น "฿7,400" / "12 คน")
+  function countUp(el){
+    if(el._fxDone===el.textContent) return;
+    var txt=el.textContent, m=txt.match(/-?\d[\d,]*(\.\d+)?/); if(!m){ el._fxDone=txt; return; }
+    var target=parseFloat(m[0].replace(/,/g,'')); if(!isFinite(target)||Math.abs(target)<2){ el._fxDone=txt; return; }
+    var dec=(m[1]||'').length-1; if(dec<0) dec=0; var pre=txt.slice(0,m.index), post=txt.slice(m.index+m[0].length), t0=performance.now(), D=700;
+    var fmtN=function(v){ return v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); };
+    (function step(t){ var k=Math.min(1,(t-t0)/D), e=1-Math.pow(1-k,3), s=pre+fmtN(target*e)+post; el.textContent=s; el._fxDone=s; if(k<1) requestAnimationFrame(step); else { el.textContent=txt; el._fxDone=txt; } })(t0);
+  }
+  // สปอตไลต์ตามเมาส์บนการ์ด (เดสก์ท็อป)
+  var sel='.card-box,.stat-card,.crm-card,.chart-card,.settings-card,.crm-kpi,.st-kpi', raf=0, lastE=null;
+  document.addEventListener('pointermove', function(e){ if(e.pointerType!=='mouse'||!root.classList.contains('fx')) return; lastE=e; if(raf) return;
+    raf=requestAnimationFrame(function(){ raf=0; var c=lastE.target.closest&&lastE.target.closest(sel); if(!c) return; var r=c.getBoundingClientRect(); c.style.setProperty('--mx',(lastE.clientX-r.left)+'px'); c.style.setProperty('--my',(lastE.clientY-r.top)+'px'); }); }, {passive:true});
+  // ระลอกคลื่นตอนกดปุ่ม
+  document.addEventListener('pointerdown', function(e){ if(!root.classList.contains('fx')) return; var b=e.target.closest&&e.target.closest('.btn,.crm-btn'); if(!b||b.disabled) return;
+    var r=b.getBoundingClientRect(), d=Math.max(r.width,r.height), s=document.createElement('span'); s.className='fx-rip';
+    s.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px'; b.appendChild(s); setTimeout(function(){ s.remove(); },600); }, {passive:true});
+})();
+</script>
 </body>
 </html>
