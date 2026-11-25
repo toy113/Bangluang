@@ -6207,7 +6207,7 @@ function orthoCardForApt_(apt){
   return (rec && (!rec['สถานะ'] || rec['สถานะ']==='กำลังจัด')) ? rec : null;
 }
 function orthoProcLike_(proc){
-  const p=String(proc||''); if(/จัดฟัน|ปรับเครื่องมือ|ถอดเครื่องมือ/.test(p)) return true;
+  const p=String(proc||''); if(/จัดฟัน|ปรับเครื่องมือ|ถอดเครื่องมือ|ติดเครื่องมือ|ติดเหล็กหลุด|ปักหมุด|ใส่รีเทนเนอร์|เช็ครีเทนเนอร์/.test(p)) return true;
   const kws=String(((CRM.data&&CRM.data.settings)||{}).orthoKeywords||'').split(',').map(x=>x.trim()).filter(Boolean);
   return kws.some(k=>p.includes(k));
 }
@@ -13822,21 +13822,30 @@ async function saveReschedule(){
 let BN = null;
 const BN_WD = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
 function bnWd_(ds){ const p=String(ds).split('-'); return BN_WD[new Date(Date.UTC(+p[0],+p[1]-1,+p[2])).getUTCDay()]; }
+// รายการครั้งหน้าเริ่มต้น ตามสิ่งที่ทำวันนี้: ถอดเครื่องมือ → ใส่รีเทนเนอร์ · ใส่รีเทนเนอร์ → เช็ครีเทนเนอร์ · ติดบนอย่างเดียว → ติดล่าง (ถ้ายังไม่ติด) · อื่นๆ → ปรับเครื่องมือ
+const BN_NEXT_OPTS = (PROC_GROUPS.find(g=>g.name==='จัดฟัน')||{items:[]}).items.filter(x=>!['จัดฟัน','ปรึกษาจัดฟัน'].includes(x));
+function bnDefaultNext_(proc, o){
+  const p=String(proc||'');
+  if(/ถอดเครื่องมือ/.test(p)) return 'ใส่รีเทนเนอร์';
+  if(/ใส่รีเทนเนอร์/.test(p)) return 'เช็ครีเทนเนอร์';
+  if(/ติดเครื่องมือบน/.test(p) && !/ติดเครื่องมือล่าง/.test(p) && o && !o['วันติดล่าง']) return 'ติดเครื่องมือล่าง';
+  if(/ติดเครื่องมือล่าง/.test(p) && !/ติดเครื่องมือบน/.test(p) && o && !o['วันติดบน']) return 'ติดเครื่องมือบน';
+  return 'ปรับเครื่องมือ';
+}
 function orthoBatchCands_(d){
   const rows=[], skipped=[], seen=new Set();
   const list=crmOrthoAptList(d,d).filter(orthoAimOnly_).sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
   list.forEach(a=>{
     const k=crmHN(a.hn||''); if(k && seen.has(k)) return; if(k) seen.add(k);
     const o=a.hn?crmOrthoRec(a.hn):null, nm=String(a.patName||(o&&o['ชื่อ'])||'').trim();
-    if(!o){ skipped.push({nm, why:'ไม่มีการ์ดจัดฟัน'}); return; }
+    if(!o){ skipped.push({nm, why:'ยังไม่มีการ์ดจัดฟัน', hn:a.hn||'', noCard:true}); return; }
     const code=o['รหัสประจำตัว']||a.orthoCode||o.hn||a.hn||'';
     if(orthoEffStatus_(o)!=='กำลังจัด'){ skipped.push({nm, code, why:'สถานะ '+orthoEffStatus_(o)}); return; }
-    if(/ถอดเครื่องมือ/.test(String(a.proc||''))){ skipped.push({nm, code, why:'ถอดเครื่องมือวันนี้'}); return; }
     const nx=String(o['นัดถัดไป']||'').slice(0,10);
     if(/^\d{4}-\d{2}-\d{2}$/.test(nx) && nx>d){ skipped.push({nm, code, why:'มีนัดถัดไปแล้ว '+crmThaiShort(nx)}); return; }
     const came=String(o['ปรับล่าสุด']||'').slice(0,10)===d;
     rows.push({ hn:o.hn, nm, code, came, visit:crmOrthoVisitNo(a), todayProc:String(a.proc||'').split(',').map(x=>x.trim()).filter(x=>x&&x!=='นัดจัดฟัน').join(', '),
-      date:crmAddDays(d,28), time:String(a.time||'').slice(0,5), note:'', on:came, st:'' });
+      date:crmAddDays(d,28), time:String(a.time||'').slice(0,5), note:'', on:came, st:'', next:bnDefaultNext_(a.proc, o) });
   });
   return {rows, skipped};
 }
@@ -13871,7 +13880,8 @@ function bnRender_(){
   if(!document.getElementById('bnCss')){
     const st=document.createElement('style'); st.id='bnCss';
     st.textContent=`.bn-t{background:#fff;border-radius:10px;overflow:hidden;margin-top:8px}
-.bn-h,.bn-r{display:grid;grid-template-columns:26px minmax(0,1fr) 172px 70px 58px 30px;gap:6px;align-items:center;padding:4px 8px}
+.bn-h,.bn-r{display:grid;grid-template-columns:26px minmax(0,1fr) 172px 70px 58px 150px;gap:6px;align-items:center;padding:4px 8px}
+.bn-r select.form-control{height:30px;padding:2px 4px;font-size:12.5px;font-weight:700}
 .bn-h{background:#EFE6EC;font-size:11.5px;color:#6b5a66;font-weight:700;padding:6px 8px}
 .bn-r{border-top:1px solid #f0e8ed;min-height:42px}.bn-r.off{opacity:.5}.bn-r.err{background:#FFF1F1;box-shadow:inset 3px 0 #E53935}.bn-r.ok{background:#F1FBF5}
 .bn-nm{font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bn-nm i{font-style:normal;color:#6B2D5E}
@@ -13880,10 +13890,10 @@ function bnRender_(){
 .bn-dt{display:flex;align-items:center;gap:3px}.bn-dt b{font-size:11.5px;color:#6B2D5E;width:22px;flex:0 0 22px}
 .bn-ln{display:inline-block;width:8px;height:8px;border-radius:50%;background:#06C755;margin-left:4px;vertical-align:middle}
 .bn-nt{border:0;background:none;cursor:pointer;font-size:16px;opacity:.35;padding:0}.bn-nt.on{opacity:1}
-.bn-nr{grid-column:2/-1;padding:0 0 4px}
+.bn-nr{grid-column:2/-1;padding:0 0 4px}.bn-c7{display:contents}
 .bn-c3{display:contents}
 @media(max-width:560px){.bn-h{display:none}.bn-r{grid-template-columns:26px minmax(0,1fr) 30px;row-gap:4px}
- .bn-r .bn-c2{grid-column:2/3;grid-row:1}.bn-r .bn-c6{grid-column:3;grid-row:1}
+ .bn-r .bn-c2{grid-column:2/4;grid-row:1}.bn-r .bn-c6{grid-column:2/4;grid-row:3}
  .bn-r .bn-c3{grid-column:2/4;grid-row:2;display:flex;gap:6px;align-items:center}.bn-c3 .bn-dt input{width:140px}.bn-c3>input{width:68px;flex:0 0 68px}.bn-nr{grid-column:2/4}}`;
     document.head.appendChild(st);
   }
@@ -13897,13 +13907,13 @@ function bnRender_(){
       <input type="checkbox" ${r.on||ok?'checked':''} ${dis} onchange="bnSet_(${i},'on',this.checked)" aria-label="เลือก ${E(r.nm)}" style="width:18px;height:18px;accent-color:#6B2D5E;">
       <div class="bn-c2" style="min-width:0;" title="${E((r.todayProc||'')+(r.visit?' ครั้งที่ '+r.visit:'')+(ln===false?' · ยังไม่ผูก LINE → เข้ารายชื่อให้โทร':''))}"><div class="bn-nm"><i>${E(r.code)}</i> ${E(r.nm)}${ln?'<span class="bn-ln" title="ผูก LINE แล้ว"></span>':''}</div>${sub?`<div class="bn-sub">${sub}</div>`:''}</div>
       <div class="bn-c3">${dt}${tm}${ld}</div>
-      <button class="bn-nt bn-c6${r.note?' on':''}" ${ok?'disabled':''} onclick="bnNote_(${i})" title="หมายเหตุนัดถัดไป" aria-label="หมายเหตุ ${E(r.nm)}">📝</button>
-      ${(r.noteOpen||r.note)?`<div class="bn-nr"><input class="form-control" id="bnNt${i}" value="${E(r.note)}" placeholder="หมายเหตุนัดถัดไป เช่น ใส่ยางสีฟ้า" ${dis} onchange="bnSet_(${i},'note',this.value)" style="height:30px;font-size:12.5px;"></div>`:''}
+      <select class="form-control bn-c6" ${dis} onchange="bnSet_(${i},'next',this.value)" aria-label="ครั้งหน้ารักษา ${E(r.nm)}">${BN_NEXT_OPTS.concat(BN_NEXT_OPTS.includes(r.next)?[]:[r.next]).map(x=>`<option ${x===r.next?'selected':''}>${E(x)}</option>`).join('')}</select>
+      <div class="bn-nr"><input class="form-control" id="bnNt${i}" value="${E(r.note)}" placeholder="📝 หมายเหตุนัดถัดไป เช่น ใส่ยางสีฟ้า" ${dis} onchange="bnSet_(${i},'note',this.value)" style="height:30px;font-size:12.5px;width:100%;"></div>
     </div>`;
   };
   const wk=w=>`<button class="crm-btn" ${BN.saving?'disabled':''} onclick="bnWeeks_(${w})" style="padding:5px 11px;font-size:12.5px;">ทุกคน +${w} สัปดาห์</button>`;
   const left=BN.rows.filter(r=>r.st!=='ok');
-  m.innerHTML=`<div style="background:#F6F1F4;border-radius:16px;width:640px;max-width:96vw;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.25);">
+  m.innerHTML=`<div style="background:#F6F1F4;border-radius:16px;width:780px;max-width:96vw;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.25);">
     <div style="background:linear-gradient(135deg,#4A1A40,#8E4A7C);color:#fff;padding:14px 16px;position:relative;">
       <div style="font-size:18px;font-weight:800;">📅 ลงนัดถัดไปทั้งวัน</div>
       <div style="font-size:12.5px;opacity:.88;margin-top:2px;">หมอวัจน์กร · มาวันที่ ${bnWd_(BN.d)} ${E(crmThaiShort(BN.d))} · ยังไม่มีนัดถัดไป ${BN.rows.length} คน</div>
@@ -13913,9 +13923,10 @@ function bnRender_(){
       ${BN.rows.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">${wk(3)}${wk(4)}${wk(5)}<span style="margin-left:auto;font-size:12px;color:#6b5a66;">ติ๊กแล้ว ${BN.rows.filter(r=>r.on||r.st==='ok').length}/${BN.rows.length}</span></div>
       <div style="font-size:11.5px;color:#6b5a66;margin-top:6px;">ตั้ง +4 สัปดาห์ วันเดิม เวลาเดิมไว้ให้แล้ว · แก้รายคนได้ · "ช่องนั้น" = มีนัดในเวลานั้นแล้วกี่คน</div>`
       :'<div style="padding:18px 4px;text-align:center;color:#6b5a66;">🎉 ทุกคนที่มาวันนี้มีนัดถัดไปแล้ว</div>'}
-      ${BN.rows.length?`<div class="bn-t"><div class="bn-h"><span></span><span>คนไข้</span><span>วันนัดใหม่</span><span>เวลา</span><span>ช่องนั้น</span><span></span></div>${BN.rows.map(card).join('')}</div>`:''}
-      ${BN.rows.length?`<div style="font-size:11px;color:#888;margin:6px 2px;"><span class="bn-ln" style="margin:0 3px 0 0;"></span>= ผูก LINE แล้ว · ⚠️ = ยังไม่ได้กด "มาตามนัด" (ไม่ได้ติ๊กไว้) · แตะ 📝 เพื่อใส่หมายเหตุ</div>`:''}
-      ${BN.skipped.length?`<div style="font-size:12px;color:#888;margin:8px 2px;">ไม่แสดง: ${BN.skipped.map(s=>'<b style="color:#555;">'+E(s.nm||'-')+(s.code?' ('+E(s.code)+')':'')+'</b> '+E(s.why)).join(' · ')}</div>`:''}
+      ${BN.rows.length?`<div class="bn-t"><div class="bn-h"><span></span><span>คนไข้</span><span>วันนัดใหม่</span><span>เวลา</span><span>ช่องนั้น</span><span>ครั้งหน้ารักษา</span></div>${BN.rows.map(card).join('')}</div>`:''}
+      ${BN.rows.length?`<div style="font-size:11px;color:#888;margin:6px 2px;"><span class="bn-ln" style="margin:0 3px 0 0;"></span>= ผูก LINE แล้ว · ⚠️ = ยังไม่ได้กด "มาตามนัด" (ไม่ได้ติ๊กไว้) · เลือก "ครั้งหน้ารักษา" และใส่หมายเหตุได้รายคน</div>`:''}
+      ${BN.skipped.filter(s=>s.noCard).length?`<div style="font-size:12.5px;background:#FFF4D6;color:#7A4B00;border-radius:10px;padding:8px 10px;margin:8px 0;">⚠️ <b>ยังไม่มีการ์ดจัดฟัน</b> จึงลงนัดถัดไปไม่ได้ (เช่น คนไข้ใหม่ที่มาติดเครื่องมือวันนี้) — สร้างการ์ดก่อน แล้วเปิดหน้านี้ใหม่:<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${BN.skipped.filter(s=>s.noCard).map(s=>`<button class="crm-btn" data-hn="${E(s.hn||'')}" onclick="document.getElementById('bnModal').remove();openOrthoForm();setTimeout(()=>{const h=document.getElementById('ortho-hn');if(h&&this.dataset.hn){h.value=this.dataset.hn;h.dispatchEvent(new Event('input'));}},50)">+ สร้างการ์ด ${E(s.nm||'-')}</button>`).join('')}</div></div>`:''}
+      ${BN.skipped.filter(s=>!s.noCard).length?`<div style="font-size:12px;color:#888;margin:8px 2px;">ไม่แสดง: ${BN.skipped.filter(s=>!s.noCard).map(s=>'<b style="color:#555;">'+E(s.nm||'-')+(s.code?' ('+E(s.code)+')':'')+'</b> '+E(s.why)).join(' · ')}</div>`:''}
     </div>
     <div style="background:#fff;padding:12px;border-top:1px solid #eee;position:sticky;bottom:0;">
       ${BN.done?`<div id="bnResult" style="font-size:13px;margin-bottom:8px;">${BN.result||''}</div>
@@ -13949,7 +13960,7 @@ async function bnSave_(){
     const idx=orthoData.findIndex(x=>crmHN(x.hn)===crmHN(r.hn));
     if(idx<0){ r.st='err'; continue; }
     const _old=Object.assign({}, orthoData[idx]);
-    const row=Object.assign({}, orthoData[idx], { 'นัดถัดไป':r.date, 'นัดถัดไปเวลา':r.time, 'รายการนัดถัดไป':'ปรับเครื่องมือ', 'หมายเหตุนัดถัดไป':String(r.note||'').trim() });
+    const row=Object.assign({}, orthoData[idx], { 'นัดถัดไป':r.date, 'นัดถัดไปเวลา':r.time, 'รายการนัดถัดไป':r.next||'ปรับเครื่องมือ', 'หมายเหตุนัดถัดไป':String(r.note||'').trim() });
     let res=null; try{ res=await orthoPost({action:'orthoSave', row}); }catch(e){ res={ok:false}; }
     if(!res || res.ok===false){ r.st='err'; continue; }
     orthoData[idx]=row; r.st='ok'; okHns.push(r.hn);
@@ -13993,7 +14004,7 @@ function bnCopy_(){
   if(!BN) return;
   const ok=BN.rows.filter(r=>r.st==='ok').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
   if(!ok.length){ showToast('ยังไม่มีนัดที่บันทึก','error'); return; }
-  crmCopy(['📅 นัดจัดฟันครั้งถัดไป (ลงจากวันที่ '+crmThaiShort(BN.d)+')'].concat(ok.map((r,i)=>(i+1)+'. '+bnWd_(r.date)+' '+crmThaiShort(r.date)+(r.time?' '+r.time:'')+' - '+r.code+' '+r.nm+(r.note?' ('+r.note+')':''))));
+  crmCopy(['📅 นัดจัดฟันครั้งถัดไป (ลงจากวันที่ '+crmThaiShort(BN.d)+')'].concat(ok.map((r,i)=>(i+1)+'. '+bnWd_(r.date)+' '+crmThaiShort(r.date)+(r.time?' '+r.time:'')+' - '+r.code+' '+r.nm+' · '+(r.next||'ปรับเครื่องมือ')+(r.note?' ('+r.note+')':''))));
 }
 
 function openRetainer(hn){
