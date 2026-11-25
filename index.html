@@ -13908,7 +13908,8 @@ function bnRender_(){
       <div class="bn-c2" style="min-width:0;" title="${E((r.todayProc||'')+(r.visit?' ครั้งที่ '+r.visit:'')+(ln===false?' · ยังไม่ผูก LINE → เข้ารายชื่อให้โทร':''))}"><div class="bn-nm"><i>${E(r.code)}</i> ${E(r.nm)}${ln?'<span class="bn-ln" title="ผูก LINE แล้ว"></span>':''}</div>${sub?`<div class="bn-sub">${sub}</div>`:''}</div>
       <div class="bn-c3">${dt}${tm}${ld}</div>
       <select class="form-control bn-c6" ${dis} onchange="bnSet_(${i},'next',this.value)" aria-label="ครั้งหน้ารักษา ${E(r.nm)}">${BN_NEXT_OPTS.concat(BN_NEXT_OPTS.includes(r.next)?[]:[r.next]).map(x=>`<option ${x===r.next?'selected':''}>${E(x)}</option>`).join('')}</select>
-      <div class="bn-nr"><input class="form-control" id="bnNt${i}" value="${E(r.note)}" placeholder="📝 หมายเหตุนัดถัดไป เช่น ใส่ยางสีฟ้า" ${dis} onchange="bnSet_(${i},'note',this.value)" style="height:30px;font-size:12.5px;width:100%;"></div>
+      <div class="bn-nr" style="display:flex;gap:6px;"><input class="form-control" id="bnNt${i}" value="${E(r.note)}" placeholder="📝 หมายเหตุนัดถัดไป (พิมพ์เอง หรือเลือกจาก + เพิ่ม)" ${dis} onchange="bnSet_(${i},'note',this.value)" style="height:30px;font-size:12.5px;flex:1;min-width:0;">
+        <select class="form-control" ${dis} onchange="bnAddNote_(${i},this)" aria-label="เพิ่มหมายเหตุ ${E(r.nm)}" style="height:30px;font-size:12.5px;width:96px;flex:0 0 96px;padding:2px 4px;"><option value="">+ เพิ่ม</option>${BN_NOTE_OPTS.map(x=>`<option>${E(x)}</option>`).join('')}</select></div>
     </div>`;
   };
   const wk=w=>`<button class="crm-btn" ${BN.saving?'disabled':''} onclick="bnWeeks_(${w})" style="padding:5px 11px;font-size:12.5px;">ทุกคน +${w} สัปดาห์</button>`;
@@ -13946,6 +13947,15 @@ function bnSet_(i,f,v){
   BN.rows.forEach((x,j)=>{ const el=document.getElementById('bnLd'+j); if(el) el.innerHTML=bnLoadHtml_(x); });
 }
 function bnNote_(i){ if(!BN||BN.saving) return; const r=BN.rows[i]; if(!r) return; r.noteOpen=!r.noteOpen||!!r.note; bnRender_(); setTimeout(()=>{ const el=document.getElementById('bnNt'+i); if(el) el.focus(); },30); }
+// ตัวเลือกหมายเหตุสำเร็จรูป (เลือกแล้วต่อท้ายข้อความเดิม คั่นด้วย , · พิมพ์แก้เองได้)
+const BN_NOTE_OPTS=['อุดฟัน','ขูดหินปูน','ถอนฟัน','ผ่าฟันคุด','เอ็กซเรย์','พิมพ์ปาก','ติดเหล็กหลุด','ใส่ยาง','เปลี่ยนลวด','ชำระค่างวดค้าง'];
+function bnAddNote_(i, sel){
+  const v=sel.value; sel.value=''; if(!v||!BN||BN.saving) return;
+  const r=BN.rows[i]; if(!r) return;
+  const cur=String(r.note||'').trim(); if(cur.split(/\s*,\s*/).includes(v)) return;
+  r.note=cur?cur+', '+v:v;
+  const el=document.getElementById('bnNt'+i); if(el) el.value=r.note;
+}
 function bnWeeks_(w){ if(!BN||BN.saving) return; BN.rows.forEach(r=>{ if(r.st!=='ok') r.date=crmAddDays(BN.d, 7*w); }); bnRender_(); }
 async function bnSave_(){
   if(!BN||BN.saving||viewOnlyBlock_()) return;
