@@ -1475,7 +1475,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; }
     </div>
     <div class="login-divider"><span>หรือ</span></div>
     <button class="login-manager-btn" type="button" onclick="doSelectDoctor('manager')">
-      <span>🔐</span> ผู้จัดการ (สุนิสา ภูวาดสาย)
+      <span>🔐</span> ผู้จัดการ
     </button>
   </div>
 
@@ -2951,7 +2951,7 @@ const DOCTORS_DATA = [
   { id:'khao',  name:'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์',  emoji:'⭐', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#E5B80B', fullName:'ทพ.สิรวิชญ์ พินิจรัตน์พันธ์', licenseNo:'' },
   { id:'ben',   name:'ทพญ.ภาสิริ ศิริรังษี',  emoji:'🌷', specialty:'ทันตกรรมทั่วไป',   gender:'female', share:50, color:'#F27A0D', fullName:'ทพญ.ภาสิริ ศิริรังษี', licenseNo:'' },
 ];
-const MANAGER = { id:'manager', name:'ผู้จัดการ', fullName:'สุนิสา ภูวาดสาย', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
+const MANAGER = { id:'manager', name:'ผู้จัดการ', emoji:'🔐', specialty:'จัดการระบบ', gender:'female', share:0 };
 
 /* ===== รายการรักษา: ชื่อไทยตั้งแต่ต้นทาง · จัดเป็นหมวด ===== */
 const PROC_RENAME = {'เอ็กซเรย์ Pano':'X-Ray Panoramic','เอ็กซเรย์ Ceph':'X-Ray Lateral cephalometric','เอ็กซเรย์ฟันทั้งปาก':'X-Ray Panoramic','เอ็กซเรย์กะโหลกด้านข้าง':'X-Ray Lateral cephalometric','X-Ray':'เอ็กซเรย์ฟัน','X-Ray BW':'เอ็กซเรย์ตรวจฟันผุ','x-ray':'เอ็กซเรย์ฟัน','TP':'ฟันปลอมถอดได้ฐานพลาสติก','RPD':'ฟันปลอมถอดได้โครงโลหะ','Valplast':'ฟันปลอมฐานนิ่ม','Splint':'เฝือกสบฟัน','recheck':'ตรวจติดตามอาการ','onlay':'ครอบฟันบางส่วน','MI':'นัดต่อเนื่องรักษารากฟัน','FRC':'อุดคลองรากฟัน','Bite Block':'บันทึกการสบฟัน','Biteblock':'บันทึกการสบฟัน','ใส่ฟัน':'ใส่ฟันปลอม','ลองโครง':'ลองโครงฟันปลอม','ลองฟัน':'ลองฟันปลอม'};
@@ -3291,14 +3291,14 @@ function startApp(){
   try{ crmBadgeStart(); }catch(e){}
   // sidebar user info
   document.getElementById('sideUserAvatar').textContent = currentUser.emoji;
-  document.getElementById('sideUserName').textContent = currentUser.name + (isManager && currentUser.id==='manager' ? ' (สุนิสา ภูวาดสาย)' : '');
+  document.getElementById('sideUserName').textContent = currentUser.name;
   document.getElementById('sideUserRole').textContent = isAdminUser() ? 'แอดมิน' : (isManager ? 'ผู้จัดการ' : (currentUser.specialty||''));
   // Show the portrait below หมอก้อย's specialty in the sidebar.
   const portraitWrap = document.getElementById('sideUserPortraitWrap');
   if(portraitWrap) portraitWrap.style.display = (!isManager && currentUser.id==='koi') ? 'block' : 'none';
   // แสดงชื่อผู้ login ใน topbar
   const topbarName = document.getElementById('topbarUserName');
-  if(topbarName) topbarName.textContent = (currentUser.emoji||'') + ' ' + currentUser.name + (currentUser.id==='manager' ? ' (สุนิสา ภูวาดสาย)' : '');
+  if(topbarName) topbarName.textContent = (currentUser.emoji||'') + ' ' + currentUser.name;
 
   // today date
   const now = new Date();
@@ -6958,7 +6958,7 @@ ${items.map((it,i)=>`<tr><td>${i+1}</td><td>${E(itemName(it))}</td><td class="n"
 <div class="words">(${en?bahtTextEn_(paid):bahtText(paid)})</div>
 <div style="margin-top:6px;">${T.payby}: ${pay}</div>
 ${r.doctors?`<div>${T.doc}: ${E(r.doctors)}</div>`:''}${r.note?`<div>${T.note}: ${E(r.note)}</div>`:''}
-<div class="sg"><div><div class="ln"></div>${T.rcv}${r.issuedBy?'<br>('+E((en?String(r.issuedBy).replace('ผู้จัดการ','Manager'):String(r.issuedBy)).replace(/\s*\[[^\]]*\]$/,''))+')':''}</div><div><div class="ln"></div>${T.payer}</div></div>
+<div class="sg"><div><div class="ln"></div>${T.rcv}${r.issuedBy?'<br>('+E((()=>{ const v=String(r.issuedBy).replace(/\s*\[[^\]]*\]$/,''); return v==='ผู้จัดการ' ? (en?'Manager':'ผู้จัดการ')+' (สุนิสา ภูวาดสาย)' : (en?v.replace('ผู้จัดการ','Manager'):v); })())+')':''}</div><div><div class="ln"></div>${T.payer}</div></div>
 <div class="ft">${E(T.ft)}</div>
 <script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
 }
