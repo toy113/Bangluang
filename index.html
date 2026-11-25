@@ -2981,11 +2981,18 @@ function procGroupsHtml_(onchange, big){
   return PROC_GROUPS.map((g,gi)=>`<div class="pg" data-g="${gi}">
     <div class="pg-h" onclick="event.stopPropagation();pgToggle_(this)" style="display:flex;align-items:center;gap:6px;padding:7px ${big?14:8}px;font-size:12px;font-weight:800;color:var(--wine-dark);background:var(--wine-pale);cursor:pointer;position:sticky;top:0;z-index:1;"><span class="pg-ar">▾</span><span>${g.icon} ${g.name}</span><span class="pg-n" style="margin-left:auto;font-weight:700;color:var(--wine);"></span></div>
     <div class="pg-b">${g.items.map(p=>`<label onclick="event.stopPropagation()" class="pg-i" data-n="${p}" style="display:flex;align-items:center;gap:10px;padding:${pad};cursor:pointer;font-size:${fs}px;">
-      <input type="checkbox" value="${p}" onchange="${onchange}" style="width:16px;height:16px;accent-color:var(--wine);cursor:pointer;"><span>${p}</span></label>`).join('')}</div></div>`).join('');
+      <input type="checkbox" value="${p}" onchange="${onchange}" style="width:16px;height:16px;accent-color:var(--wine);cursor:pointer;"><span>${p==='อื่นๆ'?'อื่นๆ (พิมพ์ชื่อรายการเอง)':p}</span></label>`).join('')}</div></div>`).join('');
 }
 function pgToggle_(h){ const b=h.nextElementSibling, open=b.style.display==='none'; b.style.display=open?'':'none'; h.querySelector('.pg-ar').textContent=open?'▾':'▸'; }
 function pgSearch_(inp){
   const box=inp.closest('.pg-root'), q=inp.value.trim().toLowerCase();
+  // ฟอร์มบันทึกการรักษา: หาไม่เจอ/อยากใช้ชื่ออื่น → ปุ่ม "➕ ใช้ 'xxx' (พิมพ์เอง)" = ติ๊ก อื่นๆ + ใส่ชื่อให้
+  if(box && box.id==='treat-proc-dropdown'){
+    let add=box.querySelector('.pg-custom');
+    if(!add){ add=document.createElement('div'); add.className='pg-custom'; add.style.cssText='padding:4px 10px 8px;'; inp.parentElement.after(add); }
+    const raw=inp.value.trim();
+    add.innerHTML = raw ? `<button type="button" class="btn btn-secondary btn-sm" style="width:100%;text-align:left;" onclick="event.stopPropagation();procUseCustom_(this.dataset.v)" data-v="${_escHtml(raw)}">➕ ใช้ "<b>${_escHtml(raw)}</b>" เป็นรายการรักษา (พิมพ์เอง)</button>` : '';
+  }
   box.querySelectorAll('.pg').forEach(g=>{ let any=false;
     g.querySelectorAll('.pg-i').forEach(l=>{ const hit=!q||l.dataset.n.toLowerCase().includes(q)||g.querySelector('.pg-h').textContent.toLowerCase().includes(q); l.style.display=hit?'flex':'none'; if(hit) any=true; });
     g.style.display=any?'':'none'; const b=g.querySelector('.pg-b'); if(q&&any){ b.style.display=''; g.querySelector('.pg-ar').textContent='▾'; } });
@@ -11304,6 +11311,14 @@ function treatAutoDocFor_(selected){
   docEl.value=want; if(typeof syncShareDefault_==='function') syncShareDefault_();
 }
 let _otherName_='';
+function procUseCustom_(txt){
+  const dd=document.getElementById('treat-proc-dropdown'), oi=document.getElementById('treat-proc-other');
+  const cb=dd && [...dd.querySelectorAll('input[type=checkbox]')].find(c=>c.value==='อื่นๆ'); if(!cb||!oi) return;
+  oi.value=String(txt||'').replace(/[,،]/g,' ').replace(/\s+/g,' ').trim().slice(0,60);
+  if(!cb.checked){ cb.checked=true; updateProcDisplay(); } else procOtherChanged_();
+  const s=dd.querySelector('input[type=search]'); if(s){ s.value=''; pgSearch_(s); }
+  setTimeout(()=>{ oi.style.display=''; oi.focus(); },30);
+}
 function procOtherChanged_(){
   const old=_otherName_; ppCollect_();
   const oi=document.getElementById('treat-proc-other'), tx=(oi.value||'').replace(/[,،]/g,' ').replace(/\s+/g,' ').trim(), nn=tx?'อื่นๆ: '+tx:'อื่นๆ';
