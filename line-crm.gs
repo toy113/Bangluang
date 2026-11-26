@@ -1962,7 +1962,7 @@ var CRM_PRICE_GROUPS = [   // ราคาตามที่แอดมิน�
   { re: /อุด|ฟัน(หน้า)?ห่าง|ปิดช่อง|ช่องว่างระหว่างฟัน|ช่องฟัน/, pick: 'อุดฟัน', title: '🦷 อุดฟัน', rows: [['อุดฟันทั่วไป', '700–1,500', 'ต่อซี่'], ['อุดฟันหลายด้าน / ซี่ที่ควรครอบฟัน', '1,500–3,000', 'ต่อซี่'], ['อุดปิดช่องว่าง (ฟันห่าง)', '3,500–4,000', 'ต่อช่อง']] },
   { re: /ถอน|คุด/, pick: 'ถอนฟัน/ฟันคุด', title: '🦷 ถอนฟัน / ฟันคุด', rows: [['ถอนฟันทั่วไป', '700–900', 'ต่อซี่'], ['ถอนฟันกราม', '900–1,200', 'ต่อซี่'], ['ถอนฟันคุด', '1,200–1,500', 'ต่อซี่'], ['ผ่าฟันคุด / ฟันฝัง', '3,500–4,500', 'ต่อซี่ · ต้องเอ็กซเรย์ก่อน']] },
   { re: /รักษาราก|รากฟัน(?!เทียม)|คลองราก/, pick: 'รักษารากฟัน', title: '🦷 รักษารากฟัน', rows: [['ฟันหน้า / เขี้ยว / กรามน้อย', '7,000–9,000', ''], ['ฟันกรามใหญ่', '11,000–12,000', '']], note: 'แบ่งจ่ายได้ 2 รอบ · หมอรักษารากเข้าทุกวันอังคาร' },
-  { re: /ครอบ|เดือย|วีเนียร์/, pick: 'ครอบฟัน', title: '👑 ครอบฟัน', rows: [['ปักเดือย', '4,000', ''], ['ครอบฟัน โลหะ / โลหะเคลือบเซรามิก / เซรามิกล้วน', '12,000–17,000', 'แบ่งจ่ายได้ 2 รอบ'], ['วีเนียร์ (veneer)', '11,000–12,000', '']] },
+  { re: /ครอบ|เดือย|วีเนียร์/, pick: 'ครอบฟัน', title: '👑 ครอบฟัน', rows: [['ปักเดือย', '4,000', ''], ['ครอบฟัน โลหะ / โลหะเคลือบเซรามิก / เซรามิกล้วน', '12,000–17,000', 'แบ่งจ่ายได้ 2 รอบ', '', [['crown-metal.jpg?v=1', 'โลหะล้วน'], ['crown-pfm.jpg?v=1', 'โลหะเคลือบเซรามิก'], ['crown-cer.jpg?v=1', 'เซรามิกล้วน']]], ['วีเนียร์ (veneer)', '11,000–12,000', '']] },
   { re: /ฟันปลอม|ฟันเทียมถอด|ฐานนิ่ม/, pick: 'ฟันปลอม', title: '😁 ฟันปลอม', rows: [['ฟันปลอมถอดได้ ฐานพลาสติก', 'ซี่แรก 2,500', 'ซี่ถัดไป +400 ต่อซี่', 'denture-plastic.jpg?v=1'], ['ฟันปลอมฐานนิ่ม (Valplast)', 'ซี่แรก 5,500', 'ซี่ถัดไป +400 ต่อซี่', 'denture-valplast.jpg?v=1'], ['ฟันปลอมถอดได้ ฐานโลหะ', 'ซี่แรก 7,000', 'ซี่ถัดไป +400 ต่อซี่', 'denture-metal.jpg?v=1']] },
   { re: /รีเทนเนอร์/, pick: 'รีเทนเนอร์', title: '😬 รีเทนเนอร์', rows: [['รีเทนเนอร์ทำใหม่', '4,000', 'ต่อคู่ บน+ล่าง']] },
   { re: /ฟลูออไรด์|ฟลูออไรด|หลุมร่องฟัน|เคลือบฟัน/, pick: 'เคลือบฟลูออไรด์', title: '🛡️ เคลือบหลุมร่องฟัน / ฟลูออไรด์', rows: [['เคลือบหลุมร่องฟัน / เคลือบฟลูออไรด์', '600', '']] },
@@ -2040,6 +2040,15 @@ function crmFaqHeader_(tag, title, sub) {
     { type: 'text', text: title, weight: 'bold', size: 'xl', color: '#ffffff', wrap: true, margin: 'md' }];
   if (sub) c.push({ type: 'text', text: sub, size: 'sm', color: '#ffffffdd', wrap: true, margin: 'sm' });
   return { type: 'box', layout: 'vertical', paddingAll: '18px', background: { type: 'linearGradient', angle: '135deg', startColor: '#4A1A40', endColor: '#8E4A7C' }, contents: c };
+}
+/* แถวรูปเปรียบเทียบใต้รายการราคา: [[รูป, ชื่อ], ...] · แตะรูปดูภาพใหญ่ */
+function crmFaqStrip_(list) {
+  return { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xs', paddingStart: '8px', paddingEnd: '8px', paddingBottom: '6px', contents: list.map(function (x) {
+    var u = CRM_IMG_BASE + x[0];
+    return { type: 'box', layout: 'vertical', flex: 1, contents: [
+      { type: 'box', layout: 'vertical', cornerRadius: '8px', contents: [{ type: 'image', url: u, size: 'full', aspectRatio: '1:1', aspectMode: 'cover', action: { type: 'uri', label: 'ดูภาพ', uri: u } }] },
+      { type: 'text', text: x[1], size: 'xxs', color: '#5a3a52', align: 'center', wrap: true, margin: 'xs' }] };
+  }) };
 }
 function crmFaqRow_(l, r, hi, note, img) {
   var left = [{ type: 'text', text: l, size: 'sm', weight: 'bold', color: '#2b1026', wrap: true }];
@@ -2130,7 +2139,7 @@ function crmFaqPriceMessage_(s, t, forced) {
   var body = [];
   groups.forEach(function (g, i) {
     body.push({ type: 'text', text: g.title, size: 'sm', weight: 'bold', color: '#4A1A40', margin: i ? 'lg' : 'none' });
-    g.rows.forEach(function (r) { body.push(crmFaqRow_(r[0], r[1], false, r[2], r[3])); });
+    g.rows.forEach(function (r) { body.push(crmFaqRow_(r[0], r[1], false, r[2], r[3])); if (r[4]) body.push(crmFaqStrip_(r[4])); });
     if (g.note) body.push({ type: 'text', text: '💡 ' + g.note, size: 'xs', color: '#7a5200', wrap: true, margin: 'sm' });
   });
   var ssoRel = groups.some(function (g) { return /ขูด|อุด|ถอน/.test(g.title); });
