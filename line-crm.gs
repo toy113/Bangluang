@@ -761,6 +761,8 @@ function crmReceiptMessage_(s, trs, extra) {
       rows.push({ type: 'text', text: '🖼️ วิธีทำความสะอาดฟันเทียม (แตะรูปเพื่อดูภาพใหญ่)', size: 'xs', color: '#7A6B78', margin: 'md', wrap: true });
       rows.push({ type: 'image', url: CRM_DENTURE_IMG, size: 'full', aspectRatio: '1200:854', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูภาพ', uri: CRM_DENTURE_IMG } });
     }
+    // ใส่รีเทนเนอร์ → แนบภาพวิธีใส่/ดูแลรีเทนเนอร์
+    if (items.some(function (x) { return /ใส่รีเทนเนอร์/.test(String(x.proc || '')); })) crmRetainerRows_().forEach(function (r) { rows.push(r); });
     if (notes.length) rows.push({ type: 'text', text: '📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'), wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' });
   }
   var corrected = !!(extra && extra.corrected);
@@ -1441,6 +1443,11 @@ var CRM_ORTHO_CARE_ = [
   'กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์เปลี่ยนเป็นชำระ 1,500 บาทจนกว่าจะเสร็จค่ะ'
 ];
 var CRM_DENTURE_IMG = 'https://toy113.github.io/Bangluang/assets/denture-care.jpg?v=1';
+var CRM_RETAINER_IMG = 'https://toy113.github.io/Bangluang/assets/retainer-care.jpg?v=1';
+function crmRetainerRows_() {
+  return [{ type: 'text', text: '🖼️ วิธีใส่และดูแลรีเทนเนอร์ (แตะรูปเพื่อดูภาพใหญ่)', size: 'xs', color: '#7A6B78', margin: 'md', wrap: true },
+    { type: 'image', url: CRM_RETAINER_IMG, size: 'full', aspectRatio: '990:1068', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูภาพ', uri: CRM_RETAINER_IMG } }];
+}
 var CRM_ELASTIC_IMG = 'https://toy113.github.io/Bangluang/assets/elastic-colors.jpg?v=1';
 // สรุปการมาจัดฟัน: รายการ + ราคา (0 บาท = ฟรี) + ยอดรวม (+ ข้อควรปฏิบัติ)
 function crmOrthoVisitMessage_(s, v) {
@@ -1458,7 +1465,13 @@ function crmOrthoVisitMessage_(s, v) {
     if (pc > 0 && pt > 0) { rows.push(crmRow_('  เงินสด', crmMoney_(pc))); rows.push(crmRow_('  โอนเงิน', crmMoney_(pt))); }
     else rows.push(crmRow_('ชำระโดย', pc > 0 ? 'เงินสด' : 'โอนเงิน'));
   }
-  if (v.care) {
+  var hasRet = v.items.some(function (x) { return /ใส่รีเทนเนอร์/.test(String(x.name || '')); });
+  if (hasRet) {   // วันใส่รีเทนเนอร์ → ภาพวิธีใส่/ดูแล แทนสียาง
+    rows.push({ type: 'separator', margin: 'md' });
+    rows.push({ type: 'text', text: '😬 การดูแลรีเทนเนอร์', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
+    crmRetainerRows_().forEach(function (r) { rows.push(r); });
+  }
+  if (v.care && !hasRet) {
     rows.push({ type: 'separator', margin: 'md' });
     rows.push({ type: 'text', text: '📝 ข้อควรปฏิบัติ', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
     CRM_ORTHO_CARE_.forEach(function (t, i) { rows.push({ type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17', margin: 'sm' }); });
@@ -2126,7 +2139,7 @@ var CRM_PRICE_PICK_PREFIX = 'ราคา';
 /* การ์ดที่แอดมินเลือกส่งเองได้ (ปุ่ม 📤 ส่งการ์ด ใน LINE CRM) */
 function crmManualCardName_(card) {
   if (card === 'ortho') return 'รายละเอียดจัดฟัน'; if (card === 'orthomove') return 'ย้ายเคสจัดฟัน'; if (card === 'pricemenu') return 'เมนูราคา'; if (card === 'sso') return 'ประกันสังคม';
-  if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง';
+  if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง'; if (card === 'retainer') return 'ดูแลรีเทนเนอร์'; if (card === 'denture') return 'ดูแลฟันเทียม';
   if (card.indexOf('price:') === 0) return 'ราคา' + card.slice(6); return card;
 }
 function crmManualCard_(s, card, uid) {
@@ -2135,6 +2148,8 @@ function crmManualCard_(s, card, uid) {
   if (card === 'pricemenu') return crmFaqPriceMenu_();
   if (card === 'sso') return crmFaqSsoMessage_(s, uid);
   if (card === 'hours') return crmWelcome_(s);
+  if (card === 'retainer') return { type: 'flex', altText: 'วิธีใส่และดูแลรีเทนเนอร์', contents: crmBubble_(s, '😬 วิธีใส่และดูแลรีเทนเนอร์', '', crmRetainerRows_(), [crmInquiryNote_(s)]) };
+  if (card === 'denture') return { type: 'flex', altText: 'วิธีทำความสะอาดฟันเทียม', contents: crmBubble_(s, '🦷 วิธีทำความสะอาดฟันเทียม', '', [{ type: 'text', text: 'แตะรูปเพื่อดูภาพใหญ่', size: 'xs', color: '#7A6B78', wrap: true }, { type: 'image', url: CRM_DENTURE_IMG, size: 'full', aspectRatio: '1200:854', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูภาพ', uri: CRM_DENTURE_IMG } }], [crmInquiryNote_(s)]) };
   if (card === 'care') {
     var rows = CRM_ORTHO_CARE_.map(function (t, i) { return { type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17' }; });
     rows.push({ type: 'separator', margin: 'md' });
