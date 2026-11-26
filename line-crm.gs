@@ -1446,6 +1446,7 @@ var CRM_ENDO_IMG = 'https://toy113.github.io/Bangluang/assets/endo-steps.jpg?v=1
 /* รูปแนบท้ายการ์ดสรุปการรักษา ตามรายการ */
 var CRM_RECEIPT_IMGS_ = [
   { re: /ถอนฟัน|ผ่าฟันคุด/, cap: '🖼️ ดูแลตัวเองหลังถอนฟัน', url: 'https://toy113.github.io/Bangluang/assets/extraction-care.jpg?v=1', ar: '1024:1536' },
+  { re: /รากฟันเทียม/, cap: '🖼️ ดูแลหลังฝังรากฟันเทียม', url: 'https://toy113.github.io/Bangluang/assets/implant-care.jpg?v=1', ar: '1024:1536' },
   { re: /รักษารากฟัน|คลองราก/, cap: '🖼️ ขั้นตอนรักษารากฟัน', url: CRM_ENDO_IMG, ar: '1024:1536' },
   { re: /ใส่ฟันปลอม/, cap: '🖼️ วิธีทำความสะอาดฟันเทียม', url: CRM_DENTURE_IMG, ar: '1200:854' },
   { re: /ใส่รีเทนเนอร์/, cap: '🖼️ วิธีใส่และดูแลรีเทนเนอร์', url: 'https://toy113.github.io/Bangluang/assets/retainer-care.jpg?v=1', ar: '990:1068' }
@@ -2164,7 +2165,7 @@ var CRM_PRICE_PICK_PREFIX = 'ราคา';
 /* การ์ดที่แอดมินเลือกส่งเองได้ (ปุ่ม 📤 ส่งการ์ด ใน LINE CRM) */
 function crmManualCardName_(card) {
   if (card === 'ortho') return 'รายละเอียดจัดฟัน'; if (card === 'orthomove') return 'ย้ายเคสจัดฟัน'; if (card === 'pricemenu') return 'เมนูราคา'; if (card === 'sso') return 'ประกันสังคม';
-  if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง'; if (card === 'retainer') return 'ดูแลรีเทนเนอร์'; if (card === 'denture') return 'ดูแลฟันเทียม'; if (card === 'endo') return 'ขั้นตอนรักษารากฟัน'; if (card === 'extract') return 'ดูแลหลังถอนฟัน';
+  if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง'; if (card === 'retainer') return 'ดูแลรีเทนเนอร์'; if (card === 'denture') return 'ดูแลฟันเทียม'; if (card === 'endo') return 'ขั้นตอนรักษารากฟัน'; if (card === 'extract') return 'ดูแลหลังถอนฟัน'; if (card === 'implant') return 'ดูแลหลังฝังรากฟันเทียม';
   if (card.indexOf('price:') === 0) return 'ราคา' + card.slice(6); return card;
 }
 function crmManualCard_(s, card, uid) {
@@ -2175,7 +2176,8 @@ function crmManualCard_(s, card, uid) {
   if (card === 'hours') return crmWelcome_(s);
   if (card === 'retainer') return { type: 'flex', altText: 'วิธีใส่และดูแลรีเทนเนอร์', contents: crmBubble_(s, '😬 วิธีใส่และดูแลรีเทนเนอร์', '', crmRetainerRows_(), [crmInquiryNote_(s)]) };
   if (card === 'extract') return { type: 'flex', altText: 'ดูแลตัวเองหลังถอนฟัน', contents: crmBubble_(s, '🦷 ดูแลตัวเองหลังถอนฟัน', '', crmImgRows_(CRM_RECEIPT_IMGS_[0]), [crmInquiryNote_(s)]) };
-  if (card === 'endo') return { type: 'flex', altText: 'ขั้นตอนรักษารากฟัน', contents: crmBubble_(s, '🦷 รักษารากฟัน ทำอะไรบ้าง', '', crmImgRows_(CRM_RECEIPT_IMGS_[1]), [crmInquiryNote_(s)]) };
+  if (card === 'implant') return { type: 'flex', altText: 'ดูแลหลังฝังรากฟันเทียม', contents: crmBubble_(s, '🦷 ดูแลหลังฝังรากฟันเทียม', '', crmImgRows_(CRM_RECEIPT_IMGS_[1]), [crmInquiryNote_(s)]) };
+  if (card === 'endo') return { type: 'flex', altText: 'ขั้นตอนรักษารากฟัน', contents: crmBubble_(s, '🦷 รักษารากฟัน ทำอะไรบ้าง', '', crmImgRows_(CRM_RECEIPT_IMGS_[2]), [crmInquiryNote_(s)]) };
   if (card === 'denture') return { type: 'flex', altText: 'วิธีทำความสะอาดฟันเทียม', contents: crmBubble_(s, '🦷 วิธีทำความสะอาดฟันเทียม', '', [{ type: 'text', text: 'แตะรูปเพื่อดูภาพใหญ่', size: 'xs', color: '#7A6B78', wrap: true }, { type: 'image', url: CRM_DENTURE_IMG, size: 'full', aspectRatio: '1200:854', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูภาพ', uri: CRM_DENTURE_IMG } }], [crmInquiryNote_(s)]) };
   if (card === 'care') {
     var rows = CRM_ORTHO_CARE_.map(function (t, i) { return { type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17' }; });
