@@ -1440,6 +1440,7 @@ var CRM_ORTHO_CARE_ = [
   'มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น',
   'กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์เปลี่ยนเป็นชำระ 1,500 บาทจนกว่าจะเสร็จค่ะ'
 ];
+var CRM_IMG_BASE = 'https://toy113.github.io/Bangluang/assets/';
 var CRM_DENTURE_IMG = 'https://toy113.github.io/Bangluang/assets/denture-care.jpg?v=1';
 var CRM_ENDO_IMG = 'https://toy113.github.io/Bangluang/assets/endo-steps.jpg?v=1';
 /* รูปแนบท้ายการ์ดสรุปการรักษา ตามรายการ */
@@ -1961,7 +1962,7 @@ var CRM_PRICE_GROUPS = [   // ราคาตามที่แอดมิน�
   { re: /ถอน|คุด/, pick: 'ถอนฟัน/ฟันคุด', title: '🦷 ถอนฟัน / ฟันคุด', rows: [['ถอนฟันทั่วไป', '700–900', 'ต่อซี่'], ['ถอนฟันกราม', '900–1,200', 'ต่อซี่'], ['ถอนฟันคุด', '1,200–1,500', 'ต่อซี่'], ['ผ่าฟันคุด / ฟันฝัง', '3,500–4,500', 'ต่อซี่ · ต้องเอ็กซเรย์ก่อน']] },
   { re: /รักษาราก|รากฟัน(?!เทียม)|คลองราก/, pick: 'รักษารากฟัน', title: '🦷 รักษารากฟัน', rows: [['ฟันหน้า / เขี้ยว / กรามน้อย', '7,000–9,000', ''], ['ฟันกรามใหญ่', '11,000–12,000', '']], note: 'แบ่งจ่ายได้ 2 รอบ · หมอรักษารากเข้าทุกวันอังคาร' },
   { re: /ครอบ|เดือย|วีเนียร์/, pick: 'ครอบฟัน', title: '👑 ครอบฟัน', rows: [['ปักเดือย', '4,000', ''], ['ครอบฟัน โลหะ / โลหะเคลือบเซรามิก / เซรามิกล้วน', '12,000–17,000', 'แบ่งจ่ายได้ 2 รอบ'], ['วีเนียร์ (veneer)', '11,000–12,000', '']] },
-  { re: /ฟันปลอม|ฟันเทียมถอด|ฐานนิ่ม/, pick: 'ฟันปลอม', title: '😁 ฟันปลอม', rows: [['ฟันปลอมถอดได้ ฐานพลาสติก', 'ซี่แรก 2,500', 'ซี่ถัดไป +400 ต่อซี่'], ['ฟันปลอมฐานนิ่ม (Valplast)', 'ซี่แรก 5,500', 'ซี่ถัดไป +400 ต่อซี่'], ['ฟันปลอมถอดได้ ฐานโลหะ', 'ซี่แรก 7,000', 'ซี่ถัดไป +400 ต่อซี่']] },
+  { re: /ฟันปลอม|ฟันเทียมถอด|ฐานนิ่ม/, pick: 'ฟันปลอม', title: '😁 ฟันปลอม', rows: [['ฟันปลอมถอดได้ ฐานพลาสติก', 'ซี่แรก 2,500', 'ซี่ถัดไป +400 ต่อซี่', 'denture-plastic.jpg?v=1'], ['ฟันปลอมฐานนิ่ม (Valplast)', 'ซี่แรก 5,500', 'ซี่ถัดไป +400 ต่อซี่', 'denture-valplast.jpg?v=1'], ['ฟันปลอมถอดได้ ฐานโลหะ', 'ซี่แรก 7,000', 'ซี่ถัดไป +400 ต่อซี่', 'denture-metal.jpg?v=1']] },
   { re: /รีเทนเนอร์/, pick: 'รีเทนเนอร์', title: '😬 รีเทนเนอร์', rows: [['รีเทนเนอร์ทำใหม่', '4,000', 'ต่อคู่ บน+ล่าง']] },
   { re: /ฟลูออไรด์|ฟลูออไรด|หลุมร่องฟัน|เคลือบฟัน/, pick: 'เคลือบฟลูออไรด์', title: '🛡️ เคลือบหลุมร่องฟัน / ฟลูออไรด์', rows: [['เคลือบหลุมร่องฟัน / เคลือบฟลูออไรด์', '600', '']] },
   { re: /เอ็กซ์?เรย์|x-?ray|ฟิล์ม|พาโนรามิก|panoramic|ceph/i, pick: 'เอ็กซเรย์', title: '🩻 เอ็กซเรย์', rows: [['ตรวจฟัน (ฟิล์มเล็ก)', '200', 'ต่อฟิล์ม'], ['จัดฟัน (panoramic / ceph)', '700', 'ต่อฟิล์ม']] },
@@ -2039,13 +2040,18 @@ function crmFaqHeader_(tag, title, sub) {
   if (sub) c.push({ type: 'text', text: sub, size: 'sm', color: '#ffffffdd', wrap: true, margin: 'sm' });
   return { type: 'box', layout: 'vertical', paddingAll: '18px', background: { type: 'linearGradient', angle: '135deg', startColor: '#4A1A40', endColor: '#8E4A7C' }, contents: c };
 }
-function crmFaqRow_(l, r, hi, note) {
+function crmFaqRow_(l, r, hi, note, img) {
   var left = [{ type: 'text', text: l, size: 'sm', weight: 'bold', color: '#2b1026', wrap: true }];
   if (note) left.push({ type: 'text', text: note, size: 'xxs', color: '#888888', wrap: true });
   var row = { type: 'box', layout: 'horizontal', paddingTop: '8px', paddingBottom: '8px', paddingStart: '8px', paddingEnd: '8px', cornerRadius: '8px', contents: [
-    { type: 'box', layout: 'vertical', flex: 1, contents: left },
+    { type: 'box', layout: 'vertical', flex: 1, contents: left, gravity: 'center', margin: img ? 'md' : 'none' },
     { type: 'text', text: r, size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'end', flex: 0, wrap: false, gravity: 'center' }] };
   if (hi) row.backgroundColor = '#FFF4D6';
+  if (img) {   // รูปเล็กหน้าแถว · แตะเพื่อดูภาพใหญ่
+    var u = CRM_IMG_BASE + img;
+    row.contents.unshift({ type: 'box', layout: 'vertical', width: '64px', height: '64px', cornerRadius: '8px', flex: 0, contents: [
+      { type: 'image', url: u, size: 'full', aspectRatio: '1:1', aspectMode: 'cover', action: { type: 'uri', label: 'ดูภาพ', uri: u } }] });
+  }
   return row;
 }
 function crmFaqFooter_(btns) {
@@ -2123,7 +2129,7 @@ function crmFaqPriceMessage_(s, t, forced) {
   var body = [];
   groups.forEach(function (g, i) {
     body.push({ type: 'text', text: g.title, size: 'sm', weight: 'bold', color: '#4A1A40', margin: i ? 'lg' : 'none' });
-    g.rows.forEach(function (r) { body.push(crmFaqRow_(r[0], r[1], false, r[2])); });
+    g.rows.forEach(function (r) { body.push(crmFaqRow_(r[0], r[1], false, r[2], r[3])); });
     if (g.note) body.push({ type: 'text', text: '💡 ' + g.note, size: 'xs', color: '#7a5200', wrap: true, margin: 'sm' });
   });
   var ssoRel = groups.some(function (g) { return /ขูด|อุด|ถอน/.test(g.title); });
