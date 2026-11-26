@@ -756,6 +756,11 @@ function crmReceiptMessage_(s, trs, extra) {
     rows.push({ type: 'separator', margin: 'md' });
     rows.push({ type: 'text', text: '🩹 คำแนะนำหลังการรักษา', weight: 'bold', size: 'md', color: '#6B2D5E', margin: 'md' });
     tpls.forEach(function (tp) { var tx = String(tp.aftercareText || '').trim(); if (tx) rows.push({ type: 'text', text: tx, wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' }); });
+    // ใส่ฟันปลอม → แนบภาพวิธีทำความสะอาดฟันเทียม (สื่อของทันตแพทยสภา) แตะเพื่อดูภาพใหญ่
+    if (items.some(function (x) { return /ใส่ฟันปลอม/.test(String(x.proc || '')); })) {
+      rows.push({ type: 'text', text: '🖼️ วิธีทำความสะอาดฟันเทียม (แตะรูปเพื่อดูภาพใหญ่)', size: 'xs', color: '#7A6B78', margin: 'md', wrap: true });
+      rows.push({ type: 'image', url: CRM_DENTURE_IMG, size: 'full', aspectRatio: '1200:854', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูภาพ', uri: CRM_DENTURE_IMG } });
+    }
     if (notes.length) rows.push({ type: 'text', text: '📝 คำแนะนำเพิ่มเติมจากทันตแพทย์\n' + notes.map(function (n) { return '• ' + n.text; }).join('\n'), wrap: true, size: 'sm', color: '#1A0A17', margin: 'md' });
   }
   var corrected = !!(extra && extra.corrected);
@@ -1435,6 +1440,7 @@ var CRM_ORTHO_CARE_ = [
   'มาตามนัดทุกครั้ง การขาดนัดทำให้การจัดฟันนานขึ้น',
   'กรณีมาปรับเครื่องมือห่างเกิน 60 วัน ขอสงวนสิทธิ์เปลี่ยนเป็นชำระ 1,500 บาทจนกว่าจะเสร็จค่ะ'
 ];
+var CRM_DENTURE_IMG = 'https://toy113.github.io/Bangluang/assets/denture-care.jpg?v=1';
 var CRM_ELASTIC_IMG = 'https://toy113.github.io/Bangluang/assets/elastic-colors.jpg?v=1';
 // สรุปการมาจัดฟัน: รายการ + ราคา (0 บาท = ฟรี) + ยอดรวม (+ ข้อควรปฏิบัติ)
 function crmOrthoVisitMessage_(s, v) {
