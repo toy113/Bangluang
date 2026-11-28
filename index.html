@@ -5439,9 +5439,19 @@ function renderHome(){
   document.getElementById('statTotal').textContent = fmt(total);
   document.getElementById('statShare').textContent = fmt(shareDoc);
   // ค่า X-Ray: นับเฉพาะรายการที่เป็น X-Ray อย่างเดียว (ถ้าคิดเงินรวมกับหัตถการอื่นในครั้งเดียว แยกราคาไม่ได้จึงไม่นับ)
-  const xrayTreats = treats.filter(t=>isXrayOnly(t.proc));
-  document.getElementById('statXray').textContent = fmt(xrayTreats.reduce((s,t)=>s+totalPrice(t),0));
-  document.getElementById('statXraySub').textContent = 'บาท · '+xrayTreats.length+' ราย';
+  // + รายการที่เอ็กซเรย์รวมกับหัตถการอื่น: ใช้ราคาแยกรายการ (procPrices) ส่วนที่เป็น X-Ray
+  let xrAmt=0, xrN=0, xrUnk=0;
+  treats.forEach(t=>{
+    const parts=String(t.proc||'').split(',').map(x=>x.trim()).filter(Boolean);
+    if(!parts.some(_isXrayProc)) return;
+    xrN++;
+    if(isXrayOnly(t.proc)){ xrAmt+=totalPrice(t); return; }
+    let pp={}; try{ pp = typeof t.procPrices==='string' ? JSON.parse(t.procPrices||'{}') : (t.procPrices||{}); }catch(e){}
+    const a=parts.filter(_isXrayProc).reduce((n,x)=>n+(+pp[x]||0),0);
+    if(a>0) xrAmt+=a; else xrUnk++;
+  });
+  document.getElementById('statXray').textContent = fmt(xrAmt);
+  document.getElementById('statXraySub').textContent = 'บาท · '+xrN+' ราย'+(xrUnk?' ('+xrUnk+' รายไม่ได้แยกราคา)':'');
   document.getElementById('sumCash').textContent = fmt(cash);
   document.getElementById('sumTransfer').textContent = fmt(transfer);
   document.getElementById('sumSSO').textContent = fmt(sso);
