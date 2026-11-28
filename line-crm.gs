@@ -2056,7 +2056,7 @@ function crmFaqRow_(l, r, hi, note, img) {
   var left = [{ type: 'text', text: l, size: 'sm', weight: 'bold', color: '#2b1026', wrap: true }];
   if (note) left.push({ type: 'text', text: note, size: 'xxs', color: '#888888', wrap: true });
   var row = { type: 'box', layout: 'horizontal', paddingTop: '8px', paddingBottom: '8px', paddingStart: '8px', paddingEnd: '8px', cornerRadius: '8px', contents: [
-    { type: 'box', layout: 'vertical', flex: 1, contents: left, gravity: 'center', margin: img ? 'md' : 'none' },
+    { type: 'box', layout: 'vertical', flex: 1, contents: left, justifyContent: 'center', margin: img ? 'md' : 'none' },
     { type: 'text', text: r, size: 'sm', weight: 'bold', color: '#6B2D5E', align: 'end', flex: 0, wrap: false, gravity: 'center' }] };
   if (hi) row.backgroundColor = '#FFF4D6';
   if (img) {   // รูปเล็กหน้าแถว · แตะเพื่อดูภาพใหญ่
