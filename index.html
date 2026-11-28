@@ -10335,17 +10335,14 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
       padding:7px;color:var(--text-light);cursor:pointer;font-size:12px;font-weight:600;margin-top:2px;">
       ＋ เพิ่ม slot</button>`;
   let slotsSection = '';
-  if(has2Docs){
-    const doc1 = docList[0], doc2 = docList[1];
-    const slots1 = slotsForDoc(doc1), slots2 = slotsForDoc(doc2);
+  if(has2Docs){   // 2 หมอขึ้นไป → คอลัมน์ละหมอ ครบทุกคน
+    const _cols = `grid-template-columns:repeat(${docList.length},minmax(0,1fr));`;
     slotsSection = `
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:4px;">
-        <div style="font-size:11px;font-weight:800;color:${docColor(doc1)};padding:3px 6px;background:${docColor(doc1)}15;border-radius:6px;text-align:center;">${doc1}</div>
-        <div style="font-size:11px;font-weight:800;color:${docColor(doc2)};padding:3px 6px;background:${docColor(doc2)}15;border-radius:6px;text-align:center;">${doc2}</div>
+      <div style="display:grid;${_cols}gap:8px;margin-bottom:4px;">
+        ${docList.map(d=>`<div style="font-size:11px;font-weight:800;color:${docColor(d)};padding:3px 6px;background:${docColor(d)}15;border-radius:6px;text-align:center;">${d}</div>`).join('')}
       </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start;">
-        <div>${slots1.map(s=>slotCard(s,doc1)).join('')}${addSlotBtn(doc1)}${schBatchBtn_(date,doc1)}</div>
-        <div>${slots2.map(s=>slotCard(s,doc2)).join('')}${addSlotBtn(doc2)}${schBatchBtn_(date,doc2)}</div>
+      <div style="display:grid;${_cols}gap:8px;align-items:start;">
+        ${docList.map(d=>`<div>${slotsForDoc(d).map(sl=>slotCard(sl,d)).join('')}${addSlotBtn(d)}${schBatchBtn_(date,d)}</div>`).join('')}
       </div>`;
   } else {
     const slots0 = slotsForDoc('');
@@ -10357,7 +10354,7 @@ function buildDayColumn(date, DAY_NAMES_TH, DAY_BG_PASTEL, DAY_FG_PASTEL){
     `<span style="display:inline-block;background:rgba(255,255,255,0.3);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;color:${fg};margin:1px;">${name.replace('หมอ','')}<button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schPrintDoc(this.dataset.d,this.dataset.doc)" title="พิมพ์ตารางนัดของหมอคนนี้ทันที (ในหน้าพิมพ์เลือก บันทึกเป็น PDF ได้)" style="margin-left:5px;background:#6B2D5E;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">🖨 พิมพ์</button><button data-d="${date}" data-doc="${String(name).replace(/"/g,'&quot;')}" onclick="event.stopPropagation();schExportLine(this.dataset.d,this.dataset.doc)" title="คัดลอกตารางนัดของหมอคนนี้ แล้วไปวางในไลน์เอง" style="margin-left:3px;background:#06C755;color:#fff;border:none;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;cursor:pointer;">📋 คัดลอก</button></span>`
   ).join('');
 
-  const colWidth = has2Docs ? 680 : 340;
+  const colWidth = has2Docs ? 340*docList.length : 340;
   return `<div style="width:${colWidth}px;flex-shrink:0;">
     <!-- Day header -->
     <div style="background:${bg};border-radius:12px;padding:10px 14px;margin-bottom:10px;${borderStyle}">
