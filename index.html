@@ -4897,7 +4897,7 @@ function crmViewLinks(){
     <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;"><div id="crmQr" style="width:132px;height:132px;"></div>
       <div style="flex:1;min-width:220px;"><div class="crm-pre" style="max-height:none;">${crmEsc(d.liffUrl||'')}?tab=next</div>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="crm-btn" onclick="crmCopy('${crmEsc(d.liffUrl||'')}?tab=next')">คัดลอกลิงก์</button></div>
-        <p class="crm-muted" style="margin-top:6px;">ตั้งโต๊ะที่เคาน์เตอร์ให้คนไข้สแกน → กรอกชื่อ+เบอร์ → พนักงานกดอนุมัติด้านล่าง (HN+เบอร์ตรง = ผูกอัตโนมัติ)</p></div></div></div>
+        <p class="crm-muted" style="margin-top:6px;">หน้าคนไข้ใน LINE (ดูนัด/ประวัติ) · <b>คนไข้ผูกบัญชีเองไม่ได้แล้ว</b> — ผูกให้ที่การ์ด "👋 เพิ่มเพื่อนแล้วแต่ยังไม่ผูก" (คนใหม่) หรือ "➕ ครอบครัว" ในการ์ด "ผูกแล้ว"</p></div></div></div>
   <div class="crm-card"><h4>⏳ รออนุมัติ (${pending.length})</h4><div class="crm-list">${pending.map(l=>`<div class="crm-item"><div class="main">
       <div class="nm">LINE: ${crmEsc(l.displayName||'-')} → ${l.hn?crmEsc(l.patName)+' <span class="crm-muted">HN '+crmEsc(l.hn)+'</span>':'<span class="crm-chip o">ไม่พบในรายชื่อ</span>'}</div>
       <div class="meta">กรอกมา: ${crmEsc(l.inputName||'')} · ${crmEsc(l.inputPhone||'')} · ${crmEsc(crmTs(l.createdAt))}</div>

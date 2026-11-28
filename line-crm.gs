@@ -2334,6 +2334,9 @@ function crmBindCore_(p) {
   var u = crmVerifyUser_(p);
   if (!u) return { ok: false, error: 'auth' };
   if (String(p.consent) !== '1') return { ok: false, error: 'consent_required' };
+  // คนไข้ผูกบัญชีเองไม่ได้แล้ว — เจ้าหน้าที่เป็นผู้ผูกให้เท่านั้น (Toy 28 พ.ย. 69) · ผูก HN เดิมซ้ำ = ตอบตกลงเฉยๆ
+  if (crmRead_('links').some(function (l) { return l.lineUserId === u.userId && l.status === 'active' && crmHN_(l.hn) === crmHN_(p.hn); })) return { ok: true, status: 'active', matched: 1 };
+  return { ok: false, error: 'staff_only' };
   var phone = crmPhone_(p.phone), name = crmNameKey_(p.name), code = String(p.code || '').trim().toUpperCase();
   var hnIn = crmHN_(p.hn);                       // ผูกด้วย HN (6-7 หลัก เช่น 65-9385 หรือ 65-12345) + เบอร์โทร
   if (phone.length < 9 || !hnIn) return { ok: false, error: 'missing_field' };   // บังคับ HN + เบอร์เสมอ (ไม่รับผูกด้วยชื่อ)
