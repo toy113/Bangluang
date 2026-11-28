@@ -280,7 +280,7 @@
       <a href="https://maps.google.com/?cid=13261426560365025658" onclick="return openExt(this.href)"><span>📍</span>แผนที่</a>
     </div>
     <div class="open-line" id="openLine"></div>
-    <button class="settings-link" onclick="toggleSettings()">⚙️ ตั้งค่าการแจ้งเตือน</button>
+    <button class="settings-link" onclick="toggleSettings()">⚙️ ตั้งค่าการแจ้งเตือน · ผูกบัญชีลูก/ครอบครัว</button>
     <div class="card hide" id="settingsCard" style="margin-top:8px;">
       <div class="toggle"><span>รับข้อความแจ้งเตือนนัด ใบนัด และสรุปการรักษาทาง LINE</span>
         <label class="switch"><input type="checkbox" id="consentToggle" onchange="consentChange(this)"><span class="slider"></span></label></div>
@@ -288,6 +288,8 @@
         <div class="acts"><button style="background:#fff;border:1px solid #E6B8B3;color:#8B1E14;" onclick="consentOffConfirm(true)">ปิดการแจ้งเตือน</button><button style="background:var(--wine);border:none;color:#fff;" onclick="consentOffConfirm(false)">ไม่ปิด</button></div>
       </div>
       <p class="muted" id="pendingNote" style="margin-top:8px;display:none;"></p>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="openBind(true)">➕ ผูกบัญชีลูก / คนในครอบครัว</button>
+      <p class="muted" style="margin-top:4px;">LINE เดียวรับข้อความของทุกคนในครอบครัวได้ · ใช้ HN และเบอร์ที่ให้ไว้กับคลินิกของคนนั้น</p>
     </div>
   </div>
 </div>
@@ -741,6 +743,8 @@ async function saveBday(){
 function openBind(isAdd){
   $('bindTitle').textContent = isAdd ? 'ผูกบัญชีคนไข้เพิ่ม' : 'ผูกบัญชีคนไข้';
   $('bindCancel').classList.toggle('hide', !isAdd);
+  $('b-hn').value=''; $('b-phone').value=''; $('b-consent').checked=false;
+  $('bindTitle').nextElementSibling.textContent = isAdd ? 'เพิ่มลูกหรือคนในครอบครัว ใส่ HN และเบอร์ที่ให้ไว้กับคลินิกของคนนั้น (เด็กส่วนใหญ่ใช้เบอร์ผู้ปกครอง)' : 'เพื่อดูนัดครั้งถัดไป ประวัติการรักษา และรับแจ้งเตือนนัดทาง LINE';
   $('bindErr').style.display = 'none';
   bdInit();
   show('bindView');
