@@ -2149,7 +2149,8 @@ function crmFaqPriceMessage_(s, t, forced) {
     g.rows.forEach(function (r) { body.push(crmFaqRow_(r[0], r[1], false, r[2], r[3])); if (r[4]) body.push(crmFaqStrip_(r[4])); });
     if (g.note) body.push({ type: 'text', text: '💡 ' + g.note, size: 'xs', color: '#7a5200', wrap: true, margin: 'sm' });
   });
-  var ssoRel = groups.some(function (g) { return /ขูด|อุด|ถอน/.test(g.title); });
+  var ssoRel = groups.some(function (g) { return /ขูด|อุด|ถอน/.test(g.title); })
+    && !/น้ำนม|ลูก|เด็ก/.test(String(t || ''));   // ถามเรื่องฟันเด็ก → ซ่อนกล่องประกันสังคม (เด็กส่วนใหญ่ไม่มีสิทธิ)
   if (ssoRel) {
     body.push({ type: 'separator', margin: 'lg', color: '#eeeeee' });
     body.push({ type: 'box', layout: 'vertical', backgroundColor: '#E7F6EC', cornerRadius: '10px', paddingAll: '10px', margin: 'md', contents: [
