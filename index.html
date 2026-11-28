@@ -3222,7 +3222,7 @@ async function doVerify(){
   try{ r = await authApi({ action:'authLogin', id, pin }); }catch(e){}
   _verifying = false;
   if(!r){ errEl.textContent = '⚠️ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่'; currentPin=''; updatePinDots2(); return; }
-  if(!r.ok){ errEl.textContent = r.error==='locked' ? '🔒 ใส่ PIN ผิดหลายครั้ง ระบบล็อก 15 นาที' : '❌ PIN ไม่ถูกต้อง ลองใหม่'; currentPin=''; updatePinDots2(); return; }
+  if(!r.ok){ errEl.textContent = r.error==='locked' ? '🔒 ใส่ PIN ผิดหลายครั้ง ระบบล็อกชั่วคราว (15 นาที · ผิดซ้ำมากล็อก 24 ชม. ติดต่อผู้จัดการ)' : '❌ PIN ไม่ถูกต้อง ลองใหม่'; currentPin=''; updatePinDots2(); return; }
   let userData = null;
   if(id==='manager'){ userData = MANAGER; isManager = true; }
   else { const doc = doctors.find(d=>d.id===id) || DOCTORS_DATA.find(d=>d.id===id); if(doc){ userData = doc; isManager = (doc.id==='toy'); } }
@@ -4533,7 +4533,7 @@ function crmAskDoctor(title, onOk){
     if(!doc || !/^\d{4}$/.test(pin)){ showToast('PIN ไม่ถูกต้อง','error'); return; }
     authApi({ action:'authCheckPin', id:doc.id, pin }).then(r=>{
       if(r && r.ok){ crmCloseModal(); onOk(name); }
-      else showToast(r && r.error==='locked' ? 'ใส่ PIN ผิดหลายครั้ง ล็อก 15 นาที' : 'PIN ไม่ถูกต้อง','error');
+      else showToast(r && r.error==='locked' ? 'ใส่ PIN ผิดหลายครั้ง ล็อกชั่วคราว (15 นาที · ผิดซ้ำมากล็อก 24 ชม.)' : 'PIN ไม่ถูกต้อง','error');
     }).catch(()=>showToast('ตรวจ PIN ไม่สำเร็จ (เชื่อมต่อไม่ได้)','error'));
   };
   setTimeout(()=>{ const p=document.getElementById('crmDocPin'); if(p) p.focus(); }, 50);

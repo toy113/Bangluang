@@ -479,7 +479,29 @@ function authFail_(id) {
   var c = CacheService.getScriptCache(), k = 'authf_' + id, n = (+c.get(k) || 0) + 1;
   c.put(k, String(n), 900); return n;
 }
-function authLocked_(id) { return (+CacheService.getScriptCache().get('authf_' + id) || 0) >= 5; }
+function authLocked_(id) {
+  var c = CacheService.getScriptCache();
+  if (c.get('authlock24_' + id)) return true;   // ผิดเกิน 10 ครั้งใน 24 ชม. → ล็อก 24 ชม.
+  return (+c.get('authf_' + id) || 0) >= 5;
+}
+// นับ PIN ผิดสะสม 24 ชม. · ครบ 10 → ล็อกบัญชีนั้น 24 ชม. + แจ้ง LINE แอดมิน (กันสุ่มเดา PIN 4 หลัก)
+function authFailDaily_(id) {
+  var c = CacheService.getScriptCache(), k = 'authfd_' + id, n = (+c.get(k) || 0) + 1;
+  c.put(k, String(n), 86400);
+  if (n >= 10 && !c.get('authlock24_' + id)) {
+    c.put('authlock24_' + id, '1', 86400);
+    authAlert_('🔐 แจ้งเตือนความปลอดภัย\nมีการกรอก PIN ผิด ' + n + ' ครั้งใน 24 ชม. ของบัญชี "' + id + '"\nระบบล็อกบัญชีนี้ 24 ชม. แล้ว\nถ้าไม่ใช่พนักงานกรอกผิดเอง อาจมีคนพยายามเดา PIN — แนะนำให้เปลี่ยน PIN บัญชีนี้\nปลดล็อกก่อนเวลา: รัน authUnlock("' + id + '") ใน Apps Script');
+  }
+  return n;
+}
+function authAlert_(text) {
+  try {
+    if (typeof crmSettings_ !== 'function' || typeof crmApi_ !== 'function') return;
+    var s = crmSettings_(), ids = String(s.staffNotifyIds || '').split(/[\s,]+/).filter(String);
+    ids.forEach(function (to) { crmApi_('post', '/v2/bot/message/push', { to: to, messages: [{ type: 'text', text: text }] }); });
+  } catch (e) { Logger.log('authAlert_ ' + e); }
+}
+function authUnlock(id) { var c = CacheService.getScriptCache(); ['authlock24_', 'authfd_', 'authf_'].forEach(function (p) { c.remove(p + id); }); Logger.log('ปลดล็อก ' + id + ' แล้ว'); }
 // ตรวจ PIN: คืน 'ok' | 'legacy' (ถูกแต่เป็น PIN เดิม ต้องเปลี่ยน) | 'bad' | 'locked'
 function authCheck_(id, pin) {
   id = String(id || ''); pin = String(pin || '');
@@ -490,8 +512,8 @@ function authCheck_(id, pin) {
   if (stored) res = (stored === authHashPin_(id, pin)) ? 'ok' : 'bad';
   else if (PropertiesService.getScriptProperties().getProperty('AUTH_LEGACY_OFF') === '1') res = 'bad';   // ปิด PIN เดิมแล้ว: บัญชีที่ยังไม่ตั้ง PIN ใหม่เข้าไม่ได้ (ผู้จัดการตั้งให้ได้)
   else { var lg = authLegacyPin_(id); res = (lg && pin === lg) ? 'legacy' : 'bad'; }
-  if (res === 'bad') { if (authFail_(id) >= 5) return 'locked'; }
-  else CacheService.getScriptCache().remove('authf_' + id);
+  if (res === 'bad') { var nd = authFailDaily_(id); if (authFail_(id) >= 5 || nd >= 10) return 'locked'; }
+  else { CacheService.getScriptCache().remove('authf_' + id); CacheService.getScriptCache().remove('authfd_' + id); }
   return res;
 }
 function authSetPin_(id, pin) {
