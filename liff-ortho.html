@@ -280,7 +280,7 @@
       <a href="https://maps.google.com/?cid=13261426560365025658" onclick="return openExt(this.href)"><span>📍</span>แผนที่</a>
     </div>
     <div class="open-line" id="openLine"></div>
-    <button class="settings-link" onclick="toggleSettings()">⚙️ ตั้งค่าการแจ้งเตือน · ผูกบัญชีลูก/ครอบครัว</button>
+    <button class="settings-link" onclick="toggleSettings()">⚙️ ตั้งค่าการแจ้งเตือน</button>
     <div class="card hide" id="settingsCard" style="margin-top:8px;">
       <div class="toggle"><span>รับข้อความแจ้งเตือนนัด ใบนัด และสรุปการรักษาทาง LINE</span>
         <label class="switch"><input type="checkbox" id="consentToggle" onchange="consentChange(this)"><span class="slider"></span></label></div>
@@ -288,8 +288,7 @@
         <div class="acts"><button style="background:#fff;border:1px solid #E6B8B3;color:#8B1E14;" onclick="consentOffConfirm(true)">ปิดการแจ้งเตือน</button><button style="background:var(--wine);border:none;color:#fff;" onclick="consentOffConfirm(false)">ไม่ปิด</button></div>
       </div>
       <p class="muted" id="pendingNote" style="margin-top:8px;display:none;"></p>
-      <button class="btn btn-ghost" style="margin-top:10px;" onclick="openBind(true)">➕ ผูกบัญชีลูก / คนในครอบครัว</button>
-      <p class="muted" style="margin-top:4px;">LINE เดียวรับข้อความของทุกคนในครอบครัวได้ · ใช้ HN และเบอร์ที่ให้ไว้กับคลินิกของคนนั้น</p>
+      <p class="muted" style="margin-top:10px;">ต้องการรับข้อความของลูกหรือคนในครอบครัวใน LINE นี้ด้วย แจ้งเจ้าหน้าที่ที่คลินิกได้ค่ะ</p>
     </div>
   </div>
 </div>
@@ -761,7 +760,7 @@ async function doBind(){
   try{
     const d = await api({ action:'crmBind', hn, phone, bday, consent: '1' });
     if(d && d.ok){ if(d.portal && d.portal.ok){ DATA = d.portal; cacheSave(DATA); const ph = DATA.clinicPhone || CLINIC_PHONE_FALLBACK, tl = 'tel:'+ph.replace(/[^0-9+]/g,''); ['bindPhone','pendCall','mainCall'].forEach(id=>{ $(id).href = tl; }); $('bindPhone').textContent = ph; render(); } else { await load(); } }
-    else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : d && d.error==='too_many' ? 'กรอกข้อมูลไม่ตรงหลายครั้งแล้ว กรุณาโทรหาคลินิก หรือลองใหม่ภายหลังค่ะ' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
+    else err(d && d.error==='auth' ? 'ยืนยันตัวตนกับ LINE ไม่สำเร็จ ลองปิดแล้วเปิดใหม่' : d && d.error==='family_staff_only' ? 'บัญชี LINE นี้ผูกกับคนไข้แล้ว หากต้องการเพิ่มลูกหรือคนในครอบครัว กรุณาแจ้งเจ้าหน้าที่ที่คลินิกค่ะ' : d && d.error==='too_many' ? 'กรอกข้อมูลไม่ตรงหลายครั้งแล้ว กรุณาโทรหาคลินิก หรือลองใหม่ภายหลังค่ะ' : 'ผูกบัญชีไม่สำเร็จ กรุณาลองใหม่หรือโทรหาคลินิก');
   }catch(e){ console.error(e); err('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); }
   $('bindBtn').disabled = false; $('bindBtn').textContent = 'ผูกบัญชี';
 }

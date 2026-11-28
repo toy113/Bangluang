@@ -2365,6 +2365,8 @@ function crmBindCore_(p) {
       }
     }
     var existing = crmRead_('links').filter(function (l) { return l.lineUserId === u.userId; });
+    // ผูกครอบครัว (HN ที่ 2 ขึ้นไปใน LINE เดียว) ทำได้เฉพาะพนักงาน — คนไข้ผูกเองได้แค่ HN แรก (Toy 28 พ.ย. 69)
+    if (existing.some(function (l) { return l.status === 'active' && crmHN_(l.hn) && crmHN_(l.hn) !== hnIn; })) return { ok: false, error: 'family_staff_only' };
     var auto = matches.length >= 1;   // HN + เบอร์ตรงทะเบียนคนไข้ = ผูกอัตโนมัติเสมอ (ไม่ตรง → รอพนักงาน)
     // คนไข้จัดฟัน: HN + เบอร์ตรงทะเบียนคนไข้ และ HN นั้นมีแถวในชีตจัดฟัน → อนุมัติอัตโนมัติ (ข้อมูลจัดฟันขึ้นทันทีโดยไม่ต้องรอพนักงาน)
     var orthoAuto = {};
