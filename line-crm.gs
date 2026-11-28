@@ -517,6 +517,8 @@ function crmSeedTemplates_() {
       text: 'คำแนะนำหลังผ่าตัดฝังรากฟันเทียม 🦷\n1. กัดผ้าก๊อซให้แน่นประมาณ 1 ชั่วโมง\n2. วันนี้ห้ามบ้วนน้ำแรง ห้ามดูดหลอด\n3. ประคบเย็นด้านนอกแก้ม ครั้งละ 10–15 นาที ในวันแรก\n4. รับประทานยาตามที่ทันตแพทย์สั่งให้ครบ\n5. ทานอาหารอ่อน ห้ามเคี้ยวด้านที่ฝังราก งดสูบบุหรี่\n6. แปรงฟันได้ แต่บริเวณแผลให้ทำความสะอาดเบา ๆ\n7. มาตามนัดตัดไหมและตรวจติดตาม\nถ้าเลือดออกมากไม่หยุด ปวดหรือบวมมากขึ้น มีไข้ ให้ติดต่อคลินิกทันที' },
     { id: 'tpl_extraction', name: 'ถอนฟัน', procKeywords: 'ถอนฟัน', priority: 3, followupEnabled: 'TRUE', opts: surgOpts,
       text: 'คำแนะนำหลังถอนฟัน 🦷\n1. กัดผ้าก๊อซให้แน่นประมาณ 1 ชั่วโมง แล้วคายทิ้ง ถ้ายังมีเลือดซึมให้กัดชิ้นใหม่อีก 30–60 นาที\n2. วันนี้ห้ามบ้วนน้ำ บ้วนปากแรง หรือดูดหลอด เพื่อไม่ให้ลิ่มเลือดหลุด\n3. น้ำลายปนเลือดเล็กน้อยในวันแรกถือว่าปกติ\n4. ประคบเย็นด้านนอกแก้ม ครั้งละ 10–15 นาที ในวันแรก\n5. รับประทานยาตามที่ทันตแพทย์สั่ง\n6. ทานอาหารอ่อน ไม่ร้อนจัด เคี้ยวอีกด้าน งดสูบบุหรี่และแอลกอฮอล์อย่างน้อย 24 ชั่วโมง\n7. แปรงฟันได้ตามปกติ แต่เลี่ยงบริเวณแผลในวันแรก\nถ้าเลือดออกมากไม่หยุด ปวดหรือบวมมากขึ้น มีไข้ ให้ติดต่อคลินิกทันที' },
+    { id: 'tpl_extraction_kid', name: 'ถอนฟันน้ำนม', procKeywords: 'ถอนฟันน้ำนม', priority: 3, followupEnabled: 'TRUE', opts: surgOpts, approved: true,
+      text: 'คำแนะนำหลังถอนฟันน้ำนม 🦷 (สำหรับคุณพ่อคุณแม่)\n1. ให้น้องกัดผ้าก๊อซให้แน่นประมาณ 30–60 นาที แล้วคายทิ้ง ถ้ายังมีเลือดซึมให้กัดผ้าก๊อซสะอาดชิ้นใหม่อีก 30 นาที\n2. ยาชาจะอยู่ประมาณ 2–3 ชั่วโมง ช่วงนี้ดูแลไม่ให้น้องกัด ดูด หรือเการิมฝีปาก แก้ม ลิ้น เพราะเด็กมักเผลอกัดจนเป็นแผล\n3. รอให้หายชาก่อนกินอาหาร วันนี้กินอาหารอ่อน ไม่ร้อน เคี้ยวอีกข้าง ของเย็น เช่น ไอศกรีม กินได้\n4. วันนี้งดบ้วนน้ำแรง ๆ งดดูดหลอด และอย่าให้น้องเอานิ้วหรือลิ้นแตะแผล\n5. แปรงฟันซี่อื่นได้ตามปกติ เลี่ยงบริเวณแผลในวันแรก\n6. น้ำลายมีเลือดปนเล็กน้อยในวันแรกถือว่าปกติ\n7. ถ้าปวด ให้ยาแก้ปวดตามที่ทันตแพทย์สั่ง หรือตามขนาดบนฉลากสำหรับน้ำหนักตัวของน้อง\nถ้าเลือดออกไม่หยุดแม้กัดผ้าก๊อซแน่นแล้ว ปวดหรือบวมมากขึ้น มีไข้ หรือริมฝีปาก/แก้มเป็นแผลจากการเผลอกัด ให้ติดต่อคลินิกทันที' },
     { id: 'tpl_endo', name: 'รักษารากฟัน', procKeywords: 'รักษารากฟัน', priority: 4, followupEnabled: 'TRUE', opts: endoOpts,
       text: 'คำแนะนำหลังรักษารากฟัน 🦷\n1. ระหว่างรักษามีวัสดุอุดชั่วคราว ห้ามเคี้ยวของแข็งหรือเหนียวด้านนั้น\n2. อาจเจ็บเวลากัดได้ 2–3 วัน รับประทานยาตามที่ทันตแพทย์สั่ง\n3. แปรงฟันได้ตามปกติ\n4. มาตามนัดให้ครบทุกครั้ง การหยุดกลางคันทำให้ฟันติดเชื้อซ้ำได้\n5. หลังรักษาเสร็จ ฟันจะเปราะกว่าเดิม ทันตแพทย์มักแนะนำให้ทำครอบฟัน\nถ้าวัสดุอุดหลุด ปวดมาก หรือบวม ให้ติดต่อคลินิก' },
     { id: 'tpl_crown', name: 'ครอบฟัน / Onlay', procKeywords: 'ครอบฟัน,ใส่ครอบฟัน,crown', priority: 5, followupEnabled: 'TRUE', opts: crownOpts,
@@ -568,7 +570,7 @@ function crmSeedTemplates_() {
     if (crmFind_(existing, 'id', t.id)) return;
     add.push({ id: t.id, name: t.name, procKeywords: t.procKeywords, priority: t.priority, aftercareText: t.text,
       followupEnabled: t.followupEnabled, followupQuestion: Q, followupOptions: JSON.stringify(t.opts),
-      status: 'draft', version: 1, approvedBy: '', approvedAt: '', updatedBy: 'ระบบ (ร่างเริ่มต้น)', updatedAt: crmNow_() });
+      status: t.approved ? 'approved' : 'draft', version: 1, approvedBy: t.approved ? 'Toy (สั่งเพิ่ม 28 พ.ย. 69)' : '', approvedAt: t.approved ? crmNow_() : '', updatedBy: 'ระบบ (ร่างเริ่มต้น)', updatedAt: crmNow_() });
   });
   crmAppendMany_('templates', add);
   return add.length;
@@ -578,7 +580,9 @@ function crmTemplatesFor_(proc, templates) {
   templates.forEach(function (t) {
     if (t.status !== 'approved') return;
     var kws = crmSplitList_(t.procKeywords);
-    var hit = items.some(function (it) { return kws.some(function (k) { return it.toLowerCase().indexOf(k.toLowerCase()) !== -1; }); });
+    var hit = items.some(function (it) {
+      if (t.id === 'tpl_extraction' && /ถอนฟันน้ำนม/.test(it) && templates.some(function (x) { return x.id === 'tpl_extraction_kid' && x.status === 'approved'; })) return false;   // ถอนฟันน้ำนม → ใช้แม่แบบเด็กแทน
+      return kws.some(function (k) { return it.toLowerCase().indexOf(k.toLowerCase()) !== -1; }); });
     if (hit) out.push(t);
   });
   out.sort(function (a, b) { return (+a.priority || 99) - (+b.priority || 99); });
@@ -1445,7 +1449,8 @@ var CRM_DENTURE_IMG = 'https://toy113.github.io/Bangluang/assets/denture-care.jp
 var CRM_ENDO_IMG = 'https://toy113.github.io/Bangluang/assets/endo-steps.jpg?v=1';
 /* รูปแนบท้ายการ์ดสรุปการรักษา ตามรายการ */
 var CRM_RECEIPT_IMGS_ = [
-  { re: /ถอนฟัน|ผ่าฟันคุด/, cap: '🖼️ ดูแลตัวเองหลังถอนฟัน', url: 'https://toy113.github.io/Bangluang/assets/extraction-care.jpg?v=1', ar: '1024:1536' },
+  { re: /ถอนฟันน้ำนม/, cap: '🖼️ ดูแลน้องหลังถอนฟันน้ำนม', url: 'https://toy113.github.io/Bangluang/assets/primary-extraction-care.jpg?v=1', ar: '1024:1536' },
+  { re: /ถอนฟัน(?!น้ำนม)|ผ่าฟันคุด/, cap: '🖼️ ดูแลตัวเองหลังถอนฟัน', url: 'https://toy113.github.io/Bangluang/assets/extraction-care.jpg?v=1', ar: '1024:1536' },
   { re: /รากฟันเทียม/, cap: '🖼️ ดูแลหลังฝังรากฟันเทียม', url: 'https://toy113.github.io/Bangluang/assets/implant-care.jpg?v=1', ar: '1024:1536' },
   { re: /รักษารากฟัน|คลองราก/, cap: '🖼️ ขั้นตอนรักษารากฟัน', url: CRM_ENDO_IMG, ar: '1024:1536' },
   { re: /ใส่ฟันปลอม/, cap: '🖼️ วิธีทำความสะอาดฟันเทียม', url: CRM_DENTURE_IMG, ar: '1200:854' },
@@ -2166,7 +2171,7 @@ var CRM_PRICE_PICK_PREFIX = 'ราคา';
 /* การ์ดที่แอดมินเลือกส่งเองได้ (ปุ่ม 📤 ส่งการ์ด ใน LINE CRM) */
 function crmManualCardName_(card) {
   if (card === 'ortho') return 'รายละเอียดจัดฟัน'; if (card === 'orthomove') return 'ย้ายเคสจัดฟัน'; if (card === 'pricemenu') return 'เมนูราคา'; if (card === 'sso') return 'ประกันสังคม';
-  if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง'; if (card === 'retainer') return 'ดูแลรีเทนเนอร์'; if (card === 'denture') return 'ดูแลฟันเทียม'; if (card === 'endo') return 'ขั้นตอนรักษารากฟัน'; if (card === 'extract') return 'ดูแลหลังถอนฟัน'; if (card === 'implant') return 'ดูแลหลังฝังรากฟันเทียม'; if (card === 'diastema') return 'ดูแลหลังอุดปิดช่องว่าง';
+  if (card === 'hours') return 'เวลาทำการ + นำทาง'; if (card === 'care') return 'ข้อควรปฏิบัติ + สียาง'; if (card === 'retainer') return 'ดูแลรีเทนเนอร์'; if (card === 'denture') return 'ดูแลฟันเทียม'; if (card === 'endo') return 'ขั้นตอนรักษารากฟัน'; if (card === 'extract') return 'ดูแลหลังถอนฟัน'; if (card === 'extractkid') return 'ดูแลหลังถอนฟันน้ำนม'; if (card === 'implant') return 'ดูแลหลังฝังรากฟันเทียม'; if (card === 'diastema') return 'ดูแลหลังอุดปิดช่องว่าง';
   if (card.indexOf('price:') === 0) return 'ราคา' + card.slice(6); return card;
 }
 function crmManualCard_(s, card, uid) {
@@ -2176,10 +2181,11 @@ function crmManualCard_(s, card, uid) {
   if (card === 'sso') return crmFaqSsoMessage_(s, uid);
   if (card === 'hours') return crmWelcome_(s);
   if (card === 'retainer') return { type: 'flex', altText: 'วิธีใส่และดูแลรีเทนเนอร์', contents: crmBubble_(s, '😬 วิธีใส่และดูแลรีเทนเนอร์', '', crmRetainerRows_(), [crmInquiryNote_(s)]) };
-  if (card === 'extract') return { type: 'flex', altText: 'ดูแลตัวเองหลังถอนฟัน', contents: crmBubble_(s, '🦷 ดูแลตัวเองหลังถอนฟัน', '', crmImgRows_(CRM_RECEIPT_IMGS_[0]), [crmInquiryNote_(s)]) };
-  if (card === 'implant') return { type: 'flex', altText: 'ดูแลหลังฝังรากฟันเทียม', contents: crmBubble_(s, '🦷 ดูแลหลังฝังรากฟันเทียม', '', crmImgRows_(CRM_RECEIPT_IMGS_[1]), [crmInquiryNote_(s)]) };
-  if (card === 'diastema') return { type: 'flex', altText: 'การดูแลหลังอุดปิดช่องว่างฟันหน้า', contents: crmBubble_(s, '✨ ดูแลหลังอุดปิดช่องว่างฟันหน้า', '', crmImgRows_(CRM_RECEIPT_IMGS_[5]), [crmInquiryNote_(s)]) };
-  if (card === 'endo') return { type: 'flex', altText: 'ขั้นตอนรักษารากฟัน', contents: crmBubble_(s, '🦷 รักษารากฟัน ทำอะไรบ้าง', '', crmImgRows_(CRM_RECEIPT_IMGS_[2]), [crmInquiryNote_(s)]) };
+  if (card === 'extractkid') return { type: 'flex', altText: 'ดูแลน้องหลังถอนฟันน้ำนม', contents: crmBubble_(s, '🧒 ดูแลน้องหลังถอนฟันน้ำนม', '', crmImgRows_(CRM_RECEIPT_IMGS_[0]), [crmInquiryNote_(s)]) };
+  if (card === 'extract') return { type: 'flex', altText: 'ดูแลตัวเองหลังถอนฟัน', contents: crmBubble_(s, '🦷 ดูแลตัวเองหลังถอนฟัน', '', crmImgRows_(CRM_RECEIPT_IMGS_[1]), [crmInquiryNote_(s)]) };
+  if (card === 'implant') return { type: 'flex', altText: 'ดูแลหลังฝังรากฟันเทียม', contents: crmBubble_(s, '🦷 ดูแลหลังฝังรากฟันเทียม', '', crmImgRows_(CRM_RECEIPT_IMGS_[2]), [crmInquiryNote_(s)]) };
+  if (card === 'diastema') return { type: 'flex', altText: 'การดูแลหลังอุดปิดช่องว่างฟันหน้า', contents: crmBubble_(s, '✨ ดูแลหลังอุดปิดช่องว่างฟันหน้า', '', crmImgRows_(CRM_RECEIPT_IMGS_[6]), [crmInquiryNote_(s)]) };
+  if (card === 'endo') return { type: 'flex', altText: 'ขั้นตอนรักษารากฟัน', contents: crmBubble_(s, '🦷 รักษารากฟัน ทำอะไรบ้าง', '', crmImgRows_(CRM_RECEIPT_IMGS_[3]), [crmInquiryNote_(s)]) };
   if (card === 'denture') return { type: 'flex', altText: 'วิธีทำความสะอาดฟันเทียม', contents: crmBubble_(s, '🦷 วิธีทำความสะอาดฟันเทียม', '', [{ type: 'text', text: 'แตะรูปเพื่อดูภาพใหญ่', size: 'xs', color: '#7A6B78', wrap: true }, { type: 'image', url: CRM_DENTURE_IMG, size: 'full', aspectRatio: '1200:854', aspectMode: 'fit', margin: 'sm', action: { type: 'uri', label: 'ดูภาพ', uri: CRM_DENTURE_IMG } }], [crmInquiryNote_(s)]) };
   if (card === 'care') {
     var rows = CRM_ORTHO_CARE_.map(function (t, i) { return { type: 'text', text: (i + 1) + '. ' + t, wrap: true, size: 'sm', color: '#1A0A17' }; });
@@ -2523,7 +2529,7 @@ function crmDashboard_() {
   var quota = null; try { quota = crmQuota_(); } catch (e) {}
   try {   // แม่แบบใหม่ที่เพิ่มในโค้ด (เช่น เคลือบฟลูออไรด์) → สร้างเป็นร่างให้เองครั้งเดียวต่อรุ่น ไม่ต้องรัน crmSetup
     var _pr = PropertiesService.getScriptProperties();
-    if (_pr.getProperty('CRM_TPL_SEED_VER') !== '3') { crmSeedTemplates_(); _pr.setProperty('CRM_TPL_SEED_VER', '3'); }
+    if (_pr.getProperty('CRM_TPL_SEED_VER') !== '4') { crmSeedTemplates_(); _pr.setProperty('CRM_TPL_SEED_VER', '4'); }
   } catch (eSeed) {}
   var links = crmRead_('links'), orthoAll = crmReadByName_('ortho'), followersAll = crmRead_('followers');
   return { ok: true, caps: { orthoTreat: true, confirmOne: true, followerDelete: true }, settings: s, templates: strip(crmRead_('templates')), tasks: strip(tasks),
